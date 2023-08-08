@@ -1,5 +1,5 @@
 {
-  "name": "rogues-gallery",
+  "name": "lexicon",
   "version-string": "1",
   "homepage": "",
   "license": "MIT",
@@ -8,5 +8,6 @@
     "spdlog",
     "tomlplusplus",
     "boost-regex"
-  ]
+  ],
+  "builtin-baseline": "223d33be7d3ec6c3d64381ca37f501b8c87dda6a"
 }
