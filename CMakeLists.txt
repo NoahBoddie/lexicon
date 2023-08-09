@@ -170,7 +170,7 @@ target_link_libraries(
 		#Boost::boost_regex
 )
 
-
+add_compile_options(/Zc:preprocessor /permissive-)
 target_compile_options(
 		${PROJECT_NAME}
 		PUBLIC
