@@ -119,6 +119,8 @@ namespace LEX
 		}
 	};
 	
+
+
 	//Unordered if I can. Gonna re order and tend to later.
 	//std::map<ObjectID, Hierarchy*> TEMP(hierarchyMap);
 
