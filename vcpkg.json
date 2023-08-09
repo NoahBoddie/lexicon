@@ -1,7 +1,7 @@
 {
   "name": "lexicon",
   "version-string": "1",
-  "homepage": "",
+  "homepage": "https://github.com/Ryan-rsm-McKenzie/AutoTOML",
   "license": "MIT",
   "dependencies": [
     "fmt",
