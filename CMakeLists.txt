@@ -173,7 +173,7 @@ target_link_libraries(
 add_compile_options(/Zc:preprocessor /permissive-)
 target_compile_options(
 		${PROJECT_NAME}
-		PUBLIC
+		${PUBLIC_ACCESS}
 			#/sdl	# Enable Additional Security Checks
 			#/utf-8	# Set Source and Executable character sets to UTF-8
 			#/Zi	# Debug Information Format
