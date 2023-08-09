@@ -120,19 +120,21 @@ namespace LEX
 	};
 	
 	//Unordered if I can. Gonna re order and tend to later.
-	std::map<ObjectID, Hierarchy*> TEMP(hierarchyMap);
+	//std::map<ObjectID, Hierarchy*> TEMP(hierarchyMap);
 
 	std::map<std::string, ObjectID> typeNameMap;
 
 	bool operator >> (ObjectID a_lhs, ObjectID a_rhs)
 	{
+		return false;
+
 		if (a_lhs.IsArray() != a_rhs.IsArray())
 			return false;
 
-		Hierarchy* l_type = temp_hierarchyMap[a_lhs];
-		Hierarchy* r_type = temp_hierarchyMap[a_rhs];
+		//Hierarchy* l_type = temp_hierarchyMap[a_lhs];
+		//Hierarchy* r_type = temp_hierarchyMap[a_rhs];
 
-		return l_type->CanConvertTo(r_type);
+		//return l_type->CanConvertTo(r_type);
 	}
 
 
