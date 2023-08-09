@@ -178,7 +178,7 @@ target_compile_options(
 			#/utf-8	# Set Source and Executable character sets to UTF-8
 			#/Zi	# Debug Information Format
 
-			#/permissive-	# Standards conformance
+			/permissive-	# Standards conformance
 
 			#/Zc:alignedNew	# C++17 over-aligned allocation
 			#/Zc:auto	# Deduce Variable Type
