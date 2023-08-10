@@ -163,7 +163,7 @@ target_include_directories(
 target_link_libraries(
 	${PROJECT_NAME}
 	${PRIVATE_ACCESS}
-		RoguesGallery::RoguesGallery
+		#RoguesGallery::RoguesGallery
 		fmt::fmt
 		spdlog::spdlog
 		tomlplusplus::tomlplusplus
