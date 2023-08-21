@@ -11,35 +11,65 @@ namespace LEX::Impl
 		return {};
 	}
 
-	struct Compiler : public ProcessContext
+
+	Script* temp_GetScript(std::string name)
 	{
-		std::string_view _context;
+		return nullptr;
+	}
 
-		//The idea is that being shown this, I can have the individual parse module be the thing to describe what the parse module is
-		// additional thoughts, if I can connect this to a stack allocated object that basically is just a parse module and the previous parse module,
-		// kinda like a linked list but shitty and loose, I can have access to all other parsers that have been used.
-		//ParseModule* context;
+	Script* temp_CreateScript(std::string name)
+	{
+		return nullptr;
+	}
 
-		ProcessChain* contextChain;
+	struct Project_;
+	struct Script_;
 
-		std::string_view GetContext() override
-		{
-			return _context;
-		}
+	struct CompileModule;
+
+	//I might template this
+	struct CompileHandler
+	{
+	public:
+		static void AddModule(CompilerModule* mdl);
+
+
+
+		static GENERIC_ARRAY(CompilerModule*) GetModuleList();
+
+		//Not sure if I actually want this
+		static CompilerModule* GetModuleByName(std::string_view);
+
+	private:
+		static void _CheckSort();
+
+
+		//Not sure if I really want one list for this, maybe when requesting the depth I'll pull out only ones of a certain depth
+		inline static GENERIC_ARRAY(CompilerModule*) _moduleList;
+		inline static bool _sorted = true;
+
+	};
+
+	//should be paired with a string
+	enum struct CompileResult
+	{
+		Success,
+		Tentive,
+		//Failures
+	};
+
+	struct Compiler;
+
+	using CompileFunc = void(Record&, Compiler*);
+
+	//inline std::map<ExpressionType, CompileFunc*> TEMP(compileMap);
+
+	struct Compiler
+	{
 		//Memory would be nice here. The memory will probably be records. I can treat the numbers as
 		// numbers, and the strings as names/strings, and have them able to have hierarchy and such.
 		// only trival data goes here though, stuff that I'll be fine with being erased once everything dies
 		// which it will and should, because the compiler will start and stop a lot.
-
-
-		//*Ok so I thought I'd need to do order, but seeing as this does everything in parts, I don't need this.
-		//constexpr static ExpressionType expressionOrder[]
-		//{
-		//	ExpressionType::Function
-		//	ExpressionType::Function
-		//};
-		//constexpr static size_t orderSize = sizeof(decltype(expressionOrder));
-
 
 
 
@@ -75,14 +105,45 @@ namespace LEX::Impl
 		//So here's the last thing. Linkage, is what handles the most of this compiling stuff, but once when all forms of linkage have happened, it will do it 
 		// immediately.
 
-		Script* source = nullptr;
+
+
+		//May be the only thing I need.
+		Environment* _environment = nullptr;
+
+		void SetEnvironment(Environment* env)
+		{
+			_environment = env;
+		}
+
+
 		//The parser here should walk through very similarly to how the other streams do (though, this isn't a stream you walk through really).
 
 
 		void croak(std::string msg) {
-			//don't care so much about this.
-			//throw new ParsingError(msg + " (" + line + ":" + col + ")");
+			//This croak needs to come with a few other things, like what record is actually being used.
+			// There's a situation where I can have an "outer croak" which bails to CompileExpression, then compile expression outputs what record it is,
+			// and just have an "inner" one that takes a specific non header record to be more specific.
 			throw CompilingError("temp");
+		}
+
+
+
+	private:
+
+		//This is basically the idea.
+		void _CompileExpression(Record& ast)
+		{
+			//Temp compile map is quelled for right now.
+			/*
+			auto it = temp_compileMap.find(ast.EXPRESSION().type);
+			
+			if (temp_compileMap.end() != it) {
+				it->second(ast, this);
+			}
+			else {
+				throw CompilingError("No function for that expression type");
+			}
+			//*/
 		}
 
 		void _CompileStatement(Record& statement)
@@ -97,84 +158,73 @@ namespace LEX::Impl
 
 			get_switch(statement.EXPRESSION().type)
 			{
-			case ExpressionType::Function:
-			case ExpressionType::Variable:
-			case ExpressionType::Inline:
-				CompileExpression(statement, source, switch_value);
+			case ExpressionType::Script:
+				throw CompilingError("cant be script");
+
+			case ExpressionType::Header:
+				throw CompilingError("literally non-functional wtf");
+
+			case ExpressionType::Project:
+			//case ExpressionType::Directive:
+				//These types are skipped over, not really used here.
 				return;
-			default:
-				throw CompilingError("invalid statement");
+
 			}
-		}
 
-		void _SetScriptEvironment(std::string name)
-		{
-
-		}
-
-		void _CreateScriptEvironment(std::string name)
-		{
-			//Should confirm no other script environment exists
-			// If so, send error, if not, create and SetScriptEnvironment
-
-			Script* script_environ = nullptr;
-			source = script_environ;
-			//_SetScriptEnvironment(name);
+			_CompileExpression(statement);
 		}
 
 
-		void _CompileScript(Record& top)
+	public:
+
+
+
+		//The idea of these 2 core ideas is that Compile script is looping against all the children, while compile just compiles it to the one environment.
+		// It would be like submitting a function or a property to the thing.
+		//They'll also need to be static and catch failure.
+
+		//Later, this will need just need the script, not both this and the environment.
+		void CompileScript(Record& top, Script* script)
 		{
 			if (top.GetEnum<Expression>().type != ExpressionType::Script)
 				throw CompilingError("not script expression");
 
-			//Search for script
+			//Confirm script and record are indeed in association.
 
-			_CreateScriptEvironment(top.GetTag());
+
+			SetEnvironment(script);
+		
+
+			for (auto& child : top.GetChildren()) {
+				_CompileStatement(child);
+			}
 		}
 
+		//So there's the concept where it has to be compiled as a script, and one where it just compiles it to an environment.
+		// Compile to environment means the script already exists
 
-		void Compile(Record& topLevel)
+		void CompileComponent(Record& top, Environment* env)
 		{
-			//Unsure if I want to copy for this.
 
-			//Compile has a few different modes
-			// if the toplevel record is detected, it will attempt to create an evironment, and then will store it.
-			// should it try to compile anything else, it will get it's grandparent record, and attempt to get the environment.
-			// it not being a script or not having a grandparent record is fine.
+			SetEnvironment(env);
 
-
-			//Check if script.
-			// If script script, check for environment. if exists, throw error. if not create.
-
-			//If not script, get grandparent, get environment to search.
-
-			//Then, for both ends, put it through a switch of recognized top level ExpressionTypes, and compile them. If not recognized, throw an error.
-			//The very first thing that has to be used is directives, but this should only be if components no longer do linking, because otherwise such a
-			// process must be saved for post linking. Just wont worry about that right now.
-
-			//Unsure if I'll actually do this, because that would mean someone is adding new scripts.
-			//bool post_link = false;
-
-			if (topLevel.GetEnum<Expression>().type == ExpressionType::Script) {
-				_CreateScriptEvironment(topLevel.GetTag());
-
-				auto& children = topLevel.GetChildren();
-
-				for (auto& child : children) {
-					_CompileStatement(child);
-				}
+			get_switch(top.EXPRESSION().type)
+			{
+			case ExpressionType::Project:
+				throw CompilingError("cant be project");
 			}
-			else {
-				Record* grandpa = topLevel.GetGrandParent();
 
-				//it's allowed to not have a top level script grandparent record, it just won't access anything automatically other than commons
-				if (grandpa && grandpa->GetEnum<Expression>().type == ExpressionType::Script) {
-					_SetScriptEvironment(topLevel.GetTag());
-				}
 
-				_CompileStatement(topLevel);
-			}
+			_CompileStatement(top);
 		}
+
+		
+	};
+
+
+
+	struct Compiler__
+	{
+		//void Compile()
 	};
 }
