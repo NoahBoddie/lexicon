@@ -312,8 +312,10 @@ namespace LEX::Impl
 			if (target) {//Unsure of, but basically if this is a nested 
 				//At this point we know that what it is has to be a type (but I may want to condition that), so we edit the first child of target
 				// to be typename
-					
-				target->GetFront()->EXPRESSION().type = ExpressionType::Typename;
+				
+				//Not sure why I'm getting the front,this doesn't work if it has no children.
+				//target->GetFront()->EXPRESSION().type = ExpressionType::Typename;
+				target->EXPRESSION().type = ExpressionType::Typename;
 
 				//I'm doing this to make a place for type name, might be wrong actually.
 				//return parser->CreateExpression(parser->next(), ExpressionType::Variable, Record{ "type", ExpressionType::Total, *target });
