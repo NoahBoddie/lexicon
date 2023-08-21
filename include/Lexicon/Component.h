@@ -14,6 +14,7 @@ namespace LEX
 		Coroutine,
 		GlobalVariable,
 		//Prototype,
+		//Needs the space for the environment bunch.
 	};
 
 	ENUM(ComponentFlags, uint8_t)
@@ -86,6 +87,8 @@ namespace LEX
 		//std::map<Component*, LinkingData> _linkerContainer{};
 		inline static std::map<Component*, LinkerFlags> _linkerContainer{};
 
+		inline static std::map<Component*, std::vector<Component*>> _dependencyContainer{};
+
 		//This is used later on to signify that if All flags have been done, linkage doesn't have to wait.
 		inline static LinkerFlags _linkCheckFlags = LinkerFlags::None;
 
@@ -97,6 +100,11 @@ namespace LEX
 		void AttemptCompleteValidation() const;
 
 	protected:
+		void ClearDependency();
+		void AddDependency(Component* component);
+		void RemoveDependency(Component* component);
+		bool IsDependent(Component* component);
+
 
 		void AttemptValidation() const;
 
@@ -111,7 +119,7 @@ namespace LEX
 
 
 
-		ComponentType GetComponentType() const override;
+		ComponentType GetComponentType() const { return _type; }
  
 		bool IsValid() const override;
 
@@ -190,7 +198,7 @@ namespace LEX
 		void CheckLinkValidation();
 
 	public:
-		//Feel like I wanna move this.
+		//Feel like I wanna move this. Should likely befriend its factory instead.
 		Component() = default;
 		Component(const Component&) = delete;
 		Component(const Component&&) = delete;
