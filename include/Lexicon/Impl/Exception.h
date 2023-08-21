@@ -2,6 +2,8 @@
 
 namespace LEX
 {
+	//TODO: Work throw location into the exceptions "source_location a_loc = source_location::current()"
+
 
 	//TODO: Move Basic Error to somewhere that's not here.
 	struct Error : public std::exception
@@ -31,6 +33,12 @@ namespace LEX
 		
 		CompilingError(std::string what) : Error{ what } {}
 		CompilingError(const char* what) : Error{ what } {}
+	};
+
+	struct EnvironmentError : public CompilingError
+	{
+		EnvironmentError(std::string what) : CompilingError{ what } {}
+		EnvironmentError(const char* what) : CompilingError{ what } {}
 	};
 
 
