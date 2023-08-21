@@ -7,6 +7,7 @@ namespace LEX::Impl
 	{
 		Script,
 		Project,
+		Directive,
 		Number,
 		Integer,
 		String,
