@@ -17,6 +17,8 @@
 #include "Lexicon/Impl/ParserTest.h"
 
 
+#include "Compiler.h"
+
 
 
 //This is a test space for this. I'd like to move it to a more fitting location.

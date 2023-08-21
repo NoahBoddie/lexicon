@@ -7,6 +7,8 @@ namespace LEX::Impl
 {
 	struct Operand
 	{
+		//TODO: Operand is allowed to be bigger now, I will attempt to pack more value into, this is because
+		// this is no longer (entirely) used as a part of instruction, and instead is used to set the data of instructions.
 		//make some constructors for registers and such. PROBABLY best to make them a static function. More descriptive.
 		Operand() = default;
 
