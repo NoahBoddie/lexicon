@@ -4,6 +4,57 @@
 
 namespace LEX
 {
+
+	void Component::ClearDependency()
+	{
+		_dependencyContainer.erase(this);
+	}
+
+	void Component::AddDependency(Component* component)
+	{
+		if (component)
+		{
+			if (auto it = _dependencyContainer.find(this); _dependencyContainer.end() != it)
+			{
+				auto& list = it->second;
+
+				if (auto res = std::find(list.begin(), list.end(), component); list.end() != res) {
+					list.push_back(component);
+				}
+			}
+		}
+	}
+
+	void Component::RemoveDependency(Component* component)
+	{
+		if (auto it = _dependencyContainer.find(this); _dependencyContainer.end() != it)
+		{
+			auto& list = it->second;
+			
+			auto res = std::find(list.begin(), list.end(), component);
+
+			list.erase(res);
+		}
+	}
+
+	bool Component::IsDependent(Component* component)
+	{
+		if (component)
+		{
+			if (auto it = _dependencyContainer.find(this); _dependencyContainer.end() != it)
+			{
+				auto& list = it->second;
+
+				auto res = std::find(list.begin(), list.end(), component);
+
+				return list.end() != res;
+			}
+		}
+
+		return false;
+	}
+
+
 	void Component::AttemptCompleteValidation() const
 	{
 		if (IsForcedInvalid() == true || IsPartiallyValid() == false)
@@ -67,10 +118,6 @@ namespace LEX
 	}
 
 
-
-
-
-	ComponentType Component::GetComponentType() const { return _type; }
  
 	bool Component::IsValid() const { return (_flags & ComponentFlags::ValidationFlags) == ComponentFlags::ValidateComplete; }
 
