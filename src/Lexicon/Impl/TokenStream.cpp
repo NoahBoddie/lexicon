@@ -125,9 +125,15 @@ namespace LEX::Impl
 		if (input.eof() == true)
 			return {};
 
+
+
 		//I don't need to use peek because peek is used to preserve the first character to when making a string.
 		// but the string is already made, so peek is basically useless.
 		RecordData data = input.next();
+
+		if (!data)
+			croak("Empty string requested for use");
+
 
 		if (SetIfToken(data, TokenType::Boolean) == true)
 			return data;
