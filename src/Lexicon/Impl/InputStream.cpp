@@ -99,7 +99,8 @@ namespace LEX::Impl
 	bool InputStream::eof() {
 		//Adding on this this with peek
 		//return *_current == '\0' && !_peek;
-		return _current == _end && !_peek;
+		//return _current == _end && !_peek;
+		return _current == _end && _peek;
 	}
 
 	void InputStream::croak(std::string msg) {
