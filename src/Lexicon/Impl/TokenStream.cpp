@@ -93,7 +93,7 @@ namespace LEX::Impl
 
 		case TokenType::Operator:
 			//Checks for strings.
-			return _Search(token, "*", "/", "-", "+");
+			return _Search(token, "*", "/", "-", "+", "=");
 
 		case TokenType::Inline:
 			//Inlined language utilization is the only thing that will ever have these built into itself
@@ -156,7 +156,7 @@ namespace LEX::Impl
 		if (SetIfToken(data, TokenType::Inline) == true)
 			return data;
 
-		croak("Unidentified token detected");
+		croak(std::format("Tokenizing: Unidentified token '{}' detected", data.GetTag()));
 
 		return {};
 	}
