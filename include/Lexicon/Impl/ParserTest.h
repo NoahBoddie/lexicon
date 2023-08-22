@@ -4,7 +4,7 @@
 
 namespace LEX::Impl
 {
-	//ENCHAIN::ABAC
+	//ENCHAIN::ABACCC
 
 
 	//Effectively all this abomination exists solely so it's some what automatic to add things.
@@ -678,11 +678,11 @@ namespace LEX::Impl
 			//target->EmplaceChildren(Record{ "params", ExpressionType::Total, parser->Delimited("(", ")", ",", _delegate) });
 
 			//Ensures that the proper token is there.
-			parser->SkipType(TokenType::Punctuation, "{");
+			//parser->SkipType(TokenType::Punctuation, "{");
+			//target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->ParseExpression() });
+			//parser->SkipType(TokenType::Punctuation, "}");
 
-			target->EmplaceChildren(Record{ "code", ExpressionType::Total, parser->ParseExpression() });
-
-			parser->SkipType(TokenType::Punctuation, "}");
+			target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->Delimited("{", "}", ";", [=](auto, auto) { return parser->ParseExpression(); }) });
 
 			return *target;
 		}
