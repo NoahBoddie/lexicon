@@ -155,7 +155,7 @@ namespace LEX::Impl
 		//TODO:Fix Format #1
 		//TokenToString
 		if (IsType(type, str) == true) tokenizer.next();
-		else tokenizer.croak("expecting type, got wrong type");//std::format("Expecting {}: \"{}\"", TokenToString(type, false), str));
+		else tokenizer.croak(std::format("Expecting {}, recieved {} from \"{}\"", TokenToString(type, false), TokenToString(tokenizer.peek().TOKEN().type, false), str));
 	}
 
 
