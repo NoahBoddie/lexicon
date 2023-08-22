@@ -166,7 +166,7 @@ namespace LEX::Impl
 
 		bool first = true;
 		SkipType(TokenType::Punctuation, start);
-		while (!tokenizer.eof() == false) {
+		while (tokenizer.eof() == false) {
 			if (IsType(TokenType::Punctuation, stop) == true) break;
 			if (first) first = false; else SkipType(TokenType::Punctuation, separator);
 			if (IsType(TokenType::Punctuation, stop) == true) break;
