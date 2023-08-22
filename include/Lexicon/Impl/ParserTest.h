@@ -614,7 +614,7 @@ namespace LEX::Impl
 
 
 			//The target needs to exist, else croak.
-			if (!target) {
+			if (!target) {//This bit is pretty much not possible. But still gonna keep.
 				parser->croak("Expected identifier before scriptname punctuation (may be dev error)");
 			}
 			else if (target->EXPRESSION().type != ExpressionType::VarDeclare) {
