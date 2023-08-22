@@ -48,6 +48,11 @@ namespace LEX::Impl
 		if (boost::regex_search(it, end, what, _regex) == true) {
 			auto result = RecordData{ std::string(what[0]), Token { _column, _line} };
 
+
+			if (what[0].length() == 0)
+				croak(std::format("empty string found in parse results {}", std::string(it, end)));
+
+
 			if (&it == &_current) {
 				Iterator new_it = what[0].second;
 				_CalcColumnLine(new_it, _column, _line);
