@@ -270,7 +270,7 @@ namespace LEX
 
 
 
-		Project* TEMP(shared) = nullptr;
+		Project* shared = nullptr;
 
 		struct EnvironComponent : public Component
 		{
@@ -299,7 +299,7 @@ namespace LEX
 
 			static Project* GetShared()
 			{
-				return temp_shared;
+				return shared;
 			}
 			virtual Script* GetCommons()
 			{
