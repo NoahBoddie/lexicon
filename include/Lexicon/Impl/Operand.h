@@ -1,100 +1,66 @@
 #pragma once
-
+#include "Target.h"
 #include "Lexicon/Impl/Register.h"
 #include "Lexicon/Impl/OperandType.h"
 
-namespace LEX::Impl
+
+#include "RuntimeVariable.h"
+
+namespace LEX
 {
-	struct Operand
+	class Runtime;
+
+	struct Operand : public Target
 	{
-		//TODO: Operand is allowed to be bigger now, I will attempt to pack more value into, this is because
-		// this is no longer (entirely) used as a part of instruction, and instead is used to set the data of instructions.
-		//make some constructors for registers and such. PROBABLY best to make them a static function. More descriptive.
-		Operand() = default;
-
-		Operand(OperandType type, size_t value)
+		//private;
+		Target& data()
 		{
-			SetType(type);
-			Set(value);
+			return *this;
 		}
 
-		Operand(Register i) : Operand{ OperandType::Register, (uint32_t)i }
-		{}
+		OperandType type{ OperandType::Total };
 
-		//This is the only one that stays explicitly like this.
-		template <class T>
-		static Operand CreateAs(T i)
+
+		template <typename T, OperandType Type>
+		T _InternalGet()
 		{
-			Operand t{};
-			t.Force(i);
-			return t;
+			//This entire thing needs
+			if constexpr ((uint8_t)Type < (uint8_t)OperandType::Invalid)
+			{
+				if (Type == type)
+				{
+					T result{};
+					//Error message should probably be different here.
+					if (data().Get<Type>(result) == true)
+						return result;
+				}
+				else 
+				{
+					return _InternalGet<T, OperandType((uint8_t)Type + 1)>();
+				}
+
+			}
+
+			//error here.
+			RGL_LOG(critical, "BEEG ERRAR");
+
+			throw nullptr;
 		}
 
-
-
-		OperandType GetType()
-		{
-
-
-			auto t = m_value >> m_lastByte;
-
-			return static_cast<OperandType>(t);
-		}
-
-		void SetType(OperandType type)
-		{
-			m_value &= ~(m_shift << m_lastByte);
-
-			auto t = static_cast<decltype(m_value)>(type) << m_lastByte;
-
-			m_value |= t;
-		}
-
-		operator size_t()
-		{
-			return m_value;
-		}
-
-		//The difference between Get and As is that get removes the last byte, As is a reinterpret cast of it's value. 
-		// Get is when it cares about the target type, As is when it ignores it.
-
-		template <class T = size_t>
+		template <typename T>
 		T Get()
 		{
-
-			auto out = m_value & ~(m_shift << m_lastByte);
-
-			return static_cast<T>(out);
+			return _InternalGet<T, OperandType::None>();
 		}
 
+		RuntimeVariable GetVariable(Runtime* runtime);
 
-		template <class T = size_t>
-		void Set(T v)
+
+		constexpr Operand() = default;
+		constexpr Operand(Target d, OperandType t) : Target{ d }, type{ t }
 		{
 
-			auto in = static_cast<size_t>(v) & ~(m_shift << m_lastByte);
-
-			m_value = in | ((size_t)GetType() << m_lastByte);
 		}
-
-		template <class T = size_t>
-		void Force(T v)
-		{
-			static_assert(std::is_pointer_v<T>);
-			m_value = reinterpret_cast<size_t>(v);
-		}
-
-
-		template <class T>
-		T As()
-		{
-			return static_cast<T>(m_value);
-		}
-
-		size_t m_value = max_value<size_t>;
-	private:
-		//The point of the last byte in bit form
-		constexpr static size_t m_shift = 0xFF;
-		constexpr static auto m_lastByte = (sizeof(decltype(m_value)) * 8) - 8;
 	};
+
 }

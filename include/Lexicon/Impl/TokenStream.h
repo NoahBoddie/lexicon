@@ -32,6 +32,9 @@ namespace LEX::Impl
 		}
 
 		//Searches a list of strings and sees if they're equal to the token string
+		bool _Search(const std::string& token, std::vector<std::string> strings);
+
+		//Searches a list of strings and sees if they're equal to the token string
 		template<std::convertible_to<std::string>... StringType>
 		bool _Search(const std::string& token, StringType... strs)
 		{
@@ -63,14 +66,14 @@ namespace LEX::Impl
 
 		bool eof();
 
-		void croak(std::string msg);
+		void croak(std::string msg, Token* token = nullptr);
 
 		//Both of these will likely need to be 
 
 		
 
 
-		bool IsToken(std::string& token, TokenType type);
+		bool IsToken(RecordData& token, TokenType type);
 
 		bool SetIfToken(RecordData& token, TokenType type);
 

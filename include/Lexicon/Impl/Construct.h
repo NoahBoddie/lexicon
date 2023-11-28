@@ -6,8 +6,7 @@
 
 namespace LEX
 {
-
-
+	/*
 	struct Construct
 	{
 		//Used uint32_t because it's not possible to store the max value of size_t in an Operand
@@ -71,4 +70,6 @@ namespace LEX
 
 		//Needs
 	};
+
+	//*/
 }

@@ -158,19 +158,26 @@ namespace LEX
 
 	//Just record?
 	//Should take 2 different iterators.
-
-	Component* Component::Create(Record& rec, ComponentType type)
+	/*
+	Component* Component::Create(ComponentType type, Record* rec)
 	{
 		Component* comp = ComponentFactory::Create(type);
-
+		//I would like to move this into another function called init
 		comp->_type = type;
 
-		//would i even need such a thing?
-		comp->ConstructFromRecord(rec);
-
+		if (rec)
+			comp->ConstructFromRecord(*rec);
+		else {
+			comp->CheckLinkValidation();
+		}
 		return comp;
 	}
 
+	Component* Component::Create(ComponentType type, Record& rec)
+	{
+		return Create(type, &rec);
+	}
+	//*/
 
 
 
@@ -178,12 +185,7 @@ namespace LEX
 	{
 		RGL_LOG(debug, "{}", rec.GetTag());
 
-		//begin = &(*data_view);
-
 		LoadFromRecord(rec);
-
-
-		//end = &(*data_view);
 
 		CheckLinkValidation();
 

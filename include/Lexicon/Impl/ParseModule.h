@@ -40,7 +40,7 @@ namespace LEX::Impl
 		virtual uint32_t GetPriority() const;
 
 		
-		virtual bool CanHandle(Parser* parser, Record* target) const = 0;
+		virtual bool CanHandle(Parser* parser, Record* target, bool atomic) const = 0;
 
 		virtual Record HandleToken(Parser* a_this, Record* target) = 0;
 
@@ -50,7 +50,9 @@ namespace LEX::Impl
 
 		bool HasKeyword(std::string_view str) override;
 
-	
+
+		//Controls what can be percieved as being part of a single statement when just trying to encapsulate the next valid statement
+		virtual bool IsAtomic() { return false; }
 
 
 		//This is what should be used if one wishes to access another parse module
@@ -90,16 +92,7 @@ namespace LEX::Impl
 		{
 			ParseModule* mdl = Module::GetSingleton();
 
-			_TryModule(mdl, parser, target);
-
-			Record result{};
-
-			//Try module will try to use use try module, and if it's unsuccessful, it will croak.
-			// Basically a checked ParseAtomic for specific modules.
-			//if (QueryModule<Module>(parser, result, target) == false)
-			//	parser->GetInput()->croak("Expected blank black blah blah blah");
-
-			return result;
+			return _TryModule(mdl, parser, target);
 		}
 
 		//Should actually be pure but it's defined for ease of use right now.

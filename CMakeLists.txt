@@ -30,12 +30,15 @@ find_package(tomlplusplus REQUIRED CONFIG)
 # ---- Add source files ----
 
 set(headers 
+
 include/Lexicon.h
 #include/Lexicon/Impl/LexComponent.h
 #include/Lexicon/Impl/TOMLHandler.h
 #include/Lexicon/Impl/Exception.h
 include/Lexicon/Impl/Parser.h
 include/Lexicon/Impl/ParseModule.h
+ "include/Lexicon/Impl/Field.h" "include/Lexicon/Impl/Instruction.h" "include/Lexicon/Impl/RuntimeVariable.h" "include/Lexicon/Impl/Target.h"  "include/Lexicon/Impl/InstructionType.h" "include/Lexicon/Impl/RoutineBase.h" "include/Lexicon/Impl/Solution.h" "include/Lexicon/Impl/RoutineCompiler.h" "include/Lexicon/Impl/Scope.h" "include/Lexicon/Impl/LiteralManager.h" "include/Lexicon/Impl/IVariable.h" "include/Lexicon/Impl/GlobalVariable.h" "include/Lexicon/Impl/Runtime.h" "include/Lexicon/Impl/MemberPointer.h" "include/Lexicon/Impl/OperatorType.h" "include/Lexicon/Impl/ICallableUnit.h" "include/Lexicon/Impl/Number.h"
+ "include/Lexicon/Impl/Literal.h" 
 )
 
 set(sources
@@ -47,7 +50,12 @@ src/Lexicon/Impl/ParseHandler.cpp
 src/Lexicon/Impl/ProcessContext.cpp
 src/Lexicon/Impl/InputStream.cpp
 src/Lexicon/Impl/TokenStream.cpp
+src/Lexicon/Impl/TokenHandler.cpp
 src/Lexicon/Component.cpp
+"include/Lexicon/Impl/Literal.cpp"
+include/Lexicon/Impl/LiteralManager.cpp
+ "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
+ 
 )
 
 source_group(
@@ -70,17 +78,18 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 	add_library(
 		${PROJECT_NAME}
 		#PUBLIC
+		STATIC
 		${headers}
 		${sources}
 		.clang-format
 	)
 else()
-	set(PUBLIC_ACCESS INTERFACE)
-	set(PRIVATE_ACCESS INTERFACE)
+	set(PUBLIC_ACCESS PUBLIC)
+	set(PRIVATE_ACCESS PRIVATE)
 
 	add_library(
 		${PROJECT_NAME}
-		INTERFACE
+		STATIC
 		${headers}
 		${sources}
 		.clang-format

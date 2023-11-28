@@ -4,7 +4,7 @@
 
 namespace LEX::Impl
 {
-	//ENCHAIN::ABACCCA
+	//ENCHAIN::ABACCCAA
 
 
 	//Effectively all this abomination exists solely so it's some what automatic to add things.
@@ -46,6 +46,7 @@ namespace LEX::Impl
 	
 		void InitSingleton() {}
 
+		ClassSingleton() = default;
 	private:
 
 		struct _init_class
@@ -142,20 +143,29 @@ namespace LEX::Impl
 		}
 
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			auto peek = parser->peek();
 			
+			bool req_tar = false;
+			bool has_tar = target;
+
 			switch (peek.TOKEN().type)
 			{
 			case TokenType::Boolean:
 			case TokenType::Number:
-			//case TokenType::Object:
 			case TokenType::String:
-				return true;
+				break;
+			
+			//case TokenType::Object:
+			//	req_tar = true;
+			//	break;
+
+			default: 
+				return false;
 			}
 			
-			return false;
+			return req_tar == has_tar;
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
@@ -169,7 +179,7 @@ namespace LEX::Impl
 			case TokenType::Boolean:
 			{
 				if (tag == "true" || tag == "false"){
-					return parser->CreateExpression(next, ExpressionType::Boolean);
+					return parser->CreateExpression(next, SyntaxType::Boolean);
 				}
 				else {
 					//TODO:Fix Format #5
@@ -185,7 +195,7 @@ namespace LEX::Impl
 					//Should crash if the value isn't valid.
 					auto test  = std::stof(tag);
 
-					return parser->CreateExpression(next, ExpressionType::Number);
+					return parser->CreateExpression(next, SyntaxType::Number);
 				}
 				catch (std::invalid_argument in_arg)
 				{
@@ -204,7 +214,7 @@ namespace LEX::Impl
 			case TokenType::String:{
 				//Clears the quotations.
 				ClipString(tag, 1, 1);
-				return parser->CreateExpression(next, ExpressionType::Number);
+				return parser->CreateExpression(next, SyntaxType::Number);
 			}
 
 			default:
@@ -217,7 +227,8 @@ namespace LEX::Impl
 			throw nullptr;
 		}
 
-
+		//Atomic due to object literal parser
+		bool IsAtomic() override { return true; }
 	};
 
 	//Object is shaping to function a little weird, so I'm setting the depth to be something a bit different.
@@ -230,14 +241,14 @@ namespace LEX::Impl
 		}
 
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			return parser->IsType(TokenType::Object);
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
 		{
-			if (!target || target->EXPRESSION().type != ExpressionType::Typename) {
+			if (!target || target->SYNTAX().type != SyntaxType::Typename) {
 				parser->croak("Placeholder: No type detected");
 				//Or type name detected
 			}
@@ -250,7 +261,7 @@ namespace LEX::Impl
 			//Clears the ":{" and "}" items.
 			ClipString(tag, 2, 1);
 				
-			return parser->CreateExpression(next, ExpressionType::Object, *target);
+			return parser->CreateExpression(next, SyntaxType::Object, *target);
 		}
 
 
@@ -304,28 +315,29 @@ namespace LEX::Impl
 		}
 
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			return parser->IsType(TokenType::Identifier);
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
 		{
+			//I would like to refine the conditions on this, namely I'd like it to use
 			if (target) {//Unsure of, but basically if this is a nested 
 				//At this point we know that what it is has to be a type (but I may want to condition that), so we edit the first child of target
 				// to be typename
 				
 				//Not sure why I'm getting the front,this doesn't work if it has no children.
-				//target->GetFront()->EXPRESSION().type = ExpressionType::Typename;
-				target->EXPRESSION().type = ExpressionType::Typename;
+				//target->GetFront()->SYNTAX().type = ExpressionType::Typename;
+				target->SYNTAX().type = SyntaxType::Typename;
 
 				//I'm doing this to make a place for type name, might be wrong actually.
 				//return parser->CreateExpression(parser->next(), ExpressionType::Variable, Record{ "type", ExpressionType::Total, *target });
-				return parser->CreateExpression(parser->next(), ExpressionType::VarDeclare, Record{ "type", ExpressionType::Total, *target });
+				return parser->CreateExpression(parser->next(), SyntaxType::VarDeclare, Record{ "type", SyntaxType::Total, *target });
 			}
 			else {
 				//Technically about the use, rather the declaration
-				return parser->CreateExpression(parser->next(), ExpressionType::VarUsage);
+				return parser->CreateExpression(parser->next(), SyntaxType::VarUsage);
 			}
 		}
 	};
@@ -339,7 +351,7 @@ namespace LEX::Impl
 		}
 
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 				
 			//TODO:Make using context chains easier PLEASE
@@ -350,15 +362,16 @@ namespace LEX::Impl
 
 		Record HandleToken(Parser* parser, Record* target) override
 		{
-			auto parse_func = [](Parser* _psr, Record*) -> Record
-			{
-				return _psr->ParseExpression();
-			};
+			//auto parse_func = [](Parser* _psr, Record*) -> Record
+			//{
+			//	return _psr->ParseExpression();
+			//};
 
 			//TODO:Address the type that this expression should work.
 			Record scope{};
 
-			std::vector<Record> children = parser->Delimited("{", "}", ";", parse_func);
+			//std::vector<Record> children = parser->Delimited("{", "}", ";", parse_func);
+			std::vector<Record> children = parser->Delimited("{", "}", ";", &Parser::ParseExpression);
 			if (children.size() == 0) return scope;
 			if (children.size() == 1) return children[0];
 
@@ -370,6 +383,36 @@ namespace LEX::Impl
 	};
 
 
+
+	struct LineParser : public ParseSingleton<LineParser, false>
+	{
+		//singleton, but not allowed to be registered, must be used manually.
+
+		//Not registered, no need for priority.
+
+		//Script parser cannot launch other than manually.
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override { return false; }
+
+		Record HandleToken(Parser* parser, Record* target) override
+		{
+			//might be what's used for formulas
+			Record line = parser->ParseExpression();
+
+			//script.EmplaceChild(Parser::CreateExpression(parser->project(), SyntaxType::Project));
+
+			//if (parser->eof() == true) 
+			{
+
+				//RGL_LOG(info, "tag: {}", parser->peek().GetTag());
+				//script.EmplaceChild(parser->ParseExpression());
+
+				
+			}
+
+			return line;
+		}
+	};
+
 	struct ScriptParser : public ParseSingleton<ScriptParser, false>
 	{
 		//singleton, but not allowed to be registered, must be used manually.
@@ -377,19 +420,20 @@ namespace LEX::Impl
 		//Not registered, no need for priority.
 
 		//Script parser cannot launch other than manually.
-		bool CanHandle(Parser* parser, Record* target) const override { return false; }
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override { return false; }
 
 		Record HandleToken(Parser* parser, Record* target) override
 		{
-			Record script = Parser::CreateExpression(parser->name(), ExpressionType::Script);
+			Record script = Parser::CreateExpression(parser->name(), SyntaxType::Script);
 				
-			script.EmplaceChild(Parser::CreateExpression(parser->project(), ExpressionType::Project));
+			script.EmplaceChild(Parser::CreateExpression(parser->project(), SyntaxType::Project));
 
 			while (parser->eof() == false) {
 				RGL_LOG(info, "tag: {}", parser->peek().GetTag());
 				script.EmplaceChild(parser->ParseExpression());
 
 				//I would regardless like to end this off with ";" if possible
+				//Also, this needs a function called Clear instead, where it will continuously loop until it no longer needs to skip.
 				if (parser->eof() == false) parser->SkipType(TokenType::Punctuation, ";");
 			}
 
@@ -400,6 +444,10 @@ namespace LEX::Impl
 
 	struct ScriptnameParser : public ParseSingleton<ScriptnameParser>
 	{
+		//I would actually like to revise how this works, and it's actually called the ScopeResolutionParser. Maybe, scopenameparser is better.
+		// But I would like this to be able to loop until it stops having a scope to analyze.
+
+
 		//Type name is handled by detecting the puncutation ::
 
 
@@ -409,7 +457,7 @@ namespace LEX::Impl
 		}
 
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//Can be atomic or Nested.
 			return parser->IsType(TokenType::Punctuation, "::");
@@ -418,14 +466,58 @@ namespace LEX::Impl
 		Record HandleToken(Parser* parser, Record* target) override
 		{
 			if (target) {
-				if (target->EXPRESSION().type != ExpressionType::Variable && target->EXPRESSION().type != ExpressionType::VarName)
+				if (target->SYNTAX().type != SyntaxType::Variable && target->SYNTAX().type != SyntaxType::VarName)
 					parser->croak("Expected identifier before scriptname punctuation (may be dev error)");
 
-				//Basically "Scriptname::Type Sciptname::Identifier..." shouldn't happen.
+				//Basically "Scriptname::Type Sciptname::Identifier..." shouldn't happen. This isn't entirely true however. I think I might move
+				// this into the condition so the chain is broken before it starts doing this again.
 				if (target->FindChild("type") != nullptr)
 					parser->croak("Expected identifier without type.");
+			
+			
+				target->SYNTAX().type = SyntaxType::Scopename;
 			}
 
+
+			Record result;
+			
+			bool first = true;
+
+			do
+			{
+				//Toss the "::"
+				parser->next();
+
+				if (parser->IsType(TokenType::Identifier) == false) {
+					parser->croak("Expecting Identifier after scriptname punctuation");
+				}
+
+				if (first){
+					result = parser->CreateExpression(parser->next(), SyntaxType::VarUsage);
+
+					
+					if (target) {
+						result.EmplaceChild(*target);
+					}
+					else {
+						//So if there is no target, that means it was like "::this". That means use a global specifically.
+						// However, currently there's no way to find that out if the above is the only thing present. Perhaps it should have a tag or some sort.
+					}
+				}
+				else{
+					//This is no longer the last in a line, so it isn't a var, it's a scopename.
+					result.SYNTAX().type = SyntaxType::Scopename;
+					
+					result = parser->CreateExpression(parser->next(), SyntaxType::VarUsage, result);
+				}
+				
+				
+				first = false;
+
+			} while (parser->IsType(TokenType::Punctuation, "::") == true);
+
+			return result;
+			//I'll excuse this for right now.
 			RecordData scriptname = target ? target->GetData() : parser->next();
 
 			if (parser->IsType(TokenType::Identifier) == false){
@@ -433,7 +525,8 @@ namespace LEX::Impl
 			}
 
 			//At this time, we don't know what comes next is actually a type name, could be a function. So for now, VarName
-			return parser->CreateExpression(target->GetData(), ExpressionType::Scriptname, parser->CreateExpression(parser->next(), ExpressionType::VarDeclare));
+			//THIS IS BROKEN, I'm not sure why it uses script name twice like this, but get your shit in order.
+			return parser->CreateExpression(target->GetData(), SyntaxType::Scriptname, parser->CreateExpression(scriptname, SyntaxType::VarDeclare));
 		}
 	};
 
@@ -446,21 +539,28 @@ namespace LEX::Impl
 		// so it'll search for "/isarray/" when getting the type.
 
 		//Note, these qualities
+
+
+		//This might work 2 jobs, seeing as I need the subscript parser as well, however, either way, they will both be atomic.
 	};
 
 
 	struct BinaryParser : public ParseSingleton<BinaryParser>
 	{
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//RecordData token = parser->peek();
 			
+			//If atomic, the only thing that can be accepted would be if next is an access operator.
+			if (atomic && parser->IsType(TokenType::Operator, ".") == false)
+				return false;
+
 			bool is_binary = true;
 			//Target must not be binary either, because it's not possible to have 2 binary next to each other.
 			return target && parser->IsType(TokenType::Operator) && is_binary;
 		}
 
-
+		//TODO:Binary parser needs to be able to know be atomic, but also needs to know if the next operator is "." to be considered atomic.
 		Record _HandleBinary(Parser* parser, Record left, int my_prec) {
 			//Just making pretend right now.
 			//TODO:Need to make an class to manage precedence
@@ -492,12 +592,14 @@ namespace LEX::Impl
 
 				//Used to use parse atom, be advised
 				
-				Record a_lhs = Parser::CreateExpression("left", ExpressionType::Header, { left });
+				Record a_lhs = Parser::CreateExpression("left", SyntaxType::Header, { left });
 				
-				Record a_rhs = Parser::CreateExpression("right", ExpressionType::Header, { _HandleBinary(parser, parser->ParseExpression(), his_prec) });
+				//Record a_rhs = Parser::CreateExpression("right", ExpressionType::Header, { _HandleBinary(parser, parser->ParseExpression(), his_prec) });
+				//Return to form with parse atomic.
+				Record a_rhs = Parser::CreateExpression("right", SyntaxType::Header, { _HandleBinary(parser, parser->ParseAtomic(), his_prec) });
 
 				
-				Record pivot = parser->CreateExpression(tar, ExpressionType::Binary, a_lhs, a_rhs);
+				Record pivot = parser->CreateExpression(tar, SyntaxType::Binary, a_lhs, a_rhs);
 
 				return _HandleBinary(parser, pivot, my_prec);
 			}
@@ -519,10 +621,71 @@ namespace LEX::Impl
 		}
 	};
 
+	struct AssignParser : public ParseSingleton<AssignParser>
+	{
+
+		uint32_t GetPriority() const override
+		{
+			return ModulePriority::High;
+		}
+
+
+		//The idea of this is it's supposed to handle fresh assignments that are effectively declarations.
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
+		{
+			return target && target->SYNTAX().type == SyntaxType::VarDeclare && parser->IsType(TokenType::Operator, "=");
+		}
+		
+
+
+		Record HandleToken(Parser* parser, Record* target) override
+		{
+			//First, we toss the parenthesis.
+			parser->next();
+
+			//ATOMIC USE, manual use of Binary parser expected.
+			target->EmplaceChild(Record{ "def", SyntaxType::Total, parser->ParseAtomic() });
+
+			return *target;
+		}
+
+	};
+
+
+	struct ReturnParser : public ParseSingleton<ReturnParser>
+	{
+		//Variable doesn't really seem to work name wise, as this thing works multiple jobs.
+
+
+		uint32_t GetPriority() const override
+		{
+			return ModulePriority::High;
+		}
+
+
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
+		{
+			return !target && parser->IsType(TokenType::Keyword, "return");
+		}
+
+		Record HandleToken(Parser* parser, Record* target) override
+		{
+			//If we are not currently in a function parsing issue.
+			Record ret = parser->CreateExpression(parser->next(), SyntaxType::Return);
+
+			//whatever is cycling this will get the ; statement, but we're getting the expression inside.
+			if (parser->IsType(TokenType::Punctuation, ";") == false)
+				//ret.EmplaceChildren(ParseModule::TryModule<BinaryParser>(parser, target));
+				ret.EmplaceChildren(parser->ParseExpression());
+			
+			return ret;
+		}
+	};
+
 
 	struct ParameterParser : public ParseSingleton<ParameterParser, false>
 	{
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//This should probably basically never fire unless used by name.
 			return parser->IsType(TokenType::Identifier);
@@ -543,19 +706,26 @@ namespace LEX::Impl
 		}
 		Record HandleToken(Parser* parser, Record* target) override
 		{
-			Record base;
+			Record base{ "", SyntaxType::Header };
 
 			//It will do all these in sequence, and fail should any of them, that's a parsing failure.
 
 			if (parser->IsType(TokenType::Identifier) == true) {
+				RGL_LOG(debug, "iden");
+				//Why is the
 				base = ParseModule::TryModule<VariableParser>(parser, nullptr);
+				//base = new_base;
+				//RGL_LOG(critical, "a: {}, b: {}", new_base.PrintAs<Expression>(), base.PrintAs<Expression>());
 				target = &base;
 			}
-				
+			
+			//NOT else if because both can exist.
 			if (parser->IsType(TokenType::Punctuation, "::") == true) {
+				RGL_LOG(debug, "punc");
 				base = ParseModule::TryModule<ScriptnameParser>(parser, target);
 				target = &base;
-				ParseModule::TryModule<VariableParser>(parser, target);
+				//wasn't before
+				//base = ParseModule::TryModule<VariableParser>(parser, target);
 
 			}
 
@@ -566,12 +736,14 @@ namespace LEX::Impl
 			//	ParseModule::TryModule<Array>(parser, nullptr);
 				
 
-			ParseModule::TryModule<VariableParser>(parser, target);
+			base = ParseModule::TryModule<VariableParser>(parser, target);
 
 			//Going into default evaluation, note, this is when Parameters rules of initialization become a fair bit restrictive.
 			if (parser->IsType(TokenType::Operator, "=") == true) {
-				Record def{ "default", ExpressionType::Total, ParseModule::TryModule<BinaryParser>(parser, target) };
-				base.EmplaceChildren(def);
+				RGL_LOG(debug, "def");
+				//Record def{ "default", ExpressionType::Total, ParseModule::TryModule<BinaryParser>(parser, target) };
+				//base.EmplaceChildren(def);
+				base = ParseModule::TryModule<AssignParser>(parser, target);
 			}
 
 			//If everything is here, it should be a VarDeclare Expression, with a type, qualifier, and default records denoting the respective settings.
@@ -601,11 +773,11 @@ namespace LEX::Impl
 		}
 
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//Invalid if target is not present.
 			// maybe enforce VarDeclare
-			return parser->IsType(TokenType::Punctuation, "(") && target && target->EXPRESSION().type == ExpressionType::VarDeclare;
+			return parser->IsType(TokenType::Punctuation, "(") && target && target->SYNTAX().type == SyntaxType::VarDeclare;
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
@@ -619,13 +791,13 @@ namespace LEX::Impl
 			if (!target) {//This bit is pretty much not possible. But still gonna keep.
 				parser->croak("Expected identifier before scriptname punctuation (may be dev error)");
 			}
-			else if (target->EXPRESSION().type != ExpressionType::VarDeclare) {
+			else if (target->SYNTAX().type != SyntaxType::VarDeclare) {
 				parser->croak("PLACEHOLDER, expected type name or something like that.");
 			}
 			//The target type needs to be changed to function here.
 
 
-			target->EXPRESSION().type = ExpressionType::Function;
+			target->SYNTAX().type = SyntaxType::Function;
 
 			//bool first = false;
 			#ifdef CloseOut
@@ -674,15 +846,17 @@ namespace LEX::Impl
 			// and copy type, change it's name to extends, place it on the target. and Pop it out. Before that, maybe check for other thingy mabobs.
 			// I also note that the parser module is VERY hands on, so I should use that to sort out which is using this or not.
 			// I can just have the lambda check for each thing named this after the first entry, and then cull it.
-			target->EmplaceChildren(Record{ "params", ExpressionType::Total, parser->Delimited("(", ")", ",", ParseModule::TryModule<ParameterParser>) });
+			target->EmplaceChildren(Record{ "params", SyntaxType::Total, parser->Delimited("(", ")", ",", ParseModule::TryModule<ParameterParser>) });
 			//target->EmplaceChildren(Record{ "params", ExpressionType::Total, parser->Delimited("(", ")", ",", _delegate) });
 
 			//Ensures that the proper token is there.
 			//parser->SkipType(TokenType::Punctuation, "{");
 			//target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->ParseExpression() });
 			//parser->SkipType(TokenType::Punctuation, "}");
-
-			target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->Delimited("{", "}", ";", [=](auto, auto) { return parser->ParseExpression(); }) });
+			
+			//changed to not use lambda
+			//target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->Delimited("{", "}", ";", [=](auto, auto) { return parser->ParseExpression(); }) });
+			target->EmplaceChildren(Record{ "code", SyntaxType::Header, parser->Delimited("{", "}", ";", &Parser::ParseExpression)});
 
 			return *target;
 		}
@@ -697,7 +871,7 @@ namespace LEX::Impl
 	{
 		//I may use this at some other point though.
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			return parser->IsType(TokenType::Identifier);
 		}
@@ -705,13 +879,13 @@ namespace LEX::Impl
 		Record HandleToken(Parser* parser, Record* target) override
 		{
 			//This isn
-			if (!target || target->EXPRESSION().type != ExpressionType::Variable) {
+			if (!target || target->SYNTAX().type != SyntaxType::Variable) {
 				parser->croak("Placeholder: No variable detected");
 			}
 				
 			parser->SkipType(TokenType::Punctuation, "::");
 
-			return parser->CreateExpression(target->GetData(), ExpressionType::Typename);
+			return parser->CreateExpression(target->GetData(), SyntaxType::Typename);
 		}
 	};
 
@@ -730,7 +904,7 @@ namespace LEX::Impl
 		// precedence can handle this I think, instead of just raw numbers what I can do is use
 		//
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//I can saw with a fair bit of certainty that this is not going to work well when encountering errors.
 			// The unary CanHandle needs to be far more discriminating.
@@ -791,9 +965,11 @@ namespace LEX::Impl
 				RecordData op = parser->next();
 
 				//Not a strong name to make this a header, because it's handled pretty straight forward.
-				Record body = parser->ParseExpression();
+				// Also, more likely this seeks to parse atomic
+				//Record body = parser->ParseExpression();
+				Record body = parser->ParseAtomic();
 
-				unary = parser->CreateExpression(op, ExpressionType::Unary, body);
+				unary = parser->CreateExpression(op, SyntaxType::Unary, body);
 			}
 			else
 			{
@@ -804,6 +980,7 @@ namespace LEX::Impl
 			return unary;
 		}
 
+		bool IsAtomic() override { return true; }
 	};
 
 	struct ParenthesisParser : public ParseSingleton<ParenthesisParser>
@@ -818,7 +995,7 @@ namespace LEX::Impl
 		}
 
 
-		bool CanHandle(Parser* parser, Record* target) const override
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//It will not parse nested and must be within a function statement.
 			//Disabling this for now.
@@ -844,22 +1021,14 @@ namespace LEX::Impl
 			// But I'm kinda lazy ngl
 			return !context->IsContextType("Statement");
 		}
+
+		bool IsAtomic() override { return true; }
 	};
 
 		
 
 	#ifdef Blackout
-	struct AssignParser : public ParseSingleton<AssignParser>
-	{
-		//This shouldn't expressly handle all assignments, just '='. But if it has '=' in it, it will do a jump directly to this?
-		// This doesn't work because assign will need to consume '=', which won't exist or will be consumed by binary.
-
-		//I got it, it only consumes if its nested, but if it's atomic it will only generate the left statement (without ; either).
-
-			
-		//ok so last problem is that this fucks with what binary does.
-		// So maybe, I'll just do what binary does. The idea of a single line
-	};
+	
 
 	struct QualifierParser : public ParseSingleton<QualifierParser>
 	{
@@ -872,23 +1041,31 @@ namespace LEX::Impl
 
 	};
 	#endif
+
+
 	struct CallParser : public ParseSingleton<CallParser>
 	{
-
-		bool CanHandle(Parser* parser, Record* target) const override
+		void test() {}
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//VarUsage basically means no type allowed.
-			return parser->IsType(TokenType::Punctuation, "(") && target && target->EXPRESSION().type == ExpressionType::VarUsage;
+			return parser->IsType(TokenType::Punctuation, "(") && target && target->SYNTAX().type == SyntaxType::VarUsage;
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
 		{
-			target->EXPRESSION().type = ExpressionType::Call;
-
-			target->EmplaceChildren(Record{ "args", ExpressionType::Total, parser->Delimited("(", ")", ",", [=](auto, auto) { return parser->ParseExpression(); }) });
-
+			target->SYNTAX().type = SyntaxType::Call;
+			
+			//I believe this makes header the contained object, rather than creating an expresion. Also changed to use the version that takes functions with just 1 member.
+			//target->EmplaceChildren(Record{ "args", ExpressionType::Header, parser->Delimited("(", ")", ",", [=](auto, auto) { return parser->ParseExpression(); }) });
+			auto args = Parser::CreateExpression("args", SyntaxType::Header, parser->Delimited("(", ")", ",", &Parser::ParseExpression));
+			
+			target->EmplaceChildren(args);
+			
 			return *target;
 		}
+
+		bool IsAtomic() override { return true; }
 	};
 
 

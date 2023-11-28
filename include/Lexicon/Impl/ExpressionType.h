@@ -3,7 +3,7 @@
 namespace LEX::Impl
 {
 	//Still not feeling the name. maybe statement? More broad.
-	enum struct ExpressionType
+	enum struct SyntaxType
 	{
 		Script,
 		Project,
@@ -16,11 +16,13 @@ namespace LEX::Impl
 		VarName,		//Used if something might be a variable, but could be a call.
 		Variable,		//should handle constants and variables, and when assign is detected, the difference is handled at compile time. Otherwise for comparisons don't matter.
 		Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
+		Scopename = Scriptname,//Basically is Scriptname, but static class functions might be introduced.
 		Call,
 		Function,		//Completely different than a call, this is more focused toward the declaration/definition of a function
+		Return,
 		Block,			//The declaration of a code block, a manually denoted one. Basically scopes off shit.
 		Typename,		//The type name of something. This encapsulates similar to how call will, but not on the same hierarchy of operators.
-		Inline,			//Inlined language. Can be select from TOML, JSON, etc
+		Format,			//A change in language format. Can be select from TOML, JSON, etc
 		//Operators
 		Assign,
 		Unary,
@@ -45,7 +47,13 @@ namespace LEX::Impl
 		VarUsage = Variable,
 	};
 	
-	
+
+	//The above will be ordered in such a way that I can piece out if it's an expression, statement, or belongs in a function
+	//TODO: Correction, the pivot will be called syntax. Syntax will be broken down into 3 different types. 
+	// Declarations things that create,
+	// Statements things that do
+	// and expressions things that return or are expected.
+
 	/*
 	namespace fmt
 	{
@@ -72,55 +80,60 @@ namespace LEX::Impl
 	//*/
 
 	//Unsure if I wish to inline this.
-	inline std::string_view ExpressionToString(ExpressionType t, bool cap = true)
+	inline std::string_view ExpressionToString(SyntaxType t, bool cap = true)
 	{
 		switch (t)
 		{
-			case ExpressionType::Script:
+			case SyntaxType::Script:
 				return cap ? "Script" : "Script";
-			case ExpressionType::Project:
+			case SyntaxType::Project:
 				return cap ? "Project" : "Project";
-			case ExpressionType::Number:
+			case SyntaxType::Number:
 				return cap ? "Number" : "Number";
-			case ExpressionType::Integer:
+			case SyntaxType::Integer:
 				return cap ? "Integer" : "Integer";
-			case ExpressionType::String:
+			case SyntaxType::String:
 				return cap ? "String" : "String";
-			case ExpressionType::Object:
+			case SyntaxType::Object:
 				return cap ? "Object" : "Object";
-			case ExpressionType::Boolean:
+			case SyntaxType::Boolean:
 				return cap ? "Boolean" : "Boolean";
-			case ExpressionType::VarName:
+			case SyntaxType::VarName:
 				return cap ? "VarName" : "VarName";
-			case ExpressionType::Variable:
+			case SyntaxType::Variable:
 				return cap ? "Variable" : "Variable";
-			case ExpressionType::Scriptname:
+			case SyntaxType::Scriptname:
 				return cap ? "Scriptname" : "Scriptname";
-			case ExpressionType::Call:
+			case SyntaxType::Call:
 				return cap ? "Call" : "Call";
-			case ExpressionType::Function:
+			case SyntaxType::Function:
 				return cap ? "Function" : "Function";
-			case ExpressionType::Block:
+			case SyntaxType::Block:
 				return cap ? "Block" : "Block";
-			case ExpressionType::Typename:
+			case SyntaxType::Typename:
 				return cap ? "Typename" : "Typename";
-			case ExpressionType::Inline:
-				return cap ? "Inline" : "Inline";
-			case ExpressionType::Assign:
+			case SyntaxType::Format:
+				return cap ? "Format" : "format";
+			case SyntaxType::Assign:
 				return cap ? "Assign" : "Assign";
-			case ExpressionType::Unary:
+			case SyntaxType::Unary:
 				return cap ? "Unary" : "Unary";
-			case ExpressionType::Binary:
+			case SyntaxType::Binary:
 				return cap ? "Binary" : "Binary";
-			case ExpressionType::Cast:
+			case SyntaxType::Cast:
 				return cap ? "Cast" : "Cast";
-			case ExpressionType::If:
+			case SyntaxType::If:
 				return cap ? "If" : "If";
-			case ExpressionType::While:
+			case SyntaxType::While:
 				return cap ? "While" : "While";
-			case ExpressionType::For:
+			case SyntaxType::For:
 				return cap ? "For" : "For";
+			case SyntaxType::Return:
+				return cap ? "Return" : "return";
+
+			case SyntaxType::Invalid:
+				return cap ? "Invalid" : "invalid";
 		}
-		return "Invalid";
+		return "UNNAMED";
 	}
 }

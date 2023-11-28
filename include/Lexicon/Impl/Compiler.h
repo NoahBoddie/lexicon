@@ -6,7 +6,7 @@ namespace LEX::Impl
 {
 
 	//This is basically the idea.
-	Operand CompileExpression(Record& ast, Script* script, ExpressionType type)
+	Operand CompileExpression(Record& ast, Script* script, SyntaxType type)
 	{
 		return {};
 	}
@@ -135,7 +135,7 @@ namespace LEX::Impl
 		{
 			//Temp compile map is quelled for right now.
 			/*
-			auto it = temp_compileMap.find(ast.EXPRESSION().type);
+			auto it = temp_compileMap.find(ast.SYNTAX().type);
 			
 			if (temp_compileMap.end() != it) {
 				it->second(ast, this);
@@ -156,15 +156,15 @@ namespace LEX::Impl
 			//preprocessors aren't really preprocessor and are taken in the order they're viewed in. They additionally dont
 			// leave the scope they're introduced in, unless included.
 
-			get_switch(statement.EXPRESSION().type)
+			get_switch(statement.SYNTAX().type)
 			{
-			case ExpressionType::Script:
+			case SyntaxType::Script:
 				throw CompilingError("cant be script");
 
-			case ExpressionType::Header:
+			case SyntaxType::Header:
 				throw CompilingError("literally non-functional wtf");
 
-			case ExpressionType::Project:
+			case SyntaxType::Project:
 			//case ExpressionType::Directive:
 				//These types are skipped over, not really used here.
 				return;
@@ -186,7 +186,7 @@ namespace LEX::Impl
 		//Later, this will need just need the script, not both this and the environment.
 		void CompileScript(Record& top, Script* script)
 		{
-			if (top.GetEnum<Expression>().type != ExpressionType::Script)
+			if (top.GetEnum<Syntax>().type != SyntaxType::Script)
 				throw CompilingError("not script expression");
 
 			//Confirm script and record are indeed in association.
@@ -208,9 +208,9 @@ namespace LEX::Impl
 
 			SetEnvironment(env);
 
-			get_switch(top.EXPRESSION().type)
+			get_switch(top.SYNTAX().type)
 			{
-			case ExpressionType::Project:
+			case SyntaxType::Project:
 				throw CompilingError("cant be project");
 			}
 

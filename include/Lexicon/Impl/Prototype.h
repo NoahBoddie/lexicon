@@ -7,7 +7,9 @@
 
 namespace LEX
 {
-	
+	//TODO:Remove from prototype from consideration.
+
+	/*
 	struct Prototype : public Hierarchy, public Environment
 	{
 		//As a hierarchy object, this should only have hierarch to the core object it derives from
@@ -91,5 +93,5 @@ namespace LEX
 		// it for the structs it extends.
 
 	};
-
+	//*/
 }

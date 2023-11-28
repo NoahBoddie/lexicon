@@ -33,11 +33,13 @@ namespace LEX::Impl
 		void _ExecuteModule(Record& record, Record* rec_nest, ParseModule* mdl);
 
 
-		bool _TryModule(Record& out, Record* rec_nest, ParseModule* mdl);
+		bool _TryModule(Record& out, Record* rec_nest, ParseModule* mdl, bool atomic = false);
 
 
-		bool _SearchModule(Record& out, Record* rec_nest);
+		bool _SearchModule(Record& out, Record* rec_nest, bool atomic);
 
+
+		Record _Parse(bool atomic);
 
 
 		Record _ParseTopLevel();
@@ -54,7 +56,7 @@ namespace LEX::Impl
 		RecordData prev();
 
 		bool eof();
-		void croak(std::string msg);
+		void croak(std::string msg, Token* token = nullptr);
 
 
 
@@ -62,9 +64,23 @@ namespace LEX::Impl
 
 		void SkipType(TokenType type, std::string str);
 
-
+		//Would like something called required type which fulfills the role of next and istype
 
 		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func);
+
+		//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
+		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<Record()> func)
+		{
+			return Delimited(start, stop, separator, [=](auto, auto) { return func(); });
+		}
+
+		//template <typename TClass>
+		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<Record(Parser*)> func)
+		{
+			return Delimited(start, stop, separator, [=](Parser* a1, auto) { return func(a1); });
+		}
+
+		//std::vector<Record>
 
 		void unexpected();
 
@@ -86,6 +102,33 @@ namespace LEX::Impl
 		//This is the only function that's actually required now.
 		Record ParseExpression();
 
+		Record ParseAtomic();
+		//{
+			//TODO: I need ParseAtomic back
+			// it would basically serve as a flag, but the idea would be I wouldn't start processing operators, I'd only process the next thing as much to make a singular
+			// series of tokens to make sense.
+			//It is to be noted that everywhere within the parser test this is used will need to be altered.
+
+
+			//TO handle this, I'll have a generic Parse function that switches an atomic flag on and off, and once complete sets the flag to what it was previously.
+
+
+			//In atomic mode the first modules are evaluated, but for the auxiliary set they must be set to Atomic to be able to run. So I will not be needing a new flag 
+			// for this.
+
+			//To actually handle this, it will just be a variable on search,try, etc. Most things will not be trying to parse atomically, so I'll probably mark it
+			// it with false by default.
+
+			//Things that are atomic
+			// Parenthesis
+			// Casts/Calls
+			// Objects?
+			// Unary
+
+			//return ParseExpression();
+		//}
+
+		
 
 		TokenStream* GetTokenizer();
 
@@ -97,15 +140,16 @@ namespace LEX::Impl
 		std::string project();
 
 		//Would like to seperate these from parser(steam) and move it to Parser__ (to be named Parser)
-		static Record CreateExpression(std::string str, Expression expr = ExpressionType::Header, std::vector<Record> children = {});
+		//Would also like to remove the expression from this, there's no reason for it to be.
+		static Record CreateExpression(std::string str, Syntax expr = SyntaxType::Header, std::vector<Record> children = {});
 
 		//This has no reason to be in here specifically.
-		static Record CreateExpression(RecordData data, Expression expr, std::vector<Record> children = {});
+		static Record CreateExpression(RecordData data, Syntax expr, std::vector<Record> children = {});
 
 
 
 		template<std::same_as<Record>... Rs>requires (sizeof...(Rs) != 0)
-		static Record CreateExpression(RecordData data, Expression expr, Rs... records)
+		static Record CreateExpression(RecordData data, Syntax expr, Rs... records)
 		{
 			return CreateExpression(data, expr, { records... });
 		}
@@ -117,12 +161,18 @@ namespace LEX::Impl
 		ProcessChain _init = CreateChain();//{ nullptr, nullptr, this };
 
 	public:
+		//The idea is adding to this allows things to be registered regardless of order, or skip the line.
+		// or really, anything. It's upto interpretation. But I wanted to use it for some preprocessors.
+		//std::vector<Record> persistent;
+		
+		
 		//Would like this to be private too honestly, and const when given.
 		ProcessChain* contextChain = &_init;
 
 		//Note, a statement like this would need parser memory
 		//1 < 2 > (4);
 
+		
 
 		//TODO:An init function for Parser will need to take a parsemodule instead, which sets the base for init, as 
 		// well as the entry parse module, who's carried out without consideration.
@@ -133,7 +183,7 @@ namespace LEX::Impl
 
 	struct Parser__
 	{
-		static Record CreateSyntaxTree(std::string project, std::string name, std::string text, Column column = 1, Line line = 1, ParseModule* mdl = nullptr);
+		static Record CreateSyntaxTree(std::string project, std::string name, std::string text, ParseModule* mdl = nullptr, Column column = 1, Line line = 1);
 	};
 	
 }

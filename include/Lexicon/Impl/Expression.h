@@ -5,29 +5,29 @@
 
 namespace LEX::Impl
 {
-	struct Expression
+	struct Syntax
 	{
-		ExpressionType type{ ExpressionType::Total };
+		SyntaxType type{ SyntaxType::Total };
 		Column column{ 0 };
 		Line line{ 0 };
 
 
 		std::string Print()
 		{
-			if (type == ExpressionType::Total)
-				return "Expression: Header";
+			if (type == SyntaxType::Total)
+				return "Syntax: Header";
 			else
-				return std::format("Expression: {} (col: {}/ line: {}", ExpressionToString(type), column, line);
+				return std::format("Syntax: {} (col: {}/ line: {}", ExpressionToString(type), column, line);
 		}
 
 		operator std::string() { return Print(); }
 
 
-		Expression() = default;
-		Expression(ExpressionType t) : type{ t } {}
+		Syntax() = default;
+		Syntax(SyntaxType t) : type{ t } {}
 	};
-	static_assert(sizeof(Expression) == 0x8);
+	static_assert(sizeof(Syntax) == 0x8);
 
-#define EXPRESSION() GetEnum<Expression>()
+#define SYNTAX() GetEnum<Syntax>()
 
 }

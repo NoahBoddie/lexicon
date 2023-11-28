@@ -14,8 +14,8 @@ namespace LEX::Impl
 		Identifier,
 		Keyword,
 		Operator,
-		
-		Inline,			//Used to designate the inline language statement(s) of the script. One type per script.
+		Comment,		//Not actually used, just a used in searching. Later, there can perhaps be a tooltip system where it can preserve comments.
+		Format,			//Used to designate the inline language statement(s) of the script. One type per script.
 	};
 
 

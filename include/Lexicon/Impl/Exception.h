@@ -37,8 +37,8 @@ namespace LEX
 
 	struct EnvironmentError : public CompilingError
 	{
-		EnvironmentError(std::string what) : CompilingError{ what } {}
-		EnvironmentError(const char* what) : CompilingError{ what } {}
+		EnvironmentError(std::string what) : CompilingError{ what } { logger::debug("{}", what); }
+		EnvironmentError(const char* what) : CompilingError{ what } { logger::debug("{}", what); }
 	};
 
 

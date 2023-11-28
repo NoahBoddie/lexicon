@@ -1,0 +1,381 @@
+#pragma once
+
+#include "Solution.h"
+#include "RoutineCompiler.h"//Please move this
+
+namespace LEX
+{
+
+	struct FunctionData;
+	class RoutineCompiler;
+	class RoutineCompiler;
+	class ExpressionCompiler;
+
+	class Generator;
+
+	using StatementGenerator = void(*)(RoutineCompiler*, Record&);
+	//This doesn't need an out does it
+	using ExpressionGenerator = Solution(*)(ExpressionCompiler*, Record&);//, Solution, Solution);//, Register);
+
+	
+	struct Generator : public ConstClassAlias<std::variant<Void, StatementGenerator, ExpressionGenerator>>
+	{
+		//I don't quite have the word for this yet, so I'm going to leave it. Module might be it, but dunno.
+		ALIAS_HEADER;
+
+		Solution _PostPrepFunction(RoutineCompiler* compiler, Record& target)
+		{
+			//The factory pieces seem like they need something to plug into
+
+			switch (index())
+			{
+			case 0:
+				RGL_LOG(critical, "Generator index void dumbass");
+				throw nullptr;
+
+				//I'm doing it this way because I'm tired of making source files
+			case 1:
+				std::get<StatementGenerator>(*this)(reinterpret_cast<RoutineCompiler*>(compiler), target);
+				return {};
+
+			case 2:
+				return std::get<ExpressionGenerator>(*this)(reinterpret_cast<ExpressionCompiler*>(compiler), target);
+
+			}
+
+			RGL_LOG(critical, "Generator index unknown type");
+			throw nullptr;
+		}
+	};
+
+	//I would like to rewrite this so that 1 factory can take up multiple expressions, and additionally that there would be a bit flag to control which places have an entry automatically
+	// Not entirely sure I'll need but think it over.
+	inline std::map<SyntaxType, Generator> generatorList;//Kinda temp.
+
+
+
+	struct CompilerBase
+	{
+
+		virtual ~CompilerBase() = default;
+
+
+		//Put all information from this into a Base with routine compiler just being the highest level
+		friend class Scope;
+
+		//Important thing to note. This is only for THE CODE. So while everything else is important, all it does is create routine stuff.
+
+		Register GetPrefered()
+		{
+			return _prefered;
+		}
+
+		std::vector<Operation>& GetOperationList()
+		{
+			return *_current;
+		}
+
+
+		size_t ModArgCount(int64_t i)
+		{
+			size_t count = argCount[0];
+
+			if ((argCount[0] += i) > argCount[1])
+				argCount[1] = argCount[0];
+
+			return count;
+		}
+
+
+	protected:
+
+
+
+		size_t ModVarCount(int64_t i)
+		{
+			size_t count = varCount[0];
+
+			if ((varCount[0] += i) > varCount[1])
+				varCount[1] = varCount[0];
+
+			return count;
+		}
+
+
+
+		CompilerBase(Record& ast, FunctionData* owner = nullptr) : funcRecord{ ast }, routine{ owner }
+		{
+
+		}
+
+		//Don't use this no more. Each must provide their own container
+		//std::vector<Operation> _cache;
+
+		std::vector<Operation>* _current = nullptr;
+
+
+		//First is current, second is largest.
+		std::array<size_t, 2> argCount{ 0, 0 };
+		std::array<size_t, 2> varCount{ 0, 0 };
+
+
+		//Remember to have this record it's most arguments possible.
+
+
+		//CallableUnit is the bare minimum, but it's not an accurate pivot. Whatever this is using, needs to be something that has function data.
+		//FunctionData holds the routine data, parameter data, and access to the element. It's not a callable unit, sure, but a dynamic cast can make it
+		// so. Not to mention, a lot of the come from function base originate here. By doing this as well, I can make a set up similar to a context chain, 
+		// which for function compiling, would be valuable.
+
+		//FunctionData should also exist to be able to answer some questions about how the actual function functions. Stuff like generics and stuff may be better
+		// suited there, especially since AbstractFunctions aren't generic, only specialized.
+
+		//That means that 
+		FunctionData* routine = nullptr;
+
+		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
+		Record& funcRecord;
+
+		Scope* currentScope{};//Scopes are the thing that should handle how many variables are in use, that sort of schtick I think.
+		// as well as the concept of memory being freed.
+
+
+		Register _prefered = Register::Invalid;
+	};
+
+	
+	struct ExpressionCompiler : public CompilerBase
+	{
+		ExpressionCompiler(Record& ast, FunctionData* owner = nullptr) : CompilerBase{ ast, owner }
+		{
+
+		}
+
+
+		//Obscures statement compiling functions so that  statements can never be compiled where Expressions
+		// are expected. Differed by simply expecting or not execting a solution.
+
+
+		virtual Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) = 0;
+
+		Solution CompileExpression(Record& node, Register pref)
+		{
+			//uses the current loaded op vector. if non-exists error
+			return CompileExpression(node, pref, *_current);
+		}
+	};
+
+
+	//The above don't use the actual function that compiles syntax. Please note.
+
+	struct RoutineCompiler : public ExpressionCompiler
+	{
+		//Put all information from this into a Base with routine compiler just being the highest level
+		friend class Scope;
+
+
+		//There's one thing I need last. One where it explicitly tries to compile as a statement, and another where it tries to compile as an
+		// statement. Compile as statement can basically be CompileLine. But CompileExpression on the other hand can't be what process wrap is, because process statement uses that
+		// Hence, there's a problem in there being no pivot term.
+
+		Solution _InteralProcess(Generator& factory, Record& node, std::vector<Operation>& out)
+		{
+
+
+			//this function returns the Expectation instead, and has an out for the vector. As such is the convention for such.
+
+			Solution result;
+
+			auto old = _current;
+			_current = &out;
+
+			//DoWork();
+			//Func records use is temporary
+			result = factory._PostPrepFunction(this, node);
+
+
+			_current = old;
+
+			return result;
+		}
+
+		Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) override
+		{
+			//This and process line are basically the same function, maybe make 1 function to rule them both?
+
+			Solution result;
+
+			Register prev = _prefered;
+
+			_prefered = pref;
+
+			auto it = generatorList.find(node.SYNTAX().type);
+
+			if (generatorList.end() == it)
+			{
+				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever");
+				throw nullptr;
+			}
+
+			if (false)//Confirm that the factory is actually made for expressions
+			{
+				RGL_LOG(critical, "Syntax is not a expression");
+				throw nullptr;
+			}
+			//result from expressions are discarded
+			result = _InteralProcess(it->second, node, out);
+
+			_prefered = prev;
+
+			return result;
+		}
+
+
+		void CompileStatement(Record& node, Register pref, std::vector<Operation>& out)
+		{
+			//This and process line are basically the same function, maybe make 1 function to rule them both?
+
+			Solution result;
+
+			Register prev = _prefered;
+
+			_prefered = pref;
+
+			auto it = generatorList.find(node.SYNTAX().type);
+
+			if (generatorList.end() == it)
+			{
+				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever");
+				throw nullptr;
+			}
+
+			if (false)//Confirm that the factory is actually made for expressions
+			{
+				RGL_LOG(critical, "Syntax is not a statement");
+				throw nullptr;
+			}
+			//result from expressions are discarded
+			_InteralProcess(it->second, node, out);
+
+			_prefered = prev;
+		}
+
+
+		Solution CompileExpression(Record& node, Register pref)
+		{
+			//uses the current loaded op vector. if non-exists error
+			return CompileExpression(node, pref, *_current);
+		}
+
+		void CompileStatement(Record& node, Register pref)
+		{
+			//uses the current loaded op vector. if non-exists error
+			return CompileStatement(node, pref, *_current);
+		}
+
+
+		//This is probably going to be private. Rule is you set a new prefered with it, then do your business.
+		std::vector<Operation> CompileLine(Record& node, Register pref)
+		{
+			//NEW NAME: ProcessNode
+
+			//Process line doesn't expect an out, and even if it's an expression it's result will be tossed.
+
+			std::vector<Operation> result;
+
+			Register prev = _prefered;
+
+			_prefered = pref;
+
+			//Do stuff
+			// The first thing it would need to do is find who processes this stuff.
+			// I think for the vast majority of simple stuff like variable declarations I can do it, but for stuff like operators I'd like to 
+			// resort to the old system.
+
+			auto it = generatorList.find(node.SYNTAX().type);
+
+			if (generatorList.end() == it)
+			{
+				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever");
+				throw nullptr;
+			}
+
+			//result from expressions are discarded
+			_InteralProcess(it->second, node, result);
+
+			_prefered = prev;
+
+			return result;
+		}
+		//I will begin passing the result vector through this as well.
+
+		std::vector<Operation> CompileBlock(Record& data)
+		{
+			//NEW NAME: ProcessNest
+			//Scratch, Process/CompileBlock
+
+			std::vector<Operation> cache;
+
+			//This needs a process scope, but that scope will need something for stuff like ifs and elses.
+			// Rather, variables created within the if statements line should count.
+
+			//In that case, scopes are objects that are manually created, and require at least a RoutineCompiler (meaning expressions can't create new scopes)
+			//, allowing for something that can be created in one function, kept alive until it's end, and then destroyed once no longer needed. Thus, my worries of maintaining
+			// the var stack is finished.
+			for (auto& entry : data.GetChildren())
+			{
+				std::vector<Operation> new_stuff = CompileLine(entry, Register::Result);
+				cache.insert_range(cache.end(), new_stuff);
+			}
+
+			return cache;
+		}
+
+
+		RoutineBase CompileRoutine()
+		{
+			//This automatically searching for the code is probably not the best idea. Maybe change the response depending on what's encountered?
+			std::vector<Operation> operations{};
+			switch (funcRecord.SYNTAX().type)
+			{
+			case SyntaxType::Function:
+				operations = CompileBlock(*funcRecord.FindChild("code"));
+				break;
+
+
+			case SyntaxType::Return:
+				operations = CompileLine(funcRecord.GetChild(0), Register::Result);
+				break;
+
+			default:
+				RGL_LOG(critical, "Unsupported syntax type.");
+				throw nullptr;
+			}
+
+			//once again, this shouldn't be using func r
+			//std::vector<Operation> operations = CompileBlock(*funcRecord.FindChild("code"));
+
+			RoutineBase data{ operations, varCount[1], argCount[1] };
+
+			return data;
+		}
+
+
+		RoutineCompiler(Record& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }
+		{
+
+		}
+
+		static RoutineBase Compile(Record& ast, FunctionData* owner = nullptr)
+		{
+			RoutineCompiler compiler{ ast, owner };
+			RoutineBase result = compiler.CompileRoutine();
+			RGL_LOG(debug, "Compilation complete.");
+			return result;
+		}
+
+	};
+
+
+
+}

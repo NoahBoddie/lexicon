@@ -75,7 +75,7 @@ namespace LEX::Impl
 
 		bool eof();
 
-		void croak(std::string msg);
+		void croak(std::string msg, Token* token = nullptr);
 
 		std::string project();
 		

@@ -1,18 +1,22 @@
 #pragma once
 
-namespace LEX::Impl
+namespace LEX
 {
-	//Should be OperandType
-	enum struct OperandType : uint8_t
+	ENUM(OperandType, uint8_t)
 	{
-		Index,
+		None,		//This is nothing in particular.
+		Index,		//This is the argument index
 		Register,
-		Variable,		//The variables innate or loaded into the routine
-		Argument,		//The list of arguments currently loaded to be used.
-		Target,
-		Global,
+		Variable,	//This is a hard variable pointer.
+		Type,
+		Function,
+		Member,
+		Review,
+		//Target,	//Target was when arguments and such where 2 seperate things.
 		Literal,
-		Constant,
-		Invalid = 0xFF
+		Total,
+
+
+		Invalid = OperandType::Total,
 	};
 }

@@ -21,10 +21,12 @@ namespace LEX::Impl
 		virtual Operand Compile(Compiler* compiler, Record& ast, Environment* env) = 0;
 
 
-		bool CanHandle(const Record& ast)
-		{
-			return false;
-		}
+		//bool CanHandle, (const Record& ast)
+		//{
+		//	return false;
+		//}
+		 
+		 
 		//regardless of which version is used, it's important to note that the ast by this point is a thing that
 		// exists elsewhere persistently.
 	};

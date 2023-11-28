@@ -44,7 +44,7 @@ namespace LEX::Impl
 	}
 
 
-	bool Parser::_TryModule(Record& out, Record* rec_nest, ParseModule* mdl)
+	bool Parser::_TryModule(Record& out, Record* rec_nest, ParseModule* mdl, bool atomic)
 	{
 		//This is where the above module checks should go. Uses execute module
 		// also note, try should probably not check the current context, as it's likely the one who fired it. 
@@ -52,7 +52,7 @@ namespace LEX::Impl
 
 		//Mesures first if the module can handle the current situation, but then measures if the currently loaded context will allow such a thing.
 
-		bool module_check = mdl->CanHandle(this, rec_nest);
+		bool module_check = mdl->CanHandle(this, rec_nest, atomic);
 		bool context_check = module_check ? contextChain->current->ContextAllowed(mdl, contextChain) : false;
 		bool handle = module_check && context_check;
 
@@ -69,14 +69,22 @@ namespace LEX::Impl
 	}
 
 
-	bool Parser::_SearchModule(Record& out, Record* rec_nest)
+	bool Parser::_SearchModule(Record& out, Record* rec_nest, bool atomic)
 	{
 		//In truth, should access the ParseHandler
 
 		std::vector<ParseModule*> module_list = ParseHandler::GetModuleList();
+		
 		for (ParseModule* mod : module_list)
 		{
-			bool success = _TryModule(out, rec_nest, mod);
+			if (!mod)
+				continue;
+			//The first doesn't count, if not nested atomic will not be considered.
+			if (rec_nest && atomic && mod->IsAtomic() == false)
+				continue;
+
+			//If not atomic, and the parseModule isn't atomic
+			bool success = _TryModule(out, rec_nest, mod, atomic);
 
 			if (success)
 				return true;
@@ -137,9 +145,9 @@ namespace LEX::Impl
 	{
 		return tokenizer.eof();
 	}
-	void Parser::croak(std::string msg)
+	void Parser::croak(std::string msg, Token* token)
 	{
-		return GetInput()->croak(msg);
+		return GetInput()->croak(msg, token);
 	}
 
 
@@ -159,24 +167,39 @@ namespace LEX::Impl
 	}
 
 
-
+	//Make a version of this that can take a parser and record, and a version that can take nothing at all.
 	std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func) {
-		//A single char might be a better delimiter
+		//I would like a delimit that expects the seperator to be the second to last, and another that prevents it from being second to last.
+		//Having a version of this with no parameters or just parser would be ideal, that way I can use member functions.
+		
 		std::vector<Record> result;
 
 		bool first = true;
+		RGL_LOG(debug, "skipping start '{}'", stop);
 		SkipType(TokenType::Punctuation, start);
 		while (tokenizer.eof() == false) {
+			RGL_LOG(debug, "delimit check a");
 			if (IsType(TokenType::Punctuation, stop) == true) break;
+			
+			RGL_LOG(debug, "skipping seperator '{}'", separator);
+			
 			if (first) first = false; else SkipType(TokenType::Punctuation, separator);
+			
+			RGL_LOG(debug, "delimit check b");
 			if (IsType(TokenType::Punctuation, stop) == true) break;
 
+
+			RGL_LOG(debug, "push back function");
 			result.push_back(func(this, nullptr));
 		}
+
+		RGL_LOG(debug, "skipping end '{}'", stop);
 		SkipType(TokenType::Punctuation, stop);
 
 		return result;
 	}
+
+	
 
 	void Parser::unexpected() {
 		//want this to look prettier at some point.
@@ -190,7 +213,7 @@ namespace LEX::Impl
 		return *contextChain;
 	}
 
-	Record Parser::ParseExpression() {
+	Record Parser::_Parse(bool atomic) {
 		bool success;
 
 		int i = 0;
@@ -199,7 +222,8 @@ namespace LEX::Impl
 		Record* nested = nullptr;
 		do
 		{
-			success = _SearchModule(result, nested);
+			
+			success = _SearchModule(result, nested, atomic);
 
 			//should only crash if atomic modules fails
 			if (!success && !nested)
@@ -208,11 +232,19 @@ namespace LEX::Impl
 			nested = &result;
 
 			i++;
-
-
-
 		} while (success && eof() == false);//eof to prevent searches once past the point.
 
+		return result;
+	}
+
+
+	Record Parser::ParseAtomic() {
+		Record result = _Parse(true);
+		return result;
+	}
+
+	Record Parser::ParseExpression() {
+		Record result = _Parse(false);
 		return result;
 	}
 
@@ -238,13 +270,14 @@ namespace LEX::Impl
 	}
 
 	//Would like to seperate these from parser
-	Record Parser::CreateExpression(std::string str, Expression expr, std::vector<Record> children)
+	// Would also like to make "create header" for this.
+	Record Parser::CreateExpression(std::string str, Syntax expr, std::vector<Record> children)
 	{
 		return Record{ str, expr, children };
 	}
 
 	//This has no reason to be in here specifically.
-	Record Parser::CreateExpression(RecordData data, Expression expr, std::vector<Record> children)
+	Record Parser::CreateExpression(RecordData data, Syntax expr, std::vector<Record> children)
 	{
 		auto tok = data.GetEnum<Token>();
 
@@ -255,7 +288,7 @@ namespace LEX::Impl
 	}
 
 
-	Record Parser__::CreateSyntaxTree(std::string project, std::string name, std::string text, Column column, Line line, ParseModule* mdl)
+	Record Parser__::CreateSyntaxTree(std::string project, std::string name, std::string text, ParseModule* mdl, Column column, Line line)
 	{
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.
@@ -279,9 +312,10 @@ namespace LEX::Impl
 		}
 		catch (const ParsingError& parse_error)
 		{
+			//This should still include the name if possible.
 			//TODO: Actually report parsing error, and also return a malformed record that can detail what the fuck just happened.
 			RGL_LOG(error, "{}", parse_error._tempWhat);
-			return Parser::CreateExpression(parse_error._tempWhat, ExpressionType::Invalid);
+			return Parser::CreateExpression(parse_error._tempWhat, SyntaxType::Invalid, Parser::CreateExpression(name, SyntaxType::Invalid));
 		}
 
 
