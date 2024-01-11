@@ -46,12 +46,12 @@ namespace LEX
 
 			//Think you actually use XOR or something but I don't super care.
 			if (value)
-				_bits &= ~_bits | (1 << (uint8_t)flg);
+				_bits |= 1 << (uint8_t)flg;
 
-			if (value)
-				_bits &= ~(_bits & (1 << (uint8_t)flg));
+			else
+				_bits &= ~(1 << (uint8_t)flg);
 		}
-
+		
 		bool Get(Flag flg)
 		{
 			return _bits & (1 << (uint8_t)flg);
@@ -84,28 +84,58 @@ namespace LEX
 		//The idea is that the callable unit is given it's parameters
 		Runtime(ICallableUnit* unit, container<RuntimeVariable>& args, Runtime* from = nullptr) :
 			_data{ *unit->GetRoutine() }
-			, _varStack{ _data.GetVarCapacity() }
-			, _argStack{ _data.GetArgCapacity() }
-			, _psp{ args.size() }
-			, _vsp{ _psp }
+			//These accidently create numbers.
+			//, _varStack{ _data.GetVarCapacity() }
+			//, _argStack{ _data.GetArgCapacity() }
+			//, _psp{ args.size() }
+			//, _vsp{ _psp }
 			, _caller{ from }
 		{
 			//This should actually do some sanity checks???
+			_varStack.resize(_data.GetVarCapacity());
+			_argStack.resize(_data.GetArgCapacity());
+
+			_varStack.shrink_to_fit();
+			_argStack.shrink_to_fit();
+
+			unit->ResolveArguments(args);
+			_psp = _vsp = args.size();
 			return;
 		}
 
 		//Very temporary, delete me
-		Runtime(RoutineBase& base) :
+		Runtime(RoutineBase& base, container<RuntimeVariable> args) :
 			_data{ base }
-			, _varStack{ _data.GetVarCapacity() }
-			, _argStack{ _data.GetArgCapacity() }
-			, _psp{ 0 }
-			, _vsp{ 0 }
+			//These accidently create numbers.
+			//, _varStack{ _data.GetVarCapacity() }
+			//, _argStack{ _data.GetArgCapacity() }
+			//, _psp{ 0 }
+			//, _vsp{ 0 }//The size should actually be based on the callable unit
 			, _caller{ nullptr }
 		{
+			//because this is temp, no resolution is fired.
+
+			_varStack.resize(_data.GetVarCapacity());
+			_argStack.resize(_data.GetArgCapacity());
+
+			_varStack.shrink_to_fit();
+			_argStack.shrink_to_fit();
+			
+			if (args.size() != 0)
+			{
+				//std::copy(_varStack.begin(), _varStack.begin(), args.begin());
+				for (int i = 0; i < args.size(); i++)
+				{
+					_varStack[i] = args[i];
+				}
+			}
+
+			_psp = _vsp = args.size();
+
 			return;
 		}
-
+		Runtime(RoutineBase& base, container<Variable> args = {}) : Runtime{ base,  container<RuntimeVariable>{args.begin(), args.end()} }
+		{}
 
 
 		RoutineBase& _data;
@@ -128,6 +158,10 @@ namespace LEX
 
 		container<RuntimeVariable> _varStack;//A certain point should ONL
 		container<RuntimeVariable> _argStack;
+		
+		//This already contains a generic argument array, I need to figure out how it's used.
+		//container<ITypePolicy*> _genStack;
+
 		size_t _psp{ 0 };		//Param Stack Pointer, denotes the last position of a parameter within the variable stack. Entries after containing ref should crash. Constant?
 		//I don't want to do this in release. UNLESS, one of the variables has changed. Maybe I can avoid this by controlling HOW something gets a reference
 		// to runtime variables?
@@ -139,6 +173,10 @@ namespace LEX
 
 		size_t AdjustStackPointer(StackPointer type, int64_t step)
 		{
+			RGL_LOG(critical, "Unkfqwff");
+
+			//Clear never fires on this worth a worry.
+
 			//These might all need validation, just to make sure an issue doesn't occur.
 			switch (type)
 			{
@@ -146,15 +184,17 @@ namespace LEX
 				//"Allocates" the variable stack, clearing whatever value was there last
 				// Only works in forward
 				for (auto i = _vsp; i < _vsp + step; i++) {
-					_varStack[i].Ref().Clear();
+					if (auto& var = _varStack[i]; var.IsVoid() == false)
+						var->Clear();
 				}
 				return _vsp += step;
 
 			case StackPointer::Argument:
 				//"Deallocates" the argument stack only when the pointer is pushed down
 				// Only works in backward
+				//*Also, this looks like it will not work.
 				for (auto i = _asp + step; i < _asp; i++) {
-					_argStack[i].Ref().Clear();
+					_argStack[i]->Clear();
 				}
 				return _asp += step;
 
@@ -163,7 +203,7 @@ namespace LEX
 				return _rsp += step;
 			}
 
-			auto t = "Unknown stack pointer";
+			RGL_LOG(critical, "Unknown stack pointer");
 			throw nullptr;
 		}
 
@@ -183,7 +223,7 @@ namespace LEX
 				return _rsp;
 			}
 
-			auto t = "Unknown stack pointer";
+			RGL_LOG(critical, "Unknown stack pointer");
 			throw nullptr;
 		}
 
@@ -212,8 +252,10 @@ namespace LEX
 		//May be replaced in the coming times.
 		RuntimeVariable& GetVariable(size_t i)
 		{
-			if (i >= _vsp)
+			if (i >= _vsp) {
+				RGL_LOG(critical, "Variable stack index larger than current stack size.");
 				throw nullptr;
+			}
 
 			return _varStack[i];
 		}
@@ -263,21 +305,29 @@ namespace LEX
 
 				while (_flags.Get(RuntimeFlag::RetBit) == false)
 				{
-					if (_rsp >= _limit)
+					RGL_LOG(trace, "in loop {}", _rsp);
+					if (_rsp >= _limit) {
+						RGL_LOG(critical, "Runtime Stack Pointer equals or exceeds op size ({}/{}), terminating program.", _rsp, _limit);
 						throw nullptr;
+					}
 
 					//Probably want to do a try catch around here.
 					Operate(_data[_rsp]);
 					_data[_rsp].Execute(this);
-					if (_psp > _vsp)
-						throw nullptr;
+					if (_psp > _vsp) {
+						RGL_LOG(critical, "Param Stack Pointer greater than Var Stack Pointer ({}/{}), terminating program.", _psp, _vsp);
+						throw nullptr;	
+					}
+						
 
-					if (_flags.Pop(RuntimeFlag::IncBit) == true) {
+					if (_flags.Pop(RuntimeFlag::IncBit) == false) {
 						_rsp++;
 					}
 				}
-
-				if (_asp) {//If not the value it started as (zero) something was called incorrectly. This is a proper crash.
+				RGL_LOG(trace, "out loop");
+				if (_asp) {
+					//If not the value it started as (zero) something was called incorrectly. This is a proper crash.
+					RGL_LOG(critical, "Argument Stack Pointer not 0 (is {}), terminating program", _asp);
 					throw nullptr;
 				}
 

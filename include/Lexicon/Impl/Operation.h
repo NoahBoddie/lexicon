@@ -15,12 +15,22 @@ namespace LEX
 		//The instruction and register are first, because usually they're non optional.
 
 		constexpr Operation() = default;
-
+		//switch order, reg last
 		constexpr Operation(InstructionType it, Register reg = Register::Invalid, Operand left = {}, Operand right = {}) : 
 			_instruct { it }, _out { reg }, 
 			_lhs { left }, _ltype { left.type },
 			_rhs{ right }, _rtype{ right.type }
 		
+		{
+
+		}
+
+		//remove when above is fixed
+		constexpr Operation(InstructionType it, Operand left, Operand right = {}) :
+			_instruct{ it },
+			_lhs{ left }, _ltype{ left.type },
+			_rhs{ right }, _rtype{ right.type }
+
 		{
 
 		}

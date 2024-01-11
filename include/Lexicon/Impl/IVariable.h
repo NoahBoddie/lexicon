@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Variable.h"
 
 namespace LEX
 {

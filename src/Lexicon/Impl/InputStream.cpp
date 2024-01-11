@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Impl/InputStream.h"
 #include "Lexicon/Impl/TokenHandler.h"
 

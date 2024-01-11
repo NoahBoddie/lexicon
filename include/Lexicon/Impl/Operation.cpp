@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Operation.h"
 
 #include "Runtime.h"
@@ -17,11 +15,12 @@ namespace LEX
 
 		//*
 		RuntimeVariable result;
-
+		
 		try
 		{
-			RGL_LOG(trace, "start {}", _instruct);
-			instructList[_instruct].Operate(result, runtime, Operand{ _lhs, _ltype }, Operand{ _rhs, _rtype });//It's possible that this should possibly return.
+			RGL_LOG(debug, "start {}, ops l {} r {}", _instruct, _ltype, _rtype);
+			//It's possible that this should possibly return.
+			instructList[_instruct].Operate(result, runtime, Operand{ _lhs, _ltype }, Operand{ _rhs, _rtype }, _instruct);
 			RGL_LOG(trace, "end");
 		}
 		catch (nullptr_t)

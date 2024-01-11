@@ -13,6 +13,7 @@
 namespace LEX
 {
 	struct Variable_;
+	struct TypePolicy;
 
 	struct IScript : public Environment
 	{
@@ -25,7 +26,7 @@ namespace LEX
 
 		//Unsure if I should seperate by function type or not.
 		std::vector<Function*> _functions;
-		std::vector<Variable*> _globals;
+		std::vector<Global*> _globals;
 		//Uses abstract, so it can also target specializations of TypePolicies instead of JUST the policies.
 		std::map<AbstractTypePolicy*, std::vector<Function*>> _methods;
 	};
@@ -172,7 +173,7 @@ namespace LEX
 		}
 
 
-		void AddVariable(Variable* var) override
+		void AddVariable(Global* var) override
 		{
 			//Should search for script, throwing if within, then call SetParent on the script.
 
@@ -187,8 +188,10 @@ namespace LEX
 			_globals.push_back(var);
 		}
 
-		Variable* FindVariable(std::string name) override
+		Global* FindVariable(std::string name) override
 		{
+			return __super::FindVariable(name);
+
 			//if the last character of the variable to 
 
 			auto end = _globals.end();

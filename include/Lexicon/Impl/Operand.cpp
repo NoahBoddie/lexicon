@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Operand.h"
 
 #include "Target.h"
@@ -10,6 +8,7 @@
 #include "Runtime.h"
 #include "RuntimeVariable.h"
 
+#include "Parser.h"
 namespace LEX
 {
 
@@ -26,15 +25,20 @@ namespace LEX
 		switch (type)
 		{
 		case OperandType::Register:
-			return runtime->GetRegister(Get<Register>());
+			return runtime->GetRegister(Get<Register>()).AsRef();
 
 		case OperandType::Index:
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
-			return runtime->GetArgument(Get<Index>());
+			RGL_LOG(critical, "Index__1 {}", Get<Index>());
+			return runtime->GetVariable(Get<Index>()).AsRef();
 
 		case OperandType::Variable:
 			//-1 should mean the default target.
-			return *Get<Variable*>();
+		{
+			auto& variable = *Get<Variable*>();
+			return std::ref(variable);
+		}
+			
 
 
 		case OperandType::Type:
@@ -46,16 +50,44 @@ namespace LEX
 		case OperandType::Member:
 		case OperandType::Review:
 
+		case OperandType::Literal:
+			return *Get<Literal>();
 
 		default:
 			//something.
 			break;
 		}
 
-		RGL_LOG(critical, "Register didn't exist. Fixer later.");
+		RGL_LOG(critical, "Operand didn't exist. Fixer later. {} ", type);
 		throw nullptr;//Error.
 
 		//*/
 	}
+
+
+	RuntimeVariable Operand::ObtainVariable(Runtime* runtime)
+	{
+		//For the ones that it's relevant to do so, it confirms that the variable truly exists. If not, it instantiates it.
+		// <!>not valid on all operands. Cannot resolve unexpected operand types.
+		RuntimeVariable* run_var = nullptr;
+
+		switch (type)
+		{
+		case OperandType::Register:
+			run_var = std::addressof(runtime->GetRegister(Get<Register>()));
+			break;
+
+		case OperandType::Index:
+			run_var = std::addressof(runtime->GetVariable(Get<Index>()));
+			break;
+		}
+
+		if (run_var && run_var->IsVoid() == true) {
+			*run_var = Variable{};
+		}
+
+		return GetVariable(runtime);
+	}
+
 
 }

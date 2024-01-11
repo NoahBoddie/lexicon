@@ -123,6 +123,11 @@ namespace LEX
 			throw EnvironmentError("No implementation 'SetParent'");
 		}
 
+		void DeclareParentTo(Element* child)
+		{
+			child->SetParent(this);
+		}
+
 		//virtual void SetSyntaxTree(Record& ast)
 		//{
 			//This isn't even really required as a function, that's what the construction is for no?

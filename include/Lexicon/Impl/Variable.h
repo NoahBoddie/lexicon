@@ -4,7 +4,16 @@
 #include "Number.h"
 #include "AbstractTypePolicy.h"
 #include "AbstractFunction.h"
+#include "ObjectHandle.h"
 
+#include "Array.h"
+#include "Delegate.h"
+#include "FunctionHandle.h"
+
+
+#include "TypeID.h"
+
+#include "ObjectType.h"
 
 //Some notes about the, the setting that's used should be a result of whichever of the 2 sides has more priority. Need to figure out a way
 // to do that, then have a function handle the truncating process.
@@ -20,317 +29,11 @@ namespace LEX
 
     using Boolean = bool;
     
-    
+    using String = std::string;
 
+    
 
     struct Variable;
-
-
-    namespace
-    {
-
-        template <typename T>
-        AbstractTypePolicy* GetConcreteType()
-        {
-            //the idea of this function is that it needs explicit specialization, or the existence of a certain function within the type to be used.
-            // Otherwise, it will return null, or perhaps the void type.
-            return nullptr;
-        }
-
-        class Array
-        {
-            //It's possible I opt to make my own container for this, just to cut on space
-            //Either way, to get what type ID array is using, one need only (but only within source
-            std::vector<Variable> data;
-
-            //Arrays themselves will need to be stocked with a type to submit to the variable when called upon.
-            AbstractTypePolicy* type;
-
-
-        public:
-            constexpr std::strong_ordering operator <=> (const Array& rhs) const
-            {
-                //ideally I'd wish to compare it's variables until its unequal.
-                return std::strong_ordering::equal;
-            }
-
-
-            constexpr bool operator==(const Array& a_rhs) const
-            {
-                return operator<=>(a_rhs) == std::strong_ordering::equal;
-            }
-
-        };
-
-
-
-        class FunctionPtr
-        {
-            //I completely forgot, this can hold onto methods. This is GOING to need to be an index instead. Consult the method function syntax instead.
-
-            AbstractFunction* _ptr = nullptr;
-
-
-        public:
-            constexpr std::strong_ordering operator <=> (const FunctionPtr& rhs) const
-            {
-                return _ptr <=> rhs._ptr;
-            }
-
-
-            constexpr bool operator==(const FunctionPtr& a_rhs) const
-            {
-                return operator<=>(a_rhs) == std::strong_ordering::equal;
-            }
-
-            //The abstract function is baiscally what's supposed to be used above all else. It's basically the handler or something, to prevent real interaction with the abstract 
-            // function, or just to spruce it the process of calling some, as well as handling and ditating the return. (I could also make a template handle that).
-        };
-
-        class Delegate
-        {
-            //It's possible I opt to make my own container for this, just to cut on space
-            //Either way, to get what type ID array is using, one need only (but only within source)
-
-            //notice to the above, delegate will need 
-            std::vector<AbstractFunction*> _callbacks;
-
-        public:
-            constexpr std::partial_ordering operator <=> (const Delegate& rhs) const
-            {
-                //Similar to array, but should be measured by it's count of callbacks.
-                return std::strong_ordering::equal;
-            }
-
-
-            constexpr bool operator==(const Delegate& a_rhs) const
-            {
-                return operator<=>(a_rhs) == std::strong_ordering::equal;
-            }
-
-        };
-
-        //These likely should be objects, or something that allows for delegate to be more of a reference type.
-
-        // Then again, arrays are in a similar boat.
-
-
-        
-    }
-    
-   
-    
-    namespace//Object experiment
-    {
-        //The object experimentation zone. Nothing is cut in stone,  still messing around with the concepts.
-        
-        //Span might be better, it's smaller, not aimed to be resized, I think it might fit my needs well.
-        template <typename T>
-        using ArgContainer = std::span<T, std::dynamic_extent>;
-
-        class Object;
-        
-        //The consntructor would need to take more than just this.
-        //There are 2 types of syntax for objects, creation and finding.
-
-        //So I think the arguments are something like a span of transfer safe strings, and a boolean asking if it's looking for something or creating something.
-        // note, the type policy should be the thing that manages whether it's actually able to be looked up or if it's able to be created. 
-        using ObjectFactory = Object* (*)();
-
-        //This name is HELLA changing. But it's the interface that deals with queries about the class.
-        using ObjectRegistry = void;
-
-        struct ObjectInterface
-        {
-            static std::map<std::string_view, ObjectFactory> registerTable;
-
-            //This definitely takes more than this, but this is all I'll be doing right now.
-            static void RegisterObjectType(std::string_view type, ObjectFactory ctor)
-            {
-
-            }
-
-            static ObjectRegistry* GetObjectRegistry(std::string_view type_name)
-            {
-                return nullptr;
-            }
-        };
-
-        //This is for a core type that an object derives from, in order to prevent a scenerio where an external type will have versioning that changes the name.
-        // I would like there to instead be an error if the object type doesn't derive from the targeted type.
-        template<typename T> concept HasObjectType = requires
-        {
-            requires std::derived_from<T, typename T::ObjectType>;
-        }&& std::derived_from<T, Object>;
-
-        
-
-        struct Object {
-            virtual ~Object() = default;
-
-            //This is the core function of the object type. In it's implementation,
-            virtual void Invoke(std::string_view func_name, Variable& ret, ArgContainer<Variable>& args)
-            {
-                //The above should be const.
-                
-                //Extra point should go toward notifying one that this literaly is unimplemented.
-                // A specific function should be the thing that does this btw.
-                "No implementation of [Put type name here]::Invoke exists. ";
-                throw nullptr;
-
-            }
-
-            virtual constexpr std::string_view GetName()
-            {
-                //Returns the top level name of this polymorphic type. Can be changed to get the current name
-                // in order to have a central version be the registered type.
-                return typeid(std::remove_reference_t<decltype(*this)>).name();
-            }
-
-            //Need to make sure they're of the same type.
-            virtual Object& operator=(const Object& a_rhs) = 0;
-
-            virtual std::strong_ordering operator<=>(const Object& a_rhs) = 0;
-
-
-
-
-            template <typename Self>
-            constexpr std::string_view GetCurrentName(this Self&& self)
-            {
-                //The name of the type this was called at, regardless of what it inherits.
-                return typeid(Self).name();
-            }
-
-            template <std::derived_from<Object> Self>
-            constexpr Self& MatchType(this Self&& self, const Object& a_rhs)
-            {
-                //Also maybe use that type name implementation if you can. Just so different versions don't get caught on each other.
-
-                if (_registry != a_rhs._registry)
-                {
-                    //Types were not matched. Reporting failure.
-                    //Complete and utter failure.
-                }
-
-                return static_cast<Self&>(a_rhs);
-            }
-
-
-            Object()
-            {
-                _registry = ObjectInterface::GetObjectRegistry(GetName());
-                
-                //I'mma do this differently else where. Rather, I want to return an API result.
-                if (!_registry) {
-                    "Object Type is unregistered or malformed. Confirm registration before use.";
-                    throw nullptr;
-                }
-            }
-
-            //Basically, the object's job is to find the type.
-            virtual AbstractTypePolicy* GetType() = 0;
-
-
-
-            //This would be a virtual function that is required to be implemented by the derived class.
-            //virtual TypeCode TypeCodeOf() = 0;
-
-            ObjectRegistry* _registry = nullptr;
-        };
-
-
-        template <std::derived_from<Object> TObj>
-        static void RegisterType(std::string_view path, ObjectFactory ctor)
-        {
-            //How one uses this is they use register, and specify the project they're assigning this data type. One can only do it to shared, or a project they have
-            // control over.
-            if constexpr (std::is_final_v<TObj> || !std::is_same_v<decltype(&TObj::GetName), decltype(&Object::GetName)>) {
-
-                return;
-            }
-            else {
-                //Is not viable, or maybe warn
-            }
-        }
-
-
-        struct ObjectPtr
-        {
-            //the main pointer to an object. Is the main thing that handles interaction with the object in question, making safe calls to all of its vfunctions.
-
-            Object* _data = nullptr;
-
-
-            constexpr std::strong_ordering operator <=> (const ObjectPtr& rhs) const
-            {
-                //This will need to decipher if it's a value type or not, but ultimately the actual object is supposed
-                // to handle that. Non null is always greater than null unless they're the same.
-                return _data <=> rhs._data;
-            }
-
-            constexpr bool operator==(const ObjectPtr& a_rhs) const
-            {
-                return operator<=>(a_rhs) == std::strong_ordering::equal;
-            }
-
-
-            constexpr ObjectPtr(std::nullptr_t) {}
-        };
-
-
-    }
-    
-
-
-    struct GameObject : public Object
-    {
-
-
-        //Game object is a class that's used to manage objects from skyrim. Seeing as this project isn't IN Clib though, just going to have to stomach its current set up.
-    };
-    
-
-    using String = std::string;
-    class String_
-    {
-        using Self = String_;
-
-        char* _ptr = nullptr;
-        size_t _length = 0;
-    public:
-        ~String_()
-        {
-
-        }
-
-
-        constexpr String_() = default;
-
-        String_(const char* str)
-        {
-
-        }
-
-        String_(const std::string& str)
-        {
-
-        }
-
-        template <size_t N>
-        String_(const char(&str)[N])//maybe use string lit?
-        {
-
-        }
-
-        //virtual void Destroy() const
-        //{
-            //Unsure if this is required
-            //delete this;
-        //}
-    };
-
-    
 
     
     struct VariableRef
@@ -355,11 +58,10 @@ namespace LEX
         // prompt, Index,
         Void,						    //Void given form. Invalidates all other types.
         Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
-        Array,                          //Represents all array types.
-        String,                         //
-        Boolean,                        //Straight boolean. Has some way to validate with every single type.
-        FunctionPtr,                  //Is the abstract function, can be specialized or normal function, or membered or whatever. I sorta want to obscure some of the abstract function stuff. But this NEEDS to be here, and not as an object.
-        ObjectPtr,                         //_object
+        String,
+        Array,
+        FunctionHandle,
+        ObjectHandle,
         Delegate
         >;
     
@@ -404,7 +106,6 @@ namespace LEX
         Number,
         Array,
         String,
-        Boolean,
         Function,
         Delegate,
         Object,
@@ -417,10 +118,9 @@ namespace LEX
         variant_index<VariableData, Number>(),
         variant_index<VariableData, Array>(),
         variant_index<VariableData, String>(),
-        variant_index<VariableData, Boolean>(),
-        variant_index<VariableData, FunctionPtr>(),
+        variant_index<VariableData, FunctionHandle>(),
         variant_index<VariableData, Delegate>(),
-        variant_index<VariableData, ObjectPtr>()
+        variant_index<VariableData, ObjectHandle>()
     };
 
 
@@ -442,7 +142,6 @@ namespace LEX
             case basicTypeIndices[BasicType::Number]:   return BasicType::Number;
             case basicTypeIndices[BasicType::Array]:    return BasicType::Array;
             case basicTypeIndices[BasicType::String]:   return BasicType::Number;
-            case basicTypeIndices[BasicType::Boolean]:  return BasicType::Boolean;
             case basicTypeIndices[BasicType::Function]: return BasicType::Function;
             case basicTypeIndices[BasicType::Delegate]: return BasicType::Delegate;
             case basicTypeIndices[BasicType::Object]:   return BasicType::Object;
@@ -477,6 +176,24 @@ namespace LEX
     }
 
 
+    struct TestUnion
+    {
+        //This class needs to be it's own thing, not just a part of variable.
+
+        union
+        {
+            uint64_t raw;
+            std::bitset<64> bits;//The idea is this will allow us to extract bits before and after assigning.
+            struct
+            {
+                TypeID id;
+                uint32_t spec;
+            }; 
+        };
+    };
+    static_assert(sizeof(TestUnion) == 8, "grgihyrbg");
+    static_assert(sizeof(std::bitset<61>) == 8, "grgihyrbg");
+
 
     struct Variable
     {
@@ -493,6 +210,40 @@ namespace LEX
 
         constexpr static size_t k_flags = k_defineFlag | k_changeFlag | k_polyFlag;
 
+
+
+        //No idea why this delegating ctor crashes, will address when I can actually be arsed
+        //template <Constructible<VariableComponent> T>
+        //Variable(T&& value) : Variable{ value, _CheckVariableType() }
+        //{}
+
+
+
+
+        /*
+        X Construction From Default- No define, no change.
+        X Construction From Convertible- Construction based on "convertible to data" will  attempt to automatically create the variable based on the type. Define, maybe clear change?
+        X Construction From Variable- Construction from variable is viewed as a copy, taking on the values of the right side excluding the polymorhic flag. Define, Clear change.
+        Construction from type- Being constructed from a type basically assigns the default value from the type to it. No Define, No change.
+        Construction From Function- Using a specific function to create the Variable will lead to the resulting value being not filling the variables policy. Creates the value, not the type. Defined, no change
+
+        Assigning from Convertible- Assigning from convertible will lead to the change flag being edited, as well as the definition flag. In addition, this should edit the stored type. Change flag ticked.
+
+        Assign from variable- seen very similar from how construct from variable is seen, this is a complete reset.
+        Assign from Type- reflect ctor
+
+        //*/
+
+        Variable() = default;
+        
+        template <Constructible<VariableComponent> T>
+        Variable(T&& value)//, AbstractTypePolicy* type)
+        {
+            _data = value;
+            _SetPolicy(_CheckVariableType());//REFUTE
+            _SetDefined(true);
+        }
+
         //For its
         template <Assignable<VariableComponent> T>
         Variable(T&& value, AbstractTypePolicy* policy)
@@ -500,7 +251,92 @@ namespace LEX
             _data = value;
             //Might not do it like this no more.
             _SetPolicy(policy);
+            _SetDefined(true);
         }
+
+
+
+        Variable(const Variable& rhs)
+        {
+            _data = rhs._data;
+            _SetPolicy(rhs.GetPolicy());
+            _SetDefined(rhs.IsDefined());
+            _SetChanged(rhs.IsChanged());
+        }
+        Variable(const Variable&& rhs)
+        {
+            _data = rhs._data;
+            _SetPolicy(rhs.GetPolicy());
+            _SetDefined(rhs.IsDefined());
+            _SetChanged(rhs.IsChanged());
+        }
+
+
+        Variable(AbstractTypePolicy* policy)
+        {
+            *this = policy;
+        }
+
+        
+        Variable(const Record& a_rhs)
+        {
+            //Used to construct literals.
+        }
+
+
+        Variable(Variable& var, AbstractTypePolicy* policy)
+        {
+            //Unsure about this one.
+            _data = var._data;
+            _SetPolicy(policy);
+        }
+
+
+
+        //Operators
+
+
+        Variable& operator=(const Variable& rhs)
+        {
+            _data = rhs._data;
+            _SetPolicy(rhs.GetPolicy());
+            _SetDefined(rhs.IsDefined());
+            _SetChanged(rhs.IsChanged());
+            return *this;
+        }
+
+        Variable& operator=(const Variable&& rhs)
+        {
+            _data = rhs._data;
+            _SetPolicy(rhs.GetPolicy());
+            _SetDefined(rhs.IsDefined());
+            _SetChanged(rhs.IsChanged());
+            return *this;
+        }
+
+
+        Variable& operator=(AbstractTypePolicy* policy)
+        {
+            //should clear
+            _SetPolicy(policy);
+            _data = policy->GetDefault()._data;
+            _SetDefined(false);
+            _SetChanged(false);
+            return *this;
+        }
+
+        template <Constructible<VariableComponent> T>
+        Variable& operator=(T& value)
+        {
+            _data = value;
+            _SetPolicy(_CheckVariableType());//REFUTE
+            _SetDefined(true);
+            _SetChanged(true);
+            return *this;
+        }
+
+
+
 
         //Deprecated. TypePolicy will deal with this later,
         static Variable Default() { return Variable(); }
@@ -512,6 +348,7 @@ namespace LEX
 
         union
         {
+            //REIMPLEMENTATION REMINDER, I would like this to have flags for definition and change
 
             //This is used to get the 3 least significant bits.
             std::bitset<64> _bits;
@@ -521,10 +358,12 @@ namespace LEX
             AbstractTypePolicy* _type = nullptr;
         };
        
-        VariableComponent _data{ Void::value()};
+        VariableComponent _data{ Void::value() };
 
-        AbstractTypePolicy* GetPolicy()
+        AbstractTypePolicy* GetPolicy() const
         {
+            //TODO: return to GetPolicy/SetPolicy, I've disabled the bits because shits experimental
+            //return _type;
             return (AbstractTypePolicy*)(_raw & ~k_flags);
         }
 
@@ -544,6 +383,9 @@ namespace LEX
 
         void _SetPolicy(AbstractTypePolicy* policy)
         {
+            //_type = policy;
+
+
             //Purge except the flags, then add the policy pointer.
             _raw &= k_flags;
             //Check for bits in policy at this junction here.
@@ -560,19 +402,20 @@ namespace LEX
             _bits.set(2, value);
         }
 
-
+        AbstractTypePolicy* _CheckVariableType();
 
     public:
 
         explicit operator IVariable* ()
         {
+            //return IsPolymorphic() ? static_cast<IVariable*>(this) : nullptr;
             if (IsPolymorphic() == false)
                 return nullptr;
 
             //Not really implemented
             return nullptr;
         }
-
+        
         bool IsPolymorphic() const
         {
             return _raw & k_polyFlag;
@@ -633,38 +476,40 @@ namespace LEX
 
 
 
-        Number AsNumber() { return {}; }
+        Number AsNumber() { return std::get<Number>(_data); }
         Integer AsInteger() { return 0; }
         String AsString() { return ""; }
-        ObjectPtr AsObject() { return nullptr; }
+        ObjectHandle AsObject() { return nullptr; }
         Delegate AsDelegate() { return {}; }
-        FunctionPtr AsFunction() { return {}; }
+        FunctionHandle AsFunction() { return {}; }
         Array AsArray() { return {}; }
 
 
-
-        Variable() = default;
 
         void Clear()
         {
             //Needs implementation
             throw nullptr;
+
+            _data = Void{};
+            _SetDefined(false);
+            _SetChanged(false);
+
         }
 
-        
-        void SetBasicType(BasicType a_rhs)
+        //destroy
+        void SetBasicType__(BasicType a_rhs)
         {
             //When doing something like this, clear flags
 
             switch (a_rhs)
             {
             case BasicType::String:     _data = ""; break;
-            case BasicType::Number:     _data = (Number)0; break;
+            //case BasicType::Number:     _data = (Number)0; break;
             case BasicType::Array:      _data = Array{}; break;
-            case BasicType::Object:     _data = ObjectPtr(nullptr); break;
-            case BasicType::Boolean:    _data = Boolean(0); break;
+            case BasicType::Object:     _data = ObjectHandle(nullptr); break;
             case BasicType::Delegate:   _data = Delegate{}; break;
-            case BasicType::Function:   _data = FunctionPtr{}; break;
+            case BasicType::Function:   _data = FunctionHandle{}; break;
 
             default:    throw nullptr;// This is in error, just have no idea how.
             }
@@ -692,12 +537,36 @@ namespace LEX
             _raw &= k_flags;
             _raw |= lsb;
         }
-        //Can only be created with argType?
-        Variable(BasicType a_rhs)
+        
+        //Resolves a variable to be like another variable. If they aren't directly convertible, conversions
+        // may be detected and used.
+        bool Resolve(AbstractTypePolicy* policy)
         {
-            //Never fucking use this.
-            SetBasicType(a_rhs);
+            //If resolution fails, it returns false and nullfies the variable.
+
+            Variable& self = *this;
+
+            ICallableUnit* out = nullptr;
+
+            if (GetPolicy()->IsConvertibleTo(policy, out) == false){
+                Clear();
+            }
+            else if (out) {
+                //if out has pulled a conversion, it will need set self to the result of the conversion.
+                //TODO: Handle the conversions in Variable::Resolve
+                //out->HandleConvert(policy, self);
+            }
+            else {
+                //otherwise, it can let it go on as seen and will just adjust the type.
+                _SetPolicy(policy);
+            }
+            
+
+            return IsVoid();
+
         }
+
+
 
         //With assignments should only be between the types that are considered core to this object, and shouldn't clear flags. There should additionally be 
         // a version of the function that sends exceptions if the wrong interaction is going on.
@@ -729,17 +598,6 @@ namespace LEX
         //    wchar_t t;
         //}
 
-        template <Constructible<VariableComponent> T>
-        Variable(T&& value)//, AbstractTypePolicy* type)
-        {
-            _data = value;           
-        }
-
-        //Used to construct literals.
-        Variable(const Record& a_rhs)
-        {
-            
-        }
 
 
 

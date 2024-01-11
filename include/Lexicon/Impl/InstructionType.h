@@ -44,12 +44,14 @@ namespace LEX
 
 		//Directives (Instructions created don't match 1 to 1 the operator used)	
 		Push,
+		Move,
 		PushVariable,//Pushes something from the left to a variable spot in the right. Perhaps in the future I could make registers spot just do this.
 
 
 
 		IncrementArgStack,//PrepArgs
 		IncrementVarStack,
+		DefineVarPolicy,		//TODO: Remove DefineVarPolicy, it is basically a move instruction.
 		// For these I could make them the same function, but make an index what makes them differ. In that I could send it it's index, similar to how
 		//  native functions get a string view of their names.
 		Test,//General test

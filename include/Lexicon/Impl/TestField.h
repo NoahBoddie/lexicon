@@ -49,1070 +49,1064 @@
 #include "RuntimeVariable.h"
 #include "MemberPointer.h"
 #include "RoutineCompiler.h"
-//*/
 
-//Move me you idiot.
-struct Initializer
-{
-	using def = void(*)();
+#include "Object.h"
+#include "ObjectHandle.h"
+#include "ObjectManager.h"
 
-	template <std::convertible_to<def> T>
-	Initializer(T func)
-	{
-		if (func)
-			func();
-	}
-};
-inline static int test = 0;
+#include "TypeID.h"
 
-#define INITIALIZE() inline static Initializer CONCAT(__init_,__COUNTER__) = []() -> void
+
+#include "TypePolicy.h"
+
+
+#include "Lexicon/Impl/ObjectType.h"
+
+#include "Function.h"
 
 namespace LEX
 {
-		struct InstructWorkShop
+	struct SourceObject
+	{
+		//This is an object that is used to represent foreign C++ objects attempting to interface with
+		// the lexicon system
+
+		void* object = nullptr;
+		std::type_info* info = nullptr;
+
+
+		//Might these need to decay?
+		template <typename T>
+		SourceObject(T& self) : object{ &self }, info{ &typeid(T) }
 		{
-			//None of these actually work rn. As for most, number will need adjusting first.
+		}
 
-			//I would like to make a core function that sets this up if I can.
+		template <typename T>
+		SourceObject(T&& self) : info{ &typeid(T) }
+		{
+		}
+	};
 
-			static Variable BasisFunc(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
+
+	//I'll need to be able to tell a type by value (this is basically the vtable like side of things)
+	// and the return type which is the type you can see.
+
+	//So for example, nothing will ever be a MagicItem, literally does not exist so you'll get its variable type. BUT, you can get it's return type
+
+
+
+
+	struct CONCEPT__TypeID
+	{
+		//will be redesigning the new range based type id system that should allow for much less wasted space.
+
+		//Type ids will not be the raw id anymore
+	};
+
+	struct CONCEPT__TypeCode
+	{
+		//Type code will continue to exist, this is what is sent along with a name in order to actually find a proper type
+		// So that a proper object can be created.
+		//This is 16 bit when it comes to that. But hold off on.
+	};
+
+
+	using __TypeID = uint32_t;
+
+
+	/////////////////////////
+	//Implementations
+	////////////////////////
+
+	struct CoreOffset
+	{
+		//CORE isn't a thing yet, but when it is this is what it'd be using.
+		constexpr static TypeOffset Void = 0;
+		constexpr static TypeOffset Number = 0;
+		constexpr static TypeOffset String = 0;
+		constexpr static TypeOffset Array = 0;
+		constexpr static TypeOffset Function = 0;//FunctionHandle
+		constexpr static TypeOffset Object = 0;//ObjectHandle
+		constexpr static TypeOffset Delegate = 0;
+	};
+#define NUMBER_SET_NAME "NUMBER"
+#define STRING_SET_NAME "STRING"
+#define ARRAY_SET_NAME "ARRAY"
+#define FUNCTION_SET_NAME "FUNCTION"
+#define OBJECT_SET_NAME "OBJECT"
+#define DELEGATE_SET_NAME "DELEGATE"
+
+
+
+	//At a later point a single function and probably handle all of these.
+
+
+
+	template <>
+	struct ReturnType<Void>
+	{
+
+		ITypePolicy* operator()()
+		{
+			//Should be returning the none type.
+			return nullptr;
+		}
+	};
+
+	template <>
+	struct VariableType<Void>
+	{
+
+		AbstractTypePolicy* operator()(Void&)
+		{
+			return nullptr;
+		}
+	};
+
+
+
+	template <>
+	struct ReturnType<Number>
+	{
+
+		ITypePolicy* operator()()
+		{
+			ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, CoreOffset::Number);
+
+			//Should already be specialized, so just sending it.
+			return policy->GetTypePolicy(nullptr);
+		}
+	};
+
+	template <>
+	struct VariableType<Number>
+	{
+
+		AbstractTypePolicy* operator()(Number& it)
+		{
+
+			ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, it.GetOffset());
+
+
+			//Should already be specialized, so just sending it.
+			return policy ? policy->GetTypePolicy(nullptr) : nullptr;
+		}
+	};
+
+
+
+	template <>
+	struct ReturnType<String>
+	{
+
+		ITypePolicy* operator()()
+		{
+			ITypePolicy* policy = IdentityManager::GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
+
+			//Should already be specialized, so just sending it.
+			return policy;
+		}
+	};
+
+	template <>
+	struct VariableType<String>
+	{
+
+		AbstractTypePolicy* operator()(String& it)
+		{
+			return ReturnType<String>{}()->GetTypePolicy(nullptr);
+		}
+	};
+
+
+	//The currently unused once
+
+	template <>
+	struct ReturnType<Delegate>
+	{
+
+		ITypePolicy* operator()()
+		{
+			return nullptr;
+		}
+	};
+
+	template <>
+	struct VariableType<Delegate>
+	{
+
+		AbstractTypePolicy* operator()(Delegate& it)
+		{
+			return nullptr;
+		}
+	};
+
+
+	///Need to handle the regular versions too.
+
+	template <>
+	struct ReturnType<ObjectHandle>
+	{
+
+		ITypePolicy* operator()()
+		{
+			return nullptr;
+		}
+	};
+
+	template <>
+	struct VariableType<ObjectHandle>
+	{
+
+		AbstractTypePolicy* operator()(ObjectHandle& it)
+		{
+			return nullptr;
+		}
+	};
+
+
+	///
+
+	template <>
+	struct ReturnType<FunctionHandle>
+	{
+
+		ITypePolicy* operator()()
+		{
+			return nullptr;
+		}
+	};
+
+	template <>
+	struct VariableType<FunctionHandle>
+	{
+
+		AbstractTypePolicy* operator()(FunctionHandle& it)
+		{
+			return nullptr;
+		}
+	};
+
+
+
+	///
+
+	template <>
+	struct ReturnType<Array>
+	{
+
+		ITypePolicy* operator()()
+		{
+			return nullptr;
+		}
+	};
+
+	template <>
+	struct VariableType<Array>
+	{
+
+		AbstractTypePolicy* operator()(Array& it)
+		{
+			return nullptr;
+		}
+	};
+
+
+
+	template <>
+	struct ReturnType<Variable>//
+	{
+		//This wouldn simply return the object type, as a 
+		ITypePolicy* operator()()
+		{
+			return nullptr;
+		}
+	};
+
+	template <>
+	struct VariableType<Variable>// : single_type
+	{
+		//this should visit its data, but this doesn't have permission. Likely best to test the implementation 
+		// inside fo the thing.
+		AbstractTypePolicy* operator()(const Variable& it)
+		{
+			return nullptr;
+		}
+	};
+
+	//This is so temporary I hate that I'm doing it like this.
+	AbstractTypePolicy* Variable::_CheckVariableType()
+	{
+
+		AbstractTypePolicy* result = std::visit([&](auto&& lhs) {
+			return GetVariableType(lhs);
+			}, _data);
+
+		return result;
+	}
+
+
+	void test()
+	{
+		ReturnType<void> t;
+		VariableType<void> t2;
+
+
+	}
+
+
+
+
+
+
+	ENUM(IssueType, uint8_t)
+	{
+		Parse,				//A fundemental syntax issue possibly preventing the rest from being read properly.
+			Compile,			//An error that occurs trying to use data as provided
+			Link,				//An error that occurs trying to connect or look up elements
+			Runtime,			//An issue occuring at runtime, undetectable at compile time.
+			Fault,		//An issue in C++ implementation, often fatal.
+			Total
+	};
+
+	ENUM(IssueLevel, uint8_t)
+	{
+		Debug,
+			Warning,
+			Error,
+			Fatal,
+			Total
+	};
+
+
+	using IssueCode = uint16_t;//lynchpin this by removing it.
+
+	using LChar = char;
+	using LString = std::basic_string<LChar>;
+	//IssueCodes will come with names, at a later point, needing to be picked from a list somewhere, that
+	// isn't the table for codes. That table only cares about the numbers. 
+	// But if one tries to print a code it will tell it's name.
+
+	struct IssueTable
+	{
+		constexpr static const LChar* npos = "";
+
+		using _Table = std::array<std::unordered_map<size_t, LChar*>, IssueType::Total>;
+
+		inline static _Table _table;
+
+
+		static const LChar* GetIssueMessage(IssueType type, IssueCode code)
+		{
+			//use find
+			return _table[type][code];
+		}
+	};
+
+	struct Issue
+	{
+		std::string_view	name = "";//debug name for when the path is not found.
+		size_t				code = 0;
+
+		constexpr Issue(std::string_view _n, uint16_t _c) : 
+			name { _n }, code { _c } {}
+	};
+	
+#define DECLARE_ISSUE(mc_name, mc_code) Issue mc_name(#mc_name, mc_code)
+
+	//ex. //DECLARE_ISSUE(Test, 49);
+
+
+
+	//where would you store these?
+
+
+
+	//Turns the issue data into a header for the message.
+	LString IssueToString(IssueType type, IssueCode code, IssueLevel level)
+	{
+		//might do format instead.
+		LString result;
+
+		switch (level)
+		{
+		case IssueLevel::Debug:
+			result = "Debug "; break;
+
+		case IssueLevel::Error:
+			result = "Error "; break;
+
+		case IssueLevel::Fatal:
+			result = "Fatal "; break;
+
+		case IssueLevel::Warning:
+			result = "Warn "; break;
+		}
+
+		switch (type)
+		{
+		case IssueType::Compile:
+			result += "C"; break;
+
+		case IssueType::Parse:
+			result += "P"; break;
+
+		case IssueType::Link:
+			result += "L"; break;
+
+		case IssueType::Runtime:
+			result += "R"; break;
+
+		case IssueType::Fault:
+			result += "F"; break;
+
+		//case IssueType::Application:
+			//result += "A; break;
+		}
+
+		uint16_t number = code;
+
+		//"Severity X0000: "
+
+		if (!code)
+		{
+			result += "0000";
+
+		}
+		else
+		{
+
+			char str[5];
+			snprintf(str, 5, "%04d", number);
+			result += str;
+		}
+
+
+
+		return result + ": ";
+	}
+
+	//I think there shouldn't be a set place where issues are stored, at least not as an object like this.
+	//Rather, I think issues like this shouldn't be the focus, and the result
+
+	LString _CreateArgSlots(size_t size)
+	{
+		if (!size)
+			return "";
+
+		constexpr const LChar* genericSlot = "{}";
+
+		LString result = genericSlot;
+
+		for (auto i = 1; i < size; i++)
+		{
+			result += ", "s + genericSlot;
+		}
+
+		return result;
+	}
+
+	
+
+	
+	namespace detail
+	{
+		//this shouldn't be in detail
+		template <typename... Ts>
+		void _raise_message(LEX::IssueLevel level, LEX::IssueType type, LString message, bool has_header, std::source_location loc, Ts&... ts)
+		{
+			//insist that ts... can be formated.
+			constexpr auto size = sizeof...(Ts);
+
+
+			LString base = has_header ? "" : IssueToString(type, 0, level);
+			LString body = base + message;;
+
+
+			LString result;
+
+
+			if constexpr (size != 0)
 			{
+				try
+				{
+					result = std::vformat(body, std::make_format_args(ts...));
+
+				}
+				catch (std::format_error& f_error)
+				{
+					body = base + "Invalid format string(\'{}\')"s + " Args(" + _CreateArgSlots(size) + ")";
+
+					result = std::vformat(body, std::make_format_args(f_error.what(), ts...));
+				}
+
+				body += " Args("s + _CreateArgSlots(size) + ")";
+			}
+			else
+			{
+				result = body;
+			}
+			//needs fix
+
+			constexpr fmt::format_string<std::string> a_fmt{ "{}" };
+
+			logger::InitializeLogging();
+
+			//logging level should depend on what this is.
+
+			spdlog::level::level_enum spdlog_level;
+
+
+			switch (level)
+			{
+			case IssueLevel::Debug:
+				spdlog_level = type == IssueType::Runtime ? spdlog::level::info : spdlog::level::debug; break;
+
+			case IssueLevel::Error:
+				spdlog_level = spdlog::level::err; break;
+			
+			case IssueLevel::Warning:
+				spdlog_level = spdlog::level::warn; break;
+			
+			case IssueLevel::Fatal:
+				spdlog_level = spdlog::level::critical; break;
+
+			default:
+				spdlog_level = spdlog::level::trace; break;
+			}
+
+
+			spdlog::log(spdlog::source_loc{
+						loc.file_name(),
+						static_cast<int>(loc.line()),
+						loc.function_name() },
+						spdlog_level, a_fmt, std::forward<LString>(result));
+
+
+
+		}
+
+		template <typename... Ts>
+		void _raise_code(LEX::IssueLevel level, LEX::IssueType type, IssueCode code, std::source_location loc, Ts&... ts)
+		{
+			//insist that ts... can be formated.
+			constexpr auto size = sizeof...(Ts);
+
+
+			LString base = IssueToString(type, code, level);
+			LString body;
+
+			const LChar* message = IssueTable::GetIssueMessage(type, code);
+
+			//LString argSlots;
+
+			if (!message)
+			{
+				//If there is no message, send the "no message" message. Gives code
+
+				body = base + "No message for issue code.";
+
+				if constexpr (size != 0)
+				{
+					body += " Args("s + _CreateArgSlots(size) + ").";
+				}
+			}
+			else
+			{
+				body = base + message;
+			}
+
+			return _raise_message(level, type, body, true, loc, ts...);
+		}
+
+
+	}
+
+	template <IssueType Type>
+	struct Report
+	{
+		//I would like to cut the name down some, Like, no one wants to put issue type every time right?
+		// So instead, why not use something smaller.
+
+		void _ThrowReport()
+		{
+			//This should through differently depending on what type it is, and if it's fatal it should be
+			// a fault regardless.
+
+			//If I can, I would like for this 
+		}
+
+
+		//private this struct
+		template <IssueLevel Level, typename... Ts>//requires(!std::same_as<std::source_location, Ts> && ...)
+		struct _log_base
+		{
+
+			_log_base() = default;
+			_log_base(_log_base&) = delete;
+			_log_base(const _log_base&) = delete;
+
+
+
+			static void _ThrowReport()
+			{
+				//This should through differently depending on what type it is, and if it's fatal it should be
+				// a fault regardless.
+
+				//This might take a string as well.
+
+				if constexpr (Level == IssueLevel::Error)
+				{
+					if constexpr (Type == IssueType::Compile)
+					{
+						throw CompileError("Not implemented");
+					}
+					else if constexpr (Type == IssueType::Link)
+					{
+						throw LinkError("Not implemented");
+					}
+					else if constexpr (Type == IssueType::Parse)
+					{
+						throw ParseError("Not implemented");
+					}
+					else if constexpr (Type == IssueType::Runtime)
+					{
+						throw RuntimeError("Not implemented");
+					}
+					//No exception found.
+
+					//unhandled exception type.
+					throw nullptr;
+				}
+				else if (Level == IssueLevel::Fatal)
+				{
+
+					//throw fatal error
+					throw nullptr;
+				}
+
+			}
+
+			//TODO: Report::_log functions have no reason to be a template, may locate in detail
+			template <typename... Ts>//requires(!std::same_as<std::source_location, Ts> && ...)
+			static void _log(IssueCode code, std::source_location loc, Ts&... ts)
+			{
+				detail::_raise_code(Level, Type, code, loc, ts...);
+
+				_ThrowReport();
+			}
+
+			template <typename... Ts>//requires(!std::same_as<std::source_location, Ts> && ...)
+			static void _log_message(LString message, std::source_location loc, Ts&... ts)
+			{
+				detail::_raise_message(Level, Type, message, false, loc, ts...);
+
+				_ThrowReport();
+			}
+
+
+
+
+
+			_log_base(IssueCode code, Ts&&... ts, std::source_location loc = std::source_location::current())
+			{
+				_log(code, loc, ts...);
+			}
+
+			_log_base(IssueCode code, std::source_location loc, Ts&&... ts)
+			{
+				_log(code, loc, ts...);
+			}
+
+
+			_log_base(LString message, Ts&&... ts, std::source_location loc = std::source_location::current())
+			{
+				_log_message(message, loc, ts...);
+			}
+
+			_log_base(LString message, std::source_location loc, Ts&&... ts)
+			{
+				_log_message(message, loc, ts...);
+			}
+
+		};
+
+
+
+		template <IssueLevel Level, typename... Ts>
+		_log_base(IssueCode code, Ts&&... ts) -> _log_base<Level, Ts...>;
+
+		template <IssueLevel Level, typename... Ts>requires(sizeof...(Ts) != 0)
+			_log_base(IssueCode code, std::source_location, Ts&&... ts)->_log_base<Level, Ts...>;
+
+
+		template <IssueLevel Level, typename... Ts>
+		_log_base(LString message, Ts&&... ts) -> _log_base<Level, Ts...>;
+
+		template <IssueLevel Level, typename... Ts>requires(sizeof...(Ts) != 0)
+			_log_base(LString message, std::source_location, Ts&&... ts)->_log_base<Level, Ts...>;
+
+
+
+		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
+			using debug = _log_base<IssueLevel::Debug, Ts...>;
+
+
+		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
+			using warn = _log_base<IssueLevel::Warning, Ts...>;
+
+
+		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
+			using error = _log_base<IssueLevel::Error, Ts...>;
+
+
+		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
+			using fatal = _log_base<IssueLevel::Fatal, Ts...>;
+	};
+	//this fixes intellisense and I don't know why. This isn't even valid syntax
+	template<typename... Ts>
+	using __stupid_intellisense_fix = Report<LEX::IssueType::Compile>::debug<Ts...>;
+
+
+
+	//*/
+		//RaiseIssue(IssueLevel level, IssueType type, IssueCode code, std::source_location)->RaiseIssue<>;
+
+
+
+	void Test2()
+	{
+
+		Report<LEX::IssueType::Compile>::debug<int>;
+
+		//Report<IssueType::Compile>::_log_base<IssueLevel::Debug>(1);
+		Report<IssueType::Compile>::debug(1, 1, 1);
+		//Report<IssueType::Compile>::RaiseIssue(IssueLevel::Debug, IssueType::Compile, 100, std::source_location::current(), 1, 1);
+
+		//TestName<int>::RaiseAlias(IssueLevel::Debug, IssueType::Compile, 100, std::source_location::current(), 1, 1);
+		logger::info("f");
+		std::string* test = nullptr;
+		
+
+		//_RaiseIssue(IssueType::Compile, 100, IssueLevel::Debug, 1, 23, 4);
+		//This shows that theoretically, this should work.
+
+	}
+
+
+	class Formula :public ICallableUnit, public RoutineBase
+	{
+		//This does not derive from functions, due to not wishing to be included into any place like those.
+		// Formulas as such are validated differently
+	};
+
+
+	//Calling function helper constructs. 
+	//Needs names other than target. It's called a ThisVariable
+
+	namespace detail
+	{
+		
+		struct ThisHelperImpl
+		{
+			using _Base = ThisHelperImpl;
+
+			//This is the thing that actually does the calling. This is given based on whether the target is a reference
+			// type, or a pointer type.
+			
+			//The callable functions will have a few different versions, depending on one's faith in the system/preference.
+			//For now, I'm not going to care about the alternate versions of this. BUT here is the low down on what I want
+			//-A central and somewhat raw function for how I want everything packaged and sent to the Runtime
+			//-A function that has doesn't the given references as variables
+			//-A function that does use the given references as variables.
+			//^ For this, one could just forward instead. Also, const should always be taken by value some how.
+
+
+
+
+			//bool Invoke(Variable& out, std::vector<RuntimeVariable> args)
+
+			Variable Call(ICallableUnit* call_unit, std::vector<Variable> args)
+			{
+				args.insert(args.begin(), _this);
+
+
 				return {};
 			}
 
-			//Mathmatics and Comparison can have a base function.
-			template<class Operatable, bool Assign = false>
-			static RuntimeVariable BinaryMath(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
+			template <typename... Ts>
+			Variable Call(ICallableUnit* unit, Ts&&... ts)
 			{
-				//This covers basically most of the below stuff.
-				Number back = a_lhs->AsNumber();
-				Number front = a_rhs->AsNumber();
+				std::vector<Variable> args{};
 
-				Operatable op{};
+				args.resize(sizeof...(Ts));
 
-				Number result = op(back, front);
-				//The below needs to curb "class std::" from the below
-				RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
-
-				a_rhs = Variable{ result, back.Cmp(front) > 0 ? nullptr : nullptr };
-
-				if constexpr (Assign){
-					//Whichever one is used is based on the measuring of numbers
-					a_lhs = a_rhs;
-
-				}
-					
-				return a_rhs;
-			}
-
-			template<class Operatable>
-			static RuntimeVariable UnaryMath(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				//This covers basically most of the below stuff.
-				Number back = a_lhs->AsNumber();
-
-				Operatable op{};
-				
-				Number result = op(back);
-				//The below needs to curb "class std::" from the below
-				RGL_LOG(trace, "{} on {} = {}", typeid(Operatable).name(), back, result);
-
-				a_rhs = Variable{ result,  nullptr };
-
-				return a_rhs;
+				return Call(unit, args);
 			}
 
 
-			template<class Operatable>
-			static RuntimeVariable BinaryCompare(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				//Don't really need a unary compare much, it's basically just '!'. So I could use an std::conditional for it.
-
-				//This covers basically most of the below stuff.
-				Number back = a_lhs->AsNumber();
-				Number front = a_rhs->AsNumber();
-
-				Operatable op{};
-
-				bool result = op(back, front);
-				//The below needs to curb "class std::" from the below
-				RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
-
-				a_rhs = Variable{ result, back.Cmp(front) > 0 ? nullptr : nullptr };
-
-
-				return a_rhs;
-			}
-
-			/*
-			//I can use the same function for this btw, about what function type it is
-			static RuntimeVariable Subtract(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs->AsNumber();
-				Number front = a_rhs->AsNumber();
-
-				Number result = back - front;
-
-				RGL_LOG(trace, "{} - {} = {}", back, front, result);
-
-				if (type != InstructType::Subtract) {
-					a_lhs = Variable{ result, back.IsSubordinate(front) ? nullptr : nullptr };
-				}
-
-				return Variable{ result, nullptr };
-			}
-
-			static Variable Addition(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs.AsNumber();
-				Number front = a_rhs.AsNumber();
-
-				auto result = back + front;
-
-				RGL_LOG(trace, "{} + {} = {}", back, front, result);
-
-				if (type != InstructType::Addition)
-					a_lhs = result;
-
-				return result;
-			}
-
-			static Variable Multiply(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs.AsNumber();
-				Number front = a_rhs.AsNumber();
-
-				auto result = back * front;
-
-				RGL_LOG(trace, "{} * {} = {}", back, front, result);
-
-				if (type != InstructType::Multiply)
-					a_lhs = result;
-
-				return result;
-			}
-
-			static Variable Modulo(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Integer back = a_lhs.GetImplicit<ValueType::Integer>();
-				Integer front = a_rhs.GetImplicit<ValueType::Integer>();
-
-				auto result = back % front;
-
-				RGL_LOG(trace, "{} * {} = {}", back, front, result);
-
-				if (type != InstructType::Modulo)
-					a_lhs = result;
-
-				return result;
-			}
-
-			static Variable Division(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs.GetImplicit<ValueType::Number>();
-				Number front = a_rhs.GetImplicit<ValueType::Number>();
-
-				auto result = back / front;
-
-				RGL_LOG(trace, "{} / {} = {}", back, front, result);
-
-				if (type != InstructType::Division)
-					a_lhs = result;
-
-				return result;
-			}
-
-			static Variable Exponent(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs.GetImplicit<ValueType::Number>();
-				Number front = a_rhs.GetImplicit<ValueType::Number>();
-
-				auto result = pow(back, front);
-
-				RGL_LOG(trace, "{} / {} = {}", back, front, result);
-
-				if (type != InstructType::Exponent)
-					a_lhs = result;
-
-				return result;
-			}
-
-			static Variable BitwiseXOR(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Integer back = a_lhs.GetImplicit<ValueType::Integer>();
-				Integer front = a_rhs.GetImplicit<ValueType::Integer>();
-
-				auto result = back ^ front;
-
-				RGL_LOG(trace, "{} XOR {} = {}", back, front, result);
-
-				if (type != InstructType::BitwiseXOR)
-					a_lhs = result;
-
-				return result;
-			}
-
-
-			static Variable BitwiseAND(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Integer back = a_lhs.GetImplicit<ValueType::Integer>();
-				Integer front = a_rhs.GetImplicit<ValueType::Integer>();
-
-				auto result = back & front;
-
-				RGL_LOG(trace, "{} & {} = {}", back, front, result);
-
-				if (type != InstructType::BitwiseAND)
-					a_lhs = result;
-
-				return result;
-			}
-
-
-			static Variable BitwiseOR(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Integer back = a_lhs.GetImplicit<ValueType::Integer>();
-				Integer front = a_rhs.GetImplicit<ValueType::Integer>();
-
-				auto result = back & front;
-
-				RGL_LOG(trace, "{} | {} = {}", back, front, result);
-
-				if (type != InstructType::BitwiseOR)
-					a_lhs = result;
-
-				return result;
-			}
-
-			static Variable LogicalAND(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Boolean back = a_lhs.GetImplicit<ValueType::Boolean>();
-				Boolean front = a_rhs.GetImplicit<ValueType::Boolean>();
-
-				auto result = back && front;
-
-				RGL_LOG(trace, "{} && {} = {}", back, front, result);
-
-				return result;
-			}
-
-
-			static Variable LogicalOR(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Boolean back = a_lhs.GetImplicit<ValueType::Boolean>();
-				Boolean front = a_rhs.GetImplicit<ValueType::Boolean>();
-
-				auto result = back && front;
-
-				RGL_LOG(trace, "{} || {} = {}", back, front, result);
-
-				return result;
-			}
-
-
-			static Variable RightShift(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Integer back = a_lhs.GetImplicit<ValueType::Integer>();
-				Integer front = a_rhs.GetImplicit<ValueType::Integer>();
-
-				auto result = back & front;
-
-				RGL_LOG(trace, "{} >> {} = {}", back, front, result);
-
-				if (type != InstructType::RightShift)
-					a_lhs = result;
-
-				return result;
-			}
-
-
-			static Variable LeftShift(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Integer back = a_lhs.GetImplicit<ValueType::Integer>();
-				Integer front = a_rhs.GetImplicit<ValueType::Integer>();
-
-				auto result = back & front;
-
-				RGL_LOG(trace, "{} << {} = {}", back, front, result);
-
-				if (type != InstructType::LeftShift)
-					a_lhs = result;
-
-				return result;
-			}
-
-
-
-			//Groups equals to the XThan
-			static Variable GreaterThan(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs.GetImplicit<ValueType::Number>();
-				Number front = a_rhs.GetImplicit<ValueType::Number>();
-
-				auto result = back > front || (type == InstructType::GreaterOrEqual && back == front);
-
-				if (type == InstructType::GreaterOrEqual)
-					RGL_LOG(trace, "{} >= {} = {}", back, front, result);
-				else
-					RGL_LOG(trace, "{} > {} = {}", back, front, result);
-
-				return result;
-			}
-
-
-			static Variable LesserThan(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs.GetImplicit<ValueType::Number>();
-				Number front = a_rhs.GetImplicit<ValueType::Number>();
-
-				auto result = back < front || (type == InstructType::LesserOrEqual && back == front);
-
-
-				if (type == InstructType::LesserOrEqual)
-					RGL_LOG(trace, "{} <= {} = {}", back, front, result);
-				else
-					RGL_LOG(trace, "{} < {} = {}", back, front, result);
-
-				return result;
-			}
-
-
-			static Variable Equals(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
-			{
-				Number back = a_lhs.GetImplicit<ValueType::Number>();
-				Number front = a_rhs.GetImplicit<ValueType::Number>();
-
-				//Needs to use true equal to
-
-				auto result = type == InstructType::EqualTo ? back == front : back != front;
-
-				if (type == InstructType::EqualTo)
-					RGL_LOG(trace, "{} == {} = {}", back, front, result);
-				else
-					RGL_LOG(trace, "{} != {} = {}", back, front, result);
-
-				return result;
-			}
-			
-			static Variable BitwiseNOT(RuntimeVariable& a_lhs, RuntimeVariable, InstructType, const Runtime*)
-			{
-				Integer value = a_lhs.GetImplicit<ValueType::Integer>();
-
-				auto result = ~value;
-
-				RGL_LOG(trace, "~{} = {}", value, result);
-
-				return result;
-			}
-
-			static Variable LogicalNOT(RuntimeVariable& a_lhs, RuntimeVariable, InstructType, const Runtime*)
-			{
-				Number value = a_lhs.GetImplicit<ValueType::Number>();
-
-				auto result = !value;
-
-				RGL_LOG(trace, "!{} = {}", value, result);
-
-				return result;
-			}
-
-
-
-			static Variable UnaryMinus(RuntimeVariable& a_lhs, RuntimeVariable, InstructType, const Runtime*)
-			{
-				Number value = a_lhs.GetImplicit<ValueType::Number>();
-
-				auto result = -value;
-
-				RGL_LOG(trace, "-{} = {}", value, result);
-
-				return result;
-			}
-			//*/
-
-			//Directives-These will have to be moved
-
-			static void Call(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//This is old and I forget how it's done.
-
-				/*
-				Coroutine* routine = a_lhs.As<Coroutine*>();
-
-				size_t arg_size = a_rhs.As<size_t>();
-
-				auto end = process->argStack.end();
-				auto it = end - arg_size;
-
-				//std::vector<Variable> args{ arg_size };
-				std::vector<Variable> args{ it, end };
-				//How this will work perhaps at a later point
-
-
-				//This should be included later 
-				Variable target = process->tarStack[process->tarIndex];
-
-				--process->tarIndex;
-				process->argIndex -= arg_size;
-
-				result = routine->Run(target, args);
-				//*/
-			}
-
-			//void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
-
-			static void IncArgStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//Pretty simple honestly. Increase by the amount.
-				runtime->AdjustStackPointer(StackPointer::Argument, a_lhs.Get<int64_t>());
-			}
-
-			static void IncVarStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//Pretty simple honestly. Increase by the amount.
-				runtime->AdjustStackPointer(StackPointer::Variable, a_lhs.Get<int64_t>());
-			}
-
-			static void Push(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//Not much else needs to be known.
-				// The destination is upto the operation out.
-				ret = a_lhs.GetVariable(runtime);
-
-				//Correction, you cannot do this because out is for register output only.
-				//So ngl, I have no fucking idea what the hell this was supposed to do.
-			}
-
-			//Test is probably deprecated.
-			static void Test(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//Not actually sure how this would work, the idea is basically that I implicit bool cast to it, and output the result
-				// to the process flags.
-
-
-
-				//bool value = process->GetVariable(a_lhs).GetImplicit<ValueType::Boolean>();
-				//process->flags.Set(ProcessFlags::TestBit, value);
-			}
-
-			static void Ret(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//This is going to have to have an official function to handle this
-				runtime->_flags.Set(RuntimeFlag::RetBit, true);
-	
-			}
-
-			static void DropStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//Drop should converge with a climb as well.
-
-				//Rename to drop runtime pointer
-				int64_t mode = a_rhs.Get<int64_t>();
-
-
-				//If mode is 0 flag is required to be 0,
-				// if 1 flag is required to be 1,
-				// if any other value, flag is not required.
-				// though, what drop wouldn't be conditional? A while loop probably that's broken by an out.
-				if (mode <= 1)
-				{
-					bool flag = runtime->GetFlags().Get(RuntimeFlag::TestBit);
-
-					if (mode && flag || !mode && !flag)
-						return;
-				}
-
-				runtime->AdjustStackPointer(StackPointer::Runtime, a_lhs.Get<uint64_t>());
-			}
-
-			static void JumpStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-			{
-				//Canning this because I think drop is likely going to be a better solution, but I'll wait until I can compile some shit.
-
-
-				int64_t mode = a_rhs.Get<int64_t>();
-
-
-				//If mode is 0 flag is required to be 0,
-				// if 1 flag is required to be 1,
-				// if any other value, flag is not required.
-				// though, what drop wouldn't be conditional? A while loop probably that's broken by an out.
-				if (mode <= 1)
-				{
-					bool flag = runtime->GetFlags().Get(RuntimeFlag::TestBit);
-
-					if (mode && flag || !mode && !flag)
-						return;
-				}
-
-				runtime->SetStackPointer(StackPointer::Runtime, a_lhs.Get<uint64_t>());
-			}
-			//Conditional instructions
-			// SOME of these could have 2 versions one conditional and the other not conditional, which would determine if it's going to do the conditional verison of it or not
-			// The conditional version should probably always likely be a plus 1.
-
-
-
-
-			//I think access is supposed to be like object on the left gets pushed into the register. Not
-
-			//target.GetCombatTarget().GetOwner().GetActorValue('health')
-			//This should look like the below (ignoring the drops and stuff because it's a pain):
-			//test target
-			//drop x 0
-			//inc_arg_stack 1//<1>
-			//push target => arguments[argStack - 1]//
-			//inc_arg_stack 0
-			//call GetCombatTarget 1 => pref_reg//<2>
-			//inc_arg_stack 1
-			//push pref_reg => arguments[argStack - 1]
-			//inc_arg_stack 0
-			//call GetOwner 1 => pref_reg
-			//inc_arg_stack 1
-			//push pref_reg => arguments[argStack - 1]
-			//inc_arg_stack 1
-			//push lit:'health' => arguments[argStack - (1 + paramNo)]
-			//call GetActorValue 2 => pref_reg
-			//push pref_reg result
-			//end
-			//<1> This is the start of where the access operator does it's business. To do this, it needs to check for another dual operator that isnt 
-			// access operation. If it encounters access operation, it should skip.
-			// 
-			//<2> This outputing to pref_reg could possibly be ammended manually be the function read by peeking the next value. If it's an access operator it
-			// will output it to that. Similarly, when access operator is peeking back it can use this time to know if it needs to load the push of the pref register
-			// into the it.
-			//<!>Actually, negatory. I can just check if the first thing on the left is an open operator.
-
-
-		};
-
-
-
-		struct RoutineCompiler;
-
-
-
-	
-
-
-
-
-	struct Scope;
-	struct FunctionData;
-
-	
-	
-	namespace //Processes the records, these 2 are expression parsers.
-	{
-
-		//
-		using OperatorConstructor = Solution(*)(ExpressionCompiler*, OperatorType, Solution, Solution, Register);
-		//The main function that uses the above is effectively processing ranges. Remember that.
-
-		//The idea of this this is what interprets OPerators and pushes back instructions for the instruct list to use.
-		//TODO: (MakeManager) The Operator Constructor list
-		constexpr std::array<OperatorConstructor, OperatorType::Total> operatorCtorList
-		{
-			{}
-		};
-
-
-		OperatorType GetOperatorType(Record& target)
-		{
-			bool binary = target.SYNTAX().type == SyntaxType::Binary;
-
-			RGL_LOG(trace, "START CTOR");
-
-			switch (Hash(target.GetTag()))
-			{
-			case "|"_h:
-			case "OR"_h:
-				logger::debug("construct symbol '|' / 'OR'");
-				return OperatorType::BitwiseOR;
-
-			case "or"_h:
-			case "||"_h:
-				logger::debug("construct symbol '|' / 'or'");
-				return OperatorType::LogicalOR;
-
-			case "&"_h:
-			case "AND"_h:
-				logger::debug("construct symbol '&' / 'AND'");
-				return OperatorType::BitwiseAND;
-
-			case"&&"_h:
-			case "and"_h:
-				logger::debug("construct symbol '&&' / 'and'");
-				return OperatorType::LogicalAND;
-
-			case ">>"_h:
-				logger::debug("construct symbol '>>'");
-				return OperatorType::RightShift;
-
-			case "<<"_h:
-				logger::debug("construct symbol '<<'");
-				return OperatorType::LeftShift;
-
-			case "!="_h:
-				logger::debug("construct symbol '!='");
-				return OperatorType::NotEqualTo;
-
-			case "!=="_h:
-				logger::debug("construct symbol '!=='");
-				return OperatorType::AbsNotEqualTo;
-
-
-			case "<"_h:
-				logger::debug("construct symbol '<'");
-				return OperatorType::LesserThan;
-				break;
-
-			case ">"_h:
-				logger::debug("construct symbol '>'");
-				return OperatorType::GreaterThan;
-
-			case "<="_h:
-				logger::debug("construct symbol '<='");
-				return OperatorType::LesserOrEqual;
-
-			case ">="_h:
-				logger::debug("construct symbol '>='");
-				return OperatorType::GreaterOrEqual;
-
-			case "=="_h:
-				logger::debug("construct symbol '=='");
-				return OperatorType::EqualTo;
-
-			case "==="_h:
-				logger::debug("construct symbol '==='");
-				return OperatorType::AbsEqualTo;
-
-			case "^"_h:
-			case "XOR"_h:
-				logger::debug("construct symbol '^' / 'OR'");
-				return OperatorType::BitwiseXOR;
-
-			case "*"_h:
-				logger::debug("construct symbol \'*\'");
-				return OperatorType::Multiply;
-
-			case "+"_h:
-				RGL_LOG(debug, "construct symbol '+' ({})", binary ? "binary" : "unary");
-				return binary ? OperatorType::Addition : OperatorType::UnaryPlus;
-
-			case "-"_h:
-				logger::debug("construct symbol \'-\'");
-				return binary ? OperatorType::Subtract : OperatorType::UnaryMinus;
-
-			case "/"_h:
-				logger::debug("construct symbol \'/\'");
-				return OperatorType::Division;
-
-			case "**"_h:
-				logger::debug("construct symbol \'^\'");
-				return OperatorType::Exponent;
-
-			case "%"_h:
-				logger::debug("construct symbol \'%\'");
-				return OperatorType::Modulo;
-
-			default:
-				//ARTHMETIC_LOGGER(info, "Failure to handle operator, value \'{}\'", data->view[0]);
-				return OperatorType::Invalid;
-			}
-		}
-
-
-
-		InstructType GetInstructType(Record& target)
-		{
-			bool binary = target.SYNTAX().type == SyntaxType::Binary;
-
-			switch (Hash(target.GetTag()))
-			{
-			case "|"_h:
-			case "OR"_h:
-				logger::debug("construct symbol '|' / 'OR'");
-				return InstructType::BitwiseOR;
-
-			case "or"_h:
-			case "||"_h:
-				logger::debug("construct symbol '|' / 'or'");
-				return InstructType::LogicalOR;
-
-			case "&"_h:
-			case "AND"_h:
-				logger::debug("construct symbol '&' / 'AND'");
-				return InstructType::BitwiseAND;
-
-			case"&&"_h:
-			case "and"_h:
-				logger::debug("construct symbol '&&' / 'and'");
-				return InstructType::LogicalAND;
-
-			case ">>"_h:
-				logger::debug("construct symbol '>>'");
-				return InstructType::RightShift;
-
-			case "<<"_h:
-				logger::debug("construct symbol '<<'");
-				return InstructType::LeftShift;
-
-			case "!="_h:
-				logger::debug("construct symbol '!='");
-				return InstructType::NotEqualTo;
-
-			case "!=="_h:
-				logger::debug("construct symbol '!=='");
-				return InstructType::NotEqualAbsTo;
-
-
-			case "<"_h:
-				logger::debug("construct symbol '<'");
-				return InstructType::LesserThan;
-				break;
-
-			case ">"_h:
-				logger::debug("construct symbol '>'");
-				return InstructType::GreaterThan;
-
-			case "<="_h:
-				logger::debug("construct symbol '<='");
-				return InstructType::LesserOrEqual;
-
-			case ">="_h:
-				logger::debug("construct symbol '>='");
-				return InstructType::GreaterOrEqual;
-
-			case "=="_h:
-				logger::debug("construct symbol '=='");
-				return InstructType::EqualTo;
-
-			case "==="_h:
-				logger::debug("construct symbol '==='");
-				return InstructType::EqualAbsTo;
-
-			case "^"_h:
-			case "XOR"_h:
-				logger::debug("construct symbol '^' / 'OR'");
-				return InstructType::BitwiseXOR;
-
-			case "*"_h:
-				logger::debug("construct symbol \'*\'");
-				return InstructType::Multiply;
-
-			case "+"_h:
-				RGL_LOG(trace, "construct symbol '+' ({})", binary ? "binary" : "unary");
-				return binary ? InstructType::Addition : InstructType::UnaryPlus;
-
-			case "-"_h:
-				logger::debug("construct symbol \'-\'");
-				return binary ? InstructType::Subtract : InstructType::UnaryMinus;
-
-			case "/"_h:
-				logger::debug("construct symbol \'/\'");
-				return InstructType::Division;
-
-			case "**"_h:
-				logger::debug("construct symbol \'^\'");
-				return InstructType::Exponent;
-
-			case "%"_h:
-				logger::debug("construct symbol \'%\'");
-				return InstructType::Modulo;
-
-			default:
-				//ARTHMETIC_LOGGER(info, "Failure to handle operator, value \'{}\'", data->view[0]);
-				return InstructType::Invalid;
-			}
-		}
-
-
-		InstructType OperatorToInstruction(OperatorType op)
-		{
-
-			return InstructType::Invalid;
-		}
-
-		Solution BasicBinaryGenerator(ExpressionCompiler* compiler, InstructType op, Solution lhs, Solution rhs, Register out)
-		{
-
-			//No need to deviate for now.
-			//InstructType type = OperatorToInstruction(op);
-
-			compiler->GetOperationList().push_back(Operation{ op, out, lhs, rhs });
-			logger::trace("{}", compiler->GetOperationList().back()._instruct);
-			return Solution(nullptr, OperandType::Register, out);
-		}
-
-		//RecordProcessors
-		Solution OperatorProcess(ExpressionCompiler* compiler, Record& target)
-		{
-			//TODO:Note, this operator stuff WILL fail when it comes to member access, since it needs
-			// what's on the left to process what's on the right. In this specific instance, I'm going to make 
-			// something else handle thing
-
-			//Honestly, in general, maybe this should be taking control a bit less. Consider a set up
-			// like how the functional part of operators work, 2 template to do all the jobs.
-
-			//Should be an expression compiler but I'm pretending that it's a routine compiler.
-			Register prefered = compiler->GetPrefered();
-
-			//OperatorType op = GetOperatorType(target);
-			InstructType op = GetInstructType(target);
-
-			//if (op == OperatorType::Invalid) {
-			if (op == InstructType::Invalid) {
-				RGL_LOG(critical, "Invalid something something");
-				throw nullptr;
-			}
-
-			Solution lhs{};
-			Solution rhs{};
-
-			if (target.SYNTAX().type == SyntaxType::Binary)
-			{
-				//Which is done first should be handled by which is more complex
-				std::string str1 = "left";
-				std::string str2 = "right";
-
-				Register reg1 = Register::Left;
-				Register reg2 = Register::Right;
-				
-				Record& left = target.FindChild(str1)->GetChild(0);
-				RGL_LOG(debug, "<%>after find child");
-				lhs = compiler->CompileExpression(left, reg1);
-				RGL_LOG(debug, "<%>end");
-				if (prefered == Register::Result)
-				{
-					//This should actually be pushing what's in the lhs into the result register, then
-					// making the lh solution the result register.
-					Operation free_reg{ InstructType::Push,Register::Result, lhs };
-
-
-
-					//free_reg._instruct = InstructType::Push;
-					//free_reg._lhs = reg1;
-					//free_reg._out = Register::Result;
-
-					//This statement will become more properly invalid once when I obsure the current vector. Address later.
-					compiler->GetOperationList().push_back(free_reg);
-
-
-					lhs = Solution{ nullptr, OperandType::Register, Register::Result };
-				}
-
-				rhs = compiler->CompileExpression(target.FindChild(str2)->GetChild(0), reg2);
-			}
-			else// if syntax == unary blah blah blah
-			{
-				//Unary is a lot simpler to deal with
-				lhs = compiler->CompileExpression(target.GetChild(0), Register::Left);
-			}
-
-			//Do operation here. Needs solutions, outputs solution.
-			//return operatorCtorList[op](compiler, op, lhs, rhs, prefered);
-			return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered);
-
-		}
-
-
-		Solution LiteralProcess(ExpressionCompiler* compiler, Record& target)
-		{
-			//Combine with the use of variables.
-			Literal result = LiteralManager::ObtainLiteral(target);
-			RGL_LOG(trace, "test0");
-			result = LiteralManager::ObtainLiteral(target);
-			*result;
-			RGL_LOG(trace, "test1");
-			Solution sol { result->GetPolicy(), OperandType::Literal, result };
-			RGL_LOG(trace, "test2");
-			return sol;
-		}
-
-		void BlockProcess(RoutineCompiler* compiler, Record& target)
-		{
-			compiler->CompileBlock(target);
-		}
-
-
-
-		void ReturnProcess(RoutineCompiler* compiler, Record& target)
-		{
-			Solution result = compiler->CompileExpression(target.GetChild(0), Register::Result); 
-
-			//Right here the solutions given type should be evaluated to see if a correct type is being returned.
-			
-			//TODO: if the solution isn't in a register that is the result register, push the solution into 
-			// the return. Also check type.
-			//compiler->GetOperationList().push_back(ret_op);
-
-			Operation ret_op{ InstructionType::Return };
-
-			//This part should probably say what left and right situation should be on display.
-
-
-
-				
-			compiler->GetOperationList().push_back(ret_op);
-		}
-
-
-		void CallProcess(RoutineCompiler* compiler, Record& target)
-		{
-			//This cannot be used right now, as the actual ability to get a function hasn't been implemented just yet.
-			// But, I can put in the most of everything.
-
-			IFunction* function = nullptr;
-
-
-
-			Solution result = compiler->CompileExpression(target.GetChild(0), Register::Result);
-
-			//Right here the solutions given type should be evaluated to see if a correct type is being returned.
-
-			Operation ret_op{ InstructionType::Return };
-
-			//This part should probably say what left and right situation should be on display.
-
-
-
-
-			compiler->GetOperationList().push_back(ret_op);
-		}
-
-		INITIALIZE()
-		{
-			generatorList[SyntaxType::Return] = ReturnProcess;
-			generatorList[SyntaxType::Block] = BlockProcess;
-
-			generatorList[SyntaxType::Unary] = OperatorProcess;
-			generatorList[SyntaxType::Binary] = OperatorProcess;
-			generatorList[SyntaxType::Assign] = OperatorProcess;
-
-			generatorList[SyntaxType::Number] = LiteralProcess;
-			generatorList[SyntaxType::Integer] = LiteralProcess;
-			generatorList[SyntaxType::Boolean] = LiteralProcess;
-			generatorList[SyntaxType::String] = LiteralProcess;
-			generatorList[SyntaxType::Object] = LiteralProcess;
-
-
-			instructList[InstructType::Push] = InstructWorkShop::Push;
-			instructList[InstructType::Return] = InstructWorkShop::Ret;
-			instructList[InstructType::JumpStack] = InstructWorkShop::JumpStack;
-			instructList[InstructType::IncArgStack] = InstructWorkShop::IncArgStack;
-			instructList[InstructType::IncVarStack] = InstructWorkShop::IncVarStack;
-			instructList[InstructType::DropStack] = InstructWorkShop::DropStack;
-
-			
-			instructList[InstructType::Addition] = InstructWorkShop::BinaryMath<std::plus<>, false>;
-			instructList[InstructType::Subtract] = InstructWorkShop::BinaryMath<std::minus<>, false>;
-			instructList[InstructType::Multiply] = InstructWorkShop::BinaryMath<std::multiplies<>, false>;
-			instructList[InstructType::Division] = InstructWorkShop::BinaryMath<std::divides<>, false>;
-			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
-			//We not ready for this one.
-			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;
-			instructList[InstructType::UnaryMinus] = InstructWorkShop::UnaryMath<std::negate<void>>;
-			
-
-
-		};
-
-	}
-	
-
-
-	///////////////////////////////////////////////////////////////////
-
-	enum struct ReserveType
-	{
-		None,
-		Function,
-		Property,
-		Other,		//with other you can make your own format string as to why, otherwise there's a prebuilt reason for each.
-
-	};
-	//You use the above along with a reservation type to reserve the use of a name at a particular place. This will be attached to the environment.
-	// basically it will prevent you from 
-
-
-	struct ReserveNode{};
-
-	//I reckon to dare this is where 
-	enum struct Statement
-	{
-		TopLevel,	//The top level, where most things can go
-		Function,	//the declaration of a function obvs
-		IfBounds,	//Within the bounds of an if statements paras, if that's ever relevant to me.
-		//Switch,	//Never going to do these, but stands as the point of some statement that would require extra noting.
-		Line,		//The moment a non-one of the above happens, it's a line.
-		Assign,		//THIS is what subroutines most often are. Simple single line evaluations that go to one place.
-
-		//YOu should also be able to start writing from one of these statements, like within a line or function, both of things lexicon may be needed for.
-	};
-
-	//Contexts
-	// Script-top level
-	//  struct
-	//   member
-	//   constructor
-	//   method
-	//  function
-	//   line
-
-
-	//Notes for parsing some things
-	// There's a parser function for each and every thing to parse of the [ExpressionType?], however there's specific compiling for each operator.
-	// how the above should work would likely be very similar to that of how Expression works (pulling all classes via type).
-
-
-	//To begin compiling the information, I should be addressing the Expression, maybe some of the RoutineCompiler
-	//So I'm thinking like, the compil
-
-
-
-
-	//So for pointer specification this is the set up I'm going to take, but the major difference is and will be that
-	// the test base is the thing that will be specialized, and not the upper part. This will allow me to throw
-	// errors about what's expected where better using concepts (I hope). 
-	namespace MoreTesting
-	{
-		struct test_base {};
-
-		template <class T>
-		class testing : public test_base
-		{
-
-		};
-
-		template <>
-		class testing<int>
-		{
-
+			//void* _this = nullptr;
+			Variable _this;
 		};
 	}
-	//How this sort of thing will then likely work is akin to a type trait, with a singular type alias
-	// handling all of the grunt work.
+	
+	//*
+	
+	//std::convertible_to<Variable>//I want to use this, but I cannot because it doesn't yet account for pointer
+	// types. Readdress another time.
+	template <typename T, typename =  void>
+	struct ThisHelper {};
 
-	//A note also is that I can use this kind of specialization on functions too, so long as they share a return type,
-	// so I can just use that rather than an out and out class getting the object code of something
 
+
+	//This is for value and references
+	template <typename T>
+	struct ThisHelper<T, std::enable_if_t<!PointerType<T>>> : public detail::ThisHelperImpl
+	{
+		using _Self = ThisHelper<T>;
+
+		//Should be convertible to a variable?
+
+		//This is only to fulfill what someone would normally use
+
+
+		ThisHelper(const T& t)
+		{
+
+		}
+
+		ThisHelper(const T&& t)
+		{
+
+		}
+	};
+
+	//this is for pointers
+	template <typename T>
+	struct ThisHelper<T, std::enable_if_t<PointerType<T>>> : private detail::ThisHelperImpl
+	{
+		using TypeC = int;
+		using _Self = ThisHelper<T>;
+		
+		_Base* operator->()
+		{
+			//This gets the TargetBase, the thing that actually has the run function, to resume the 
+			// syntax that you're accessing a member function (which you kinda are).
+
+			return this;
+		}
+
+
+		ThisHelper(const T& t)
+		{
+
+		}
+
+		ThisHelper(const T&& t)
+		{
+
+		}
+	};
+
+
+	template <typename T>
+	ThisHelper(T) -> ThisHelper<T>;
 
 	
+
+	//this helper should be moved to something else.
+//maybe name METHOD?
+#define METHOD(mc_tar) ThisHelper{ mc_tar }
+
+
+
+	void test_method()
+	{
+		std::string* string_thing;
+		std::vector testname{ string_thing };
+
+		METHOD(string_thing)->Call(nullptr, 1, 3, 4);
+
+	}
+
+	//*/
+
+
+
+
+	//Creator function for numbers
+
+	inline void TestCreateAllSettings()
+	{
+		//This is the name of the unique policy for numbers, that can handle the conversions between things itself.
+		using NumericPolicy = TypePolicy;
+
+		std::vector<TypePolicy*> results;
+
+		NumeralType type{};
+		Size        size{};
+		Signage     sign{};
+		Limit       limit{ Limit::Overflow };
+
+		IdentityManager::GenerateID("NUMBER", Number::Settings::length);
+
+		TypePolicy* primary_policy = new TypePolicy{ "NUMBER", 0 };
+
+		for (int a = 0; a < NumeralType::Total; a++)
+		{
+			for (int b = 0; b < Size::Total; b++)
+			{
+				for (int c = 0; c < Signage::Total; c++)
+				{
+					for (int d = 1; a < Limit::Total; d++)
+					{
+						Number::Settings settings{ (NumeralType)a, (Size)b, (Signage)c, (Limit)d };
+						TypePolicy* number_policy = new TypePolicy{ "NUMBER", settings.GetOffset() };
+						Variable defaultValue{ settings, number_policy };
+						number_policy->EmplaceDefault(defaultValue);
+						results.emplace_back(number_policy);
+
+						
+					}
+				}
+			}
+		}
+
+		//static TypePolicy* float64 = new TypePolicy{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
+
+		//do something with values.
+	}
+
+	//I'd need 2 versions of these. Annoying.
+	class IntrinsicPolicy : public TypePolicy, public ICallableUnit
+	{
+
+	};
+
+
+
+
+	namespace NewSpecials
+	{
+		struct BasicGeneric;
+
+		class Specialization
+		{
+			virtual ~Specialization() = default;
+
+
+			BasicGeneric* _parent = nullptr;
+		};
+
+		//These are both bases to a template class that handles it. I think.
+		class ResolvedVariant : public Specialization 
+		{
+			std::vector<AbstractTypePolicy*> _types;
+		};
+		class UnresolvedVariant : public Specialization 
+		{
+			std::vector<ITypePolicy*> _types;
+		};
+
+
+
+		struct BasicGeneric
+		{
+
+		};
+
+		template <typename T1, typename T2>
+		struct Generic : public BasicGeneric, public virtual T1, private T2
+		{
+			using Interface = T1;		//The interface is the type used to symbolize the idea of being the type.
+			using Abstract = T2;		//The abstraction is the type used to say something is ready to be used as the type.
+
+			struct ResolveInterface : public Interface, public ResolvedVariant
+			{
+
+			};
+			
+			//The existence of this is not so that the interface can become the abstract, rather it's so this
+			// has a way of communicating with it's later version on how to do that very thing.
+			virtual Abstract* ResolveVariant(Interface*, IGenericArgument*) = 0;
+
+
+
+			//size_t _expectedArgs = 0;					//args
+			//std::vector<GenericParamPolicy> _params;	//params
+			//std::vector<UnresolvedVariant*> _clients;	//partial
+			//std::vector<ResolvedVariant*> _servers;		//complete
+		};
+
+
+
+	struct Interface
+	{
+		virtual ~Interface() = default;
+	};
+
+	struct Abstract : public virtual Interface
+	{
+		
+	};
+	
+	
+
+
+	//Advisable base structure that should be the pivot between generic and concrete classes.
+	struct Base : public virtual Interface//, FunctionData, ICallableUnit
+	{
+
+	};
+
+
+
+	//This is what a generic class would look like.
+	struct GenericFoo : public Base, public Generic<Interface, Abstract>
+	{
+		//This is generic
+		//void a() override {}
+		//int c;
+
+		Abstract* ResolveVariant(Interface* tar, IGenericArgument*)
+		{
+			return nullptr;
+		}
+	};
+
+	struct ConcreteFoo : public Base, public Abstract
+	{
+		//This is concrete.
+		//int d;
+	};
+	//The above structure seems to work, most importantly, it doesn't take undue size for the concrete type.
+	// At least, not much.
+		
+
+	int main()
+	{
+		ConcreteFoo objA{};
+		GenericFoo objB{};
+
+		Abstract* test1 = &objA;
+		Interface* test2 = &objB;
+
+		//objA.a();
+		//objB.a();
+		std::cout << "Hello World << " << sizeof(ConcreteFoo);
+
+		return 0;
+	}
+
+	}
+
 
 }
 
 
-namespace LEX::makeType
-{
-	//namespace for making type policies manually.
 
 
-	void TestSpace()
-	{
-		//TypePolicy new_policy {};
-	}
-}
+
 
 //TODO: Most if not all todos past this point are invalid
 

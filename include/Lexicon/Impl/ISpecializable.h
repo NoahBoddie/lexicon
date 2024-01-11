@@ -28,6 +28,8 @@ namespace LEX
 	{
 		virtual ~ISpecializable()
 		{
+			//use unique pointers smart guy
+
 			for (auto& spec : _servers)
 			{
 				delete spec;

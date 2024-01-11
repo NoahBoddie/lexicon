@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Impl/ParseHandler.h"
 
 namespace LEX::Impl

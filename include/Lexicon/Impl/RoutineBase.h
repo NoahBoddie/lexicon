@@ -28,7 +28,8 @@ namespace LEX
 
 
 		//I will go with span over vector, because this will never need to change. In creation however, a list should be prefered.
-		std::span<Operation, std::dynamic_extent> operations;
+		//std::span<Operation, std::dynamic_extent> operations;
+		std::vector<Operation> operations;
 
 		Operation& operator[](size_t i)
 		{

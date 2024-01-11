@@ -1,9 +1,7 @@
-#pragma once
-
 #include "Literal.h"
-#include "Variable.h"
 #include "LiteralManager.h"
 
+#include "Parser.h"
 namespace LEX
 {
 
@@ -17,13 +15,13 @@ namespace LEX
 		return LiteralManager::GetLiteral(_id);
 	}
 
-	Variable* Literal::operator*()
+	Variable& Literal::operator*()
 	{
-		return LiteralManager::GetLiteral(_id);
+		return *LiteralManager::GetLiteral(_id);
 	}
 
-	const Variable* Literal::operator*() const
+	const Variable& Literal::operator*() const
 	{
-		return LiteralManager::GetLiteral(_id);
+		return *LiteralManager::GetLiteral(_id);
 	}
 }

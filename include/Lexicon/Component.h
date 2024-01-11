@@ -158,6 +158,8 @@ namespace LEX
 		void AttemptCompleteValidation() const;
 
 	protected:
+		//A note on these dependencies and validity, ONLY care about whether it itself is valid, and if it isn't, force
+		// invalidity on things that depend on it.
 		void ClearDependency();
 		void AddDependency(Component* component);
 		void RemoveDependency(Component* component);

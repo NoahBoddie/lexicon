@@ -1,5 +1,3 @@
-
-
 #include "Lexicon/Impl/TokenHandler.h"
 
 namespace LEX::Impl

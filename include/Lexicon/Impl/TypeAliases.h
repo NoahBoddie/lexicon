@@ -23,6 +23,9 @@ namespace LEX
 		class Parser;
 
 		typedef Record(ParseFunc)(Parser*, Record*);
+		//using ParseFunc = Record(Parser*, Record*);
+
+
 	}
 	
 }

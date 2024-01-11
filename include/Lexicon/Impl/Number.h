@@ -1,9 +1,11 @@
 #pragma once
 
+//src
+#include "TypeID.h"
 
 namespace LEX
 {
-
+    
 #define BINARY_OPERATOR(mc_symbol, ...)                                                                     \
         operator mc_symbol(const Number& a_rhs) {                                                           \
             constexpr bool assign = _IsAssign(STRINGIZE(mc_symbol));                                        \
@@ -68,8 +70,10 @@ namespace LEX
     ENUM(Limit, uint8_t)
     {
         //Limit, the smallest value must always have a value
+        //I'm thinking about getting rid of limit. Overflow for integers, infinity for floats.
         Overflow = 1,
         Infinite,
+        Total,
 
         Shift = 0,//uses 2 bytes
         Invalid = 0xFF
@@ -80,10 +84,12 @@ namespace LEX
     {
         //Size 
         Bit,       //Represents a single bit. This value is used for boolean, and negates all other values
+        //Byte and word sizes are useless for this.
         Byte,           //A single byte to represent its value
         Word,
         DWord,
         QWord,
+        Total,
         Shift = Limit::Shift + 2,//Uses 3 bytes
         //Total bytes, 3
         Invalid = 0xFF
@@ -94,18 +100,18 @@ namespace LEX
     {
         Signed,
         Unsigned,
+        Total,
 
         Shift = Size::Shift + 3,//Uses 1 byte
         Invalid = 0xFF
     };
-
     
-
     //The actual way it accounts for data. Integral uses integers while floating uses floating point values like doubles and floats. As on the tin so it is.
     ENUM(NumeralType, uint8_t)
     {
         Integral,
         Floating,
+        Total,
         Shift = Signage::Shift + 1,//Uses 1 bytes
         Invalid = 0xFF
     };
@@ -113,26 +119,84 @@ namespace LEX
     //2 + 3 + 1 + 1
     //Total bytes, 7
 
+    constexpr static uint8_t GetOffset_(NumeralType type, Size size, Signage sign, Limit limit)
+    {
+        uint8_t result = 0;
+        //Old entries marked right
+        result |= type << NumeralType::Shift;   //24
+        result |= size << Size::Shift;          //16
+        result |= sign << Signage::Shift;       //8
+        result |= limit << Limit::Shift;        //0
+
+        return result;
+    }
+
+
+    enum struct direction
+    {
+
+        left,
+        right
+    };
+    //not using, unsure if I want
+    template <std::integral T>
+    T _UnsetPastBit(T value, size_t shift, direction dir)
+    {
+        bool done = false;
+        if (!done && dir == direction::left)
+        {
+        __left:
+            value <<= shift;
+
+        }
+
+        if (!done && dir == direction::right)
+        {
+        __right:
+            value >>= shift;
+
+        }
+
+        if (!done)
+        {
+            done = true;
+            if (dir == direction::left)         goto __right;
+            else if (dir == direction::right)   goto __left;
+        }
+
+        return value;
+    }
+
+
     struct Number
     {
 
 
-        struct NumberSettings
+        struct Settings
         {
-            NumberSettings() = default;
+            
+
+
+            Settings() = default;
 
             template <numeric T>
-            NumberSettings()
+            Settings()
             {
-                *this = NumberSettings::CreateFromType<T>();
+                *this = Settings::CreateFromType<T>();
             }
 
             //Might not use this.
-            NumberSettings(NumeralType tp, Size sz, Signage sg, Limit lm) :
+            Settings(NumeralType tp, Size sz, Signage sg, Limit lm) :
                 type{ tp }, size{ sz }, sign{ sg }, limit{ lm }
             {
 
             }
+
+
+
+            //It's 7 bits long. Want to use GetOffset but it's 
+            static constexpr TypeOffset length = 0x7F;//GetOffset(NumeralType::Floating, Size::QWord, Signage::Unsigned, Limit::Infinite);//
+
 
             //Unionize this for easy reading
             NumeralType type{ NumeralType::Invalid };
@@ -141,7 +205,7 @@ namespace LEX
             Limit       limit{ Limit::Invalid };
 
 
-            constexpr uint8_t GetTypeCode() const
+            constexpr uint8_t GetOffset() const
             {
                 uint8_t result = 0;
                 //Old entries marked right
@@ -153,7 +217,66 @@ namespace LEX
                 return result;
             }
 
-            constexpr std::strong_ordering operator <=> (NumberSettings rhs) const
+            constexpr static uint8_t GetOffset(NumeralType type, Size size, Signage sign, Limit limit)
+            {
+                uint8_t result = 0;
+                //Old entries marked right
+                result |= type << NumeralType::Shift;   //24
+                result |= size << Size::Shift;          //16
+                result |= sign << Signage::Shift;       //8
+                result |= limit << Limit::Shift;        //0
+
+                return result;
+            }
+
+            constexpr static uint8_t GetOffset(NumeralType type)
+            {
+                //To get offset like this Might instead use a type.
+                return GetOffset(type, Size::QWord, Signage::Signed, type == NumeralType::Floating ? Limit::Infinite : Limit::Overflow);
+            }
+
+            
+            static Settings CreateFromID(TypeID id)
+            {
+                //This could be constexpr, though no point innit?
+
+                //make create from offset.
+                if (id != 0 && id <= length)
+                {
+                    uint8_t value = static_cast<uint8_t>(id);
+                    uint8_t temp = static_cast<uint8_t>(id);
+
+                    Settings result{};
+
+                    //messy but I hope it works.
+
+                    temp = value >> NumeralType::Shift;
+                    result.type = static_cast<NumeralType>(temp);
+                    value &= ~(temp << NumeralType::Shift);
+
+                    temp = value >> Size::Shift;
+                    result.size = static_cast<Size>(temp);
+                    value &= ~(temp << Size::Shift);
+
+                    temp = value >> Signage::Shift;
+                    result.sign = static_cast<Signage>(temp);
+                    value &= ~(temp << Signage::Shift);
+
+                    //temp = value >> Limit::Shift;//No need.
+                    result.limit = static_cast<Limit>(temp);
+                    //value &= ~temp;//Also no need.
+
+                    return result;
+
+                }
+                else
+                {
+                    return Settings{};
+                }
+            }
+
+
+            constexpr std::strong_ordering operator <=> (Settings rhs) const
             {
                 //The conversion rules follow the same rules as the code range for it's type, that it is the combined value (via OR) of all its settings.
                 // If one is a float and the other isn't it becomes the floating one.
@@ -162,11 +285,17 @@ namespace LEX
                 // Lastly, there might be something about the looping types.
 
 
-                auto left = GetTypeCode();
-                auto right = rhs.GetTypeCode();
+                auto left = GetOffset();
+                auto right = rhs.GetOffset();
 
                 return left <=> right;
             }
+
+            bool IsFloat() const { return type == NumeralType::Floating; }
+            bool IsInteger() const { return type == NumeralType::Integral; }
+
+            bool IsUnsigned() const { return sign == Signage::Unsigned; }
+            bool IsSigned() const { return sign == Signage::Signed; }
 
 
             double MaxF()
@@ -192,12 +321,12 @@ namespace LEX
             {
                 return 0;
             }
-
+            
 
             template <numeric T>
-            constexpr static NumberSettings CreateFromType()
+            constexpr static Settings CreateFromType()
             {
-                NumberSettings setting{};
+                Settings setting{};
 
                 //Type & Limit
                 if constexpr (std::is_floating_point_v<T>) {
@@ -214,11 +343,11 @@ namespace LEX
                     switch (sizeof(T))
                     {
                         //Literally impossible but hey, never know in the future.
-                    default: return NumberSettings{};
-                    case 8: setting.size = Size::QWord;
-                    case 4: setting.size = Size::DWord;
-                    case 2: setting.size = Size::Word;
-                    case 1: setting.size = Size::Byte;
+                    default: return Settings{};
+                    case 8: setting.size = Size::QWord; break;
+                    case 4: setting.size = Size::DWord; break;
+                    case 2: setting.size = Size::Word; break;
+                    case 1: setting.size = Size::Byte; break;
 
                     }
                 }
@@ -244,38 +373,82 @@ namespace LEX
 
 
         Number() = default;
-
-        template <numeric T>
+        
+        //*
+        template <numeric T>// requires (!std::is_integral_v<T>)
         Number(T v) :
-            //_value{ v },
-            _setting{ NumberSettings::CreateFromType<T>() },
-            _priority{ _setting.GetTypeCode() }
+           // _value{ v },
+            _setting{ Settings::CreateFromType<T>() },
+            _priority{ _setting.GetOffset() }
         {
             //This is the list of concessions made to make sure the variant works.
+            //Also thinking of making void the first entry
             if constexpr (std::is_integral_v<T>)
             {
                 if constexpr (std::is_signed_v<T>){
-                    _value = static_cast<int64_t>(v);
+                    _value.emplace<int64_t>(v);
+                    //_value = static_cast<int64_t>(v);
                 }
                 else {
-                    _value = static_cast<uint64_t>(v);
+                    _value.emplace<uint64_t>(v);
+                    //_value = static_cast<uint64_t>(v);
                 }
             }
-            if constexpr (std::is_floating_point_v<T>)
+            else if constexpr (std::is_floating_point_v<T>)
             {
-                _value = static_cast<double>(v);
+                _value.emplace<double>(v);
+                //_value = static_cast<double>(v);
             }
             else 
             {
-                _value = v;
+                _value.emplace<T>(v);
+                //_value = v;
             }
+
+            RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
+                static_cast<std::string>(*this),
+                _setting.sign, _setting.size, _setting.type, _setting.limit);
         }
 
-        Number& operator=(Number a_rhs) noexcept
+        Number(Settings _set) :
+            // _value{ v },
+            _setting{ _set },
+            _priority{ _setting.GetOffset() }
         {
-            _value = a_rhs._value;
-            return *this;
+            const char* name = "INVALID";
+
+            if (_setting.IsFloat() == true)
+            {
+                _value.emplace<double>(0);
+                name = typeid(double).name();
+            }
+            else if (_setting.IsInteger() == true)
+            {
+                if (_setting.IsSigned() == true)
+                {
+                    _value.emplace<int64_t>(0);
+                    name = typeid(int64_t).name();
+                }
+                else if (_setting.IsUnsigned() == true)
+                {
+                    _value.emplace<uint64_t>(0);
+                    name = typeid(uint64_t).name();
+                }
+            }
+
+
+            RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
+                static_cast<std::string>(*this),
+                _setting.sign, _setting.size, _setting.type, _setting.limit);
         }
+        //*/
+
+
+        //Number& operator=(Number a_rhs) noexcept
+        //{
+        //    _value = a_rhs._value;
+        //    return *this;
+        //}
 
 
         constexpr std::partial_ordering operator <=> (Number rhs) const
@@ -310,13 +483,38 @@ namespace LEX
 
         bool IsValid() const
         {
+            logger::trace("index in is valid {}", _value.index());
+
             return _value.index() != 0;
 
         }
 
 
-        Number BINARY_OPERATOR(*);
-        Number BINARY_OPERATOR(+);
+        Number operator *(const Number& a_rhs) {
+            constexpr bool assign = _IsAssign(STRINGIZE(*)); if constexpr (!assign) {
+                if ((!IsValid() && strcmp(STRINGIZE(*), "=") != 0) || a_rhs.IsValid() == false) {
+                    RGL_LOG(critical, "some number is invalid. left {} right {}", IsValid(), a_rhs.IsValid()); throw nullptr;
+                }
+            } Number result = std::visit([&](auto&& lhs) -> Number { return std::visit([&](auto&& rhs) -> Number { if constexpr (true) {
+                return lhs * rhs;
+            }
+            else {
+                RGL_LOG(critical, "invalid ops used on each other."); throw nullptr; return lhs;
+            } }, a_rhs._value); }, _value); if constexpr (assign) return *this; else return result;
+        };
+        Number operator +(const Number& a_rhs) {
+            RGL_LOG(info, "tell");
+            constexpr bool assign = _IsAssign(STRINGIZE(+)); if constexpr (!assign) {
+                if ((!IsValid() && strcmp(STRINGIZE(+), "=") != 0) || a_rhs.IsValid() == false) {
+                    RGL_LOG(critical, "some number is invalid. left: {} right: {}", IsValid(), a_rhs.IsValid()); throw nullptr;
+                }
+            } Number result = std::visit([&](auto&& lhs) -> Number { return std::visit([&](auto&& rhs) -> Number { if constexpr (true) {
+                return lhs + rhs;
+            }
+            else {
+                RGL_LOG(critical, "invalid ops used on each other."); throw nullptr; return lhs;
+            } }, a_rhs._value); }, _value); if constexpr (assign) return *this; else return result;
+        };
         Number BINARY_OPERATOR(/);
         Number BINARY_OPERATOR(-);
         Number BINARY_OPERATOR(%, std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>);
@@ -329,7 +527,7 @@ namespace LEX
 
         explicit operator std::string() const
         {
-            std::string result;
+            std::string result = "UNVISITED";
 
             std::visit([&](auto&& arg) {
                 using T = std::decay_t<decltype(arg)>;
@@ -337,24 +535,28 @@ namespace LEX
                     result = "INVALID_NUMBER";
                 else
                     //Should control its output based on below settings.
-                    result += arg;
+                    result = std::to_string(arg);
 
                 }, _value);
 
             return result;
         }
 
-
+        TypeOffset GetOffset()
+        {
+            //probably should just do the calculation but eh
+            return _priority;
+        }
 
         //If it's index is the first, it's value will be null and unassignable. Thus, this easiest signals that it's value is zero.
         std::variant<char, uint64_t, int64_t, double> _value;
 
 
         //mutable const?
-        NumberSettings _setting;
+        Settings _setting{};
 
 
-        uint8_t _priority;//helps determine which number should become the new number.
+        uint8_t _priority{};//helps determine which number should become the new number.
         //extra 3 bytes
 
         //If its being set to or from an unset type, it will handle the conversion
@@ -392,6 +594,9 @@ namespace LEX
     };
     static_assert(sizeof(Number) == 0x18);
 
+
+
+
     /*
     #include <iostream>
     #include <limits>
@@ -427,6 +632,8 @@ namespace LEX
         return 0;
     }
     //*/
+
+
 
 }
 

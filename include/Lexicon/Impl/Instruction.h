@@ -29,6 +29,8 @@ namespace LEX
 	using Directive = void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
 
 
+	//A revision to the above, Operator might be the left a runtime variable, and the right a const variable
+
 
 	//Should probably call this instructions
 	//The public one are likely called operators, these just take variables. The other one is instructions or destiction like that.
@@ -44,19 +46,22 @@ namespace LEX
 		//TEST_OpResult OpResult no longer viable, given this doesn't remark what register it goes into.
 		//std::vector<ForceTest>* test_list//I'm really unsure if I'm truly gonna use this. Having a "test" function for 
 		// NewOperation might work.
-		void Operate(RuntimeVariable& result, Runtime* process, Operand a_lhs, Operand a_rhs) const
+		void Operate(RuntimeVariable& result, Runtime* process, Operand a_lhs, Operand a_rhs, InstructType type) const
 		{
 			//No idea why this shit works but I can't just call it.
 
 			if (index() == 0)
 			{
+				RuntimeVariable left = a_lhs.GetVariable(process);
+				RuntimeVariable right = a_rhs.GetVariable(process);
+
 				//do stuff that makes this operator.
 				//Note, the routine process should likely handle the base transfer to turn the index into a variable.
-				//result = std::get<Operator>(*this)->operator()();
+				result = std::get<Operator>(*this)(left, right, type, process);
 			}
-			else
+			else if (index() == 1)
 			{
-				//result = std::get<Directive>(*this)->operator()();
+				std::get<Directive>(*this)(result, a_lhs, a_rhs, type, process);
 			}
 		}
 	};

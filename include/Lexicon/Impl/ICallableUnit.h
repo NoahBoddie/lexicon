@@ -4,6 +4,7 @@
 namespace LEX
 {
 	struct RoutineBase;
+	class RuntimeVariable;
 
 	struct ICallableUnit
 	{
@@ -13,6 +14,9 @@ namespace LEX
 
 		//This needs to demand definition
 		virtual RoutineBase* GetRoutine() { return nullptr; }
+		
+		//resolves arguments and confirms they are as they should be. Failure results in an application error.
+		virtual void ResolveArguments(std::vector<RuntimeVariable>&) = 0;
 	};
 
 }

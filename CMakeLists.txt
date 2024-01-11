@@ -39,11 +39,10 @@ include/Lexicon/Impl/Parser.h
 include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/Field.h" "include/Lexicon/Impl/Instruction.h" "include/Lexicon/Impl/RuntimeVariable.h" "include/Lexicon/Impl/Target.h"  "include/Lexicon/Impl/InstructionType.h" "include/Lexicon/Impl/RoutineBase.h" "include/Lexicon/Impl/Solution.h" "include/Lexicon/Impl/RoutineCompiler.h" "include/Lexicon/Impl/Scope.h" "include/Lexicon/Impl/LiteralManager.h" "include/Lexicon/Impl/IVariable.h" "include/Lexicon/Impl/GlobalVariable.h" "include/Lexicon/Impl/Runtime.h" "include/Lexicon/Impl/MemberPointer.h" "include/Lexicon/Impl/OperatorType.h" "include/Lexicon/Impl/ICallableUnit.h" "include/Lexicon/Impl/Number.h"
  "include/Lexicon/Impl/Literal.h" 
-)
+ "include/Lexicon/Impl/TempConstruct.h" "include/Lexicon/Impl/Object.h" "include/Lexicon/Impl/ObjectInterface.h" "include/Lexicon/Impl/ObjectHandle.h" "include/Lexicon/Impl/ObjectInfo.h" "include/Lexicon/Impl/FunctionHandle.h" "include/Lexicon/Impl/Delegate.h" "include/Lexicon/Impl/Array.h" "include/Lexicon/Impl/IdentityManager.h" "include/Lexicon/Impl/FieldDirectory.h" "include/Lexicon/Impl/Origin.h" "include/Lexicon/Impl/ObjectManager.h" "include/Lexicon/Impl/ObjectType.h" "include/Lexicon/Impl/Report.h")
 
 set(sources
-src/main.cpp
-#include/Lexicon/Impl/ParseModule.h
+#src/main.cpp
 src/Lexicon/Impl/Parser.cpp
 src/Lexicon/Impl/ParseModule.cpp
 src/Lexicon/Impl/ParseHandler.cpp
@@ -56,7 +55,7 @@ src/Lexicon/Component.cpp
 include/Lexicon/Impl/LiteralManager.cpp
  "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
  
-)
+ "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp")
 
 source_group(
 	TREE
@@ -75,10 +74,12 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 	set(PUBLIC_ACCESS PUBLIC)
 	set(PRIVATE_ACCESS PRIVATE)
 
+
+	
 	add_library(
 		${PROJECT_NAME}
-		#PUBLIC
-		STATIC
+		#PRIVATE
+		#STATIC
 		${headers}
 		${sources}
 		.clang-format
@@ -239,6 +240,8 @@ configure_file(
 	@ONLY
 )
 
+
+
 install(
 	FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
@@ -249,3 +252,56 @@ install(
 	NAMESPACE ${PROJECT_NAME}::
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
+
+
+
+
+#///Executable Test
+#add_executable (${PROJECT_NAME}_Test ${sources})
+	add_executable (${PROJECT_NAME}_Test 
+	"include/Lexicon/Impl/TempConstruct.cpp"
+	"src/main.cpp")
+
+	#for the includes of this project? For when #include is being used?
+	target_include_directories(
+		"${PROJECT_NAME}_Test"
+		PUBLIC
+			"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+			"$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+	)
+
+	#the includes of the projects that Im using as well
+	target_include_directories(
+		"${PROJECT_NAME}_Test"
+		PRIVATE
+			#${Catch2_INCLUDE_DIRS}
+			${fmt_INCLUDE_DIRS}
+			${spdlog_INCLUDE_DIRS}
+			#${RAPIDCSV_INCLUDE_DIRS}
+	)
+
+	#Unsure what does, will not use.
+	#target_compile_definitions(
+	#	"${PROJECT_NAME}Tests"
+	#	PUBLIC
+	#		ENABLE_COMMONLIBSSE_TESTING=1
+	#)
+
+	#links the library made for the executable I guess?
+	target_link_libraries(
+		"${PROJECT_NAME}_Test"
+		PRIVATE
+			${PROJECT_NAME}
+			fmt::fmt
+			spdlog::spdlog
+			tomlplusplus::tomlplusplus
+			##Catch2::Catch2
+	)
+
+
+	target_precompile_headers(
+		"${PROJECT_NAME}_Test"
+		PRIVATE
+			src/Lexicon/PCH.h
+	)
+#//#

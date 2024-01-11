@@ -31,8 +31,13 @@ namespace LEX
 				{
 					T result{};
 					//Error message should probably be different here.
-					if (data().Get<Type>(result) == true)
+					if (data().Get<Type>(result) == true) {
 						return result;
+					}
+					else {
+						RGL_LOG(critical, "Failure to get Target, OperandType {}", (uint8_t)Type);
+						throw nullptr;
+					}
 				}
 				else 
 				{
@@ -53,7 +58,22 @@ namespace LEX
 			return _InternalGet<T, OperandType::None>();
 		}
 
+
+		template <OperandType Type, typename T>
+		bool Equals(T value)
+		{
+			if (Type != type)
+				return false;
+
+			T result{};
+			
+			return data().Get<Type>(result);
+		}
+
 		RuntimeVariable GetVariable(Runtime* runtime);
+
+
+		RuntimeVariable ObtainVariable(Runtime* runtime);
 
 
 		constexpr Operand() = default;

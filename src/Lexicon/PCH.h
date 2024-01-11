@@ -117,6 +117,14 @@
 //This logger is meant to only be used in this project, not to leak this definition into another.
 // Move this bit into a src file.
 
+
+//>src
+#include "spdlog/spdlog.h"
+//#include <spdlog/sinks/basic_file_sink.h>
+//#include <spdlog/sinks/msvc_sink.h>
+//#include <spdlog/sinks/stdout_sinks.h>
+#include "spdlog/sinks/stdout_color_sinks.h"
+
 namespace logger
 {
 	//Apparently this has issues with clang, but I don't use clang (atm) so I'm free (for now)
@@ -133,6 +141,7 @@ namespace logger
 			Args&&... a_args,                                                         \
 			source_location a_loc = source_location::current())                       \
 		{                                                                             \
+            InitializeLogging();                                                      \
 			spdlog::log(                                                              \
 				spdlog::source_loc{                                                   \
 					a_loc.file_name(),                                                \
@@ -147,6 +156,76 @@ namespace logger
 	template <class... Args>                                                          \
 	a_func(fmt::format_string<Args...>, Args&&...) -> a_func<Args...>;
 
+
+    inline void InitializeLogging()
+    {
+        static bool _initialized = false;
+
+        if (_initialized)
+            return;
+
+        _initialized = true;
+        /*
+        auto log =
+        auto path = log_directory();
+        if (!path) {
+            report_and_fail("Unable to lookup SKSE logs directory.");
+        }
+        *path /= PluginDeclaration::GetSingleton()->GetName();
+        *path += L".log";
+
+
+        std::shared_ptr<spdlog::logger> log;
+
+
+        if (IsDebuggerPresent()) {
+            log = std::make_shared<spdlog::logger>(
+                "Global", std::make_shared<spdlog::sinks::msvc_sink_mt>());
+        }
+        else {
+            log = std::make_shared<spdlog::logger>(
+                "Global", std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true));
+        }
+
+        //*/
+
+        std::shared_ptr<spdlog::logger> log = spdlog::stdout_color_mt("console");
+
+#ifndef NDEBUG
+        const auto level = spdlog::level::trace;
+#else
+        //Use right alt for just debug logging, control to allow debugger to attach.
+        const auto level = GetKeyState(VK_RCONTROL) & 0x800 || GetKeyState(VK_RMENU) & 0x800 ?
+            spdlog::level::debug : spdlog::level::info;
+#endif
+
+
+        log->set_level(level);
+        log->flush_on(level);
+
+        spdlog::set_default_logger(std::move(log));
+        //spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%t] [%s:%#] %v");
+        spdlog::set_pattern("%s(%#): [%^%l%$] %v");
+
+
+#ifdef NDEBUG
+        if (spdlog::level::debug == level) {
+            logger::debug("debug logger in release enabled.");
+        }
+#endif
+        return;
+
+        auto color_log = dynamic_cast<spdlog::sinks::stdout_color_sink_mt*>(log.get());
+        
+        if (color_log)
+        {
+            //color_log->set_color(spdlog::level::level_enum::trace, spdlog::color)
+        }
+        
+        //void set_color(spdlog::level::level_enum::trace, spdlog::yellow);
+    }
+
+
 	SOURCE_LOGGER(trace, trace);
 	SOURCE_LOGGER(debug, debug);
 	SOURCE_LOGGER(info, info);
@@ -158,9 +237,16 @@ namespace logger
 
 #include "RoguesGallery.hpp"
 
+using namespace std::literals;
+
 //This shit is supposed to be in src, it's not making it into the next project stupid.
 namespace LEX
 {
 	using namespace RGL_NAMESPACE;
 	using namespace RGL_INCLUDE_NAMESPACE;
+
+    using String = std::string;
 }
+
+
+inline int __init = 0;

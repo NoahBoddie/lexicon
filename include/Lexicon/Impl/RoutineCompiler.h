@@ -1,11 +1,22 @@
 #pragma once
 
+#include "Expression.h"
+#include "ExpressionType.h"
 #include "Solution.h"
-#include "RoutineCompiler.h"//Please move this
+#include "Operation.h"
+#include "RoutineBase.h"
+
+//*src
+#include "Function.h"
 
 namespace LEX
 {
 
+	using Syntax = Impl::Syntax;
+	using SyntaxType = Impl::SyntaxType;
+
+
+	struct Scope;
 	struct FunctionData;
 	class RoutineCompiler;
 	class RoutineCompiler;
@@ -13,6 +24,7 @@ namespace LEX
 
 	class Generator;
 
+	//TODO: Statement generator uses RoutineCompiler. If there's something statement compiler does not have, please address.
 	using StatementGenerator = void(*)(RoutineCompiler*, Record&);
 	//This doesn't need an out does it
 	using ExpressionGenerator = Solution(*)(ExpressionCompiler*, Record&);//, Solution, Solution);//, Register);
@@ -83,27 +95,88 @@ namespace LEX
 			if ((argCount[0] += i) > argCount[1])
 				argCount[1] = argCount[0];
 
+
 			return count;
+		}
+
+		ITypePolicy* GetReturnType()
+		{
+			//this return type doesn't need to be the specialized one. In fact, for now it's better that it isn't.
+			return _targetFunc->GetReturnType();
+		}
+
+		Scope* GetScope()
+		{
+			return currentScope;
 		}
 
 
 	protected:
 
-
-
-		size_t ModVarCount(int64_t i)
+		//Mods the count for parameters, not including the increment instructions.
+		size_t ModParamCount(int64_t inc = 1)
 		{
+			//make the below use this.
 			size_t count = varCount[0];
 
-			if ((varCount[0] += i) > varCount[1])
+			if ((varCount[0] += inc) > varCount[1])
 				varCount[1] = varCount[0];
 
 			return count;
 		}
 
+		
+		size_t ModVarCount(int64_t inc, std::vector<ITypePolicy*> policies = {})
+		{
+			size_t count = varCount[0];
+
+			//If there is no operative list, we're at the very end, and there's no reason to actually decrement.
+			if (_current)
+			{
+
+				auto size = policies.size();
+
+				if (inc > 0 && size != inc)
+				{
+					//TODO: make error a Fatal Fault
+					RGL_LOG(critical, "Size of policies does not equal expected size({} != {})", size, inc);
+					throw nullptr;
+				}
 
 
-		CompilerBase(Record& ast, FunctionData* owner = nullptr) : funcRecord{ ast }, routine{ owner }
+				if ((varCount[0] += inc) > varCount[1])
+					varCount[1] = varCount[0];
+				
+				auto& op_list = GetOperationList();
+				
+				op_list.emplace_back(InstructionType::IncrementVarStack, Operand{ inc , OperandType::Differ });
+				
+
+				if (inc > 0)
+				{
+					for (auto i = 0; i < size; i++)
+					{
+						//for each policy, starting at count and increasing by i, each policy needs to be loaded into
+						// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
+						// have an instruction intend to specialize.
+
+						size_t index = count + i;
+						ITypePolicy* policy = policies[i];
+						op_list.emplace_back(InstructionType::DefineVarPolicy, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+					}
+				}
+			}
+
+
+			return count;
+		}
+
+		size_t ModVarCount(ITypePolicy* policy)
+		{
+			return ModVarCount(1, { policy });
+		}
+
+		CompilerBase(Record& ast, FunctionData* owner = nullptr) : funcRecord{ ast }, _targetFunc{ owner }
 		{
 
 		}
@@ -130,8 +203,10 @@ namespace LEX
 		//FunctionData should also exist to be able to answer some questions about how the actual function functions. Stuff like generics and stuff may be better
 		// suited there, especially since AbstractFunctions aren't generic, only specialized.
 
-		//That means that 
-		FunctionData* routine = nullptr;
+		//<!>So FunctionData is an element, formulas are not elements
+
+		FunctionData* _targetFunc = nullptr;
+		//ICallableUnit* routine = nullptr;
 
 		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
 		Record& funcRecord;
@@ -178,6 +253,8 @@ namespace LEX
 		// statement. Compile as statement can basically be CompileLine. But CompileExpression on the other hand can't be what process wrap is, because process statement uses that
 		// Hence, there's a problem in there being no pivot term.
 
+	
+
 		Solution _InteralProcess(Generator& factory, Record& node, std::vector<Operation>& out)
 		{
 
@@ -189,7 +266,7 @@ namespace LEX
 			auto old = _current;
 			_current = &out;
 
-			//DoWork();
+			
 			//Func records use is temporary
 			result = factory._PostPrepFunction(this, node);
 
@@ -198,6 +275,8 @@ namespace LEX
 
 			return result;
 		}
+		//TODO: I would like try versions of these, mainly for an if statement that could take an statement
+		// in its first part, then expect an expression after. Maybe. Idk
 
 		Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) override
 		{
@@ -222,6 +301,7 @@ namespace LEX
 				RGL_LOG(critical, "Syntax is not a expression");
 				throw nullptr;
 			}
+
 			//result from expressions are discarded
 			result = _InteralProcess(it->second, node, out);
 
@@ -245,6 +325,7 @@ namespace LEX
 
 			if (generatorList.end() == it)
 			{
+
 				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever");
 				throw nullptr;
 			}
@@ -265,6 +346,25 @@ namespace LEX
 		{
 			//uses the current loaded op vector. if non-exists error
 			return CompileExpression(node, pref, *_current);
+		}
+
+		Solution PushExpression(Record& node, Register pref)
+		{
+			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
+			// one.
+			Solution result = CompileExpression(node, pref);
+
+			//So you'll notice this uses Push. As it turns out, move will crash if used on uninited variables,
+			// not much to do about it, not much I want to do about it
+			//Rather, it will be  if this doesn't work.
+			if (result.type != OperandType::Register) {
+				GetOperationList().emplace_back(InstructType::Move, Operand{ pref, OperandType::Register }, result);
+				
+				//This uses the policy of the solution, but uses the register that the above uses.
+				return Solution{ result.policy, OperandType::Register, pref };
+			}
+
+			return result;
 		}
 
 		void CompileStatement(Record& node, Register pref)
@@ -296,7 +396,7 @@ namespace LEX
 
 			if (generatorList.end() == it)
 			{
-				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever");
+				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever {}", (uint8_t)node.SYNTAX().type);
 				throw nullptr;
 			}
 
@@ -309,56 +409,11 @@ namespace LEX
 		}
 		//I will begin passing the result vector through this as well.
 
-		std::vector<Operation> CompileBlock(Record& data)
-		{
-			//NEW NAME: ProcessNest
-			//Scratch, Process/CompileBlock
-
-			std::vector<Operation> cache;
-
-			//This needs a process scope, but that scope will need something for stuff like ifs and elses.
-			// Rather, variables created within the if statements line should count.
-
-			//In that case, scopes are objects that are manually created, and require at least a RoutineCompiler (meaning expressions can't create new scopes)
-			//, allowing for something that can be created in one function, kept alive until it's end, and then destroyed once no longer needed. Thus, my worries of maintaining
-			// the var stack is finished.
-			for (auto& entry : data.GetChildren())
-			{
-				std::vector<Operation> new_stuff = CompileLine(entry, Register::Result);
-				cache.insert_range(cache.end(), new_stuff);
-			}
-
-			return cache;
-		}
+		std::vector<Operation> CompileBlock(Record& data);
+		std::vector<Operation> CompileHeader();
 
 
-		RoutineBase CompileRoutine()
-		{
-			//This automatically searching for the code is probably not the best idea. Maybe change the response depending on what's encountered?
-			std::vector<Operation> operations{};
-			switch (funcRecord.SYNTAX().type)
-			{
-			case SyntaxType::Function:
-				operations = CompileBlock(*funcRecord.FindChild("code"));
-				break;
-
-
-			case SyntaxType::Return:
-				operations = CompileLine(funcRecord.GetChild(0), Register::Result);
-				break;
-
-			default:
-				RGL_LOG(critical, "Unsupported syntax type.");
-				throw nullptr;
-			}
-
-			//once again, this shouldn't be using func r
-			//std::vector<Operation> operations = CompileBlock(*funcRecord.FindChild("code"));
-
-			RoutineBase data{ operations, varCount[1], argCount[1] };
-
-			return data;
-		}
+		RoutineBase CompileRoutine();
 
 
 		RoutineCompiler(Record& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }
@@ -366,6 +421,8 @@ namespace LEX
 
 		}
 
+		//function data is no longer an ask, it's a requirement now.
+		// additional. FunctionData can hold its own record.
 		static RoutineBase Compile(Record& ast, FunctionData* owner = nullptr)
 		{
 			RoutineCompiler compiler{ ast, owner };
@@ -375,7 +432,4 @@ namespace LEX
 		}
 
 	};
-
-
-
 }

@@ -11,7 +11,7 @@ namespace LEX
 	// but all generics need to reimplement their Get functions to search for a specialization when
 	// given args.
 	//Or might not be needed.
-	struct GenericTypePolicy : public TypePolicy, public ISpecializable 
+	struct GenericTypePolicy : pubic ITypePolicy, public TypePolicyData, public ISpecializable 
 	{
 		//JUST type policies can't be declared within a class scope, so no Specializable parent.
 

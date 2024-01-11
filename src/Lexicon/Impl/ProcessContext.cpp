@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Impl/ProcessContext.h"
 
 namespace LEX::Impl

@@ -8,7 +8,7 @@
 namespace LEX
 {
 
-	struct GlobalVariable :
+	struct Global :
 		public Element,
 		public IVariable,
 		public Field//Might be more here, dunno.
@@ -20,7 +20,7 @@ namespace LEX
 		bool constant{};//SHould be qualifier
 
 		//Move this below please.
-		std::strong_ordering operator<=>(const GlobalVariable& a_rhs) const
+		std::strong_ordering operator<=>(const Global& a_rhs) const
 		{
 			//Too lazy to set this up right now.
 			return std::strong_ordering::equal;
@@ -28,5 +28,4 @@ namespace LEX
 
 
 	};
-
 }

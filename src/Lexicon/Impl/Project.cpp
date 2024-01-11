@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Impl/Project.h"
 #include "Lexicon/Impl/Script.h"
 

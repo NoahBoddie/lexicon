@@ -1,99 +1,120 @@
 #pragma once
 
 
+
 namespace LEX
 {
-	union TypeID
+	using TypeIndex = uint32_t;
+	using TypeOffset = uint16_t;
+
+
+	struct Trival
 	{
-		//I think I'll make this trival actually.
+		inline static uint32_t trivalIndex = 8000;	//Index of the trival set of IDs
+		inline static uint32_t trivalStart = 2000;	//The start and end of 
+		inline static uint32_t trivalEnd = 2000;
+	};
 
-		static constexpr uint8_t trivalBit = sizeof(std::byte) * 3 - 1;
 
+	struct TypeID
+	{
 	private:
-		std::array<uint8_t, 4> _bytes;
-
-		std::bitset<32> _bits;
-
-		uint32_t _raw{ 0 };
-
+		uint32_t _value = invalidValue;
 	public:
-		TypeID() = default;
-		constexpr TypeID(uint8_t index, uint32_t code)
-		{
-			_raw = code;
-			if (_bytes[0]) {
-				//Invalid code was given or something.
-				//All bytes on then?
-				//throw nullptr;
-			}
-
-			_bytes[0] = index;
-		}
-
 		
-		constexpr static TypeID CreateTrivalID(uint32_t code)
+		constexpr static uint32_t invalidValue = max_value<uint32_t>;
+		
+		
+		constexpr TypeID() = default;
+
+
+
+
+		constexpr TypeID(uint32_t v) : _value { v }
 		{
-			//Makes a Trival
-			return{};
+			//this validates whether the type actually exists or not, varifying the existence first.
 		}
+
+		static TypeID CreateID(uint32_t v)
+		{
+			//this forcibly assigns a value to the id
+			TypeID id{};
+			id._value = v;
+			return id;
+		}
+
+
+		static TypeID CreateTrival(uint16_t code);
+		
+		TypeOffset GetOffset() const;
 
 
 		constexpr operator uint32_t()
 		{
-			return _raw;
+			return _value;
 		}
 
-		constexpr bool IsTrival() const
+		bool IsTrival() const
 		{
-			return GetIndex() == 0 && _bits[trivalBit];
+			return std::clamp<uint32_t>(_value, Trival::trivalStart, Trival::trivalEnd) == _value;
 		}
 
 		constexpr uint8_t GetIndex() const
 		{
-			return _bytes[0];
-		}
-
-
-		constexpr uint32_t GetCode() const
-		{
-			uint32_t result = 0x00FFFFFF & _raw;
-
-
-
-			return result;
-		}
-		constexpr uint32_t GetTrivalCode() const
-		{
-			uint32_t remove = 0xFF000000 | (1 << trivalBit);
-			//returns max bits because 0 is often going to be used.
-			return IsTrival() ? _raw & remove : full_value<uint32_t>;
-		}
-
-		constexpr uint32_t GetID() const
-		{
-			//Should clear the presence
 			return 0;
 		}
 
-		static TypeID Invalid()
-		{
-			return {};
-		}
 
-		auto operator<=>(const TypeID&) const = default;
 
-		//TODO:Instead of redoing comparing ops for TypeID, I think it perhaps prudent to make a new comparison Less class for this
-		//bool operator < (const TypeID a_rhs) const
+		//auto operator<=>(const TypeID& other) const
 		//{
-		//	GetID() < a_rhs.GetID();
+		//	return _value <=> other._value;
 		//}
 
-		//bool operator == (const TypeID a_rhs) const
+
+		//auto operator<=>(const uint32_t other) const
 		//{
-		//	return GetID() == a_rhs.GetID();
+		//	return _value <=> other;
 		//}
+
+
 	};
 	static_assert(sizeof(TypeID) == 0x4);
+
+
+	struct TypeCode
+	{
+		//Move to type id or its own section
+		constexpr static TypeIndex badIndex = max_value<TypeIndex>;
+		constexpr static TypeOffset badOffset = max_value<TypeOffset>;
+
+		//Make make these const.
+		TypeIndex index = badIndex;
+		TypeOffset offset = badOffset;
+
+		constexpr operator bool() const
+		{
+			return index == badIndex || offset == badOffset;
+		}
+		constexpr TypeCode() = default;
+
+
+		//void _Set(TypeIndex i, TypeOffset o) const;
+
+		static TypeCode Create(TypeIndex i, TypeOffset o)
+		{
+			TypeCode code{};
+			code.index = i;
+			code.offset = o;
+			return code;
+		}
+
+		constexpr TypeCode(TypeIndex i, TypeOffset o) : index{ i }, offset{ o }
+		{
+			//TODO: TypeCodeWill need to verify just like TypeID, unless being created raw.
+		}
+
+	};
 
 
 

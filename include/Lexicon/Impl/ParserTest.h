@@ -332,8 +332,22 @@ namespace LEX::Impl
 				target->SYNTAX().type = SyntaxType::Typename;
 
 				//I'm doing this to make a place for type name, might be wrong actually.
-				//return parser->CreateExpression(parser->next(), ExpressionType::Variable, Record{ "type", ExpressionType::Total, *target });
-				return parser->CreateExpression(parser->next(), SyntaxType::VarDeclare, Record{ "type", SyntaxType::Total, *target });
+				auto result = parser->CreateExpression(parser->next(), SyntaxType::VarDeclare, Record{ "type", SyntaxType::Total, *target });
+				
+				if (parser->IsType(TokenType::Operator, "=") == true)
+				{
+					//This should remove assignment from being a valid statement, and also allow assignment to happen 
+					// with the same expression.
+					parser->next();
+					result.EmplaceChild(Record{ "def", SyntaxType::Header, parser->ParseExpression() });
+				}
+
+				
+
+				//TODO: Assign parser is going to have to be a part of variable declaration, assignment can happen to the already defined
+
+				//ATOMIC USE, manual use of Binary parser expected.
+				return result;
 			}
 			else {
 				//Technically about the use, rather the declaration
@@ -621,7 +635,7 @@ namespace LEX::Impl
 		}
 	};
 
-	struct AssignParser : public ParseSingleton<AssignParser>
+	struct AssignParser : public ParseSingleton<AssignParser, false>
 	{
 
 		uint32_t GetPriority() const override
@@ -643,8 +657,10 @@ namespace LEX::Impl
 			//First, we toss the parenthesis.
 			parser->next();
 
+			//TODO: Assign parser is going to have to be a part of variable declaration, assignment can happen to the already defined
+
 			//ATOMIC USE, manual use of Binary parser expected.
-			target->EmplaceChild(Record{ "def", SyntaxType::Total, parser->ParseAtomic() });
+			target->EmplaceChild(Record{ "def", SyntaxType::Total, parser->ParseExpression() });
 
 			return *target;
 		}
