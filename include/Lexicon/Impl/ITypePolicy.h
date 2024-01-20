@@ -51,11 +51,11 @@ namespace LEX
 
 
 
-		ITypePolicy();
+		//ITypePolicy();
 
-		ITypePolicy(uint32_t i);
+		//ITypePolicy(uint32_t i);
 
-		ITypePolicy(std::string_view name, TypeOffset offset);
+		//ITypePolicy(std::string_view name, TypeOffset offset);
 
 
 		//ITypePolicy(ISpecializable* tar) : _target{ tar } {}
@@ -86,9 +86,6 @@ namespace LEX
 
 		virtual TypeID GetTypeID() const = 0;
 
-		virtual void SetTypeID(TypeID) = 0;
-
-
 
 		bool IsRelated(const ITypePolicy* rhs) const
 		{
@@ -109,6 +106,7 @@ namespace LEX
 
 		bool IsConvertibleTo(const ITypePolicy* rhs, ICallableUnit*& out) const
 		{
+
 			return IsConvertibleTo(rhs, &out);
 		}
 

@@ -49,6 +49,16 @@ static void PrintAST(Record& tree, std::string indent = "")
 
 void LexTesting(std::string formula)
 {
+    //LEX::ProjectManager::InitShared();
+    
+
+    //for (const auto iterator = std::filesystem::directory_iterator("C:/Users/Noah/Desktop/Modding/[Lab]/{Lab Tools}/lex-tester/src"); const auto & entry : iterator) {
+    //    if (entry.exists() == false) continue;
+    //    logger::info("{}", entry.path().string());
+    //}
+
+
+
     std::string project = "shared";
     std::string file = "Test";
     //Note the existence of these
@@ -94,12 +104,14 @@ void LexTesting(std::string formula)
     )"s;
 
     std::string text = R"(
+        struct Double intrinsic NUMBER::82;
+
         int GetActorValue()
         {
             int test = othername + shootfol + tellinal + peacefal + scrundal;
             
             return test;
-        }
+        };
 
     )"s;
 
@@ -107,13 +119,24 @@ void LexTesting(std::string formula)
     //*/
     //There used to be a thingy here.
     //std::string text = "1 + 1 + 1 + 1";
-    
+
     ///Record ast = Parser__::CreateSyntaxTree("project", "name", "return " + formula, ReturnParser::GetSingleton());
     Record ast = Parser__::CreateSyntaxTree("project", "name", text);
 
     PrintAST(ast);
 
-    //return;
+    {
+        LEX::PolicyBase* policy = LEX::ObtainPolicy(ast.GetChild(1));
+        
+        if (policy) {
+            policy->ConstructFromRecord(ast.GetChild(1));
+            logger::info("id? {}", policy->GetName());
+        }
+        else
+            logger::info("no policy");
+
+        return;
+    }
     constexpr auto offset = LEX::Number::Settings::GetOffset(LEX::NumeralType::Floating);
 
     LEX::ITypePolicy* number_type = LEX::IdentityManager::GetTypeByID(offset + 1);

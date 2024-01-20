@@ -49,7 +49,7 @@ namespace LEX::Impl
 		
 
 
-
+		//make an explicit skip, so I can ensure that next doesn't throw stuff away.
 		RecordData next();
 		RecordData peek();
 
@@ -62,7 +62,11 @@ namespace LEX::Impl
 
 		bool IsType(TokenType type, std::string str = "");
 
+		RecordData ConsumeType(TokenType type, std::string str = "");
+
 		void SkipType(TokenType type, std::string str);
+		
+		bool SkipIfType(TokenType type, std::string str);
 
 		//Would like something called required type which fulfills the role of next and istype
 

@@ -4,16 +4,16 @@
 #include "ICallableUnit.h"
 namespace LEX
 {
-	struct IGenericArgument;
-
 	struct RoutineBase;
+	struct IGenericArgument;
+	struct AbstractTypePolicy;
 
-	struct AbstractFunction : public IFunction, public ICallableUnit
+	struct AbstractFunction : public virtual IFunction, public ICallableUnit
 	{
-		virtual size_t GetParameterCount() = 0;
+		//virtual size_t GetParameterCount() = 0;
 
 		//May make a GetAt by default but still allow overriding with virtual
-		virtual std::vector<AbstractTypePolicy*> GetParameters() = 0;
+		//virtual std::vector<AbstractTypePolicy*> GetParameters() = 0;
 
 		virtual bool IsAbstract() const { return true; }
 

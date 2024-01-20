@@ -49,18 +49,38 @@ namespace LEX
 		Total//What the fuck does this do lmao
 	};
 	
+	struct ComponentType
+	{
+		ComponentType() = default;
 
-	//using ComponentFactory = ClassFactory<Component, ComponentType>;
-	//template <class Derived, ComponentType I>
-	//using ComponentMaker = FactoryComponent<Derived, Component, I>;
+		ComponentType(const std::type_info& id){
+			info = &id;
+		}
 
-	//IComponent has absolutely no reason to exist further.
-	// But theres no reason to get rid of it yet.
-	struct IComponent : public IRecordConstructible
+		constexpr bool operator==(const ComponentType& rhs) const{
+			return info == rhs.info;
+		}
+
+		constexpr bool operator==(const ComponentType&& rhs) const{
+			return info == rhs.info;
+		}
+
+		constexpr bool operator==(const std::type_info& rhs) const {
+			return info == &rhs;
+		}
+
+
+	private:
+		const std::type_info* info = nullptr;
+	};
+
+
+	//IComponent has absolutely no reason to exist further. Slated for deletion
+	struct IComponent
 	{
 		//TODO: Turn off IComponent's RecordConstructible data, and move to main component.
-		void ConstructFromRecord(Record& record) override {}
-		Record* GetRecord() override { return nullptr; }
+		virtual void ConstructFromRecord(Record& record){}
+		//Record* GetRecord() override { return nullptr; }
 
 		//TODO:Remove the IComponent::IsValid from virtual, and add a secondary one to determine extra validity.
 		virtual bool IsValid() const { return true; }
@@ -76,53 +96,6 @@ namespace LEX
 		virtual ~IComponent() = default;
 	};
 
-
-
-
-	template<typename T> concept HasComponentType = requires 
-	{ 
-		requires std::derived_from<T, typename T::ComponentType>; 
-	} && std::derived_from<T, Component>;
-
-
-	struct ComponentID
-	{
-	public:
-		ComponentID() = default;
-
-	private:
-		ComponentID(uint32_t id) : _index{ id } {}
-	public:
-		
-
-		static ComponentID GetCreateID(std::string_view str)
-		{
-			auto size = _componentIDs.size();
-
-			for (uint32_t i = 0; i < size; i++)
-			{
-				if (_componentIDs[i] == str)
-					return i;
-			}
-			
-			_componentIDs.push_back(str);
-
-			return static_cast<uint32_t>(size);
-		}
-
-		std::string_view GetStringID()
-		{
-			if (full_value<uint32_t> == _index || _componentIDs.size() <= _index)
-				return "";
-
-			return _componentIDs[_index];
-		}
-
-	private:
-		inline static std::vector<std::string_view> _componentIDs;
-
-		uint32_t _index = full_value<uint32_t>;	
-	};
 
 	struct Component : public IComponent
 	{
@@ -204,72 +177,27 @@ namespace LEX
 		//Should take 2 different iterators.
 	public:
 
-		/*
-		static Component* Create(ComponentType type, Record* rec = nullptr);
 
-
-		static Component* Create(ComponentType type, Record& rec);
-
-		//A note about these, these shouldn't be factory functions, instead they should just regularly create the damn things, and assign
-		// them with whatever factory id they have.
-		template<std::derived_from<Component> D>
-		inline static D* Create(Record* rec = nullptr)
+		virtual ComponentType GetComponentType()
 		{
-			//There's no reason to be making this off of a factory. Either make it manually, or have a function do so.
-
-			//This should actually be asking if this thing is a factory base
-			if constexpr (std::derived_from<D, ComponentFactory> == false)
-			{
-				//Actually supposed to be invalid if so. 
-				return nullptr;
-			}
-			else
-			{
-				if constexpr (!std::is_same_v<D, D::Class>) {
-					//Or throw.
-					return nullptr;
-				}
-				constexpr ComponentType type = D::FactoryType;
-
-				return dynamic_cast<D*>(Create(type, rec));
-
-			}
+			return typeid(*this);
 		}
 
-		template<std::derived_from<Component> D>
-		inline static D* Create(Record& rec)
+		ComponentType FetchComponentType()
 		{
-			return Create<D>(&rec);
+			return this ? GetComponentType() : ComponentType{};
 		}
-		//*/
 
-		//The concept of this create is going to be different. Instead, it will store a string_view to a given id (just an index). Then if we want to access
-		// the string view we can just refer to the id.
-		//There is a problem with this though, the construction will only allow it to turn into it's true type, nothing it derives from. So to pick an example
-		// it's like if player character couldn't be seen as Character or actor. But I think I can solve that either with a second template parameter.
 
-		//Lastly it's notable that the factory had this same issue with creation, as there's only one thing to create per each one. Notably, the factory system
-		// has lost a good bit of it's worth since routine items, the main reason I needed the generic creation system, no longer exists.
-		
-		//Make all this shit it's own class or struct.
-		
-		//This should be a mutable const probably
-		ComponentID id;
 		template <std::derived_from<Component> T>
-		bool IsComponentType() { return id.GetStringID() == typeid(T).name(); }
+		bool IsComponentType() { return this ? (GetComponentType() == typeid(T)) : false; }
 
 	private:
 		//Limit the use of a recordless create by seeing if load from record has been implemented.
-		template<class D, class B>
+		template<class D>
 		static D* _Create(Record* rec = nullptr)
 		{
-			//I'm wondering if the type name should go through the wringer here to resolve not being component.
-
-			std::string_view name = typeid(B).name();
-
 			D* comp = new D();
-			//This part can be a single function, make a function for it to use.
-			comp->id = ComponentID::GetCreateID(name);
 
 			if (rec)
 				comp->ConstructFromRecord(*rec);
@@ -285,19 +213,11 @@ namespace LEX
 		//TODO: Need some way to check if load from record is implemented, controlling if I can do it without
 		// a direct record. It should be as relatively simple as checking the Template type.
 
-		template<HasComponentType D>
-		static D* Create(Record* rec = nullptr)
-		{
-			using B = D::ComponentType;
-
-			//I'm wondering if the type name should go through the wringer here to resolve not being component.
-			return _Create<D, B>();
-		}
 
 		template<std::derived_from<Component> D>
 		static D* Create(Record* rec = nullptr)
 		{
-			return _Create<D, D>(rec);
+			return _Create<D>(rec);
 		}
 
 		template<std::derived_from<Component> D>
@@ -308,16 +228,7 @@ namespace LEX
 		//A final create should able to be done via string view, THAT will be using class factory, but such a thing just isn't needed yet.
 
 		//If I could have a version of this that functions without the factory, that would be ideal.
-
-		/*
-		template <class Self>
-		constexpr auto&& value(this Self&& self) {
-			if (self.has_value()) {
-				return std::forward<Self>(self).m_value;
-			}
-			throw bad_optional_access();
-		}
-		//*/
+		
 
 		//Contrary to what I stated would be important, without routine items, there's no reason to have this load from data anymore.
 		virtual void LoadFromRecord(Record& rec)
@@ -345,7 +256,7 @@ namespace LEX
 		Component& operator= (Component) = delete;
 		Component& operator= (const Component&) = delete;
 		Component& operator= (const Component&&) = delete;
-		~Component() { _linkerContainer.erase(this); }
+		virtual ~Component() { _linkerContainer.erase(this); }
 
 	private:
 		//ComponentType _type = ComponentType::Invalid;

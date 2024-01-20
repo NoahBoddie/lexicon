@@ -10,7 +10,7 @@
 #include "VarInfo.h"
 
 //*src
-
+#include "Function.h"
 #include "GlobalVariable.h"
 
 namespace LEX
@@ -58,8 +58,8 @@ namespace LEX
 	using FieldSearch = std::function<SearchResult(SearchParams&, Field*)>;
 
 	using TypeSearch = std::function<SearchResult(SearchParams&, ITypePolicy*)>;
-
-
+	 
+	//TODO: TypeContainer needs to be be PolicyBase, not ITypePolicy. Excludes specializations that way.
 	//For now only one per name. I'm not dealing with function and type signatures.
 	//using FunctionContainer = std::vector<FunctionInfo>;
 	//using TypeContainer = std::vector<ITypePolicy*>;
@@ -133,7 +133,7 @@ namespace LEX
 		//virtual names and fancy names. Virtuals are the ones that are implemented by class, fancy names are embelished ones that call the virtual ones and are safe on nullptrs.
 		// Add/Emplace
 		// Find/Search
-		// Get/Get
+		// Get/Fetch
 		// Set/Set
 
 
@@ -164,15 +164,6 @@ namespace LEX
 			return {};
 		}
 
-		//These 2 will exist as sort of wrapper functions get function and co, basically to help print errors and such. Find exists when such errors are not required.
-		//SearchFunction
-		//SearchVariable
-
-		
-		//Environment* GetEnvironFromName(std::string name, Record* member, Record* )
-
-		//Setters
-
 
 
 
@@ -181,37 +172,6 @@ namespace LEX
 
 		//Move this down.
 		virtual void CompileExpression(Record& expression) = 0;
-
-
-		virtual std::map<Signature, Function*> FindFunction(std::string name, AbstractTypePolicy* policy)
-		{
-			//Using a map is mostly on the convience of the chain of FindFunctions.
-			// On the other hand, SearchField will only care about the results. By that point, it should
-			// be unambiguous in the ways that matter.
-
-			//Needs a way to differentiate between these
-
-			// _GetInternalFunction
-			// _GetExtneralFunction?
-			// _GetStaticFunction
-			// _GetExtensionFunction
-
-			//Nevermind just search and report if one is using the wrong type.
-
-			throw EnvironmentError("No implementation 'GetMember'");
-		}
-
-		
-
-		//>Conditional
-		
-		//May not actually get abstract types, as you can't get specialized names from a name alone.
-		//Also, may want an object to handle this, so I can accumulate possible ambiguities, but also have it handle failure due to ambiguity.
-		virtual std::map<GenericSig, AbstractTypePolicy*> FindType(std::string name)
-		{
-			//MOVARI: Move script only. I MAY, let classes in classes happen, but you know. Simple for now.
-			throw EnvironmentError("No implementation 'GetMember'");
-		}
 
 
 		//>------------------------------------------------------------------------------------------------------------
@@ -226,75 +186,52 @@ namespace LEX
 		//>Not doing yet
 		//FindMembers ->VariableInfo?*[]
 
-		virtual void AddFunction(IFunction* add)
+		virtual void AddFunction(FunctionBase* tar)
 		{
-			FunctionData* func = dynamic_cast<FunctionData*>(add);
-
-			if (!func) {
+			if (!tar) {
 				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
 				throw nullptr;
 			}
 
 			auto end = functionMap.end();
 
-			auto name = func->GetName();
+			auto name = tar->GetName();
 
 			if (auto it = functionMap.find(name); end != it) {
 				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
 				throw nullptr;
 			}
 			else {
-				functionMap[name].function = f;
-				DeclareParentTo(func);
+				functionMap[name].function = tar;
+				DeclareParentTo(tar);
 			}
 
 		}
 
 
-		virtual void AddVariable(Global* add)
+		virtual void AddVariable(Global* tar)
 		{
-
-			auto name = add->GetName();
-
+			//This won't have an issue yet, because no abstraction.
+			
 			auto end = variables.end();
 
+			auto name = tar->GetName();
+
 			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
-				RGL_LOG(critical, "Global with [name] already exists");
+				RGL_LOG(critical, "Variable already existed");
 				throw nullptr;
 			}
 			else {
-				functionMap[name].function = f;
-				DeclareParentTo(add);
+				variables.emplace_back(tar);
+				DeclareParentTo(tar);
 			}
-
-
-			FunctionData* func = dynamic_cast<FunctionData*>(f);
-
-			if (!func) {
-				
-			}
-
-			auto end = functionMap.end();
-
-			auto name = func->GetName();
-
-			if (auto it = functionMap.find(name); end != it) {
-				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
-				throw nullptr;
-			}
-			else {
-				functionMap[name].function = f;
-				DeclareParentTo(func);
-			}
-
 		}
 
 		virtual void AddType(ITypePolicy*)
 		{
-			//Might be more like policy.
 
-			//MOVARI: ImplEnvironment 
-			throw EnvironmentError("No implementation 'GetMember'");
+			RGL_LOG(critical, "AddType no abstraction");
+			throw nullptr;
 		}
 
 		virtual std::vector<FunctionInfo*> FindFunctions(std::string name)
@@ -326,7 +263,6 @@ namespace LEX
 
 		virtual std::vector<ITypePolicy*> FindTypes(std::string name)
 		{
-
 			auto end = typeMap.end();
 
 			if (auto it = typeMap.find(name); end != it) {
@@ -340,6 +276,7 @@ namespace LEX
 		//These return Environment instead of scripts because I really only need script from it. That, and it might allow me to use maybe scripts too. 
 		// and there's no need for IScript to be used.
 		//Scripts return its include and import, classes get their scripts import/includes.
+		//<!> These are scripts aren't they?
 		virtual std::vector<Environment*> GetIncluded() { return {}; }
 
 		virtual std::vector<Environment*> GetImport() { return {}; }
@@ -371,7 +308,7 @@ namespace LEX
 
 		}
 
-
+		//If I can, I'd like to put this in element some how.
 		Field* SearchField(std::string name, Environment* scope, ITypePolicy* target, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, FieldSearch func)
 		{
 			SearchParams params;
@@ -474,8 +411,27 @@ namespace LEX
 		// Includes and Imports, and I'll just compile all of their functions. These import functions are not nested. From there, I'll just have a wrapper function handle the 
 		// nested getting.
 
-		private: 
 
+
+
+		Environment* GetEnvironment() override
+		{
+			return this;
+		}
+
+		//source file type shit
+		Element* GetParent() override
+		{
+			return _parent;
+		}
+
+		void SetParent(Element* par) override;
+
+
+		protected: //Some might be private, will address later.
+			Element* _parent = nullptr;//can be project or script/class
+
+		//private:
 			//>-------------------------
 			//This is for environment
 
@@ -490,46 +446,23 @@ namespace LEX
 
 	};
 
-
-
-
-	//Make independent
-	enum struct FieldQuery
-	{
-		Success,
-		Failure,
-		Ambiguous,
-	};
-
-
-
 	
-
-
-
-
-
-	struct SyntaxEnvironment : public Environment
+	class SecondaryEnvironment : public Environment
 	{
-		Record* _syntaxNode;
+		//Function and For classes basically, and any subclass that would derive from it.
+		// Hm. Literally just TypePolicies need this. So move it?
+		Record* _syntax = nullptr;
+		
+	public:
 
-		virtual void SetSyntaxTree(Record& ast)
+
+		//Literally just move this to class.
+		
+
+
+		Record* GetSyntaxTree() override
 		{
-			throw EnvironmentError("No implementation of 'SetSyntaxTree'.");
+			return _syntax;
 		}
-	};
-
-
-	struct UnnamedEnvironment : public Environment
-	{
-		Record* _syntaxNode;
-
-		std::string GetName() override
-		{
-			//Should this throw an exception isntead?
-			return "";
-		}
-	};
-
-	
+	};	
 }

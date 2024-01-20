@@ -4,10 +4,10 @@
 namespace LEX
 {
 
-	CommonScript* Script::GetCommons()
+	Script* Script::GetCommons()
 	{
 		//This 
-		return _parent->GetCommons();
+		return _parent->FetchCommons();
 	}
 
 	void Script::SetParent(Element* env)

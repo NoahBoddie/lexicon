@@ -4,7 +4,7 @@
 
 namespace LEX
 {
-
+	//Needs to be named RoutineData, as there is no routine class to derive from this.
 	struct RoutineBase
 	{
 		//These are the base most elements of a routine. Though, still can't do shit by itself. Needs a callable unit to organize it.

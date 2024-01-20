@@ -32,4 +32,10 @@ namespace LEX
 		//Call add parent function
 		script->SetParent(this);
 	}
+
+
+	Script* Project::GetCommons()
+	{
+		return _commons;
+	}
 }

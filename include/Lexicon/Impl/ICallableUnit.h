@@ -4,6 +4,7 @@
 namespace LEX
 {
 	struct RoutineBase;
+	class Variable;
 	class RuntimeVariable;
 
 	struct ICallableUnit
@@ -12,11 +13,13 @@ namespace LEX
 
 		//Should this have the ability to get function data or something?
 
-		//This needs to demand definition
-		virtual RoutineBase* GetRoutine() { return nullptr; }
-		
 		//resolves arguments and confirms they are as they should be. Failure results in an application error.
-		virtual void ResolveArguments(std::vector<RuntimeVariable>&) = 0;
+		virtual void ResolveArguments(std::vector<RuntimeVariable>&) {}//Does nothing for now.
+
+		//This is the very most basic function. There should be additional conveniences
+		virtual void Invoke(RuntimeVariable& ret, std::vector<RuntimeVariable> args) = 0;
+
+
 	};
 
 }

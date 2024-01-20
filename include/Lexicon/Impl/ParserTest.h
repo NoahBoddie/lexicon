@@ -242,16 +242,18 @@ namespace LEX::Impl
 
 
 		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
-		{
-			return parser->IsType(TokenType::Object);
+		{//the target req is new, should it be here?
+			return target && parser->IsType(TokenType::Object);
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
 		{
-			if (!target || target->SYNTAX().type != SyntaxType::Typename) {
+			if (!target || (target->SYNTAX().type != SyntaxType::Field && target->SYNTAX().type != SyntaxType::Scopename)) {
 				parser->croak("Placeholder: No type detected");
 				//Or type name detected
 			}
+
+			target->SYNTAX().type = SyntaxType::Scopename;
 
 			auto next = parser->next();
 
@@ -275,8 +277,7 @@ namespace LEX::Impl
 
 	//When a depth has a hit, I think it should just fucking restart
 
-	//
-	//{ScriptName(VariableParser)}{::(ScriptNameParser)}{TypeName(Variable[nesest in typename])} {Variable} (call/op/function)
+
 
 	//Variable
 	//ScriptName detected, forcibly reads next and nests it under the target record (or creates an empty scriptname as replacement).
@@ -317,7 +318,7 @@ namespace LEX::Impl
 
 		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
-			return parser->IsType(TokenType::Identifier);
+			return parser->IsType(TokenType::Identifier) && (!target || target->SYNTAX().type == SyntaxType::Field);
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
@@ -329,7 +330,7 @@ namespace LEX::Impl
 				
 				//Not sure why I'm getting the front,this doesn't work if it has no children.
 				//target->GetFront()->SYNTAX().type = ExpressionType::Typename;
-				target->SYNTAX().type = SyntaxType::Typename;
+				target->SYNTAX().type = SyntaxType::Scopename;
 
 				//I'm doing this to make a place for type name, might be wrong actually.
 				auto result = parser->CreateExpression(parser->next(), SyntaxType::VarDeclare, Record{ "type", SyntaxType::Total, *target });
@@ -480,7 +481,7 @@ namespace LEX::Impl
 		Record HandleToken(Parser* parser, Record* target) override
 		{
 			if (target) {
-				if (target->SYNTAX().type != SyntaxType::Variable && target->SYNTAX().type != SyntaxType::VarName)
+				if (target->SYNTAX().type != SyntaxType::VarUsage && target->SYNTAX().type != SyntaxType::VarDeclare)
 					parser->croak("Expected identifier before scriptname punctuation (may be dev error)");
 
 				//Basically "Scriptname::Type Sciptname::Identifier..." shouldn't happen. This isn't entirely true however. I think I might move
@@ -540,7 +541,7 @@ namespace LEX::Impl
 
 			//At this time, we don't know what comes next is actually a type name, could be a function. So for now, VarName
 			//THIS IS BROKEN, I'm not sure why it uses script name twice like this, but get your shit in order.
-			return parser->CreateExpression(target->GetData(), SyntaxType::Scriptname, parser->CreateExpression(scriptname, SyntaxType::VarDeclare));
+			return parser->CreateExpression(target->GetData(), SyntaxType::Scopename, parser->CreateExpression(scriptname, SyntaxType::VarDeclare));
 		}
 	};
 
@@ -883,27 +884,197 @@ namespace LEX::Impl
 
 	//A bunch parser, this doesn't deal with this (as its hard to detect in situations other than "iden iden"
 	//[[deprecated("Handled by variable basically.")]]
-	struct TypeParser : public ParseSingleton<TypeParser>
+	struct TypenameParser : public ParseSingleton<TypenameParser>
 	{
 		//I may use this at some other point though.
 
 		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
-			return parser->IsType(TokenType::Identifier);
+			return target && target->SYNTAX().type == SyntaxType::VarUsage && parser->IsType(TokenType::Identifier);// || parser->IsType(TokenType::Punctuation, "::");
 		}
 
 		Record HandleToken(Parser* parser, Record* target) override
 		{
-			//This isn
-			if (!target || target->SYNTAX().type != SyntaxType::Variable) {
+			/*
+			Record result;
+
+			//The idea is you want to keep peeking the old
+
+			while (true)
+			{
+				if (target)
+				{
+					//If there's a target, we'll be expecting this.
+					parser->SkipType(TokenType::Punctuation, "::");
+				}
+				else
+				{
+					result = 
+					target = parser->CreateExpression(target->GetData(), SyntaxType::Scopename)
+				}
+
+			}
+
+			//*/
+
+			if (!target || target->SYNTAX().type != SyntaxType::VarUsage) {
 				parser->croak("Placeholder: No variable detected");
 			}
-				
+
 			parser->SkipType(TokenType::Punctuation, "::");
 
-			return parser->CreateExpression(target->GetData(), SyntaxType::Typename);
+			return parser->CreateExpression(target->GetData(), SyntaxType::Scopename);
 		}
 	};
+
+	
+	struct IdentifierParser : public ParseSingleton<IdentifierParser, false>
+	{
+		//This may become the primary, but the current issue is that it doesn't at all deal with the concept of
+		// something definitely being a variable, and will only use field. I'll deal with that prospect later.
+		// For now, it's exclusively a direct parser
+
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
+		{
+			return !target && parser->IsType(TokenType::Identifier);// || parser->IsType(TokenType::Punctuation, "::");
+		}
+
+		Record HandleToken(Parser* parser, Record* target) override
+		{
+			Record id = Parser::CreateExpression(parser->next(), SyntaxType::Field);
+
+			while (parser->IsType(TokenType::Punctuation, "::") == true)
+			{
+				parser->next();
+
+				id.SYNTAX().type = SyntaxType::Scopename;
+			
+				id = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::Field, id);
+			}
+
+			return id;
+		}
+	};
+
+
+	
+	struct TypeDeclareParser : public ParseSingleton<TypeDeclareParser>
+	{
+		//I may use this at some other point though.
+
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
+		{
+			//Doesn't allow a previous target yet, but later attributes will be of consideration.
+			return !target && (parser->IsType(TokenType::Keyword, "struct") || parser->IsType(TokenType::Keyword, "class"));
+		}
+
+		static Record HandleInterfaceIndex(Parser* parser)
+		{
+			Record index = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::Header);
+			
+			if (parser->SkipIfType(TokenType::Punctuation, "::") == true){
+				index.PushBackChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Number), SyntaxType::Number));
+			}
+			else{
+				index.PushBackChild(Parser::CreateExpression("0", SyntaxType::Number));
+			}
+
+			return index;
+		}
+
+		Record HandleToken(Parser* parser, Record* target) override
+		{
+			RecordData data_type = parser->next();
+
+			
+			Record type = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::TypeDeclare);
+
+			Record settings = Parser::CreateExpression("settings", SyntaxType::Header);
+			
+			//First setting is struct or class
+			settings.PushBackChild(Parser::CreateExpression(data_type, SyntaxType::Header));
+			
+			//This is the section for generics at a later point. As it is not generic, it is empty.
+			settings.PushBackChild(Parser::CreateExpression("generic", SyntaxType::Header));
+
+			//second setting is interface, bind, or regular. Optional
+
+			bool requires_body = true;
+
+			if (RecordData peek = parser->peek(); peek.SYNTAX().type == TokenType::Keyword)
+			{
+				Record attach = Parser::CreateExpression(peek, SyntaxType::Header);
+
+				parser->next();
+
+				switch (Hash(peek.GetTag()))
+				{
+				case "bind"_h:			//Bind needs to push back a type name
+					attach.EmplaceChild(ParseModule::TryModule<IdentifierParser>(parser, nullptr)).SYNTAX().type = SyntaxType::Scopename;
+					break;
+
+				case "intrinsic"_h:		//Intrinsic needs to push back a category name, and index.
+				case "interface"_h:		//interface needs to push back category name and index.
+					requires_body = false;
+					attach.PushBackChild(HandleInterfaceIndex(parser));
+					break;
+				
+
+				default:
+					parser->croak("Unexpected keyword used after class/struct type name.");
+					break;
+				}
+
+				settings.PushBackChild(attach);
+
+			}
+			else{
+				settings.PushBackChild(Parser::CreateExpression("data", SyntaxType::Header));
+			}
+
+			
+
+			//This is actually completely optional
+			if (parser->SkipIfType(TokenType::Punctuation, ":") == true)
+			{
+				parser->croak("inheritence unsupported");
+			}
+			else {
+				settings.PushBackChild(Parser::CreateExpression("<no child>", SyntaxType::Header));
+			}
+
+			type.PushBackChild(settings);
+
+
+			if (parser->SkipIfType(TokenType::Punctuation, "{") == true)
+			{
+				Record body = Parser::CreateExpression("body", SyntaxType::Header);
+
+				auto end_of_this = [&]() -> bool
+				{
+					return parser->SkipIfType(TokenType::Punctuation, "}");
+				};
+
+				while (end_of_this() == false) {
+					body.EmplaceChild(parser->ParseExpression());
+
+					//I would regardless like to end this off with ";" if possible
+					//Also, this needs a function called Clear instead, where it will continuously loop until it no longer needs to skip.
+					if (end_of_this() == false) parser->SkipType(TokenType::Punctuation, ";");
+				}
+
+				type.PushBackChild(body);
+			}
+			else if (requires_body)
+			{
+				parser->croak("type requires a body.");
+			}
+			
+			return type;
+		}
+	};
+
+
 
 
 

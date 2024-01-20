@@ -4,9 +4,15 @@
 #include "AbstractFunction.h"
 
 #include "VarInfo.h"
+#include "Variable.h"
+#include "RoutineBase.h"
+
+//*src
+#include "RuntimeVariable.h"
+
 namespace LEX
 {
-	struct FunctionData : public Element
+	struct FunctionData
 	{
 		//weren't functions environments? A: They don't need to be anymore.
 		//Data
@@ -37,7 +43,15 @@ namespace LEX
 
 		size_t defaultIndex = max_value<size_t>;//basically whenever the defaults start.
 		
-		RoutineBase routine;//actually needs to be a pointer
+		RoutineBase _routine;//actually needs to be a pointer
+
+
+		RoutineBase* GetRoutine()
+		{
+			//This plans to be a pointer later, as this will end up just being 
+			return &_routine;
+		}
+
 
 		std::vector<ParamInfo> GetParameters()
 		{
@@ -51,12 +65,6 @@ namespace LEX
 			return temp_returnType;
 		}
 		
-		std::string GetName()
-		{
-			RGL_LOG(critical, "this shit not supposed to be used fam");
-			throw nullptr;
-		}
-
 		//AbstractTypePolicy* GetConcreteReturnType();//move to abstractFunction
 
 
@@ -65,8 +73,58 @@ namespace LEX
 		//void SetReturnType(ITypePolicy*);
 	};
 
-	struct Function : public AbstractFunction, public FunctionData
+
+	class FunctionBase : public virtual IFunction, public SecondaryElement, public FunctionData
 	{
-		bool IsAbstract() const override { return false; }
+		//This is a pivot for for functions, more important than anywhere else, this set up excludes formulas
+		// from being able to be stored in a function, or having the same linking
+
+
+
+	public:
+		std::string GetName()
+		{
+			RGL_LOG(critical, "this shit not supposed to be used fam");
+			throw nullptr;
+		}
 	};
+
+
+
+	class Function : public FunctionBase, public AbstractFunction
+	{
+	public:
+
+		//void LoadFromRecord(Record&)
+
+		bool IsAbstract() const override { return false; }
+
+
+		void Invoke(RuntimeVariable& ret, std::vector<RuntimeVariable> args) override
+		{
+			if (auto routine = GetRoutine(); routine)
+			{
+				//TODO: make this use the actual function pls
+				LEX::Runtime runtime{ *routine, args };
+
+				ret = runtime.Run();
+			}
+
+			
+
+		}
+
+		Variable Invoke(std::vector<Variable> args)
+		{
+			RuntimeVariable var;
+			Invoke(var, std::vector<RuntimeVariable>{args.begin(), args.end()});
+			return var.Ref();
+		}
+
+		void Invoke(RuntimeVariable& ret, std::vector<Variable> args)
+		{
+			return Invoke(ret, std::vector<RuntimeVariable>{args.begin(), args.end()});
+		}
+	};
+	
 }

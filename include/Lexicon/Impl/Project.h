@@ -10,8 +10,6 @@ namespace LEX
 {
 	struct Project : public Element
 	{
-		using ComponentType = Project;
-
 		struct CrudeAddon
 		{
 			//The unrefined manual addons to tack to a script once it's finished. Once a script is made, the primary won't be needed, but this crude addon will be.
@@ -88,14 +86,38 @@ namespace LEX
 			return share == this ? nullptr : share;
 		}
 
-		CommonScript* GetCommons() override
+		
+
+		Script* GetCommons() override;
+
+
+
+		Environment* GetEnvironment() override
 		{
-			return _commons;
+			//It has no environment.
+			return nullptr;
 		}
 
 
+		void SetParent(Element*) override
+		{
+			//nothing. maybe an error?
+		}
 
-		Script* FindScript(std::string name) override;
+
+		Record* GetSyntaxTree() override
+		{
+			//It has no syntax tree.
+			return nullptr;
+		}
+
+		ComponentType GetComponentType() override
+		{
+			return typeid(Project);
+		}
+
+
+		Script* FindScript(std::string name);
 	};
 
 

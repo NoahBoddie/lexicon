@@ -14,27 +14,12 @@ namespace LEX
 {
 	struct Variable_;
 	struct TypePolicy;
-
-	struct IScript : public Environment
-	{
-		//IScript should hold all the things
+	struct PolicyBase;
 
 
-		//The idea is that I use this as a shorthand for functions variables etc within a scope to search for. Like, checking if a name exists already or not. And if not,
-		// it will make one.
-		//std::unordered_map<std::string, Component*> TEMP(nameStorage);
-
-		//Unsure if I should seperate by function type or not.
-		std::vector<Function*> _functions;
-		std::vector<Global*> _globals;
-		//Uses abstract, so it can also target specializations of TypePolicies instead of JUST the policies.
-		std::map<AbstractTypePolicy*, std::vector<Function*>> _methods;
-	};
-
-	class Script : public IScript
+	class Script : public Environment
 	{
 	public:
-		using ComponentType = Script;
 
 		//Scripts have functions/globals(vars)/types/(parents/projects)
 	private:
@@ -49,19 +34,23 @@ namespace LEX
 
 		Project* _parent = nullptr;
 
-
-		bool _defined = false;
+		//Not needed,
+		//bool _defined = false;
 
 		Record _syntaxTree;
 
-		std::vector<TypePolicy*> _types;
-
-
 		//This is where scripts are refered
+		std::unordered_map<Relationship, std::vector<Script*>> _relationMap2;
 		std::unordered_map<Script*, Relationship> _relationMap;
 	public:
 
-		CommonScript* GetCommons() override;
+
+		bool IsDefined() const
+		{
+			return _syntaxTree;
+		}
+
+		Script* GetCommons() override;
 
 
 		Script* GetScript() override
@@ -70,9 +59,14 @@ namespace LEX
 		}
 
 
-		virtual Record* GetSyntaxTree()
+		ComponentType GetComponentType() override
 		{
-			if (!_defined)
+			return typeid(Script);
+		}
+
+		Record* GetSyntaxTree() override
+		{
+			if (IsDefined() == false)
 				throw EnvironmentError("Syntax Tree not defined.");
 
 			return &_syntaxTree;
@@ -81,18 +75,19 @@ namespace LEX
 
 		void LoadFromRecord(Record& ast) override
 		{
-			if (_defined)
+			if (IsDefined() == true)
 				throw EnvironmentError("No Syntax Tree already.");
 
 			//Should chec
-			_defined = true;
+			//_defined = true;
 			_syntaxTree = ast;
 		}
 
 
 		std::string GetName() override
 		{
-			if (!_defined)
+			if (IsDefined() == false)
+				//This is more than likely a fault actually.
 				throw EnvironmentError("Syntax Tree not defined, script is nameless.");
 
 			return _syntaxTree.GetTag();
@@ -101,164 +96,55 @@ namespace LEX
 
 		virtual void CompileExpression(Record& target)
 		{
-			switch (target.SYNTAX().type)
+
+			for (auto& node : target.GetChildren())
 			{
-			case SyntaxType::Function:
-			{
-				return;
+				switch (node.SYNTAX().type)
+				{
+				case SyntaxType::Function:
+				{
+					AddFunction(Component::Create<Function>(node));
+					return;
 
+				}
+				case SyntaxType::VarDeclare:
+				{
+					AddVariable(Component::Create<Global>(node));
+					return;
+				}
+					//These 2 are script exclusives
+				case SyntaxType::Format:
+				case SyntaxType::Directive:
+				
+				default:
+					RGL_LOG(critical, "Syntax not valid for script");
+					throw nullptr;
+				}
 			}
-			case SyntaxType::VarDeclare:
-
-			//These 2 are script exclusives
-			case SyntaxType::Format:
-			{
-				return;
-
-			}
-			case SyntaxType::Directive:
-			{
-				return;
-			}
-			default:
-				throw nullptr;
-			}
-			//throw
-		}
-
-
-		//New Area
-
-
-		//Going to remain unimplemented for a while.
-		virtual void AddFunction(Function*)
-		{
-			//Needs a way to differentiate between these
-
-			// _GetInternalFunction
-			// _GetExtneralFunction?
-			// _GetStaticFunction
-			// _GetExtensionFunction
-
-			throw EnvironmentError("No implementation 'AddFunction'");
-		}
-
-		std::map<Signature, Function*> FindFunction(std::string name, AbstractTypePolicy* policy) override
-		{
-			if (policy)
-			{
-				//Search member functions
-			}
-			else
-			{
-				//Search static functions.
-			}
-			//Should this throw?
-			return {};
-
-			//Needs a way to differentiate between these
-
-			// _GetInternalFunction
-			// _GetExtneralFunction?
-			// _GetStaticFunction
-			// _GetExtensionFunction
-
-			throw EnvironmentError("No implementation 'GetMember'");
-		}
-
-		virtual void AddFunction(Function*, AbstractTypePolicy*) override
-		{
-
-			throw EnvironmentError("No implementation 'AddFunction'");
-		}
-
-
-		void AddVariable(Global* var) override
-		{
-			//Should search for script, throwing if within, then call SetParent on the script.
-
-			auto end = _globals.end();
-
-			//TODO: Report name when Project::AddScript is used, seems pretty important.
-			if (auto it = std::find(_globals.begin(), end, var); it == end)
-				throw EnvironmentError("Variable already added.");
-
-			//Call add parent function
-
-			_globals.push_back(var);
-		}
-
-		Global* FindVariable(std::string name) override
-		{
-			return __super::FindVariable(name);
-
-			//if the last character of the variable to 
-
-			auto end = _globals.end();
-
-			//Proper version of Script not implement
-			auto it = end;//std::find_if(_scripts.begin(), end, [&](Script* search) { return search->GetName() == name; });
-
-			if (it != end) {
-				return *it;
-			}
-
-			return nullptr;
 		}
 
 
 
-		//>Conditional
 
 
-		void AddType(TypePolicy* type)
-		{
-			//Should search for script, throwing if within, then call SetParent on the script.
 
-			auto end = _types.end();
-
-			//TODO: Report name when Project::AddScript is used, seems pretty important.
-			if (auto it = std::find(_types.begin(), end, type); it == end)
-				throw EnvironmentError("Variable already added.");
-
-			//Call add parent function
-
-			_types.push_back(type);
-		}
-
-		std::map<GenericSig, AbstractTypePolicy*> FindType(std::string name) override
-		{
-			auto end = _types.end();
-
-			//Proper version of Script not implement
-			auto it = end;//std::find_if(_types.begin(), end, [&](TypeInfo* search) { return search->GetName() == name; });
-
-			if (it != end) {
-				//return *it;
-
-			}
-
-			return {};
-		}
-
-		void AddType(AbstractTypePolicy*) override
-		{
-			//Might be more like policy.
-
-			//MOVARI: ImplEnvironment 
-			throw EnvironmentError("No implementation 'GetMember'");
-		}
-
-
-		//~New Area
-
-		
 
 		//Includes/Imports/Requires need to be included as concepts.
 		// Script is the only thing that uses these, so no reason to branch out.
 		// Also, I may not need to "Find" them for that reason.
 		// Instead, asking if something is one of these things might be better.
 		
+		std::vector<Environment*> GetIncluded() override
+		{ 
+			return {}; 
+		}
+
+		std::vector<Environment*> GetImport() override
+		{ 
+			return {}; 
+		}
+
+
 		Script* FindRelationship(std::string name, bool shared, Relationship bond)
 		{
 			//The shared is because between shared, 2 scripts can have the same name.
@@ -281,9 +167,14 @@ namespace LEX
 		void SetParent(Element* env) override;
 	};
 
-
+	
 	struct CommonScript : public Script
 	{
+		CommonScript* GetCommons()
+		{
+			return this;
+		}
+
 		//The common ground of a project, mainly exists to override some functions in script.
 		std::string GetName() override
 		{
@@ -306,8 +197,8 @@ namespace LEX
 			}
 		};
 
-
-		struct MaybeScript : public IScript
+		//Basicallly 
+		struct MaybeScript : public Script
 		{
 			//Notes if it was specified like Shared::GeneralUtil::GetObjectByString(), it would be putting it into shared.
 			bool _isShared = false;
@@ -344,7 +235,7 @@ namespace LEX
 		namespace ExperimentZone
 		{
 
-			struct InvalidScript : public IScript
+			struct InvalidScript : public Script
 			{
 				//A concept for searching an environment when it's no longer flagged as valid. It's basically created when something goes critical, and it can no longer be properly
 				// referenced. Though, this is for top level stuff like scripts rather than for things like functions and such.

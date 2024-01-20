@@ -13,15 +13,17 @@ namespace LEX::Impl
 		String,
 		Object,
 		Boolean,
-		VarName,		//Used if something might be a variable, but could be a call.
-		Variable,		//should handle constants and variables, and when assign is detected, the difference is handled at compile time. Otherwise for comparisons don't matter.
-		Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
-		Scopename = Scriptname,//Basically is Scriptname, but static class functions might be introduced.
+		Field,
+		Variable, 
+		
+		//Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
+		Scopename,//Basically is Scriptname, but static class functions might be introduced.
 		Call,
 		Function,		//Completely different than a call, this is more focused toward the declaration/definition of a function
 		Return,
 		Block,			//The declaration of a code block, a manually denoted one. Basically scopes off shit.
 		Typename,		//The type name of something. This encapsulates similar to how call will, but not on the same hierarchy of operators.
+		TypeDeclare,
 		Format,			//A change in language format. Can be select from TOML, JSON, etc
 		//Operators
 		Assign,
@@ -42,9 +44,10 @@ namespace LEX::Impl
 
 		//Aliases- Short hand that makes my job a bit easier.
 		Invalid = Total,
-		Header = Total,//Within the context of an expression class
-		VarDeclare = VarName,
-		VarUsage = Variable,
+		//TODO: Separate header.
+		Header = Total,//Within the context of an expression class. 
+		VarDeclare = Variable,		//Used if something might be a variable, but could be a call.
+		VarUsage = Field,		//should handle constants and variables, and when assign is detected, the difference is handled at compile time. Otherwise for comparisons don't matter.
 	};
 	
 
@@ -82,6 +85,8 @@ namespace LEX::Impl
 	//Unsure if I wish to inline this.
 	inline std::string_view ExpressionToString(SyntaxType t, bool cap = true)
 	{
+		//deprecate this shit and use Magic enum PLEASE I'M BEGGING.
+
 		switch (t)
 		{
 			case SyntaxType::Script:
@@ -98,20 +103,24 @@ namespace LEX::Impl
 				return cap ? "Object" : "Object";
 			case SyntaxType::Boolean:
 				return cap ? "Boolean" : "Boolean";
-			case SyntaxType::VarName:
-				return cap ? "VarName" : "VarName";
-			case SyntaxType::Variable:
+			case SyntaxType::VarUsage:
+				return cap ? "Field" : "Field";
+			case SyntaxType::VarDeclare:
 				return cap ? "Variable" : "Variable";
-			case SyntaxType::Scriptname:
-				return cap ? "Scriptname" : "Scriptname";
+			//case SyntaxType::Scriptname:
+			//	return cap ? "Scriptname" : "Scriptname";
 			case SyntaxType::Call:
 				return cap ? "Call" : "Call";
 			case SyntaxType::Function:
 				return cap ? "Function" : "Function";
 			case SyntaxType::Block:
 				return cap ? "Block" : "Block";
+			case SyntaxType::Scopename:
+				return cap ? "Scopename" : "Scopename";
 			case SyntaxType::Typename:
 				return cap ? "Typename" : "Typename";
+			case SyntaxType::TypeDeclare:
+				return cap ? "TypeDeclare" : "TypeDeclare";
 			case SyntaxType::Format:
 				return cap ? "Format" : "format";
 			case SyntaxType::Assign:

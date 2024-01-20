@@ -21,7 +21,7 @@ namespace LEX
 		//While I could cover this with the type policy, I think it's better to have it for easy transfer to it's object form
 		Prototype* _extends = nullptr;
 
-		//TODO:Prototype needs the ability to restrict any variable that has it's own type from existing within itself.
+		//Prototype needs the ability to restrict any variable that has it's own type from existing within itself.
 		// It's important to note, structs are a lot less like objects, and more like value types, even if nothing is used, it will instantiate a value.
 		// To get around this, you can use the construct type in order to get away with it
 

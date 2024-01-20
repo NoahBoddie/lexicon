@@ -7,6 +7,7 @@ namespace LEX::Impl
 	{
 		Invalid,
 		Number,			//Number literal
+		//Integer,		//Integer literal//I wish to seperate into 2 categories integers and literals, so I know which to make.
 		String,			//String literal
 		Object,			//Object literal
 		Boolean,		//Boolean literal

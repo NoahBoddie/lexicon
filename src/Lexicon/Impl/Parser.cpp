@@ -153,17 +153,35 @@ namespace LEX::Impl
 
 
 	bool Parser::IsType(TokenType type, std::string str) {
-		RGL_LOG(info, "hit");
 		RecordData tok = tokenizer.peek();
 		return tok && tok.GetEnum<Token>().type == type && (str == "" || tok.GetTag() == str);
 	}
 
-	void Parser::SkipType(TokenType type, std::string str)
+
+	RecordData Parser::ConsumeType(TokenType type, std::string str)
 	{
 		//TODO:Fix Format #1
 		//TokenToString
-		if (IsType(type, str) == true) tokenizer.next();
-		else tokenizer.croak(std::format("Expecting {}, recieved {} from \"{}\"", TokenToString(type, false), TokenToString(tokenizer.peek().TOKEN().type, false), str));
+		if (IsType(type, str) == false) {
+			tokenizer.croak(std::format("Expecting {}, recieved {} from \"{}\"", TokenToString(type, false), TokenToString(tokenizer.peek().TOKEN().type, false), str));
+		}
+
+		return tokenizer.next(); 
+	}
+
+	void Parser::SkipType(TokenType type, std::string str)
+	{
+		ConsumeType(type, str);
+	}
+
+	bool Parser::SkipIfType(TokenType type, std::string str)
+	{
+		bool result = IsType(type, str);
+		
+		if (result)
+			tokenizer.next();
+
+		return result;
 	}
 
 

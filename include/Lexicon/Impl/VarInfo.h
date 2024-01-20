@@ -10,7 +10,8 @@
 namespace LEX
 {
 	struct ITypePolicy;
-	struct IFunction;
+	struct IFunction;//deprecated here?
+	struct FunctionBase;
 
 
 	enum struct InfoType
@@ -96,7 +97,7 @@ namespace LEX
 		{
 			return name;
 		}
-
+		NamedInfo() = default;
 
 		NamedInfo(ITypePolicy* t, size_t i, std::string n) : InfoBase{ t, i }, name { n }
 		{
@@ -140,22 +141,23 @@ namespace LEX
 			return FieldType::Member;
 		}
 
+
+		ClassUnitInfo() = default;
+
 	};
 
 	
 	struct FunctionInfo : public ClassUnitInfo
 	{
-		using FunctionType = IFunction;//
+		using FunctionType = FunctionBase;//
 
 		bool isVirtual = false;//I wish to move this into a flag below me or something.
-		union
-		{
-			FunctionType* function;
+		union{
+			FunctionType* function = nullptr;
 			MemberPointer method;//prefered, works with the other.
 		};
 
-
-		operator IFunction* ()
+		FunctionType* Get()
 		{
 			if (!isVirtual)
 				return function;
@@ -163,10 +165,7 @@ namespace LEX
 			return nullptr;
 		}
 
-		IFunction* operator->()
-		{
-			return *this;
-		}
+		FunctionInfo() = default;
 	};
 
 	struct VariableInfo : public InfoBase

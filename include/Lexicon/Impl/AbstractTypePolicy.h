@@ -8,10 +8,8 @@ namespace LEX
 	struct IGenericArgument;
 	
 
-	struct AbstractTypePolicy : public ITypePolicy
-	{
-		using ITypePolicy::ITypePolicy;
-		
+	struct AbstractTypePolicy : public virtual ITypePolicy
+	{	
 		//less of the idea of a type policy, and more an actual type policy. While this class cannot be instantiated, but the functionality of this
 		// object is equal to that of a type policy, whatever it actually is.
 

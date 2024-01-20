@@ -5,6 +5,7 @@
 #include "FieldDirectory.h"
 
 //src
+#include "TypePolicy.h"
 #include "ITypePolicy.h"
 
 namespace LEX
@@ -29,7 +30,7 @@ namespace LEX
 	private:
 		//Set and truncated to the offset value.
 		//I'm thinking the range must be 16 bit.
-		std::vector<ITypePolicy*> _range{};
+		std::vector<PolicyBase*> _range{};
 
 	public:
 		TypeID GetTypeID(uint16_t offset)
@@ -37,7 +38,7 @@ namespace LEX
 			return startValue + offset;
 		}
 
-		ITypePolicy*& GetAtOffset(uint16_t offset)
+		PolicyBase*& GetAtOffset(uint16_t offset)
 		{
 			assert(offset < offSize);
 			
@@ -108,7 +109,7 @@ namespace LEX
 	public:
 
 
-		static TypeID ClaimID(ITypePolicy* policy, TypeIndex index, TypeOffset offset)
+		static TypeID ClaimID(PolicyBase* policy, TypeIndex index, TypeOffset offset)
 		{
 			//Make this one that uses type code.
 			
@@ -116,7 +117,7 @@ namespace LEX
 
 			//I can't use abstract only, because generic stuff shouldn't have those.
 			
-			ITypePolicy*& slot = idList[index].GetAtOffset(offset);
+			PolicyBase*& slot = idList[index].GetAtOffset(offset);
 			
 			//check here 
 			
@@ -124,13 +125,15 @@ namespace LEX
 			RGL_LOG(debug, "offset in claim id {}", offset);
 			TypeID id = TypeID::CreateID(idList[index].startValue + offset);
 
+			logger::info("is??? {}", !policy);
+
 			//assign policy id here.
 			policy->SetTypeID(id);
-
+			
 			return id;
 		}
 
-		static TypeID ClaimID(ITypePolicy* policy, std::string_view name, TypeOffset offset)
+		static TypeID ClaimID(PolicyBase* policy, std::string_view name, TypeOffset offset)
 		{
 			//This just uses the raw value. Will use the above "ClaimID"
 
@@ -140,7 +143,7 @@ namespace LEX
 
 		}
 
-		static TypeID ClaimID(ITypePolicy* policy, uint32_t id)
+		static TypeID ClaimID(PolicyBase* policy, uint32_t id)
 		{
 			//This just uses the raw value. Will use the above "ClaimID"
 
@@ -198,7 +201,7 @@ namespace LEX
 			return id;
 		}
 
-		static uint32_t ObtainID(ITypePolicy* policy)//, uint16_t range = 0)
+		static uint32_t ObtainID(PolicyBase* policy)//, uint16_t range = 0)
 		{
 			//This isn't used on interfaces, who largely know who and where they go to, this is used on class types.
 
@@ -224,7 +227,7 @@ namespace LEX
 			RGL_LOG(debug, "offset in obtain id {}", nextID);
 
 			//New stuff
-			ITypePolicy*& slot = idList[index].GetAtOffset(0);
+			PolicyBase*& slot = idList[index].GetAtOffset(0);
 
 			//check here 
 
@@ -313,19 +316,19 @@ namespace LEX
 			GetIDFromOffset(GetIndexFromName(name), offset);
 		}
 
-		static ITypePolicy* GetTypeByOffset(std::string_view name, TypeOffset offset)
+		static PolicyBase* GetTypeByOffset(std::string_view name, TypeOffset offset)
 		{
 			//Change this things name so I can include everything in core later.
 
 			TypeCode code = TypeCode::Create(GetIndexFromName(name), offset);
 			RGL_LOG(trace, "@offset {}:{}", code.index, code.offset);
 
-			//I don't care about safies right now
+			//TODO: I don't care about safies right now  but this will cause issues.
 
 			return idList[code.index].GetAtOffset(code.offset);
 		}
 
-		static ITypePolicy* GetTypeByID(TypeID id)
+		static PolicyBase* GetTypeByID(TypeID id)
 		{
 			TypeCode code = _GetTypeCode(id);
 			RGL_LOG(trace, "@id {}:{}", code.index, code.offset);

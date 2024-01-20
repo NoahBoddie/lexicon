@@ -21,6 +21,7 @@
 
 #include "Scope.h"
 
+#include "IdentityManager.h"
 
 
 #ifndef gbirhyigo
@@ -908,7 +909,7 @@ namespace LEX
 
 			//IDENTITY MANAGER TEST
 			IdentityManager::GenerateID("NUMBER", Number::Settings::length);
-
+			
 
 			constexpr auto offset = Number::Settings::GetOffset(NumeralType::Floating);
 

@@ -938,6 +938,7 @@ namespace LEX
 
 	inline void TestCreateAllSettings()
 	{
+		return;
 		//This is the name of the unique policy for numbers, that can handle the conversions between things itself.
 		using NumericPolicy = TypePolicy;
 
@@ -980,44 +981,206 @@ namespace LEX
 	//I'd need 2 versions of these. Annoying.
 	class IntrinsicPolicy : public TypePolicy, public ICallableUnit
 	{
+		//Intrinsic policies are core policies that are accessible via any script, even if it's not included in commons.
+		// this usually means that you don't need to use it's actual name, like with arrays and such.
+		
+		//The idea of intrinsic policies is that their names are found by having a type name with @at the beginning.
+		// This means that it was created via keyword and is findable via all locations.
+	public:
+		
+		/*
+		PolicyBase();
 
+		PolicyBase(uint32_t i);
+
+		PolicyBase(std::string_view name, TypeOffset offset);
+
+
+		
+
+		
+
+
+
+
+		static IntrinsicPolicy*
+		//*/
+
+
+
+
+
+	private:
+		std::unordered_map<std::string, IntrinsicPolicy*> _intrinsicTypes;
+
+
+
+
+
+		
+	
 	};
 
 
 
 
+
+
+	template <typename T>
+	PolicyBase* _PolicyMaker(std::string name, TypeOffset offset)
+	{//helps with generic or concrete divide
+		return new T{ std::string_view{name}, offset };
+	}
+	
+	TypeOffset RecordToInt(Record& ast)
+	{//helps with generic or concrete divide
+		std::string tag = ast.GetTag();
+		
+		if (std::strncmp(tag.c_str(), "0x", 2) == 0 || std::strncmp(tag.c_str(), "0X", 2) == 0)
+		{
+			return std::stoi(tag, nullptr, 16);
+		}
+		else
+		{
+			return std::stoi(tag, nullptr, 10);
+		}
+	}
+
+
+	inline PolicyBase* ObtainPolicy(Record& ast)
+	{
+		Record& settings = ast.GetChild(0);
+		
+
+		
+		
+		//This part can be done on the policy, what really needs to be done is figuring out which policy to create, 
+		// or to create at all. This relies on 1 setting. The rest can be fed verbatum later.
+
+		//NOTE, this also includes template arguments.
+
+
+		//Rules of obtaining
+		//Intrinsic, no creation, just pull a policy. Doesn't matter what else it is.
+		//Interface-Creates type policy from specific string and integer. Link error if not found.
+		//Data, Creates TypePolicy plain, claiming the next free space.
+		//Generic, a different TypePolicy has to be used, but otherwise it's fine.
+
+
+		Record& genericSet = *settings.FindChild("generic");
+		bool is_generic = settings.FindChild("generic")->size();
+
+
+		using PolicyCtor = PolicyBase* (std::string, TypeOffset);
+	
+		using ConcretePolicy = TypePolicy;
+		using GenericPolicy = TypePolicy;
+		PolicyCtor* create_func = !genericSet.size() ? _PolicyMaker<ConcretePolicy> : _PolicyMaker<GenericPolicy>;
+		
+
+
+		
+		Record& qualifier = ast.GetChild(0).GetChild(2);
+		
+		std::string name;
+		TypeOffset offset;
+
+		auto LookUpOrMake = [&](std::string str, TypeOffset offset, bool lookup) -> PolicyBase*
+			{
+				std::string_view name = std::string_view{ str };
+
+				PolicyBase* result = nullptr;
+
+				if (lookup)
+					result = IdentityManager::GetTypeByOffset(name, offset);
+				else
+					result = is_generic ? new GenericPolicy{ name, offset } : new ConcretePolicy{ name, offset };
+
+				return result;
+			};
+		
+		bool lookup = false;
+
+		switch (Hash(qualifier.GetTag()))
+		{
+		case "intrinsic"_h:
+			//Look up
+			lookup = true;
+			__fallthrough;
+		case "interface"_h:
+		{
+			//Handle error, I can't fucking be bothered.
+			Record& category = qualifier.GetFront();
+			TypeOffset index = RecordToInt(category.GetFront());
+			return LookUpOrMake(category.GetTag(), index, lookup);
+
+		}
+			break;//create
+		case "data"_h:
+			//create but with specification
+			return is_generic ? new GenericPolicy{} : new ConcretePolicy{};
+
+		default:
+			RGL_LOG(critical, "Couldn't ObtainPolicy");
+			return nullptr;
+		}
+	}
+
+
 	namespace NewSpecials
 	{
+
+		//Things and structures I need to replicate to continue vs ones I do not need to relicate.
 		struct BasicGeneric;
 
+
+		//Dont
 		class Specialization
 		{
-			virtual ~Specialization() = default;
+			//virtual ~Specialization() {}
 
 
 			BasicGeneric* _parent = nullptr;
 		};
 
+		//Dont
 		//These are both bases to a template class that handles it. I think.
 		class ResolvedVariant : public Specialization 
 		{
+			//this is abstract
+
+
 			std::vector<AbstractTypePolicy*> _types;
 		};
+
+		//Dont
 		class UnresolvedVariant : public Specialization 
 		{
+			//this is interface
+
+			//I dunno what to call this, but basically it's an "AdjustPointer" to remove the need
+			// of a dynamic cast. Unsure if I'll do this though, probably will not. A dynamic cast is not expensive
+			// after all.
+			void* AsSpecial() { return nullptr; }
+
 			std::vector<ITypePolicy*> _types;
+
+			
 		};
 
 
-
+		//Dont
 		struct BasicGeneric
 		{
 
 		};
 
+		//Dont
 		template <typename T1, typename T2>
-		struct Generic : public BasicGeneric, public virtual T1, private T2
+		struct Generic : public BasicGeneric, public virtual T1
 		{
+			
+
 			using Interface = T1;		//The interface is the type used to symbolize the idea of being the type.
 			using Abstract = T2;		//The abstraction is the type used to say something is ready to be used as the type.
 
@@ -1030,73 +1193,75 @@ namespace LEX
 			// has a way of communicating with it's later version on how to do that very thing.
 			virtual Abstract* ResolveVariant(Interface*, IGenericArgument*) = 0;
 
-
+			//So the idea I think I'll have is instead you'll be forced to make a resolve interface and resolve
 
 			//size_t _expectedArgs = 0;					//args
 			//std::vector<GenericParamPolicy> _params;	//params
 			//std::vector<UnresolvedVariant*> _clients;	//partial
 			//std::vector<ResolvedVariant*> _servers;		//complete
 		};
-
-
-
-	struct Interface
-	{
-		virtual ~Interface() = default;
-	};
-
-	struct Abstract : public virtual Interface
-	{
 		
-	};
-	
-	
 
-
-	//Advisable base structure that should be the pivot between generic and concrete classes.
-	struct Base : public virtual Interface//, FunctionData, ICallableUnit
-	{
-
-	};
-
-
-
-	//This is what a generic class would look like.
-	struct GenericFoo : public Base, public Generic<Interface, Abstract>
-	{
-		//This is generic
-		//void a() override {}
-		//int c;
-
-		Abstract* ResolveVariant(Interface* tar, IGenericArgument*)
+		//Do
+		struct Interface
 		{
-			return nullptr;
-		}
-	};
+			virtual ~Interface() = default;
+		};
 
-	struct ConcreteFoo : public Base, public Abstract
-	{
-		//This is concrete.
-		//int d;
-	};
-	//The above structure seems to work, most importantly, it doesn't take undue size for the concrete type.
-	// At least, not much.
+		//Do
+		struct Abstract : public virtual Interface
+		{
+		
+		};
+	
+	
+
+		//Do
+		//Advisable base structure that should be the pivot between generic and concrete classes.
+		struct Base : public virtual Interface//, FunctionData, ICallableUnit
+		{
+
+		};
+
+
+		//Dont
+		//This is what a generic class would look like.
+		struct GenericFoo : public Base, public Generic<Interface, Abstract>
+		{
+			//This is generic
+			//void a() override {}
+			//int c;
+
+			Abstract* ResolveVariant(Interface* tar, IGenericArgument*)
+			{
+				return nullptr;
+			}
+		};
+
+		//Do
+		struct ConcreteFoo : public Base, public Abstract
+		{
+			//This is concrete.
+			//int d;
+		};
+		//The above structure seems to work, most importantly, it doesn't take undue size for the concrete type.
+		// At least, not much.
 		
 
-	int main()
-	{
-		ConcreteFoo objA{};
-		GenericFoo objB{};
+		int main()
+		{
+			ConcreteFoo objA{};
+			GenericFoo objB{};
 
-		Abstract* test1 = &objA;
-		Interface* test2 = &objB;
+			Abstract* test1 = &objA;
+			Interface* test2 = &objB;
 
-		//objA.a();
-		//objB.a();
-		std::cout << "Hello World << " << sizeof(ConcreteFoo);
+			//objA.a();
+			//objB.a();
+			std::cout << "Hello World << " << sizeof(ConcreteFoo);
 
-		return 0;
-	}
+			return 0;
+		}
 
 	}
 

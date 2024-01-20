@@ -6,8 +6,7 @@
 #include "AbstractTypePolicy.h"
 
 
-//src
-#include "IdentityManager.h"
+
 namespace LEX
 {
 	class TypePolicy;
@@ -26,7 +25,16 @@ namespace LEX
 		Signature,
 	};
 
-	struct TypePolicyData : public Environment
+	enum struct DataType
+	{
+		Invalid,
+		Class,
+		Struct,
+		Interface,
+	};
+
+
+	struct TypePolicyData
 	{
 	public:
 
@@ -40,15 +48,72 @@ namespace LEX
 		TypeID _id;
 
 
-		String name;
+		String _name;
+
+		DataType _dataType = DataType::Invalid;
 
 		//AbstractTypePolicy* extends() { return _extends; }
 	};
+	
 
-	class TypePolicy : public AbstractTypePolicy, public TypePolicyData
+	class PolicyBase : public virtual ITypePolicy, public Environment, public TypePolicyData
+	{
+
+		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like
+		// a specialization ending up in there (Seeing as they must be kept as ITypePolicy)
+
+	public:
+
+
+		TypeID GetTypeID() const override
+		{
+			return _id;
+		}
+
+		//Rename to ForceTypeID, and then make set type ID the public one.
+		void SetTypeID(TypeID id)
+		{
+			_id = id;
+		}
+
+		std::string GetName() override
+		{
+			return _name;
+		}
+
+
+
+		//These doing this is kinda ill advised, but since the function is defined here, it's safe to do. Specially since
+		// this is the final version of these functions.
+
+		//Still, this is terrible practice and this likely needs to get changed. SetTypeID doesn't really
+		// seem like it needs to stay virtual, due to no longer needing to be from ITypePolicy. So maybe change that
+		// and we're in the clear?
+		// Also replace ITypePolicy's use in IdentityManager, and move it over to this thing (Meaning more source files. Yay).
+		//For now, this works
+		PolicyBase();
+
+		PolicyBase(uint32_t i);
+
+		PolicyBase(std::string_view name, TypeOffset offset);
+
+
+
+		Record* GetSyntaxTree() override
+		{
+			return _syntax;
+		}
+
+
+	protected:
+		Record* _syntax = nullptr;
+
+	};
+
+	class TypePolicy : public PolicyBase, public AbstractTypePolicy
 	{
 	public:
-		using AbstractTypePolicy::AbstractTypePolicy;
+		using PolicyBase::PolicyBase;
 
 		/*
 		TypePolicy(std::string_view name, TypeOffset offset, TypeEnum enm, AbstractTypePolicy* ext = nullptr, Variable a_def = {})
@@ -92,27 +157,77 @@ namespace LEX
 		}
 	public:
 
-
-		TypeID GetTypeID() const override
+		void LoadFromRecord(Record& ast) override
 		{
-			return _id;
-		}
+			_name = ast.GetTag();
 
-		//Rename to ForceTypeID, and then make set type ID the public one.
-		void SetTypeID(TypeID id) override
-		{
-			_id = id;
-		}
+			Record* settings = ast.FindChild("settings");
 
-		std::string GetName() override
-		{
-			return name;
+			if (!settings) {
+				RGL_LOG(critical, "setting not found in type policy record");
+				throw nullptr;
+			}
+
+			switch (Hash(settings->GetChild(0).GetTag()))
+			{
+			case "class"_h:			_dataType = DataType::Class; break;
+			case "struct"_h:		_dataType = DataType::Struct; break;
+			case "interface"_h:		_dataType = DataType::Interface; break;
+			default:				RGL_LOG(critical, "improper data type found."); throw nullptr;
+			}
+
+			//Do something with generic. It's useless right now
+
+
+			constexpr auto k_external = "interface";
+			Record& unique_type = settings->GetChild(2);
+			switch (Hash(unique_type.GetTag()))
+			{
+			//case "data"_h://Not allowed yet
+			//case "external"://Not implemented well yet
+
+			case "intrinsic"_h:		
+				if (_dataType == DataType::Interface) {
+					RGL_LOG(critical, "interfaces cannot be intrinsic/external");
+					throw nullptr;
+				}
+				break;
+			
+			default:				
+				RGL_LOG(critical, "PLACEHOLDER don't know how to handle unique type."); 
+				throw nullptr;
+			}
+			
 		}
 
 
 		void CompileExpression(Record& ast) override
 		{
+			for (auto& node : ast.GetChildren())
+			{
+				switch (ast.SYNTAX().type)
+				{
+				case SyntaxType::Function:
+					AddFunction(Component::Create<Function>(node));
+					break;
+
+
+				case SyntaxType::VarDeclare:
+					AddVariable(Component::Create<Global>(node));
+					break;
+
+
+				default:
+					RGL_LOG(critical, "unexpected syntax was invalid.");
+					throw nullptr;
+				}
+			}
+			
+
+
+
 			//tba
+			//This expects a type of
 		}
 
 

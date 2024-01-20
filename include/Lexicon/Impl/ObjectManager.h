@@ -8,6 +8,9 @@
 
 namespace LEX
 {
+	//TODO: So registering an interface won't be like this anymore, instead we'll use the whole category thing to 
+	// link an interface
+
 
 	//This classes purpose is to manage custom objects and what native classes are seen as that type.
 	class ObjectManager

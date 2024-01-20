@@ -33,36 +33,50 @@ namespace LEX
 		//TODO: For all of these, there should be an "errorless" version, that just wraps the function and returns some result enum or something.
 
 
-		virtual Project* GetProject()
-		{
-			//If it is a project, it will return project.
-			throw EnvironmentError("No implementation 'GetMember'.");
-			return nullptr;
-		}
-
+		//This will generally get parent script rather than parent environment. If it is a script, it will return script.
 		virtual Script* GetScript()
 		{
-			//This will generally
-			//Gets parent script rather than parent environment. If it is a script, it will return script.
-			throw EnvironmentError("No implementation 'GetMember'.");
-			return nullptr;
+			return GetParent()->FetchScript();
 		}
 
-		
-		
-		virtual Environment* GetEnvironment()
+		//If it is a project, it will return project.
+		virtual Project* GetProject()
 		{
-			//Basically, like get class, but can be suitable for both scripts and classes and such, and is better
-			// suited to use SearchField/SearchEnvironment on than just script.
-			//Make pure to search for non implementers.
-			return nullptr;
+			return GetParent()->FetchProject();
 		}
 
-		virtual Element* GetParent()
+		//Basically, like get class, but can be suitable for both scripts and classes and such, and is better
+		// suited to use SearchField/SearchEnvironment on than just script.
+		//Make pure to search for non implementers.
+		virtual Environment* GetEnvironment() = 0;
+
+		virtual Element* GetParent() = 0;
+
+		//The safe version of GetScript
+		Script* FetchScript()
 		{
-			throw EnvironmentError("No implementation 'GetMember'");
-			return nullptr;
+			return !this ? GetScript() : nullptr;
 		}
+
+		//The safe version of GetProject
+		Project* FetchProject()
+		{
+			return !this ? GetProject() : nullptr;
+		}
+
+		//The safe version of GetEvironment
+		Environment* FetchEnvironment()
+		{
+			return !this ? GetEnvironment() : nullptr;
+		}
+
+		//The safe version of GetParent
+		Element* FetchParent()
+		{
+			return !this ? GetParent() : nullptr;
+		}
+
+
 
 
 		//Querying the lot of these without them being the type that actually expects it should cause a compiling error.
@@ -70,71 +84,62 @@ namespace LEX
 		//returns true if it's project is a shared project.
 		bool IsShared()
 		{
-
 			return GetProject() == GetShared();
 		}
 
 		static Project* GetShared();
 
-		virtual CommonScript* GetCommons()
+		virtual Script* GetCommons();
+
+		Script* FetchCommons()
 		{
-			//This 
-			return nullptr;//GetScript()->GetCommons();
+			return !this ? GetCommons() : nullptr;
 		}
 
-		
-		virtual Script* FindScript(std::string name)
-		{
-			//Note, this being virtual is simply the essence of convience.
+		virtual Record* GetSyntaxTree() = 0;
 
-			//The gist of this script should use the current project + shared if not shared to find the script.
-			// The real implementation should be project. Should be used from Search (because search is safe find can fail)
-			//return GetProject()->FindScript(name);
-			return nullptr;
-		}
-
-
-
-		virtual Record* GetSyntaxTree()
-		{
-			throw EnvironmentError("No implementation of Syntax Tree.");
-		}
-
-
-		//Will likely remain unused, the ComponentType might work more suitably.
-		//template <class Self>
-		//constexpr std::string_view GetName(this Self&& self) {
-		//	return typeid(Self).name();
-		//	//return TypeName<Self>::value;
-		//}
 
 		virtual std::string GetName() = 0;
 	protected:
 		
-		//virtual void SetName(std::string name)
-		//{
-			//Not required I don't think, this is upto the record given, 
-			// and if it's not, it's an individual class thing (like for projects).
-			//throw EnvironmentError("No implementation 'SetName'");
-		//}
-
-		virtual void SetParent(Element*)
-		{
-			throw EnvironmentError("No implementation 'SetParent'");
-		}
+		virtual void SetParent(Element*) = 0;
 
 		void DeclareParentTo(Element* child)
 		{
 			child->SetParent(this);
 		}
 
-		//virtual void SetSyntaxTree(Record& ast)
-		//{
-			//This isn't even really required as a function, that's what the construction is for no?
-			//throw EnvironmentError("No implementation of 'SetSyntaxTree'.");
-		//}
-
 	public:
 	};
 
+
+	class SecondaryElement : public Element
+	{
+		//Function and Global
+		//std::string name;//may include name later, depending.
+		Record* _syntax = nullptr;
+		Environment* _parent = nullptr;
+	public:
+
+		Environment* GetEnvironment() override
+		{
+			return _parent;
+		}
+
+
+		Element* GetParent() override;
+
+
+		Record* GetSyntaxTree() override
+		{
+			return _syntax;
+		}
+
+	protected:
+
+		void SetParent(Element* par) override;
+
+
+
+	};
 }
