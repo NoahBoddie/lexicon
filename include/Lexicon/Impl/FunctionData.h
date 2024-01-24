@@ -1,19 +1,19 @@
 #pragma once
 
-#include "Element.h"
-#include "AbstractFunction.h"
-
-#include "VarInfo.h"
 #include "Variable.h"
 #include "RoutineBase.h"
 
-//*src
-#include "RuntimeVariable.h"
+//Should have parameterinfos?
 
 namespace LEX
 {
+	struct ITypePolicy;
+	class ParameterInfo;
+	
 	struct FunctionData
 	{
+		//A struct to be owned protected.
+
 		//weren't functions environments? A: They don't need to be anymore.
 		//Data
 
@@ -32,17 +32,17 @@ namespace LEX
 		// as well as it's type.
 		ITypePolicy* temp_returnType;
 
-		
+
 		//The actual object for this has severely changed. It's "ParamInfo" I think? But this isn't terribly important
 		// here yet so you know.
 		//std::vector<DeclaredParam> reqParams;
 		//std::vector<DefinedParam> defParams;
 		using Temp_Parameter = void*;
-		
-		std::vector<ParamInfo> parameters;
+
+		std::vector<ParameterInfo> parameters;
 
 		size_t defaultIndex = max_value<size_t>;//basically whenever the defaults start.
-		
+
 		RoutineBase _routine;//actually needs to be a pointer
 
 
@@ -53,7 +53,7 @@ namespace LEX
 		}
 
 
-		std::vector<ParamInfo> GetParameters()
+		std::vector<ParameterInfo> GetParameters()
 		{
 			return parameters;
 		}
@@ -64,7 +64,7 @@ namespace LEX
 		{
 			return temp_returnType;
 		}
-		
+
 		//AbstractTypePolicy* GetConcreteReturnType();//move to abstractFunction
 
 
@@ -73,54 +73,4 @@ namespace LEX
 		//void SetReturnType(ITypePolicy*);
 	};
 
-
-	class FunctionBase : public virtual IFunction, public SecondaryElement, public FunctionData
-	{
-		//This is a pivot for for functions, more important than anywhere else, this set up excludes formulas
-		// from being able to be stored in a function, or having the same linking
-
-
-
-	public:
-		std::string GetName()
-		{
-			RGL_LOG(critical, "this shit not supposed to be used fam");
-			throw nullptr;
-		}
-	};
-
-
-
-	class Function : public FunctionBase, public AbstractFunction
-	{
-	public:
-
-		//void LoadFromRecord(Record&)
-
-		bool IsAbstract() const override { return false; }
-
-
-		virtual RuntimeVariable _Invoke(std::vector<RuntimeVariable> args, RuntimeVariable* def) = 0;
-
-
-		RuntimeVariable _Invoke(std::vector<RuntimeVariable> args) { return _Invoke(args, nullptr); }
-
-
-
-		void Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable*) override
-		{
-			if (auto routine = GetRoutine(); routine)
-			{
-				//TODO: make this use the actual function pls
-				LEX::Runtime runtime{ *routine, args };
-
-				ret = runtime.Run();
-			}
-
-
-
-		}
-
-	};
-	
 }
