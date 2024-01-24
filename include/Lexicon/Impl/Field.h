@@ -1,8 +1,12 @@
 #pragma once 
 
+#include "AccessModifier.h"
+#include "BasicQualifier.h"
+#include "RuntimeQualifier.h"
 
 namespace LEX
 {
+	//Include questions for qualifiers
 	struct ITypePolicy;
 
 	enum struct FieldType
