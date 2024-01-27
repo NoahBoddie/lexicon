@@ -2,10 +2,10 @@
 
 //cut
 #include "TypeID.h"
-#include "FieldDirectory.h"
+
 
 //src
-#include "TypePolicy.h"
+#include "PolicyBase.h"
 #include "ITypePolicy.h"
 
 namespace LEX
@@ -178,7 +178,7 @@ namespace LEX
 
 		//This does the deed automatically, should link to each possible itype that inherits this one.
 		//Due to the fact it also claims as it generates, a different name may be in order.
-		static uint32_t ObtainID(FieldDirectory script_dir, uint16_t range = 0)
+		static uint32_t ObtainID(std::string script_dir, uint16_t range = 0)
 		{
 			//DEPRECATED, I don't think I want to make this for 
 
@@ -194,8 +194,8 @@ namespace LEX
 			uint32_t id = nextID;
 
 			size_t size = idList.size();
-
-			idList.emplace_back(script_dir.GetFullName(), nextID, ++range);
+			//TODO: Fix up ObtainID. its out of sorts.
+			//idList.emplace_back(script_dir.GetFullName(), nextID, ++range);
 			nextID += range;
 
 			return id;

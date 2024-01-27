@@ -57,7 +57,7 @@ namespace LEX
 			//STOP, this actually is incorrect, if focus is this, and we're trying to see if to derives from it,
 			// (So focus is a ObjectReference, but To is Actor) it will be true that it derives from it, but not that 
 			// it can turn focus into the To class.
-			const TypePolicy* focus = this;
+			const ConcretePolicy* focus = this;
 
 			while (focus = focus->_extends)
 			{

@@ -16,7 +16,7 @@
 #include "Instruction.h"
 #include "InstructionType.h"
 #include "Runtime.h"
-#include "TypePolicy.h"
+#include "ConcretePolicy.h"
 //Move me you idiot.
 
 #include "Scope.h"
@@ -722,7 +722,7 @@ namespace LEX
 				throw nullptr;
 			}
 			RGL_LOG(critical, "Var__2");
-			Solution result{ var->type, OperandType::Index, var->GetFieldIndex() };
+			Solution result{ var->GetTypePolicy(), OperandType::Index, var->GetFieldIndex()};
 			RGL_LOG(critical, "Var__3");
 			//TODO: BIG NOTE, the resulting solution should note that it's a reference type.
 
@@ -915,7 +915,7 @@ namespace LEX
 
 			//RGL_LOG(info, "numset lng:{} v off:{}", Number::Settings::length, offset);
 
-			static TypePolicy* float64 = new TypePolicy{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
+			static ConcretePolicy* float64 = new ConcretePolicy{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
 
 			//RGL_LOG(info, "{} float64", (uint32_t)float64.GetTypeID());
 

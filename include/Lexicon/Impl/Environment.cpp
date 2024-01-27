@@ -3,7 +3,7 @@
 #include "Environment.h"
 
 //*src
-#include "Function.h"
+//#include "Function.h"
 #include "GlobalVariable.h"
 
 #include "Project.h"

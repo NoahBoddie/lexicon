@@ -13,7 +13,7 @@
 namespace LEX
 {
 	struct Variable_;
-	struct TypePolicy;
+	struct ConcretePolicy;
 	struct PolicyBase;
 
 
@@ -216,7 +216,7 @@ namespace LEX
 			//Also, maybe some core pivot with script, since they share so much
 			std::vector<Function*> _functions;
 			std::vector<Variable_*> _globals;
-			std::map<TypePolicy*, std::vector<Function*>> _methods;
+			std::map<ConcretePolicy*, std::vector<Function*>> _methods;
 
 			//When using, it's very important to treat this like an imported script.
 

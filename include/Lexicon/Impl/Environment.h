@@ -7,10 +7,10 @@
 #include "Element.h"
 
 #include "TypeID.h"
-#include "VarInfo.h"
-
+#include "FunctionInfo.h"
+#include "VariableInfo.h"//For tests only
 //*src
-#include "Function.h"
+#include "ConcreteFunction.h"
 #include "GlobalVariable.h"
 
 namespace LEX
@@ -25,7 +25,7 @@ namespace LEX
 	class Global;
 
 
-	struct TypePolicy;
+	struct ConcretePolicy;
 	struct AbstractTypePolicy;
 
 	//For now, this is just a fucking dummy class, as nothing uses it, but it's here to remind myself of it. For now.
@@ -233,7 +233,11 @@ namespace LEX
 			RGL_LOG(critical, "AddType no abstraction");
 			throw nullptr;
 		}
-
+		//TODO: Issue with members on FindFunction and FindVariable. See below.
+		// (I think that should catch members too) should both take an 
+		// ITypePolicy. Main reason why is because of member and method requires being higher priority
+		// and the exclusive place to check from when there's a parenthesis. Actually, this is a search thing,
+		// not a find issue.
 		virtual std::vector<FunctionInfo*> FindFunctions(std::string name)
 		{
 			auto end = functionMap.end();

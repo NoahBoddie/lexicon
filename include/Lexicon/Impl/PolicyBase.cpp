@@ -1,4 +1,4 @@
-#include "TypePolicy.h"
+#include "ConcretePolicy.h"
 #include "IdentityManager.h"
 
 namespace LEX
