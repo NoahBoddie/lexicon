@@ -1,26 +1,30 @@
 #pragma once
 
-#include "ObjectInfo.h"
+//#include "ObjectInfo.h"
+#include "ExternalInterface.h"
 
-
-#include "FieldDirectory.h"
+//#include "FieldDirectory.h"
 #include "IdentityManager.h"
 
 namespace LEX
 {
+	struct External;
+
 	//TODO: So registering an interface won't be like this anymore, instead we'll use the whole category thing to 
 	// link an interface
 
 
+	using FieldDirectory = std::string;
+
 	//This classes purpose is to manage custom objects and what native classes are seen as that type.
-	class ObjectManager
+	class ExternalManager
 	{
 		//I thought about searching this via type id, but this is basically just for back end stuff. SO maybe not.
 		// But some way to access it from there might be helpful.
 		//Actually, that sort of thing might search by using ID so maybe give that some thought.
 
 		//TODO: Remake object manager's object register. Instructions below.
-		inline static std::map<std::string, ObjectInfo> objectRegistry;
+		inline static std::map<std::string, std::unique_ptr<ExternalInterface>> objectRegistry;
 		//First rename to registry table or somthing of the like. 
 		// make an unordered_map that takes string views and has an ObjectInfo pointer, because multiple types
 		//  can share the same info.
@@ -29,7 +33,7 @@ namespace LEX
 	public:
 
 		//Manages how many entries of class is being referenced, 
-		inline static std::map<Object*, size_t> referenceManager;
+		inline static std::map<External*, size_t> referenceManager;
 
 		static void RegisterType(FieldDirectory script_dir, std::type_info& type, ObjectCtor constructor, uint16_t range = 0, HMODULE origin = nullptr)
 		{
@@ -45,15 +49,15 @@ namespace LEX
 
 			//After this, it should try to find the base type by name. Then assign these as a name. Or does the above do this?
 
-			ObjectInfo reggie{};
+			//ObjectInfo reggie{};
 
-			reggie.claimedID = base_id;
-			reggie._ctor = constructor;
-			reggie.idOffset = range;
-			reggie._origin.program = origin;
-			reggie._origin.type = &type;
-
-			objectRegistry[script_dir.GetFullName()] = reggie;
+			//reggie.claimedID = base_id;
+			//reggie._ctor = constructor;
+			//reggie.idOffset = range;
+			//reggie._origin.program = origin;
+			//reggie._origin.type = &type;
+			//static_assert(false);
+			//objectRegistry[script_dir.GetFullName()] = reggie;
 
 		}
 

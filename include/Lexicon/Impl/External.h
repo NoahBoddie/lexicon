@@ -2,7 +2,7 @@
 
 
 //src
-#include "ObjectManager.h"
+#include "ExternalManager.h"
 
 namespace LEX
 {
@@ -12,12 +12,25 @@ namespace LEX
     //using ArgContainer = std::span<T, std::dynamic_extent>;
     using ArgContainer = std::vector<T>;
 
+    //using ExternID = std::pair<const std::type_info*, const std::type_info*>;
+
+    struct ExternInfo
+    {
+        const std::type_info* const variable = nullptr;
+        const std::type_info* const constant = nullptr;
+
+
+        
+
+        constexpr ExternInfo(const std::type_info& var, std::type_info& con) : variable{ &var }, constant{ &con }
+        {}
+    };
 
     struct ScriptInterface;
 
-    //TODO: Rename Object to ScriptInterface. Object is confusing with the general type of thing called any/object.
-    struct Object {
-        virtual ~Object() = default;
+    //TODO: Very similar to its interface, this will need to have different versions, as well as IMPLEMENTING A SOURCE so this is safely includable.
+    struct External {
+        virtual ~External() = default;
 
         //This is the core function of the object type. In it's implementation,
         virtual void Invoke(std::string_view func_name, Variable& ret, ArgContainer<Variable>& args)
@@ -31,17 +44,24 @@ namespace LEX
 
         }
 
+        virtual constexpr const std::type_info& GetTypeInfo() const
+        {
+            return typeid(*this);
+        }
+
         virtual constexpr std::string_view GetName()
         {
+            //This cannot work properly for the const version. So I may make 2 versions
+            
             //Returns the top level name of this polymorphic type. Can be changed to get the current name
             // in order to have a central version be the registered type.
-            return typeid(std::remove_reference_t<decltype(*this)>).name();
+            return typeid(*this).name();
         }
 
         //Need to make sure they're of the same type.
-        virtual Object& operator=(const Object& a_rhs) = 0;
+        virtual External& operator=(const External& a_rhs) = 0;
 
-        virtual std::strong_ordering operator<=>(const Object& a_rhs) = 0;
+        virtual std::strong_ordering operator<=>(const External& a_rhs) = 0;
 
 
 
@@ -53,8 +73,8 @@ namespace LEX
             return typeid(Self).name();
         }
 
-        template <std::derived_from<Object> Self>
-        constexpr Self& MatchType(this Self&& self, const Object& a_rhs)
+        template <std::derived_from<External> Self>
+        constexpr Self& MatchType(this Self&& self, const External& a_rhs)
         {
             //Also maybe use that type name implementation if you can. Just so different versions don't get caught on each other.
 
@@ -68,10 +88,10 @@ namespace LEX
         }
 
 
-        Object()
+        External()
         {
             
-            _registry = ObjectManager::GetInterface(std::string{GetName()});
+            _registry = ExternalManager::GetInterface(std::string{GetName()});
 
             //I'mma do this differently else where. Rather, I want to return an API result.
             if (!_registry) {

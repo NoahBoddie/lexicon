@@ -4,7 +4,7 @@
 #include "Number.h"
 #include "AbstractTypePolicy.h"
 #include "AbstractFunction.h"
-#include "ObjectHandle.h"
+#include "ExternalHandle.h"
 
 #include "Array.h"
 #include "Delegate.h"
@@ -13,7 +13,7 @@
 
 #include "TypeID.h"
 
-#include "ObjectType.h"
+#include "VariableType.h"
 
 //Some notes about the, the setting that's used should be a result of whichever of the 2 sides has more priority. Need to figure out a way
 // to do that, then have a function handle the truncating process.
@@ -61,7 +61,7 @@ namespace LEX
         String,
         Array,
         FunctionHandle,
-        ObjectHandle,
+        ExternalHandle,
         Delegate
         >;
     
@@ -120,7 +120,7 @@ namespace LEX
         variant_index<VariableData, String>(),
         variant_index<VariableData, FunctionHandle>(),
         variant_index<VariableData, Delegate>(),
-        variant_index<VariableData, ObjectHandle>()
+        variant_index<VariableData, ExternalHandle>()
     };
 
 
@@ -338,7 +338,7 @@ namespace LEX
 
 
 
-        //Deprecated. TypePolicy will deal with this later,
+        //Deprecated. ConcretePolicy will deal with this later,
         static Variable Default() { return Variable(); }
         
         //This tag is always false, but empty for the API to tell where a variable came from. Essentially allows us to know whether 
@@ -479,7 +479,7 @@ namespace LEX
         Number AsNumber() { return std::get<Number>(_data); }
         Integer AsInteger() { return 0; }
         String AsString() { return ""; }
-        ObjectHandle AsObject() { return nullptr; }
+        ExternalHandle AsExternal() { return nullptr; }
         Delegate AsDelegate() { return {}; }
         FunctionHandle AsFunction() { return {}; }
         Array AsArray() { return {}; }
@@ -507,7 +507,7 @@ namespace LEX
             case BasicType::String:     _data = ""; break;
             //case BasicType::Number:     _data = (Number)0; break;
             case BasicType::Array:      _data = Array{}; break;
-            case BasicType::Object:     _data = ObjectHandle(nullptr); break;
+            case BasicType::Object:     _data = ExternalHandle(nullptr); break;
             case BasicType::Delegate:   _data = Delegate{}; break;
             case BasicType::Function:   _data = FunctionHandle{}; break;
 
@@ -610,6 +610,8 @@ namespace LEX
         //I may make a safe version of this to use, that takes a ref argument.
         //Also another version that's not enum dependent.
     };
+
+
 }
 
 

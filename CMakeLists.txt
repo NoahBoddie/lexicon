@@ -39,7 +39,34 @@ include/Lexicon/Impl/Parser.h
 include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/Field.h" "include/Lexicon/Impl/Instruction.h" "include/Lexicon/Impl/RuntimeVariable.h" "include/Lexicon/Impl/Target.h"  "include/Lexicon/Impl/InstructionType.h" "include/Lexicon/Impl/RoutineBase.h" "include/Lexicon/Impl/Solution.h" "include/Lexicon/Impl/RoutineCompiler.h" "include/Lexicon/Impl/Scope.h" "include/Lexicon/Impl/LiteralManager.h" "include/Lexicon/Impl/IVariable.h" "include/Lexicon/Impl/GlobalVariable.h" "include/Lexicon/Impl/Runtime.h" "include/Lexicon/Impl/MemberPointer.h" "include/Lexicon/Impl/OperatorType.h" "include/Lexicon/Impl/ICallableUnit.h" "include/Lexicon/Impl/Number.h"
  "include/Lexicon/Impl/Literal.h" 
- "include/Lexicon/Impl/TempConstruct.h" "include/Lexicon/Impl/Object.h" "include/Lexicon/Impl/ObjectInterface.h" "include/Lexicon/Impl/ObjectHandle.h" "include/Lexicon/Impl/ObjectInfo.h" "include/Lexicon/Impl/FunctionHandle.h" "include/Lexicon/Impl/Delegate.h" "include/Lexicon/Impl/Array.h" "include/Lexicon/Impl/IdentityManager.h" "include/Lexicon/Impl/Origin.h" "include/Lexicon/Impl/ObjectManager.h" "include/Lexicon/Impl/ObjectType.h" "include/Lexicon/Impl/Report.h" "include/Lexicon/Impl/BasicQualifier.h" "include/Lexicon/Impl/RuntimeQualifier.h" "include/Lexicon/Impl/InfoBase.h" "include/Lexicon/Impl/TemporaryInfo.h" "include/Lexicon/Impl/MemberInfo.h" "include/Lexicon/Impl/AccessModifier.h" "include/Lexicon/Impl/LocalInfo.h" "include/Lexicon/Impl/ParameterInfo.h" "include/Lexicon/Impl/VariableInfo.h" "include/Lexicon/Impl/FunctionInfo.h" "include/Lexicon/Impl/FunctionData.h" "include/Lexicon/Impl/FunctionBase.h" "include/Lexicon/Impl/ConcreteFunction.h")
+ "include/Lexicon/Impl/TempConstruct.h" 
+ "include/Lexicon/Impl/FunctionHandle.h" 
+ "include/Lexicon/Impl/Delegate.h" 
+ "include/Lexicon/Impl/Array.h" 
+ "include/Lexicon/Impl/IdentityManager.h" 
+ "include/Lexicon/Impl/Origin.h" 
+ "include/Lexicon/Impl/Report.h" 
+ "include/Lexicon/Impl/BasicQualifier.h" 
+ "include/Lexicon/Impl/RuntimeQualifier.h" 
+ "include/Lexicon/Impl/InfoBase.h" 
+ "include/Lexicon/Impl/TemporaryInfo.h" 
+ "include/Lexicon/Impl/MemberInfo.h" 
+ "include/Lexicon/Impl/AccessModifier.h" 
+ "include/Lexicon/Impl/LocalInfo.h" 
+ "include/Lexicon/Impl/ParameterInfo.h" 
+ "include/Lexicon/Impl/VariableInfo.h" 
+ "include/Lexicon/Impl/FunctionInfo.h" 
+ "include/Lexicon/Impl/FunctionData.h" 
+ "include/Lexicon/Impl/FunctionBase.h" 
+ "include/Lexicon/Impl/ConcreteFunction.h" 
+ "include/Lexicon/Impl/PolicyData.h" 
+ "include/Lexicon/Impl/PolicyBase.h" 
+ "include/Lexicon/Impl/ConcretePolicy.h" 
+ "include/Lexicon/Impl/External.h" 
+ "include/Lexicon/Impl/ExternalHandle.h"
+ "include/Lexicon/Impl/ExternalManager.h"
+ "include/Lexicon/Impl/ExternalInterface.h"
+ "include/Lexicon/Impl/VariableType.h")
 
 set(sources
 #src/main.cpp
@@ -55,7 +82,7 @@ src/Lexicon/Component.cpp
 include/Lexicon/Impl/LiteralManager.cpp
  "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
  
- "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/TypePolicy.cpp" "include/Lexicon/Impl/Environment.cpp")
+ "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp")
 
 source_group(
 	TREE
