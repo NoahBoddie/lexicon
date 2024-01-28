@@ -12,7 +12,7 @@ namespace LEX
 		MemberInfo(size_t i) {}
 
 
-		struct Settings : public __super::Settings
+		struct Settings : public InfoBase::Settings
 		{
 			bool isRuntimeMember = false;
 		};

@@ -32,11 +32,7 @@ namespace LEX
 		size_t index = max_value<size_t>;
 
 	protected:
-		template <typename T> requires (sizeof(T) <= 0x8)
-			T GetData() const
-		{
-			return reinterpret_cast<T>(_data);
-		}
+		
 
 
 		template <typename T> requires (sizeof(T) <= 0x8)
@@ -49,6 +45,12 @@ namespace LEX
 			const T& DataAs() const
 		{
 			return reinterpret_cast<const T&>(_data);
+		}
+
+		template <typename T> requires (sizeof(T) <= 0x8)
+		T GetData() const
+		{
+			return DataAs<T>();
 		}
 
 	public:

@@ -6,12 +6,18 @@
 namespace LEX
 {
 
-	class ParamInfo : public LocalInfo
+	class ParameterInfo : public LocalInfo
 	{
-		struct Settings : public __super::Settings
+		struct Settings : public LocalInfo::Settings
 		{
 			bool isDefault = false;
 		};
 
+
+	public:
+		ParameterInfo(ITypePolicy* t, size_t i, std::string n) : LocalInfo{t, i}
+		{
+			name = n;
+		}
 	};
 }

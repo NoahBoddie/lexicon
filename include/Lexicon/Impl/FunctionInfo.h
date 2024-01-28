@@ -1,7 +1,7 @@
 #pragma once
 
-
 #include "MemberInfo.h"
+#include "FunctionBase.h"
 #include "MemberPointer.h"
 
 namespace LEX
@@ -10,7 +10,7 @@ namespace LEX
 	struct FunctionInfo : public MemberInfo
 	{
 
-		struct Settings : public __super::Settings
+		struct Settings : public MemberInfo::Settings
 		{
 			bool isVirtual = false;
 		};
