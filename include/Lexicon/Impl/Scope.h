@@ -3,7 +3,7 @@
 #include "RoutineCompiler.h"
 
 //*src?
-#include "VarInfo.h"//InfoBase
+#include "VariableInfo.h"//InfoBase
 
 namespace LEX
 {

@@ -2,7 +2,7 @@
 
 #include "Variable.h"
 #include "RoutineBase.h"
-
+#include "ParameterInfo.h"
 //Should have parameterinfos?
 
 namespace LEX

@@ -1,7 +1,6 @@
 #pragma once
 
-//*src
-#include "RuntimeVariable.h"
+
 
 namespace LEX
 {
@@ -19,13 +18,13 @@ namespace LEX
 		virtual void ResolveArguments(std::vector<RuntimeVariable>&) {}//Does nothing for now.
 
 		//This is the very most basic function. There should be additional conveniences
-		virtual void Invoke(RuntimeVariable& ret, std::vector<RuntimeVariable> args) = 0;
+		//virtual void Invoke(RuntimeVariable& ret, std::vector<RuntimeVariable> args) = 0;
 
 
-		virtual RuntimeVariable Invoke(std::vector<RuntimeVariable> args, RuntimeVariable* def) = 0;
+		virtual RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def) = 0;
 
-
-		RuntimeVariable Invoke(std::vector<RuntimeVariable> args) { return Invoke(args, nullptr); }
+		//Need src
+		//RuntimeVariable Invoke(std::vector<RuntimeVariable> args) { return Invoke(args, nullptr); }
 
 	};
 

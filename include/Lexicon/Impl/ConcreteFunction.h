@@ -16,15 +16,10 @@ namespace LEX
 		bool IsAbstract() const override { return false; }
 
 
-		virtual RuntimeVariable _Invoke(std::vector<RuntimeVariable> args, RuntimeVariable* def) = 0;
-
-
-		RuntimeVariable _Invoke(std::vector<RuntimeVariable> args) { return _Invoke(args, nullptr); }
-		virtual RuntimeVariable Invoke(std::vector<RuntimeVariable> args, RuntimeVariable* def) = 0;
-
-
 		RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable*) override
 		{
+			/*
+
 			if (auto routine = GetRoutine(); routine)
 			{
 				//TODO: make this use the actual function pls
@@ -33,8 +28,8 @@ namespace LEX
 				ret = runtime.Run();
 			}
 
-
-
+			//*/
+			return {};
 		}
 
 	};
