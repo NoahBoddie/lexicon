@@ -26,9 +26,10 @@ namespace LEX
 	public:
 		~Field() = default;
 
-		virtual FieldType GetFieldType() const = 0;
+		//These last 2 are sorta not really important. TypePolicy is however.
+		virtual FieldType GetFieldType() const { return FieldType::Invalid; }
 		
-		virtual size_t GetFieldIndex() const = 0;
+		virtual size_t GetFieldIndex() const { return max_value<size_t>; }
 		
 		virtual ITypePolicy* GetTypePolicy() const { return nullptr; }
 

@@ -2,10 +2,17 @@
 
 #include "Variable.h"
 
+
+void TestVariable()
+{
+	LEX::Variable reg{};
+}
+
 namespace LEX
 {
-	struct RuntimeVariable : public ClassAlias<std::variant<Void, Variable, std::reference_wrapper<Variable>>>
+	class RuntimeVariable : public ClassAlias<std::variant<Void, Variable, std::reference_wrapper<Variable>>>
 	{
+	public:
 
 		ALIAS_HEADER;
 

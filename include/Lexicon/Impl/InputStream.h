@@ -4,23 +4,6 @@
 #include "Lexicon/Impl/Exception.h"
 namespace LEX::Impl
 {
-
-	inline std::vector<char> GetPuncuations()
-	{
-		return {};
-	}
-
-	inline std::vector<std::string_view> GetOperators()
-	{
-		return {};
-	}
-
-	inline std::vector <std::string_view> GetKeywords()
-	{
-		return {};
-	}
-
-
 	//submit the streams to the next one.
 
 	class InputStream
