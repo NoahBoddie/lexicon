@@ -6,9 +6,7 @@
 
 #include "Lexicon/Impl/Operand.h"
 
-#include "Lexicon/Impl/Prototype.h"
-#include "Lexicon/Impl/Construct.h"
-#include "Lexicon/Impl/Hierarchy.h"
+
 #include "Lexicon/Impl/Script.h"
 #include "Lexicon/Impl/Project.h"
 #include "Lexicon/Impl/ProjectManager.h"
@@ -22,7 +20,7 @@
 
 #include "Lexicon/Impl/Variable.h"
 
-#include "VarInfo.h"
+
 
 //#include "SignatureManager.h"//suppressed for now
 
@@ -57,12 +55,12 @@
 #include "TypeID.h"
 
 
-#include "TypePolicy.h"
+#include "ConcretePolicy.h"
 
 
 #include "Lexicon/Impl/ObjectType.h"
 
-#include "Function.h"
+#include "ConcreteFunction.h"
 
 namespace LEX
 {
@@ -940,9 +938,9 @@ namespace LEX
 	{
 		return;
 		//This is the name of the unique policy for numbers, that can handle the conversions between things itself.
-		using NumericPolicy = TypePolicy;
+		using NumericPolicy = ConcretePolicy;
 
-		std::vector<TypePolicy*> results;
+		std::vector<ConcretePolicy*> results;
 
 		NumeralType type{};
 		Size        size{};
@@ -951,7 +949,7 @@ namespace LEX
 
 		IdentityManager::GenerateID("NUMBER", Number::Settings::length);
 
-		TypePolicy* primary_policy = new TypePolicy{ "NUMBER", 0 };
+		ConcretePolicy* primary_policy = new ConcretePolicy{ "NUMBER", 0 };
 
 		for (int a = 0; a < NumeralType::Total; a++)
 		{
@@ -962,7 +960,7 @@ namespace LEX
 					for (int d = 1; a < Limit::Total; d++)
 					{
 						Number::Settings settings{ (NumeralType)a, (Size)b, (Signage)c, (Limit)d };
-						TypePolicy* number_policy = new TypePolicy{ "NUMBER", settings.GetOffset() };
+						ConcretePolicy* number_policy = new ConcretePolicy{ "NUMBER", settings.GetOffset() };
 						Variable defaultValue{ settings, number_policy };
 						number_policy->EmplaceDefault(defaultValue);
 						results.emplace_back(number_policy);
@@ -979,7 +977,7 @@ namespace LEX
 	}
 
 	//I'd need 2 versions of these. Annoying.
-	class IntrinsicPolicy : public TypePolicy, public ICallableUnit
+	class IntrinsicPolicy : public ConcretePolicy, public ICallableUnit
 	{
 		//Intrinsic policies are core policies that are accessible via any script, even if it's not included in commons.
 		// this usually means that you don't need to use it's actual name, like with arrays and such.
@@ -1073,8 +1071,8 @@ namespace LEX
 
 		using PolicyCtor = PolicyBase* (std::string, TypeOffset);
 	
-		using ConcretePolicy = TypePolicy;
-		using GenericPolicy = TypePolicy;
+		using ConcretePolicy = ConcretePolicy;
+		using GenericPolicy = ConcretePolicy;
 		PolicyCtor* create_func = !genericSet.size() ? _PolicyMaker<ConcretePolicy> : _PolicyMaker<GenericPolicy>;
 		
 
@@ -1100,7 +1098,7 @@ namespace LEX
 			};
 		
 		bool lookup = false;
-
+		
 		switch (Hash(qualifier.GetTag()))
 		{
 		case "intrinsic"_h:
@@ -1264,7 +1262,6 @@ namespace LEX
 		}
 
 	}
-
 
 }
 

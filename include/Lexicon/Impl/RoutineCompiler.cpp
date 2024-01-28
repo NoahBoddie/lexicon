@@ -10,7 +10,8 @@
 
 //*src
 #include "Scope.h"
-#include "Function.h"
+#include "FunctionData.h"
+#include "ParameterInfo.h"
 
 namespace LEX
 {
@@ -58,7 +59,7 @@ namespace LEX
 		auto old = _current;
 		_current = &result;
 
-		std::vector<ParamInfo> params = _targetFunc->GetParameters();
+		std::vector<ParameterInfo> params = _targetFunc->GetParameters();
 
 		size_t size = params.size();
 
@@ -74,7 +75,7 @@ namespace LEX
 
 			names[i] = param.name;
 
-			policies[i] = param.type;
+			policies[i] = param.GetTypePolicy();
 		}
 		
 		a_scope.CreateVariables(names, policies);
@@ -95,7 +96,7 @@ namespace LEX
 		{
 			Scope a_scope{ this, ScopeType::Header };
 
-			std::vector<ParamInfo> params = _targetFunc->GetParameters();
+			std::vector<ParameterInfo> params = _targetFunc->GetParameters();
 
 			size_t size = params.size();
 
@@ -105,7 +106,7 @@ namespace LEX
 			for (int i = 0; i < size; i++){
 				auto& param = params[i];
 				names[i] = param.name;
-				policies[i] = param.type;
+				policies[i] = param.GetTypePolicy();
 			}
 
 			a_scope.CreateVariables(names, policies);

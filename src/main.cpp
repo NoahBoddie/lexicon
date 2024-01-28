@@ -21,9 +21,15 @@
 
 
 #include "Lexicon/Impl/Runtime.h"
+
 //
 //#include "Lexicon/Impl/TempConstruct.cpp"
 //
+
+
+
+
+
 
 using namespace RGL;
 using namespace LEX::Impl;
@@ -144,13 +150,13 @@ void LexTesting(std::string formula)
     LEX::FunctionData test_data{};
 
     test_data.temp_returnType = number_type;
-    std::vector<LEX::ParamInfo> parameters
+    std::vector<LEX::ParameterInfo> parameters
     {
-        LEX::ParamInfo{number_type, 0, "scrundal"},
-        LEX::ParamInfo{number_type, 1, "peacefal"},
-        LEX::ParamInfo{number_type, 2, "tellinal"},
-        LEX::ParamInfo{number_type, 3, "shootfol"},
-        LEX::ParamInfo{number_type, 4, "othername"}
+        LEX::ParameterInfo{number_type, 0, "scrundal"},
+        LEX::ParameterInfo{number_type, 1, "peacefal"},
+        LEX::ParameterInfo{number_type, 2, "tellinal"},
+        LEX::ParameterInfo{number_type, 3, "shootfol"},
+        LEX::ParameterInfo{number_type, 4, "othername"}
     };
     test_data.parameters = parameters;
 
