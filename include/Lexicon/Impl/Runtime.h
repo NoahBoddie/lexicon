@@ -82,6 +82,7 @@ namespace LEX
 
 
 		//The idea is that the callable unit is given it's parameters
+		/*
 		Runtime(ICallableUnit* unit, container<RuntimeVariable>& args, Runtime* from = nullptr) :
 			_data{ *unit->GetRoutine() }
 			//These accidently create numbers.
@@ -102,7 +103,7 @@ namespace LEX
 			_psp = _vsp = args.size();
 			return;
 		}
-
+		//*/
 		//Very temporary, delete me
 		Runtime(RoutineBase& base, container<RuntimeVariable> args) :
 			_data{ base }
@@ -358,9 +359,13 @@ namespace LEX
 		//THIS is the gist of what I'd like.
 		static RuntimeVariable Run(ICallableUnit* unit, container<RuntimeVariable> args, Runtime* from = nullptr)
 		{
-			Runtime call_runtime{ unit, args, from };
+			static_assert(false);
+			
+			//Runtime call_runtime{ unit, args, from };
 
-			return call_runtime.Run();
+			//return call_runtime.Run();
+
+			return {};
 		}
 	};
 
