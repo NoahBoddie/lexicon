@@ -28,6 +28,13 @@ namespace LEX
 		//FuncSig
 	}
 
+	ENUM(ElementFlag)
+	{
+		None		= 0 << 0,
+		Attached	= 1 << 0,	//When parent is set. If not attached, will not be set.
+
+	};
+
 	struct Element : public Component
 	{
 		//TODO: For all of these, there should be an "errorless" version, that just wraps the function and returns some result enum or something.
@@ -97,6 +104,26 @@ namespace LEX
 		}
 
 		virtual Record* GetSyntaxTree() = 0;
+		
+		virtual void SetSyntaxTree(Record&) = 0;//This is to be made on the abstract classes.
+
+		virtual void LoadFromRecord(Record& rec)
+		{
+			//should likely be a pure virtual, but holding off.
+		}
+
+		virtual void OnAttach()
+		{
+			//This is specifically when parentage is established.
+		}
+
+		void OnInit(Record& rec) final override
+		{
+			SetSyntaxTree(rec);
+			LoadFromRecord(rec);
+		}
+
+
 
 
 		virtual std::string GetName() = 0;
@@ -104,9 +131,33 @@ namespace LEX
 		
 		virtual void SetParent(Element*) = 0;
 
+		void NoAttached()
+		{
+			//This simply removes the attach check by confirming it's already attached.
+			if (IsAttached() == false)
+			{
+				GetElementFlags() |= ElementFlag::Attached;
+				OnAttach();
+			}
+			
+		}
+
+		bool IsAttached()
+		{
+			return GetElementFlags() & ElementFlag::Attached;
+		}
+
+		ElementFlag& GetElementFlags()
+		{
+			return GetComponentData<ElementFlag>();
+		}
+
 		void DeclareParentTo(Element* child)
 		{
 			child->SetParent(this);
+			child->GetElementFlags() |= ElementFlag::Attached;
+			child->OnAttach();
+			
 		}
 
 	public:
@@ -133,6 +184,12 @@ namespace LEX
 		Record* GetSyntaxTree() override
 		{
 			return _syntax;
+		}
+
+		void SetSyntaxTree(Record& rec) final override
+		{
+			if (!_syntax)
+				_syntax = &rec;
 		}
 
 	protected:
