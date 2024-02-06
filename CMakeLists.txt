@@ -66,7 +66,7 @@ include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/ExternalHandle.h"
  "include/Lexicon/Impl/ExternalManager.h"
  "include/Lexicon/Impl/ExternalInterface.h"
- "include/Lexicon/Impl/VariableType.h")
+ "include/Lexicon/Impl/VariableType.h" "include/Lexicon/Impl/Default.h")
 
 set(sources
 #src/main.cpp
@@ -82,7 +82,7 @@ src/Lexicon/Component.cpp
 include/Lexicon/Impl/LiteralManager.cpp
  "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
  
- "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp")
+ "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp" "include/Lexicon/Impl/FunctionBase.cpp" "include/Lexicon/Impl/ConcreteFunction.cpp" "include/Lexicon/Impl/ICallableUnit.cpp" "include/Lexicon/Impl/Scope.cpp")
 
 source_group(
 	TREE
