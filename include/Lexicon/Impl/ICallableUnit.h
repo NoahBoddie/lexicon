@@ -1,12 +1,16 @@
 #pragma once
 
+#include "Default.h"
 
 
 namespace LEX
 {
-	struct RoutineBase;
+	struct Default;
+	
 	class Variable;
 	class RuntimeVariable;
+	
+	
 
 	struct ICallableUnit
 	{
@@ -22,6 +26,27 @@ namespace LEX
 
 
 		virtual RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def) = 0;
+
+		RuntimeVariable Call(std::vector<Variable>& args);
+
+		RuntimeVariable Call(std::vector<RuntimeVariable>& args);
+		
+		template<std::convertible_to<RuntimeVariable>... Ts>
+		RuntimeVariable Call(Ts&&... args)
+		{
+			std::vector<RuntimeVariable> t_args{ args... };
+			auto value = Invoke(t_args, nullptr);
+			return value;
+		}
+
+
+		template<std::convertible_to<RuntimeVariable>... Ts>
+		RuntimeVariable Call(Default def, Ts&&... args)
+		{
+			std::vector<RuntimeVariable> t_args{ args... };
+			auto value = Invoke(t_args, &def.value);
+			return value;
+		}
 
 		//Need src
 		//RuntimeVariable Invoke(std::vector<RuntimeVariable> args) { return Invoke(args, nullptr); }
