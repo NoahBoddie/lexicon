@@ -28,6 +28,6 @@ namespace LEX::Impl
 	};
 	static_assert(sizeof(Syntax) == 0x8);
 
-#define SYNTAX() GetEnum<Syntax>()
+#define SYNTAX() GetEnum<LEX::Impl::Syntax>()
 
 }
