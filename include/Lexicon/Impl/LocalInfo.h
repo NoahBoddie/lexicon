@@ -12,8 +12,13 @@ namespace LEX
 
 		}
 
+		FieldType GetFieldType() const override { return FieldType::Local; }
+
+		ITypePolicy* GetTypePolicy() const override { return _type; }
+
 	protected:
 		ITypePolicy* _type = nullptr;
+
 
 
 		operator bool() const override

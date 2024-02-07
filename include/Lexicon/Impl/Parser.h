@@ -75,6 +75,10 @@ namespace LEX::Impl
 		//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
 		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<Record()> func)
 		{
+			//std::function<ParseFunc> _b = nullptr;
+
+			//_b = begin ? [=](auto, auto) { return begin(); } : _b;
+
 			return Delimited(start, stop, separator, [=](auto, auto) { return func(); });
 		}
 

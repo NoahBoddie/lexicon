@@ -111,6 +111,8 @@ namespace LEX
 			return nullptr;
 		}
 
+		void SetSyntaxTree(Record& rec) final override {}
+
 		ComponentType GetComponentType() override
 		{
 			return typeid(Project);

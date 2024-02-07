@@ -36,6 +36,9 @@ namespace LEX
 			return nullptr;
 		}
 
+		FieldType GetFieldType() const override { return FieldType::Function; }
+
+
 		FunctionInfo() = default;
 	};
 

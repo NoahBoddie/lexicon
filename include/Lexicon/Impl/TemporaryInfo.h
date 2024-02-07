@@ -8,6 +8,7 @@ namespace LEX
 	class TemporaryInfo : public InfoBase
 	{
 	public:
+		//I don't think I need this, may merge into local info.
 		TemporaryInfo(size_t i) : _index{ i } {}
 
 		BasicQualifier GetBasicFlags() const override

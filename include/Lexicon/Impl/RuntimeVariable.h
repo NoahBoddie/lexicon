@@ -3,11 +3,6 @@
 #include "Variable.h"
 
 
-void TestVariable()
-{
-	LEX::Variable reg{};
-}
-
 namespace LEX
 {
 	class RuntimeVariable : public ClassAlias<std::variant<Void, Variable, std::reference_wrapper<Variable>>>

@@ -23,7 +23,8 @@ namespace LEX
 
 		virtual FieldType GetFieldType() const
 		{
-			return FieldType::Global;
+			//I'll come back to this, but globals will have a wrapper like functinos do. Dunno right now.
+			return FieldType::Invalid;
 		}
 
 		virtual size_t GetFieldIndex() const

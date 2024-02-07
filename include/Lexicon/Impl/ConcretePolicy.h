@@ -42,7 +42,6 @@ namespace LEX
 
 		Variable GetDefault() override
 		{
-			RGL_LOG(critical, "unimplemented");
 			return _default;
 		}
 
@@ -109,6 +108,7 @@ namespace LEX
 
 
 				case SyntaxType::VarDeclare:
+					//This is incorrect, this is in policy.
 					AddVariable(Component::Create<Global>(node));
 					break;
 

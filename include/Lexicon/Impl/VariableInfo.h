@@ -15,12 +15,13 @@ namespace LEX
 		{
 
 		}
-
-
-		FieldType GetFieldType() const override
+		
+		size_t GetFieldIndex() const override
 		{
-			return FieldType::Param;
+			return _index;
 		}
+
+		FieldType GetFieldType() const override { return FieldType::Variable; }
 
 		ITypePolicy* GetTypePolicy() const override
 		{
