@@ -190,13 +190,16 @@ namespace LEX::Impl
 		//I would like a delimit that expects the seperator to be the second to last, and another that prevents it from being second to last.
 		//Having a version of this with no parameters or just parser would be ideal, that way I can use member functions.
 		
+		//Checking for first might not really be that difficult.
+
 		std::vector<Record> result;
 
 		bool first = true;
 		RGL_LOG(debug, "skipping start '{}'", stop);
 		SkipType(TokenType::Punctuation, start);
 		while (tokenizer.eof() == false) {
-			RGL_LOG(debug, "delimit check a");
+			//bool start = first;
+			
 			if (IsType(TokenType::Punctuation, stop) == true) break;
 			
 			RGL_LOG(debug, "skipping seperator '{}'", separator);
@@ -204,11 +207,20 @@ namespace LEX::Impl
 			if (first) first = false; else SkipType(TokenType::Punctuation, separator);
 			
 			RGL_LOG(debug, "delimit check b");
+
 			if (IsType(TokenType::Punctuation, stop) == true) break;
 
+			//Thinking of using the second arg for something.
+			//Record entry = start && begin ? begin(this, nullptr) : func(this, nullptr);
+			Record entry = func(this, nullptr);
 
-			RGL_LOG(debug, "push back function");
-			result.push_back(func(this, nullptr));
+			if (entry) {
+				RGL_LOG(debug, "push back function");
+				result.push_back(entry);
+			}
+			else {
+				RGL_LOG(debug, "empty record discared");
+			}
 		}
 
 		RGL_LOG(debug, "skipping end '{}'", stop);
