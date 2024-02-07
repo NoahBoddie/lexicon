@@ -8,7 +8,7 @@ namespace LEX
 	// It should contain a type alias to it's current interface type as convience.
 
 	struct External;
-
+	 
 	using ExternalCtor = External * (*)();
 
 	namespace detail

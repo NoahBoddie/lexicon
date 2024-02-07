@@ -6,7 +6,6 @@
 
 namespace LEX
 {
-    struct ObjectInterface;
 
     template <typename T>
     //using ArgContainer = std::span<T, std::dynamic_extent>;
@@ -108,7 +107,7 @@ namespace LEX
         //This would be a virtual function that is required to be implemented by the derived class.
         //virtual TypeCode TypeCodeOf() = 0;
 
-        ObjectInterface* _registry = nullptr;
+        ExternalInterface* _registry = nullptr;
     };
 
 }

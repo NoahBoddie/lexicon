@@ -35,7 +35,7 @@ namespace LEX
 		//Manages how many entries of class is being referenced, 
 		inline static std::map<External*, size_t> referenceManager;
 
-		static void RegisterType(FieldDirectory script_dir, std::type_info& type, ObjectCtor constructor, uint16_t range = 0, HMODULE origin = nullptr)
+		static void RegisterType(FieldDirectory script_dir, std::type_info& type, ExternalCtor constructor, uint16_t range = 0, HMODULE origin = nullptr)
 		{
 			//Was likely going to make a different version of this.
 
@@ -68,7 +68,7 @@ namespace LEX
 
 
 
-		static ObjectInfo* GetInterface(std::string name)
+		static ExternalInterface* GetInterface(std::string name)
 		{
 			return nullptr;
 		}
