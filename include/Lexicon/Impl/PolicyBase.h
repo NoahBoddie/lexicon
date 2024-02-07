@@ -9,7 +9,7 @@ namespace LEX
 {
 
 
-	class PolicyBase : public virtual ITypePolicy, public Environment, public PolicyData
+	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public PolicyData
 	{
 
 		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like
@@ -52,14 +52,6 @@ namespace LEX
 
 
 
-		Record* GetSyntaxTree() override
-		{
-			return _syntax;
-		}
-
-
-	protected:
-		Record* _syntax = nullptr;
 
 	};
 }
