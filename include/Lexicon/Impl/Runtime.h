@@ -174,8 +174,6 @@ namespace LEX
 
 		size_t AdjustStackPointer(StackPointer type, int64_t step)
 		{
-			RGL_LOG(critical, "Unkfqwff");
-
 			//Clear never fires on this worth a worry.
 
 			//These might all need validation, just to make sure an issue doesn't occur.
@@ -269,6 +267,34 @@ namespace LEX
 
 		}
 
+
+		std::vector<RuntimeVariable> GetArgsInRange(size_t i)
+		{
+			if (!i)
+				return {};
+
+			//error should happen depending the stack size and what value ASP is.
+
+
+			auto begin = _argStack.begin() + (_asp - i);
+			auto end = _argStack.begin() + _asp;
+
+			logger::debug("range {}/{} vs size {}", _asp, _asp - i, _argStack.size());
+
+
+			std::vector<RuntimeVariable> result;
+			
+			result.resize(i);
+
+			std::transform(end - i, end, result.begin(), [&](RuntimeVariable& it) {return it.AsRef(); });
+
+			//std::vector<RuntimeVariable> result{ end + i, end };
+
+			logger::debug("size {} vs I {}", result.size(), i);
+
+			return result;
+		}
+
 		//May be replaced in the coming times.
 		RuntimeVariable& GetRegister(Impl::Register reg)
 		{
@@ -358,8 +384,11 @@ namespace LEX
 
 		//THIS is the gist of what I'd like.
 		static RuntimeVariable Run(ICallableUnit* unit, container<RuntimeVariable> args, Runtime* from = nullptr)
-		{
-			static_assert(false);
+		{	
+			RGL_LOG(critical, "This shit is NOT SUPPOSED TO BE USED RIGHT NOW");
+			assert(false);
+
+			//static_assert(false);
 			
 			//Runtime call_runtime{ unit, args, from };
 
