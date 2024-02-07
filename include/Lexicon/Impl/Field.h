@@ -12,11 +12,8 @@ namespace LEX
 	enum struct FieldType
 	{
 		Invalid,
-		Global,
 		Local,
-		Param,
 		Variable,
-		Member,
 		Function,//Doesn't differentiate between method or function
 	};
 
@@ -27,12 +24,14 @@ namespace LEX
 		~Field() = default;
 
 		//These last 2 are sorta not really important. TypePolicy is however.
-		virtual FieldType GetFieldType() const { return FieldType::Invalid; }
+		virtual FieldType GetFieldType() const = 0;// { return FieldType::Invalid; }
 		
 		virtual size_t GetFieldIndex() const { return max_value<size_t>; }
 		
 		virtual ITypePolicy* GetTypePolicy() const { return nullptr; }
 
+
+		bool IsLocal() const { return GetFieldType() == FieldType::Local; }
 	};
 
 }
