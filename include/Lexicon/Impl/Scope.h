@@ -111,7 +111,7 @@ namespace LEX
 
 				auto index = !header ? process->ModVarCount(policy) : process->ModParamCount();
 
-				RGL_LOG(debug, "Attempting to create {} at index {}", name, index);
+				RGL_LOG(debug, "Scope creating {} at index {}, policy {}", name, index, !!policy);
 
 				vars[name] = VariableInfo{ policy, index };
 
@@ -151,6 +151,8 @@ namespace LEX
 			//Would like a different way to handle this, maybe with records instead, so I can inspect if it does the "SearchGlobals" syntax.
 			//My head hurts, so just imagine this shit actually returned.
 			
+			//This should be using the below.
+
 			auto end = vars.end();
 			
 			if (auto it = vars.find(name); it != end) {
@@ -163,6 +165,8 @@ namespace LEX
 				return nullptr;
 			}
 		}
+
+		Field* GetField(std::string name, ITypePolicy* = nullptr);
 
 
 		std::vector<Field*> SearchField(std::string name, ITypePolicy* = nullptr)
