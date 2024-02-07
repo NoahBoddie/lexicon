@@ -29,7 +29,19 @@ namespace LEX::Impl
 		//Also to tell if something is not some form of assign, if it doesn't start with '=' or '!' and ends with '='
 
 		inline static std::vector<std::string> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::" };//?
-		inline static std::vector<std::string> _keyCodes{ "if", "else", "return", "default", "struct", "class", "intrinsic", "interface", "bind"};
+		inline static std::vector<std::string> _keyCodes
+		{ 
+			"if", 
+			"else", 
+			"return", 
+			"default", 
+			"struct", 
+			"class", 
+			"intrinsic", 
+			"interface", 
+			"bind",
+			"this"
+		};
 
 		inline static std::string _compRegex;
 		inline static std::string _constRegex;
