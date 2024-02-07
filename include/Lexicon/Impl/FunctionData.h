@@ -24,26 +24,32 @@ namespace LEX
 		// but I realized that I want ICallableUnit to be an information and invoking interface, not one made
 		// for setting features or flags.
 
+		String _name;
 
+		
+		
+		ITypePolicy* _returnType = nullptr;
+		//Variable _defaultReturn;//I still sorta need this if the function failes, so maybe move it down.
 
-		Variable _returnType;
+		
+		//Without a target type, this is a static function.
+		ITypePolicy* _targetType = nullptr;
 
-		//using this raw, but at a later point it's the variable that holds the default value of the function, 
-		// as well as it's type.
-		ITypePolicy* temp_returnType;
 
 
 		//The actual object for this has severely changed. It's "ParamInfo" I think? But this isn't terribly important
 		// here yet so you know.
 		//std::vector<DeclaredParam> reqParams;
 		//std::vector<DefinedParam> defParams;
-		using Temp_Parameter = void*;
+		
 
 		std::vector<ParameterInfo> parameters;
 
 		size_t defaultIndex = max_value<size_t>;//basically whenever the defaults start.
 
 		RoutineBase _routine;//actually needs to be a pointer
+
+		
 
 
 		RoutineBase* GetRoutine()
@@ -58,11 +64,31 @@ namespace LEX
 			return parameters;
 		}
 
+		size_t GetParamCount()
+		{
+			return parameters.size();
+		}
+
+		//For now, the maximum and minimum is both the same. Later, defaults will exist, so they don't have to
+		//be exact, and params keyword will hopefully exist at some point. 
+		size_t GetReqArgCount()
+		{
+			return parameters.size();
+		}
+		size_t GetMaxArgCount()
+		{
+			return parameters.size();
+		}
+
+		std::array<size_t, 2> GetArgRange()
+		{
+			return { GetReqArgCount(), GetMaxArgCount() };
+		}
 
 		//Needs to be moved into ITypePolicy/AbstractTypePolicy.
 		ITypePolicy* GetReturnType()
 		{
-			return temp_returnType;
+			return _returnType;
 		}
 
 		//AbstractTypePolicy* GetConcreteReturnType();//move to abstractFunction
