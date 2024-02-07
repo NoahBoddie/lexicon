@@ -44,7 +44,8 @@ namespace LEX
 
 		//Directives (Instructions created don't match 1 to 1 the operator used)	
 		Push,
-		Move,
+		Move, 
+		Forward,
 		PushVariable,//Pushes something from the left to a variable spot in the right. Perhaps in the future I could make registers spot just do this.
 
 

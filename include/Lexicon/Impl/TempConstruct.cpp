@@ -126,6 +126,20 @@ namespace LEX
 		{
 			//This is old and I forget how it's done.
 
+			IFunction* itfc = a_lhs.Get<IFunction*>();
+
+			AbstractFunction* func = itfc->GetFunction(runtime);
+
+			Index count = a_rhs.Get<Index>();
+
+			
+
+			std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
+
+			ret = func->Call(args);
+
+		
+
 			/*
 			Coroutine* routine = a_lhs.As<Coroutine*>();
 
@@ -198,7 +212,7 @@ namespace LEX
 		}
 
 
-		static void Move(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void Transfer(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
 			//Moves the right hand into the left hand.
 
@@ -208,11 +222,14 @@ namespace LEX
 				throw nullptr;
 			}
 
-			//This is deprecated at this point,
-			//Not much else needs to be known.
-			// The destination is upto the operation out.
-			a_lhs.ObtainVariable(runtime).Ref() = a_rhs.GetVariable(runtime).Ref();
-
+			if (instruct == InstructType::Forward)
+			{
+				a_lhs.ObtainVariable(runtime).Ref() = a_rhs.GetVariable(runtime).Ref();
+			}
+			else
+			{
+				a_lhs.ObtainVariable(runtime).Ref() = a_rhs.CopyVariable(runtime);
+			}
 		}
 
 
@@ -326,7 +343,49 @@ namespace LEX
 
 
 
+	struct CompUtil
+	{
+		//A set convenience functions.
 
+
+		static Operation Transfer(Operand& left, Solution& right)
+		{
+			//The left can be an operand because it doesn't quite matter what it does, we just need to know
+			// where it's to go. That check should be handled, before hand.
+
+			bool is_ref = true;
+
+			if (right.type == OperandType::Literal) {
+				//Literals can never be passed around by ref, so by default, it has to be moved, not forwarded.
+				is_ref = false;
+			}
+			
+
+			return Operation{ is_ref ? InstructType::Forward : InstructType::Move, left, right };
+		}
+
+
+		static Operation Transfer(Operand&& left, Solution& right)
+		{
+			return Transfer(static_cast<Operand&>(left), right);
+		}
+
+
+		//Changes the solution to be where the operand is, and gives the operation that would make it where it's expected.
+		[[nodiscard]] static Operation Mutate(Solution& sol, Operand op)
+		{
+			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
+
+			//Using transfer ensures safety for literals.
+			Operation result = CompUtil::Transfer(op, sol);
+
+			//This will set what operand stores into the solution without touching the type data within
+			sol = op;
+
+			return result;
+		}
+
+	};
 
 
 
@@ -577,7 +636,9 @@ namespace LEX
 			//InstructType type = OperatorToInstruction(op);
 
 			ITypePolicy* policy;
-			
+
+			assert(lhs.policy);
+			assert(rhs.policy);
 
 			Number::Settings l_settings = Number::Settings::CreateFromID(lhs.policy->GetTypeID());
 			Number::Settings r_settings = Number::Settings::CreateFromID(rhs.policy->GetTypeID());
@@ -618,84 +679,138 @@ namespace LEX
 			return Solution{ policy, OperandType::Register, out };
 		}
 
-		//RecordProcessors
-		Solution OperatorProcess(ExpressionCompiler* compiler, Record& target)
+
+		struct OpProcessors
 		{
-			//TODO:Note, this operator stuff WILL fail when it comes to member access, since it needs
-			// what's on the left to process what's on the right. In this specific instance, I'm going to make 
-			// something else handle thing
+			static Solution GenericProcess(ExpressionCompiler* compiler, Record& target, InstructType op)
+			{
+				//TODO:Note, this operator stuff WILL fail when it comes to member access, since it needs
+				// what's on the left to process what's on the right. In this specific instance, I'm going to make 
+				// something else handle thing
 
-			//Honestly, in general, maybe this should be taking control a bit less. Consider a set up
-			// like how the functional part of operators work, 2 template to do all the jobs.
+				//Honestly, in general, maybe this should be taking control a bit less. Consider a set up
+				// like how the functional part of operators work, 2 template to do all the jobs.
 
-			//Should be an expression compiler but I'm pretending that it's a routine compiler.
-			Register prefered = compiler->GetPrefered();
+				//Should be an expression compiler but I'm pretending that it's a routine compiler.
+				Register prefered = compiler->GetPrefered();
 
-			//OperatorType op = GetOperatorType(target);
-			InstructType op = GetInstructType(target);
+				//OperatorType op = GetOperatorType(target);
+				//InstructType op = GetInstructType(target);
 
-			//if (op == OperatorType::Invalid) {
-			if (op == InstructType::Invalid) {
-				RGL_LOG(critical, "Invalid something something");
-				throw nullptr;
+				//if (op == OperatorType::Invalid) {
+				if (op == InstructType::Invalid) {
+					RGL_LOG(critical, "Invalid something something");
+					throw nullptr;
+				}
+
+				Solution lhs{};
+				Solution rhs{};
+
+				if (target.SYNTAX().type == SyntaxType::Binary)
+				{
+					//Which is done first should be handled by which is more complex
+					std::string str1 = "left";
+					std::string str2 = "right";
+
+					Register reg1 = Register::Left;
+					Register reg2 = Register::Right;
+
+					Record& left = target.FindChild(str1)->GetChild(0);
+					RGL_LOG(debug, "<%>lhs: after find child");
+					lhs = compiler->CompileExpression(left, reg1);
+					RGL_LOG(debug, "<%>lhs: end");
+
+
+					//TODO: If left and right are 2 literals register moving isn't super required.
+					if (prefered == Register::Result && lhs.Equals<OperandType::Register>(Register::Left) == true)
+					{
+						//This will make it so the lhs uses the left register only is when it will move it.
+						// If I can, I'd like to make it so if the rhs doesn't need the left hand reg, it wont do this either.
+						// but that will require injecting.
+
+						//This should actually be pushing what's in the lhs into the result register, then
+						// making the lh solution the result register.
+
+						//compiler->GetOperationList().emplace_back(InstructType::Push, Register::Result, lhs);
+						//lhs = Solution{ lhs.policy, OperandType::Register, Register::Result };
+
+						compiler->GetOperationList().push_back(CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
+					}
+
+					RGL_LOG(debug, "<%>rhs: after find child");
+					rhs = compiler->CompileExpression(target.FindChild(str2)->GetChild(0), reg2);
+					RGL_LOG(debug, "<%>rhs: end");
+				}
+				else// if syntax == unary blah blah blah
+				{
+					//Unary is a lot simpler to deal with
+					RGL_LOG(debug, "<%>unary: begin");
+					lhs = compiler->CompileExpression(target.GetChild(0), Register::Left);
+					RGL_LOG(debug, "<%>unary: end");
+				}
+
+
+				RGL_LOG(debug, "<%>binary: end");
+
+				//Do operation here. Needs solutions, outputs solution.
+				//return operatorCtorList[op](compiler, op, lhs, rhs, prefered);
+				return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered);
+
 			}
 
-			Solution lhs{};
-			Solution rhs{};
 
-			if (target.SYNTAX().type == SyntaxType::Binary)
+			static Solution AccessProcess(ExpressionCompiler* compiler, Record& target)
 			{
-				//Which is done first should be handled by which is more complex
+
+				//TODO:Note, this operator stuff WILL fail when it comes to member access, since it needs
+				// what's on the left to process what's on the right. In this specific instance, I'm going to make 
+				// something else handle thing
+
+				//Honestly, in general, maybe this should be taking control a bit less. Consider a set up
+				// like how the functional part of operators work, 2 template to do all the jobs.
+
+				//Should be an expression compiler but I'm pretending that it's a routine compiler.
+
+				//----------------------------------------------
+
+				//So the interesting thing about member access is it doesn't need to do one side, then do the other,
+				// instead, all I've actually gotta do continue using the prefered register
+				Register prefered = compiler->GetPrefered();
+
 				std::string str1 = "left";
 				std::string str2 = "right";
 
-				Register reg1 = Register::Left;
-				Register reg2 = Register::Right;
-
 				Record& left = target.FindChild(str1)->GetChild(0);
-				RGL_LOG(debug, "<%>after find child");
-				lhs = compiler->CompileExpression(left, reg1);
-				RGL_LOG(debug, "<%>end");
-				
-
-				//TODO: If left and right are 2 literals register moving isn't super required.
-				if (prefered == Register::Result && lhs.Equals<OperandType::Register>(Register::Left) == true)
-				{
-					//This will make it so the lhs uses the left register only is when it will move it.
-					// If I can, I'd like to make it so if the rhs doesn't need the left hand reg, it wont do this either.
-					// but that will require injecting.
-					
-					//This should actually be pushing what's in the lhs into the result register, then
-					// making the lh solution the result register.
-					//Operation free_reg{ InstructType::Push, Register::Result, lhs };
+				Record& right = target.FindChild(str2)->GetChild(0);
 
 
 
-					//free_reg._instruct = InstructType::Push;
-					//free_reg._lhs = reg1;
-					//free_reg._out = Register::Result;
+				Solution tar = compiler->CompileExpression(left, compiler->GetPrefered());
 
-					//This statement will become more properly invalid once when I obsure the current vector. Address later.
-					//compiler->GetOperationList().emplace_back(free_reg);
-					
-					//TODO: Make the process of making a mutating a solution by using Move to a different place a function
-					compiler->GetOperationList().emplace_back(InstructType::Push, Register::Result, lhs);
+				Solution result = compiler->CompileExpression(right, compiler->GetPrefered(), tar);
 
-					lhs = Solution{ lhs.policy, OperandType::Register, Register::Result };
-				}
 
-				rhs = compiler->CompileExpression(target.FindChild(str2)->GetChild(0), reg2);
+
+				return result;
 			}
-			else// if syntax == unary blah blah blah
+
+
+		};
+
+
+		//RecordProcessors
+		Solution OperatorProcess(ExpressionCompiler* compiler, Record& target)
+		{
+			InstructType op = GetInstructType(target);
+
+			switch (op)
 			{
-				//Unary is a lot simpler to deal with
-				lhs = compiler->CompileExpression(target.GetChild(0), Register::Left);
+			case InstructType::Access:
+				return OpProcessors::AccessProcess(compiler, target);
+
+			default: 
+				OpProcessors::GenericProcess(compiler, target, op);
 			}
-
-			//Do operation here. Needs solutions, outputs solution.
-			//return operatorCtorList[op](compiler, op, lhs, rhs, prefered);
-			return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered);
-
 		}
 
 
@@ -703,12 +818,12 @@ namespace LEX
 		{
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
-			RGL_LOG(trace, "test0");
+			
 			result = LiteralManager::ObtainLiteral(target);
-			*result;
-			RGL_LOG(trace, "test1");
+			
+			
 			Solution sol{ result->GetPolicy(), OperandType::Literal, result };
-			RGL_LOG(trace, "test2 {}", (uint32_t)sol.policy->GetTypeID());
+			RGL_LOG(trace, "literal obtained, typeid: {}", (uint32_t)sol.policy->GetTypeID());
 			return sol;
 		}
 
@@ -723,11 +838,124 @@ namespace LEX
 			}
 			RGL_LOG(critical, "Var__2");
 			Solution result{ var->GetTypePolicy(), OperandType::Index, var->GetFieldIndex()};
+			
+			assert(result.policy);
+
 			RGL_LOG(critical, "Var__3");
 			//TODO: BIG NOTE, the resulting solution should note that it's a reference type.
 
-
+		
 			return result;
+		}
+
+
+		Solution CallProcess(ExpressionCompiler* compiler, Record& target)
+		{
+
+			//The argument check has to happen first.
+
+			Record* arg_record = target.FindChild("args");
+
+			if (!arg_record) {
+				RGL_LOG(critical, "no args record in '{}' detected.", target.GetTag());
+				throw nullptr;
+			}
+
+			//This is used so that we know what size we're to after the fact, and place it at the head.
+			// By default it starts with 1, so we don't have to resize when we add the last (and first) piece.
+			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
+			//std::vector<Operation> ops{1};
+
+			Solution* self = compiler->GetTarget();
+
+			std::vector<Solution> args;
+
+			args.reserve(arg_record->size());
+
+			//At a later point, one will get the ability to define default arg out of order, via the below:
+			// function(arg1, arg2, def_param4 = arg3);
+			// This sort of thing is known as a default argument, and instead of processing it here,
+			// it will process it later, when it is processing default arguments. 
+			//std::vector<Record*> def_args;
+			
+
+
+			//I do the index this way in prep for explicit default arguments, where any default argument found
+			// will NOT increment the index, instead storing the record for later use.
+			//Additionally, I use get arg count so that the index being pushed
+			//*Turns out, the I was not required.
+			//for (size_t i = compiler->GetArgCount(); auto& arg : arg_record->GetChildren())
+			for (auto& arg : arg_record->GetChildren())
+			{
+				
+				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered());//, ops);
+				
+
+#ifdef MUTATING_STUFF
+				Operand mov = { compiler->ModArgCount(), OperandType::Argument};
+				
+				//compiler->GetOperationList().emplace_back(InstructType::Forward, mov, result);
+				compiler->GetOperationList().emplace_back(CompUtil::Transfer(mov, result));
+
+				//This will set what operand stores into the solution without touching the type data within
+				result = mov;
+
+				args.push_back(result);
+#endif
+
+				compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+				//i++;
+			}
+
+
+			//'function' <Expression: Call>
+			//		'args' <Expression: Header>
+
+			//Around here, you'd use the args.
+			Field* field = compiler->GetScope()->GetField(target.GetTag());
+
+			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
+
+			if (!field){
+				RGL_LOG(critical, "No field for '{}' detected.", target.GetTag());
+				throw nullptr;
+			}
+
+			FunctionInfo* info = dynamic_cast<FunctionInfo*>(field);
+
+			if (!info) {
+				RGL_LOG(critical, "Field for '{}' not a function info.", target.GetTag());
+				throw nullptr;
+			}
+
+			FunctionBase* func = info->Get();
+
+			if (!func) {
+				RGL_LOG(critical, "No callable for info at '{}' detected.", target.GetTag());
+				throw nullptr;
+			}
+
+			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
+
+			size_t req_args = func->GetReqArgCount();
+
+			if (args.size() < req_args) {
+				RGL_LOG(critical, "Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
+				throw nullptr;
+			}
+		
+
+
+
+			compiler->GetOperationList().emplace_back(InstructType::Call, compiler->GetPrefered(),
+				Operand{ func, OperandType::Function }, 
+				Operand{ args.size(), OperandType::Index });
+
+			compiler->ModArgCount(-static_cast<int64_t>(args.size()));
+			
+			
+			
+			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
 		}
 
 
@@ -770,7 +998,8 @@ namespace LEX
 			if (Record* definition = target.FindChild("def"); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
-				compiler->GetOperationList().emplace_back(InstructType::Move, Operand{ var_index, OperandType::Index }, result);
+				//compiler->GetOperationList().emplace_back(InstructType::Forward, Operand{ var_index, OperandType::Index }, result);
+				compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ var_index, OperandType::Index }, result));
 			}
 
 			
@@ -843,7 +1072,7 @@ namespace LEX
 		}
 
 
-		void CallProcess(RoutineCompiler* compiler, Record& target)
+		void not_actually_call__CallProcess(RoutineCompiler* compiler, Record& target)
 		{
 			//This cannot be used right now, as the actual ability to get a function hasn't been implemented just yet.
 			// But, I can put in the most of everything.
@@ -868,6 +1097,8 @@ namespace LEX
 
 		INITIALIZE()
 		{
+			//I would like something to make this assign a fuck ton easier
+
 			generatorList[SyntaxType::Return] = ReturnProcess;
 			generatorList[SyntaxType::Block] = BlockProcess;
 
@@ -883,10 +1114,16 @@ namespace LEX
 
 			generatorList[SyntaxType::VarDeclare] = VarDeclareProcess;
 			generatorList[SyntaxType::VarUsage] = VariableProcess;
+			generatorList[SyntaxType::Call] = CallProcess;
 
 
-			instructList[InstructType::Push] = InstructWorkShop::Push;
-			instructList[InstructType::Move] = InstructWorkShop::Move;
+
+			instructList[InstructType::Call] = InstructWorkShop::Call;
+
+			instructList[InstructType::Push] = InstructWorkShop::Push;//deprecated
+			//These 2 are one in the same.
+			instructList[InstructType::Move] = InstructWorkShop::Transfer;
+			instructList[InstructType::Forward] = InstructWorkShop::Transfer;
 			instructList[InstructType::Return] = InstructWorkShop::Ret;
 			instructList[InstructType::JumpStack] = InstructWorkShop::JumpStack;
 			instructList[InstructType::IncArgStack] = InstructWorkShop::IncArgStack;
