@@ -48,9 +48,9 @@
 #include "MemberPointer.h"
 #include "RoutineCompiler.h"
 
-#include "Object.h"
-#include "ObjectHandle.h"
-#include "ObjectManager.h"
+#include "External.h"
+#include "ExternalHandle.h"
+#include "ExternalManager.h"
 
 #include "TypeID.h"
 
@@ -58,7 +58,7 @@
 #include "ConcretePolicy.h"
 
 
-#include "Lexicon/Impl/ObjectType.h"
+#include "Lexicon/Impl/VariableType.h"
 
 #include "ConcreteFunction.h"
 
@@ -124,7 +124,7 @@ namespace LEX
 		constexpr static TypeOffset String = 0;
 		constexpr static TypeOffset Array = 0;
 		constexpr static TypeOffset Function = 0;//FunctionHandle
-		constexpr static TypeOffset Object = 0;//ObjectHandle
+		constexpr static TypeOffset Object = 0;//ExternalHandle
 		constexpr static TypeOffset Delegate = 0;
 	};
 #define NUMBER_SET_NAME "NUMBER"
@@ -243,7 +243,7 @@ namespace LEX
 	///Need to handle the regular versions too.
 
 	template <>
-	struct ReturnType<ObjectHandle>
+	struct ReturnType<ExternalHandle>
 	{
 
 		ITypePolicy* operator()()
@@ -253,10 +253,10 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<ObjectHandle>
+	struct VariableType<ExternalHandle>
 	{
 
-		AbstractTypePolicy* operator()(ObjectHandle& it)
+		AbstractTypePolicy* operator()(ExternalHandle& it)
 		{
 			return nullptr;
 		}
@@ -1021,108 +1021,6 @@ namespace LEX
 
 
 
-
-
-
-	template <typename T>
-	PolicyBase* _PolicyMaker(std::string name, TypeOffset offset)
-	{//helps with generic or concrete divide
-		return new T{ std::string_view{name}, offset };
-	}
-	
-	TypeOffset RecordToInt(Record& ast)
-	{//helps with generic or concrete divide
-		std::string tag = ast.GetTag();
-		
-		if (std::strncmp(tag.c_str(), "0x", 2) == 0 || std::strncmp(tag.c_str(), "0X", 2) == 0)
-		{
-			return std::stoi(tag, nullptr, 16);
-		}
-		else
-		{
-			return std::stoi(tag, nullptr, 10);
-		}
-	}
-
-
-	inline PolicyBase* ObtainPolicy(Record& ast)
-	{
-		Record& settings = ast.GetChild(0);
-		
-
-		
-		
-		//This part can be done on the policy, what really needs to be done is figuring out which policy to create, 
-		// or to create at all. This relies on 1 setting. The rest can be fed verbatum later.
-
-		//NOTE, this also includes template arguments.
-
-
-		//Rules of obtaining
-		//Intrinsic, no creation, just pull a policy. Doesn't matter what else it is.
-		//Interface-Creates type policy from specific string and integer. Link error if not found.
-		//Data, Creates TypePolicy plain, claiming the next free space.
-		//Generic, a different TypePolicy has to be used, but otherwise it's fine.
-
-
-		Record& genericSet = *settings.FindChild("generic");
-		bool is_generic = settings.FindChild("generic")->size();
-
-
-		using PolicyCtor = PolicyBase* (std::string, TypeOffset);
-	
-		using ConcretePolicy = ConcretePolicy;
-		using GenericPolicy = ConcretePolicy;
-		PolicyCtor* create_func = !genericSet.size() ? _PolicyMaker<ConcretePolicy> : _PolicyMaker<GenericPolicy>;
-		
-
-
-		
-		Record& qualifier = ast.GetChild(0).GetChild(2);
-		
-		std::string name;
-		TypeOffset offset;
-
-		auto LookUpOrMake = [&](std::string str, TypeOffset offset, bool lookup) -> PolicyBase*
-			{
-				std::string_view name = std::string_view{ str };
-
-				PolicyBase* result = nullptr;
-
-				if (lookup)
-					result = IdentityManager::GetTypeByOffset(name, offset);
-				else
-					result = is_generic ? new GenericPolicy{ name, offset } : new ConcretePolicy{ name, offset };
-
-				return result;
-			};
-		
-		bool lookup = false;
-		
-		switch (Hash(qualifier.GetTag()))
-		{
-		case "intrinsic"_h:
-			//Look up
-			lookup = true;
-			__fallthrough;
-		case "interface"_h:
-		{
-			//Handle error, I can't fucking be bothered.
-			Record& category = qualifier.GetFront();
-			TypeOffset index = RecordToInt(category.GetFront());
-			return LookUpOrMake(category.GetTag(), index, lookup);
-
-		}
-			break;//create
-		case "data"_h:
-			//create but with specification
-			return is_generic ? new GenericPolicy{} : new ConcretePolicy{};
-
-		default:
-			RGL_LOG(critical, "Couldn't ObtainPolicy");
-			return nullptr;
-		}
-	}
 
 
 	namespace NewSpecials
