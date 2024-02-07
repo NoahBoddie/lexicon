@@ -708,19 +708,6 @@ namespace LEX::Impl
 			return parser->IsType(TokenType::Identifier);
 		}
 
-		static ParameterParser* test()
-		{
-			return nullptr;
-		}
-
-		int testers() {
-			return 1;
-		}
-
-		void T(int i = test()->testers() ? 1 : 2)
-		{
-
-		}
 		Record HandleToken(Parser* parser, Record* target) override
 		{
 			Record base{ "", SyntaxType::Header };
@@ -766,119 +753,6 @@ namespace LEX::Impl
 			//If everything is here, it should be a VarDeclare Expression, with a type, qualifier, and default records denoting the respective settings.
 			return base;
 		}
-	};
-
-
-	struct FunctionParser : public ParseSingleton<FunctionParser>
-	{
-		//This is also a top level function. Use context to restrict placement.
-
-		virtual ParseKeyword GetKeywords() override
-		{ 
-			return ParseKeyword::Statement; 
-		}
-
-		std::string_view GetContext() override
-		{
-			return "FunctionStatement";
-		}
-
-
-		uint32_t GetPriority() const override
-		{
-			return ModulePriority::High - 50;
-		}
-
-
-		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
-		{
-			//Invalid if target is not present.
-			// maybe enforce VarDeclare
-			return parser->IsType(TokenType::Punctuation, "(") && target && target->SYNTAX().type == SyntaxType::VarDeclare;
-		}
-
-		Record HandleToken(Parser* parser, Record* target) override
-		{
-			//Need to figure out how to parse a var name right here, that's a part of the function of a function parser.
-			//To do it, perhaps it can call the things it needs in order. Variable parser, scriptname parser, variable parser, variable parser,
-			// assignment
-
-
-			//The target needs to exist, else croak.
-			if (!target) {//This bit is pretty much not possible. But still gonna keep.
-				parser->croak("Expected identifier before scriptname punctuation (may be dev error)");
-			}
-			else if (target->SYNTAX().type != SyntaxType::VarDeclare) {
-				parser->croak("PLACEHOLDER, expected type name or something like that.");
-			}
-			//The target type needs to be changed to function here.
-
-
-			target->SYNTAX().type = SyntaxType::Function;
-
-			//bool first = false;
-			#ifdef CloseOut
-			auto _delegate = [&](Parser* parser, Record*)
-			{
-				//THIS version checks for the extension function syntax which changes what a static function extends. But it's rough, because I actually want
-				// the internal syntax to exist without having to do "first_arg" all over the place.
-				// I think instead what I need is another parser, one that only comes out to play when the current context is parsing Parameter.
-				//The extension parser. It has to be branching, has to be a param type, and it has to have 
-
-				Record result{};
-
-				bool is_extension = parser->IsType(TokenType::Keyword, "this");
-
-				if (is_extension)
-				{
-					if (!first){
-						parser->croak("Only first parameter can denote an extension function.");
-					}
-
-					//I can do other things here, like make sure that a static qualifier exists.
-
-					parser->next();//discard the this.
-				}
-					
-				result = ParseModule::ExecuteModule<ParameterParser>(parser, target);
-
-				//May want to do something where I don't have to specify type name here, but maybe only have it work for
-				if (is_extension)
-				{
-					//result should have a type, so we'll want to take that, and make a record called
-					// extends on the target.
-
-					target->EmplaceChildren(Record{ "extends", result.FindChild("type") });
-				}
-					
-
-				first = false;
-
-				return result;
-
-			};
-			#endif
-
-			//I realize all this ain't super needed. To account for extension, all I need to do is remove the first entry if it's named this, HERE,
-			// and copy type, change it's name to extends, place it on the target. and Pop it out. Before that, maybe check for other thingy mabobs.
-			// I also note that the parser module is VERY hands on, so I should use that to sort out which is using this or not.
-			// I can just have the lambda check for each thing named this after the first entry, and then cull it.
-			target->EmplaceChildren(Record{ "params", SyntaxType::Total, parser->Delimited("(", ")", ",", ParseModule::TryModule<ParameterParser>) });
-			//target->EmplaceChildren(Record{ "params", ExpressionType::Total, parser->Delimited("(", ")", ",", _delegate) });
-
-			//Ensures that the proper token is there.
-			//parser->SkipType(TokenType::Punctuation, "{");
-			//target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->ParseExpression() });
-			//parser->SkipType(TokenType::Punctuation, "}");
-			
-			//changed to not use lambda
-			//target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->Delimited("{", "}", ";", [=](auto, auto) { return parser->ParseExpression(); }) });
-			target->EmplaceChildren(Record{ "code", SyntaxType::Header, parser->Delimited("{", "}", ";", &Parser::ParseExpression)});
-
-			return *target;
-		}
-
-		//Context as a concept hits a snag here, because this would need 2.
 	};
 
 
@@ -928,6 +802,111 @@ namespace LEX::Impl
 	};
 
 	
+
+	struct FunctionParser : public ParseSingleton<FunctionParser>
+	{
+		//This is also a top level function. Use context to restrict placement.
+
+		virtual ParseKeyword GetKeywords() override
+		{
+			return ParseKeyword::Statement;
+		}
+
+		std::string_view GetContext() override
+		{
+			return "FunctionStatement";
+		}
+
+
+		uint32_t GetPriority() const override
+		{
+			return ModulePriority::High - 50;
+		}
+
+
+		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
+		{
+			//Invalid if target is not present.
+			// maybe enforce VarDeclare
+			return parser->IsType(TokenType::Punctuation, "(") && target && target->SYNTAX().type == SyntaxType::VarDeclare;
+		}
+
+		Record HandleToken(Parser* parser, Record* target) override
+		{
+			//Need to figure out how to parse a var name right here, that's a part of the function of a function parser.
+			//To do it, perhaps it can call the things it needs in order. Variable parser, scriptname parser, variable parser, variable parser,
+			// assignment
+
+
+			//The target needs to exist, else croak.
+			if (!target) {//This bit is pretty much not possible. But still gonna keep.
+				parser->croak("Expected identifier before scriptname punctuation (may be dev error)");
+			}
+			else if (target->SYNTAX().type != SyntaxType::VarDeclare) {
+				parser->croak("PLACEHOLDER, expected type name or something like that.");
+			}
+			//The target type needs to be changed to function here.
+
+
+			target->SYNTAX().type = SyntaxType::Function;
+
+			size_t post = 0;
+
+			auto _delegate = [&](Parser* parser, Record*) -> Record
+			{
+				//THIS version checks for the extension function syntax which changes what a static function extends. But it's rough, because I actually want
+				// the internal syntax to exist without having to do "first_arg" all over the place.
+				// I think instead what I need is another parser, one that only comes out to play when the current context is parsing Parameter.
+				//The extension parser. It has to be branching, has to be a param type, and it has to have 
+
+				if (post++ == 0 && parser->SkipIfType(TokenType::Keyword, "this") == true)
+				{
+
+					Record result = ParseModule::TryModule<VariableParser>(parser, nullptr);
+					ParseModule::QueryModule<TypenameParser>(parser, result, &result);
+
+					//target->EmplaceChildren(Record{ "extends", result.FindChild("type") });
+					target->EmplaceChildren(Record{ "extend", SyntaxType::Header, result });
+						
+
+					//we send an empty record to denote the discarding of this.
+					return {};
+				}
+
+
+				return ParseModule::TryModule<ParameterParser>(parser, target);
+
+
+			};
+
+			//I realize all this ain't super needed. To account for extension, all I need to do is remove the first entry if it's named this, HERE,
+			// and copy type, change it's name to extends, place it on the target. and Pop it out. Before that, maybe check for other thingy mabobs.
+			// I also note that the parser module is VERY hands on, so I should use that to sort out which is using this or not.
+			// I can just have the lambda check for each thing named this after the first entry, and then cull it.
+			//target->EmplaceChildren(Record{ "params", SyntaxType::Total, parser->Delimited("(", ")", ",", ParseModule::TryModule<ParameterParser>) });
+			target->EmplaceChildren(Record{ "params", SyntaxType::Total, parser->Delimited("(", ")", ",", _delegate) });
+
+
+			//target->EmplaceChildren(Record{ "params", ExpressionType::Total, parser->Delimited("(", ")", ",", _delegate) });
+
+			//Ensures that the proper token is there.
+			//parser->SkipType(TokenType::Punctuation, "{");
+			//target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->ParseExpression() });
+			//parser->SkipType(TokenType::Punctuation, "}");
+
+			//changed to not use lambda
+			//target->EmplaceChildren(Record{ "code", ExpressionType::Header, parser->Delimited("{", "}", ";", [=](auto, auto) { return parser->ParseExpression(); }) });
+			target->EmplaceChildren(Record{ "code", SyntaxType::Header, parser->Delimited("{", "}", ";", &Parser::ParseExpression) });
+
+			return *target;
+		}
+
+		//Context as a concept hits a snag here, because this would need 2.
+	};
+
+
+
+
 	struct IdentifierParser : public ParseSingleton<IdentifierParser, false>
 	{
 		//This may become the primary, but the current issue is that it doesn't at all deal with the concept of
@@ -1232,7 +1211,7 @@ namespace LEX::Impl
 
 	struct CallParser : public ParseSingleton<CallParser>
 	{
-		void test() {}
+		
 		bool CanHandle(Parser* parser, Record* target, bool atomic) const override
 		{
 			//VarUsage basically means no type allowed.
