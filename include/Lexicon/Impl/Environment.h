@@ -11,6 +11,7 @@
 #include "VariableInfo.h"//For tests only
 //*src
 #include "ConcreteFunction.h"
+
 #include "GlobalVariable.h"
 
 namespace LEX
@@ -24,6 +25,7 @@ namespace LEX
 
 	class Global;
 
+	class PolicyBase;
 
 	struct ConcretePolicy;
 	struct AbstractTypePolicy;
@@ -64,7 +66,7 @@ namespace LEX
 	//using FunctionContainer = std::vector<FunctionInfo>;
 	//using TypeContainer = std::vector<ITypePolicy*>;
 	using FunctionContainer = FunctionInfo;
-	using TypeContainer = ITypePolicy*;
+	using TypeContainer = PolicyBase*;
 
 
 
@@ -186,229 +188,59 @@ namespace LEX
 		//>Not doing yet
 		//FindMembers ->VariableInfo?*[]
 
-		virtual void AddFunction(FunctionBase* tar)
-		{
-			if (!tar) {
-				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
-				throw nullptr;
-			}
-
-			auto end = functionMap.end();
-
-			auto name = tar->GetName();
-
-			if (auto it = functionMap.find(name); end != it) {
-				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
-				throw nullptr;
-			}
-			else {
-				functionMap[name].function = tar;
-				DeclareParentTo(tar);
-			}
-
-		}
+		virtual void AddFunction(FunctionBase* tar);
 
 
-		virtual void AddVariable(Global* tar)
-		{
-			//This won't have an issue yet, because no abstraction.
-			
-			auto end = variables.end();
+		virtual void AddVariable(Global* tar);
 
-			auto name = tar->GetName();
-
-			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
-				RGL_LOG(critical, "Variable already existed");
-				throw nullptr;
-			}
-			else {
-				variables.emplace_back(tar);
-				DeclareParentTo(tar);
-			}
-		}
-
-		virtual void AddType(ITypePolicy*)
-		{
-
-			RGL_LOG(critical, "AddType no abstraction");
-			throw nullptr;
-		}
+		
+		void AddType(PolicyBase* policy);
+		
 		//TODO: Issue with members on FindFunction and FindVariable. See below.
 		// (I think that should catch members too) should both take an 
 		// ITypePolicy. Main reason why is because of member and method requires being higher priority
 		// and the exclusive place to check from when there's a parenthesis. Actually, this is a search thing,
 		// not a find issue.
-		virtual std::vector<FunctionInfo*> FindFunctions(std::string name)
-		{
-			auto end = functionMap.end();
-
-			if (auto it = functionMap.find(name); end != it){
-				return { &it->second };
-			}
-			else{
-				return {};
-			}
-		}
+		virtual std::vector<FunctionInfo*> FindFunctions(std::string name);
 
 
 
 
-		virtual Global* FindVariable(std::string name)
-		{
-			auto end = variables.end();
+		virtual Global* FindVariable(std::string name);
 
-			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
-				return *it;
-			}
-			else {
-				return nullptr;
-			}
-		}
-
-		virtual std::vector<ITypePolicy*> FindTypes(std::string name)
-		{
-			auto end = typeMap.end();
-
-			if (auto it = typeMap.find(name); end != it) {
-				return { it->second };
-			}
-			else {
-				return {};
-			}
-		}
+		virtual std::vector<ITypePolicy*> FindTypes(std::string name);
 
 		//These return Environment instead of scripts because I really only need script from it. That, and it might allow me to use maybe scripts too. 
 		// and there's no need for IScript to be used.
 		//Scripts return its include and import, classes get their scripts import/includes.
 		//<!> These are scripts aren't they?
-		virtual std::vector<Environment*> GetIncluded() { return {}; }
+		virtual std::vector<Environment*> GetIncluded();
 
-		virtual std::vector<Environment*> GetImport() { return {}; }
+		virtual std::vector<Environment*> GetImport();
 
 		//TODO: I think I'll combine get import and include so I can not have a bunch of boilerplate
-		void GetRecursiveIncluded(std::set<Environment*>& cache)
-		{
-			if (!this || !cache.emplace(this).second)
-				return;
+		void GetRecursiveIncluded(std::set<Environment*>& cache);
 
-			std::vector<Environment*> result = GetIncluded();
+		std::vector<Environment*> GetRecursiveIncluded();
 
-			cache.insert_range(result);
 
-			for (auto environment : result){
-				environment->GetRecursiveIncluded(cache);
-			}
-			
 
-		}
+		//NOTE:the search for functions has to have a boolean to say if it explicitly is using a type target or not.
 
-		std::vector<Environment*> GetRecursiveIncluded()
-		{
-			std::set<Environment*> cache;
 
-			GetRecursiveIncluded(cache);
-
-			return { cache.begin(), cache.end() };
-
-		}
-
-		//If I can, I'd like to put this in element some how.
-		Field* SearchField(std::string name, Environment* scope, ITypePolicy* target, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, FieldSearch func)
-		{
-			SearchParams params;
-			
-			params.name = name;
-			params.scope = scope;
-			params.target = target;
-			//This is stupid, I don't need this.
-			if (temp_args) params.tempArgs = *temp_args;
-			if (func_args) params.funcArgs = *func_args;
-
-			std::vector<Environment*> query;
-
-			//Submitting includes also includes self. If self does not exist, it will cease to continue.
-			query.insert_range(query.end(), GetRecursiveIncluded());
-
-			for (auto env : query)
-			{
-				std::vector<Field*> result;
-
-				std::vector<FunctionInfo*> functions = env->FindFunctions(name);
-				
-				//There's no situation where multiple can be observed, so it only needs the one.
-				Global* global = env->FindVariable(name);
-
-				auto size = functions.size();
-
-				//TODO: VERY temporary idea. No pattern matching, no checking. This is basically the same that we did before
-				if (size > 1 || size && global){
-					RGL_LOG(critical, "mulitple fields of same name detected.");
-					throw nullptr;
-				}
-				else if (global)
-				{
-					return global;
-				}
-				else if (size)
-				{
-					//IFunction is not a field
-					return functions[0];
-				}
-
-			}
-
-			//Environment* commons = 
-
-			//query = 
-
-			return nullptr;
-		}
+		//TODO: SEVERE: Read below, big important.
+		//If I can, I'd like to put this in element some how. I can have calls of GetIncluded target explicitly
+		// the script that the given thing is in. For some, that'd be itself. For classes and functions, elsewhere.
+		Field* SearchField(std::string name, Environment* scope, ITypePolicy* target, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, FieldSearch func);
 		
 
-		ITypePolicy* SearchType(std::string name, Environment* scope, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, TypeSearch func)
-		{
-			//One cannot get a type
-			//Returns an ITypePolicy because the template args can still be
+		ITypePolicy* SearchType(std::string name, Environment* scope, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, TypeSearch func);
 
 
-			SearchParams params;
+		Field* TEMPSearchField(std::string name);
 
-			params.name = name;
-			params.scope = scope;
-			
-			//This is stupid, I don't need this.
-			if (temp_args) params.tempArgs = *temp_args;
-			if (func_args) params.funcArgs = *func_args;
-
-			std::vector<Environment*> query;
-
-			//Submitting includes also includes self. If self does not exist, it will cease to continue.
-			query.insert_range(query.end(), GetRecursiveIncluded());
-
-			for (auto env : query)
-			{
-				std::vector<Field*> result;
-
-				std::vector<ITypePolicy*> types = env->FindTypes(name);
-
-				//There's no situation where multiple can be observed, so it only needs the one.
-
-				auto size = types.size();
-
-				//TODO: VERY temporary idea. No pattern matching, no checking. This is basically the same that we did before
-				if (size > 1) {
-					RGL_LOG(critical, "mulitple types of same name detected.");
-					throw nullptr;
-				}
-				else if (size)
-				{
-					//IFunction is not a field
-					return types[0];
-				}
-
-			}
-			return nullptr;
-		}
+		//These are temp functions that will exist until I can sort out how better to use the above
+		ITypePolicy* TEMPSearchType(std::string name);
 
 
 		//Here's the question, how do we prevent looping? I know what we do. FindFunctions only focuses on itself now. Instead, there's a function I can use to collect
@@ -418,16 +250,10 @@ namespace LEX
 
 
 
-		Environment* GetEnvironment() override
-		{
-			return this;
-		}
+		Environment* GetEnvironment() override;
 
 		//source file type shit
-		Element* GetParent() override
-		{
-			return _parent;
-		}
+		Element* GetParent() override;
 
 		void SetParent(Element* par) override;
 
@@ -464,9 +290,8 @@ namespace LEX
 		
 
 
-		Record* GetSyntaxTree() override
-		{
-			return _syntax;
-		}
+		Record* GetSyntaxTree() override;
+
+		void SetSyntaxTree(Record& rec) final override;
 	};	
 }
