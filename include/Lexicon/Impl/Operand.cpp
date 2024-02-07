@@ -11,6 +11,13 @@
 #include "Parser.h"
 namespace LEX
 {
+	Variable Operand::CopyVariable(Runtime* runtime)
+	{
+		//This merely takes the runtime variable and removes the reference part
+
+		return GetVariable(runtime);
+	}
+
 
 	RuntimeVariable Operand::GetVariable(Runtime* runtime)
 	{
@@ -26,6 +33,9 @@ namespace LEX
 		{
 		case OperandType::Register:
 			return runtime->GetRegister(Get<Register>()).AsRef();
+
+		case OperandType::Argument:
+			return runtime->GetArgument(Get<Index>()).AsRef();
 
 		case OperandType::Index:
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
@@ -49,7 +59,7 @@ namespace LEX
 		//Useless without context.
 		case OperandType::Member:
 		case OperandType::Review:
-
+			break;
 		case OperandType::Literal:
 			return *Get<Literal>();
 
@@ -80,6 +90,11 @@ namespace LEX
 		case OperandType::Index:
 			run_var = std::addressof(runtime->GetVariable(Get<Index>()));
 			break;
+
+		case OperandType::Argument:
+			run_var = std::addressof(runtime->GetArgument(Get<Index>()));
+			break;
+
 		}
 
 		if (run_var && run_var->IsVoid() == true) {

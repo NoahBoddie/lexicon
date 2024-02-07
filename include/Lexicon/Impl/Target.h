@@ -64,6 +64,13 @@ namespace LEX
 			return true;
 		}
 
+		template <>
+		bool Get<OperandType::Argument, Index>(Index& out)
+		{
+			out = index;
+			return true;
+		}
+
 
 		template <>
 		bool Get<OperandType::Differ, Differ>(Differ& out)

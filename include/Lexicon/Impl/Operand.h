@@ -70,6 +70,8 @@ namespace LEX
 			return data().Get<Type>(result);
 		}
 
+		Variable CopyVariable(Runtime* runtime);
+
 		RuntimeVariable GetVariable(Runtime* runtime);
 
 

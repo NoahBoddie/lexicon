@@ -5,8 +5,12 @@ namespace LEX
 	ENUM(OperandType, uint8_t)
 	{
 		None,		//This is nothing in particular.
+		//I'm thinking that these 2 will be pure
 		Differ,		//Number that uses negatives
 		Index,		//Number without negatives
+		//end
+
+		Argument,
 		Register,
 		Variable,	//This is a hard variable pointer.
 		Type,
