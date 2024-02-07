@@ -3,7 +3,7 @@
 
 #include "Number.h"
 #include "AbstractTypePolicy.h"
-#include "AbstractFunction.h"
+//#include "AbstractFunction.h"
 #include "ExternalHandle.h"
 
 #include "Array.h"
@@ -488,13 +488,9 @@ namespace LEX
 
         void Clear()
         {
-            //Needs implementation
-            throw nullptr;
-
             _data = Void{};
             _SetDefined(false);
             _SetChanged(false);
-
         }
 
         //destroy
