@@ -88,16 +88,25 @@ namespace LEX
 		}
 
 
-		size_t ModArgCount(int64_t i)
+		size_t GetArgCount() const
+		{
+			return argCount[0];
+		}
+
+		size_t ModArgCount(int64_t i = 1)
 		{
 			size_t count = argCount[0];
 
 			if ((argCount[0] += i) > argCount[1])
 				argCount[1] = argCount[0];
 
+			if (i)
+				GetOperationList().emplace_back(InstructionType::IncrementArgStack, Operand{ i , OperandType::Differ });
 
 			return count;
 		}
+
+
 
 		ITypePolicy* GetReturnType()
 		{
@@ -108,6 +117,16 @@ namespace LEX
 		Scope* GetScope()
 		{
 			return currentScope;
+		}
+
+		Solution* GetTarget()
+		{
+			return _target;
+		}
+
+		Environment* GetEnvironment()
+		{
+			return _environment;
 		}
 
 
@@ -176,7 +195,10 @@ namespace LEX
 			return ModVarCount(1, { policy });
 		}
 
-		CompilerBase(Record& ast, FunctionData* owner = nullptr) : funcRecord{ ast }, _targetFunc{ owner }
+		CompilerBase(Record& ast, FunctionData* owner = nullptr, Environment* env = nullptr) :
+			funcRecord{ ast },
+			_targetFunc{ owner },
+			_environment{ env }
 		{
 
 		}
@@ -206,6 +228,7 @@ namespace LEX
 		//<!>So FunctionData is an element, formulas are not elements
 
 		FunctionData* _targetFunc = nullptr;
+		Environment* _environment = nullptr;
 		//ICallableUnit* routine = nullptr;
 
 		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
@@ -214,6 +237,8 @@ namespace LEX
 		Scope* currentScope{};//Scopes are the thing that should handle how many variables are in use, that sort of schtick I think.
 		// as well as the concept of memory being freed.
 
+		Solution* _target = nullptr;
+
 
 		Register _prefered = Register::Invalid;
 	};
@@ -221,23 +246,62 @@ namespace LEX
 	
 	struct ExpressionCompiler : public CompilerBase
 	{
-		ExpressionCompiler(Record& ast, FunctionData* owner = nullptr) : CompilerBase{ ast, owner }
-		{
-
-		}
+		using CompilerBase::CompilerBase;
+		
+		//ExpressionCompiler(Record& ast, FunctionData* owner = nullptr) : CompilerBase{ ast, owner }{}
 
 
 		//Obscures statement compiling functions so that  statements can never be compiled where Expressions
 		// are expected. Differed by simply expecting or not execting a solution.
 
 
-		virtual Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) = 0;
+		virtual Solution CompileExpression(Record& node, Register pref, Solution* tar, std::vector<Operation>& out) = 0;
 
-		Solution CompileExpression(Record& node, Register pref)
+		Solution CompileExpression(Record& node, Register pref, Solution* tar = nullptr)
 		{
 			//uses the current loaded op vector. if non-exists error
-			return CompileExpression(node, pref, *_current);
+			return CompileExpression(node, pref, tar, *_current);
 		}
+
+		Solution CompileExpression(Record& node, Register pref, Solution tar)
+		{
+			//Using target directly is the only way I can not make like 5 of these functions each.
+			return CompileExpression(node, pref, &tar, *_current);
+		}
+
+
+
+		Solution PushExpression(Record& node, Register pref, Solution* tar, std::vector<Operation>& out)
+		{
+			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
+			// one.
+			Solution result = CompileExpression(node, pref, tar, out);
+
+
+			if (result.type != OperandType::Register) {
+				//TODO: this should use Mutate
+
+				GetOperationList().emplace_back(InstructType::Forward, Operand{ pref, OperandType::Register }, result);
+
+				//This uses the policy of the solution, but uses the register that the above uses.
+				return Solution{ result.policy, OperandType::Register, pref };
+			}
+
+			return result;
+		}
+
+		Solution PushExpression(Record& node, Register pref, Solution* tar = nullptr)
+		{
+			return PushExpression(node, pref, tar, *_current);
+		}
+
+		Solution PushExpression(Record& node, Register pref, Solution tar)
+		{
+			return PushExpression(node, pref, &tar, *_current);
+		}
+
+
+
 	};
 
 
@@ -245,6 +309,8 @@ namespace LEX
 
 	struct RoutineCompiler : public ExpressionCompiler
 	{
+		using ExpressionCompiler::ExpressionCompiler;
+
 		//Put all information from this into a Base with routine compiler just being the highest level
 		friend class Scope;
 
@@ -255,7 +321,7 @@ namespace LEX
 
 	
 
-		Solution _InteralProcess(Generator& factory, Record& node, std::vector<Operation>& out)
+		Solution _InteralProcess(Generator& factory, Record& node, Solution* tar, std::vector<Operation>& out)
 		{
 
 
@@ -266,19 +332,28 @@ namespace LEX
 			auto old = _current;
 			_current = &out;
 
-			
+			if (!tar) tar = _target;
+
+			auto old_tar = _target;
+			_target = tar;
+
+
 			//Func records use is temporary
 			result = factory._PostPrepFunction(this, node);
 
 
 			_current = old;
+			_target = old_tar;
 
 			return result;
 		}
+
+
+
 		//TODO: I would like try versions of these, mainly for an if statement that could take an statement
 		// in its first part, then expect an expression after. Maybe. Idk
 
-		Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) override
+		Solution CompileExpression(Record& node, Register pref, Solution* tar, std::vector<Operation>& out) override
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -302,16 +377,32 @@ namespace LEX
 				throw nullptr;
 			}
 
+			logger::debug("RoutineCompiler::CompileExpression: Processing {} . . .", ExpressionToString(node.SYNTAX().type));
+
+
 			//result from expressions are discarded
-			result = _InteralProcess(it->second, node, out);
+			result = _InteralProcess(it->second, node, tar, out);
 
 			_prefered = prev;
 
 			return result;
 		}
 
+		Solution CompileExpression(Record& node, Register pref, Solution* tar = nullptr)
+		{
+			//uses the current loaded op vector. if non-exists error
+			return CompileExpression(node, pref, tar, *_current);
+		}
 
-		void CompileStatement(Record& node, Register pref, std::vector<Operation>& out)
+		Solution CompileExpression(Record& node, Register pref, Solution tar)
+		{
+			//Using target directly is the only way I can not make like 5 of these functions each.
+			return CompileExpression(node, pref, &tar, *_current);
+		}
+
+
+
+		void CompileStatement(Record& node, Register pref, Solution* tar, std::vector<Operation>& out)
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -335,43 +426,27 @@ namespace LEX
 				RGL_LOG(critical, "Syntax is not a statement");
 				throw nullptr;
 			}
+
+			logger::debug("RoutineCompiler::CompileStatement: Processing {} . . .", ExpressionToString(node.SYNTAX().type));
+
 			//result from expressions are discarded
-			_InteralProcess(it->second, node, out);
+			_InteralProcess(it->second, node, tar, out);
 
 			_prefered = prev;
 		}
 
-
-		Solution CompileExpression(Record& node, Register pref)
+		void CompileStatement(Record& node, Register pref, Solution* tar = nullptr)
 		{
 			//uses the current loaded op vector. if non-exists error
-			return CompileExpression(node, pref, *_current);
+			return CompileStatement(node, pref, tar, *_current);
 		}
 
-		Solution PushExpression(Record& node, Register pref)
-		{
-			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
-			// one.
-			Solution result = CompileExpression(node, pref);
-
-			//So you'll notice this uses Push. As it turns out, move will crash if used on uninited variables,
-			// not much to do about it, not much I want to do about it
-			//Rather, it will be  if this doesn't work.
-			if (result.type != OperandType::Register) {
-				GetOperationList().emplace_back(InstructType::Move, Operand{ pref, OperandType::Register }, result);
-				
-				//This uses the policy of the solution, but uses the register that the above uses.
-				return Solution{ result.policy, OperandType::Register, pref };
-			}
-
-			return result;
-		}
-
-		void CompileStatement(Record& node, Register pref)
+		void CompileStatement(Record& node, Register pref, Solution tar)
 		{
 			//uses the current loaded op vector. if non-exists error
-			return CompileStatement(node, pref, *_current);
+			return CompileStatement(node, pref, &tar, *_current);
 		}
+
 
 
 		//This is probably going to be private. Rule is you set a new prefered with it, then do your business.
@@ -401,7 +476,7 @@ namespace LEX
 			}
 
 			//result from expressions are discarded
-			_InteralProcess(it->second, node, result);
+			_InteralProcess(it->second, node, nullptr, result);
 
 			_prefered = prev;
 
@@ -416,16 +491,13 @@ namespace LEX
 		RoutineBase CompileRoutine();
 
 
-		RoutineCompiler(Record& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }
-		{
-
-		}
+		//RoutineCompiler(Record& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }{}
 
 		//function data is no longer an ask, it's a requirement now.
 		// additional. FunctionData can hold its own record.
-		static RoutineBase Compile(Record& ast, FunctionData* owner = nullptr)
+		static RoutineBase Compile(Record& ast, FunctionData* owner = nullptr, Environment* env = nullptr)
 		{
-			RoutineCompiler compiler{ ast, owner };
+			RoutineCompiler compiler{ ast, owner, env };
 			RoutineBase result = compiler.CompileRoutine();
 			RGL_LOG(debug, "Compilation complete.");
 			return result;
