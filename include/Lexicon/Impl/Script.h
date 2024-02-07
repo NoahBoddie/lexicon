@@ -45,83 +45,28 @@ namespace LEX
 	public:
 
 
-		bool IsDefined() const
-		{
-			return _syntaxTree;
-		}
+		bool IsDefined() const;
 
 		Script* GetCommons() override;
 
 
-		Script* GetScript() override
-		{
-			return this;
-		}
+		Script* GetScript() override;
 
 
-		ComponentType GetComponentType() override
-		{
-			return typeid(Script);
-		}
+		ComponentType GetComponentType() override;
 
-		Record* GetSyntaxTree() override
-		{
-			if (IsDefined() == false)
-				throw EnvironmentError("Syntax Tree not defined.");
+		Record* GetSyntaxTree() override;
 
-			return &_syntaxTree;
-		}
+		void SetSyntaxTree(Record& rec) final override;
+
+		void LoadFromRecord(Record& ast) override;
 
 
-		void LoadFromRecord(Record& ast) override
-		{
-			if (IsDefined() == true)
-				throw EnvironmentError("No Syntax Tree already.");
+		std::string GetName() override;
 
-			//Should chec
-			//_defined = true;
-			_syntaxTree = ast;
-		}
-
-
-		std::string GetName() override
-		{
-			if (IsDefined() == false)
-				//This is more than likely a fault actually.
-				throw EnvironmentError("Syntax Tree not defined, script is nameless.");
-
-			return _syntaxTree.GetTag();
-		}
 		//SetName will resume having no use here.
 
-		virtual void CompileExpression(Record& target)
-		{
-
-			for (auto& node : target.GetChildren())
-			{
-				switch (node.SYNTAX().type)
-				{
-				case SyntaxType::Function:
-				{
-					AddFunction(Component::Create<Function>(node));
-					return;
-
-				}
-				case SyntaxType::VarDeclare:
-				{
-					AddVariable(Component::Create<Global>(node));
-					return;
-				}
-					//These 2 are script exclusives
-				case SyntaxType::Format:
-				case SyntaxType::Directive:
-				
-				default:
-					RGL_LOG(critical, "Syntax not valid for script");
-					throw nullptr;
-				}
-			}
-		}
+		void CompileExpression(Record& target) override;
 
 
 
@@ -134,33 +79,15 @@ namespace LEX
 		// Also, I may not need to "Find" them for that reason.
 		// Instead, asking if something is one of these things might be better.
 		
-		std::vector<Environment*> GetIncluded() override
-		{ 
-			return {}; 
-		}
+		std::vector<Environment*> GetIncluded() override;
 
-		std::vector<Environment*> GetImport() override
-		{ 
-			return {}; 
-		}
+		std::vector<Environment*> GetImport() override;
 
 
-		Script* FindRelationship(std::string name, bool shared, Relationship bond)
-		{
-			//The shared is because between shared, 2 scripts can have the same name.
-			if (bond == Relationship::None)
-				return nullptr;
-
-			return nullptr;
-		}
+		Script* FindRelationship(std::string name, bool shared, Relationship bond);
 
 
-		Relationship AddRelationship(Script*, Relationship bond)
-		{
-			//Return the relationship it's been assigned or the relationship it has previously been assign if it
-			// can't override the relationship.
-			return Relationship::None;
-		}
+		Relationship AddRelationship(Script*, Relationship bond);
 
 
 
@@ -170,16 +97,10 @@ namespace LEX
 	
 	struct CommonScript : public Script
 	{
-		CommonScript* GetCommons()
-		{
-			return this;
-		}
+		CommonScript* GetCommons();
 
 		//The common ground of a project, mainly exists to override some functions in script.
-		std::string GetName() override
-		{
-			return "Commons";
-		}
+		std::string GetName() override;
 	};
 
 
