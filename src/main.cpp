@@ -32,6 +32,7 @@
 
 
 using namespace RGL;
+using namespace LEX;
 using namespace LEX::Impl;
 
 
@@ -53,9 +54,18 @@ static void PrintAST(Record& tree, std::string indent = "")
     }
 }
 
+
+void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data)
+{
+    logger::info("target {}, arg size {} of {} ({})?", target->AsNumber(), args.size(), ((ConcreteFunction*)data.srcFunc)->_name, ((ConcreteFunction*)data.srcFunc)->parameters.size());
+    result = 4000;
+}
+
+
 void LexTesting(std::string formula)
 {
-    //LEX::ProjectManager::InitShared();
+    if (false)
+    LEX::ProjectManager::InitShared();
     
 
     //for (const auto iterator = std::filesystem::directory_iterator("C:/Users/Noah/Desktop/Modding/[Lab]/{Lab Tools}/lex-tester/src"); const auto & entry : iterator) {
@@ -109,17 +119,72 @@ void LexTesting(std::string formula)
 
     )"s;
 
-    std::string text = R"(
-        struct Double intrinsic NUMBER::82;
 
-        int GetActorValue()
+    std::string crash1 = R"(
+        struct float intrinsic NUMBER::82;//is actually double, also float is a keyword
+
+        float GetActorValue(float othername, float shootfol, float tellinal, float peacefal, float scrundal)
         {
-            int test = othername + shootfol + tellinal + peacefal + scrundal;
-            
-            return test;
+            return 1;
         };
 
     )"s;
+
+    std::string crash2 = R"(
+        struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
+
+        void otherTest()
+        {
+        };
+
+        float TestCall(this float, float a, float b)
+        {
+            return a + b + this;
+        };
+
+        float GetActorValue(this float, float othername, float shootfol, float tellinal, float peacefal, float scrundal)
+        {
+            //int test = othername + shootfol + tellinal + peacefal + scrundal;
+            //Nope, it's just broken right now.
+            //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
+            
+
+            float test = tellinal.TestCall(othername, shootfol) + tellinal + peacefal + scrundal + this;
+            this = 0;
+            
+            float testB = __float64();
+
+            return this + test * testB;
+        };
+
+    )"s;
+
+    std::string crash3 = R"(
+        Scope::Scope::Scope::Type1 ref type = 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        
+        float TestCall(this float, float a, float b)
+        {
+            return a + b + this;
+        };
+        //I have to put extra ";" after everything that expects an end now. Delimit might not be fit to use for this anymore.
+        float GetActorValue(this float, float othername, float shootfol, float tellinal, float peacefal, float scrundal)
+        {
+            //int test = othername + shootfol + tellinal + peacefal + scrundal;
+            //Nope, it's just broken right now.
+            //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
+            
+
+            float test = tellinal.TestCall(othername, shootfol) + tellinal + peacefal + scrundal + this; ;
+            this = 0;
+            
+            return this + test;
+        };
+
+    )"s;
+    //Identifier, Header
+    std::string text = crash2;
+
 
     //std::string formula = "2 * (4 + 6) / 5";
     //*/
@@ -130,7 +195,75 @@ void LexTesting(std::string formula)
     Record ast = Parser__::CreateSyntaxTree("project", "name", text);
 
     PrintAST(ast);
+    
+    
+    //return;
+    
+    
+    Script* script = Component::Create<Script>(ast);
 
+
+    {
+        auto funcs = script->FindFunctions("TestCall");
+
+        if (funcs.size() != 0)
+        {
+
+            ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
+
+            if (function)
+            {
+                function->_procedure = TestProcedure;
+            }
+        }
+    }
+
+    auto funcs = script->FindFunctions("GetActorValue");
+
+    if (funcs.size() == 0)
+    {
+        logger::trace("_a");
+
+    }
+
+    ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
+
+    if (function)
+    {
+        //std::vector<Variable> args
+        //{
+        //    LEX::Number{1.0},
+        //    LEX::Number{2.0},
+        //    LEX::Number{3.0},
+        //    LEX::Number{4.0},
+        //    LEX::Number{5.0},
+        //};
+        
+        //This is just to prove all versions of call work as desired.
+        //Variable result = unit->Call(arguments);        
+        //Variable result = function->Call(args);
+        //Variable result = function->Call(args[0], args[1], args[2], args[3], args[4]);
+        
+        //function->_procedure = TestProcedure;
+        Variable result = function->Call(69, 1, 2, 3, 4, 5);
+
+        std::string number = static_cast<std::string>(result.AsNumber());
+
+        logger::info("result of {} = {}", formula, number);
+    }
+    else
+    {
+        logger::info("Function couldn't be found in script");
+    }
+    
+    //END OF THE CONTROLLED ENVIRONMENT
+    return;
+    //END OF THE CONTROLLED ENVIRONMENT
+
+
+    //No longer needed to test stuff
+    /*
+    if (false)
     {
         LEX::PolicyBase* policy = LEX::ObtainPolicy(ast.GetChild(1));
         
@@ -143,13 +276,14 @@ void LexTesting(std::string formula)
 
         return;
     }
+    //*/
     constexpr auto offset = LEX::Number::Settings::GetOffset(LEX::NumeralType::Floating);
 
     LEX::ITypePolicy* number_type = LEX::IdentityManager::GetTypeByID(offset + 1);
     
     LEX::FunctionData test_data{};
 
-    test_data.temp_returnType = number_type;
+    test_data._returnType = number_type;
     std::vector<LEX::ParameterInfo> parameters
     {
         LEX::ParameterInfo{number_type, 0, "scrundal"},
@@ -158,7 +292,7 @@ void LexTesting(std::string formula)
         LEX::ParameterInfo{number_type, 3, "shootfol"},
         LEX::ParameterInfo{number_type, 4, "othername"}
     };
-    test_data.parameters = parameters;
+    //test_data.parameters = parameters;
 
     //remember to actually use these now
 
@@ -226,9 +360,43 @@ namespace
     }
 }
 
+template <typename T = std::string>
+void TestAgain()
+{
+
+}
+
+void Funckle(std::initializer_list<int> test)
+{
+    TestAgain();
+}
+
+struct TestObject : public Object
+{
+    std::string var = "string";
+};
+
+
 
 int main(int argc, char** argv) {
-    
+#ifdef _DEBUG
+    //Need a way to only have this happen when holding down a key
+    if (GetKeyState(VK_RCONTROL) & 0x800) {
+        constexpr  LPCSTR text1 = "Request for debugger detected. If you wish to attach one and press Ok, do so now if not please press Cancel.";
+        constexpr LPCSTR text2 = "Debugger still not detected. If you wish to continue without one please press Cancel.";
+        constexpr LPCSTR caption = "Debugger Required";
+
+        int input = 0;
+
+        do
+        {
+            input = MessageBox(NULL, !input ? text1 : text2, caption, MB_OKCANCEL);
+        } while (!IsDebuggerPresent() && input != IDCANCEL);
+    }
+#endif
+
+
+    Funckle({ 1, 2, 4, 5 });
 
     //GetTest<int64_t>();
     //LEX::Report<LEX::IssueType::Compile>::debug("The numbers {} and {} are {}", 69, 420, "nice");
@@ -247,10 +415,20 @@ int main(int argc, char** argv) {
         std::getline(std::cin >> std::ws, formula);
         
         LexTesting(formula);
-        //std::cout << formula  << "\n";
+        
+        auto info = NewObjectType<TestObject>("TEST");
+
+        Object* obj = info->BuildObject();
+
+        if (auto test = dynamic_cast<TestObject*>(obj); test)
+        {
+            logger::info("Test success, string: {}, info: {}", test->var, test->GetInfo() == info.get());
+        }
+
+
     }
     catch (...) {
-        RGL_LOG(critical, "critical error occured.");
+        logger::critical("critical error occured.");
         std::system("pause");
         std::exception_ptr p = std::current_exception();
         
@@ -265,3 +443,4 @@ int main(int argc, char** argv) {
     std::system("pause");
 	return 0;
 }
+

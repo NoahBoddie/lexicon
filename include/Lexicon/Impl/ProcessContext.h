@@ -46,8 +46,12 @@ namespace LEX::Impl
 
 		bool HasContext(ProcessContext* context);
 
+
+
 		ProcessChain InheritChain(ProcessContext* cur, ProcessChain* prev);
 
+
+		bool HasKeyword(std::string_view type);
 
 
 		ProcessContext* current = nullptr;

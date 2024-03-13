@@ -59,8 +59,7 @@ namespace LEX
 			Record* settings = ast.FindChild("settings");
 
 			if (!settings) {
-				RGL_LOG(critical, "setting not found in type policy record");
-				throw nullptr;
+				report::compile::critical("setting not found in type policy record");
 			}
 
 			switch (Hash(settings->GetChild(0).GetTag()))
@@ -68,14 +67,16 @@ namespace LEX
 			case "class"_h:			_dataType = DataType::Class; break;
 			case "struct"_h:		_dataType = DataType::Struct; break;
 			case "interface"_h:		_dataType = DataType::Interface; break;
-			default:				RGL_LOG(critical, "improper data type found."); throw nullptr;
+			default:				report::compile::critical("improper data type found."); break;
 			}
 
 			//Do something with generic. It's useless right now
 
 
 			constexpr auto k_external = "interface";
+
 			Record& unique_type = settings->GetChild(2);
+			
 			switch (Hash(unique_type.GetTag()))
 			{
 				//case "data"_h://Not allowed yet
@@ -83,14 +84,12 @@ namespace LEX
 
 			case "intrinsic"_h:
 				if (_dataType == DataType::Interface) {
-					RGL_LOG(critical, "interfaces cannot be intrinsic/external");
-					throw nullptr;
+					report::compile::critical("interfaces cannot be intrinsic/external");
 				}
 				break;
 
 			default:
-				RGL_LOG(critical, "PLACEHOLDER don't know how to handle unique type.");
-				throw nullptr;
+				report::compile::critical("PLACEHOLDER don't know how to handle unique type."); break;
 			}
 
 		}
@@ -107,15 +106,14 @@ namespace LEX
 					break;
 
 
-				case SyntaxType::VarDeclare:
+				case SyntaxType::Variable:
 					//This is incorrect, this is in policy.
 					AddVariable(Component::Create<Global>(node));
 					break;
 
 
 				default:
-					RGL_LOG(critical, "unexpected syntax was invalid.");
-					throw nullptr;
+					report::compile::critical("unexpected syntax was invalid.");
 				}
 			}
 

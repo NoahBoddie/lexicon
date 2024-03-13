@@ -8,7 +8,7 @@
 
 //*src
 #include "ConcreteFunction.h"
-
+#include "TargetObject.h"
 namespace LEX
 {
 
@@ -23,6 +23,8 @@ namespace LEX
 	class ExpressionCompiler;
 
 	class Generator;
+
+	struct TargetObject;
 
 	//TODO: Statement generator uses RoutineCompiler. If there's something statement compiler does not have, please address.
 	using StatementGenerator = void(*)(RoutineCompiler*, Record&);
@@ -42,8 +44,7 @@ namespace LEX
 			switch (index())
 			{
 			case 0:
-				RGL_LOG(critical, "Generator index void dumbass");
-				throw nullptr;
+				report::compile::critical("Generator index void dumbass"); break;
 
 				//I'm doing it this way because I'm tired of making source files
 			case 1:
@@ -55,8 +56,8 @@ namespace LEX
 
 			}
 
-			RGL_LOG(critical, "Generator index unknown type");
-			throw nullptr;
+			report::compile::critical("Generator index unknown type");
+			return {};
 		}
 	};
 
@@ -119,10 +120,22 @@ namespace LEX
 			return currentScope;
 		}
 
-		Solution* GetTarget()
+		TargetObject* GetTarget()
 		{
-			return _target;
+			return _object;
 		}
+
+		void PushTargetObject(TargetObject& obj)
+		{
+			_object = &obj;
+		}
+
+		void PopTargetObject()
+		{
+			if (_object)
+				_object = _object->prev;
+		}
+
 
 		Environment* GetEnvironment()
 		{
@@ -158,7 +171,7 @@ namespace LEX
 				if (inc > 0 && size != inc)
 				{
 					//TODO: make error a Fatal Fault
-					RGL_LOG(critical, "Size of policies does not equal expected size({} != {})", size, inc);
+					report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
 					throw nullptr;
 				}
 
@@ -237,8 +250,8 @@ namespace LEX
 		Scope* currentScope{};//Scopes are the thing that should handle how many variables are in use, that sort of schtick I think.
 		// as well as the concept of memory being freed.
 
-		Solution* _target = nullptr;
-
+		//Solution* _target = nullptr;//to be deprecated
+		TargetObject* _object = nullptr;
 
 		Register _prefered = Register::Invalid;
 	};
@@ -255,27 +268,34 @@ namespace LEX
 		// are expected. Differed by simply expecting or not execting a solution.
 
 
-		virtual Solution CompileExpression(Record& node, Register pref, Solution* tar, std::vector<Operation>& out) = 0;
+		virtual Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) = 0;
 
-		Solution CompileExpression(Record& node, Register pref, Solution* tar = nullptr)
+		Solution CompileExpression(Record& node, Register pref)
 		{
 			//uses the current loaded op vector. if non-exists error
-			return CompileExpression(node, pref, tar, *_current);
+			return CompileExpression(node, pref, *_current);
 		}
 
-		Solution CompileExpression(Record& node, Register pref, Solution tar)
+		Solution CompileExpression(Record& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::Explicit)
 		{
-			//Using target directly is the only way I can not make like 5 of these functions each.
-			return CompileExpression(node, pref, &tar, *_current);
+			TargetObject target{ tar, GetTarget(), flags };
+
+			PushTargetObject(target);
+
+			Solution result = CompileExpression(node, pref, *_current);
+
+			PopTargetObject();
+
+			return result;
 		}
 
 
 
-		Solution PushExpression(Record& node, Register pref, Solution* tar, std::vector<Operation>& out)
+		Solution PushExpression(Record& node, Register pref, std::vector<Operation>& out)
 		{
 			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
 			// one.
-			Solution result = CompileExpression(node, pref, tar, out);
+			Solution result = CompileExpression(node, pref, out);
 
 
 			if (result.type != OperandType::Register) {
@@ -290,14 +310,23 @@ namespace LEX
 			return result;
 		}
 
-		Solution PushExpression(Record& node, Register pref, Solution* tar = nullptr)
+		Solution PushExpression(Record& node, Register pref)
 		{
-			return PushExpression(node, pref, tar, *_current);
+			return PushExpression(node, pref, *_current);
 		}
 
 		Solution PushExpression(Record& node, Register pref, Solution tar)
 		{
-			return PushExpression(node, pref, &tar, *_current);
+
+			TargetObject target{ tar, GetTarget(), true };
+
+			PushTargetObject(target);
+
+			Solution result = PushExpression(node, pref, *_current);
+
+			PopTargetObject();
+
+			return result;
 		}
 
 
@@ -321,7 +350,7 @@ namespace LEX
 
 	
 
-		Solution _InteralProcess(Generator& factory, Record& node, Solution* tar, std::vector<Operation>& out)
+		Solution _InteralProcess(Generator& factory, Record& node, std::vector<Operation>& out)
 		{
 
 
@@ -332,19 +361,13 @@ namespace LEX
 			auto old = _current;
 			_current = &out;
 
-			if (!tar) tar = _target;
-
-			auto old_tar = _target;
-			_target = tar;
-
 
 			//Func records use is temporary
 			result = factory._PostPrepFunction(this, node);
 
 
 			_current = old;
-			_target = old_tar;
-
+			
 			return result;
 		}
 
@@ -353,7 +376,7 @@ namespace LEX
 		//TODO: I would like try versions of these, mainly for an if statement that could take an statement
 		// in its first part, then expect an expression after. Maybe. Idk
 
-		Solution CompileExpression(Record& node, Register pref, Solution* tar, std::vector<Operation>& out) override
+		Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) override
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -367,42 +390,49 @@ namespace LEX
 
 			if (generatorList.end() == it)
 			{
-				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever");
-				throw nullptr;
+				report::compile::critical("SyntaxType unaccounted for whatever whatever");
 			}
 
 			if (false)//Confirm that the factory is actually made for expressions
 			{
-				RGL_LOG(critical, "Syntax is not a expression");
-				throw nullptr;
+				report::compile::critical("Syntax is not a expression");
 			}
 
 			logger::debug("RoutineCompiler::CompileExpression: Processing {} . . .", ExpressionToString(node.SYNTAX().type));
 
 
 			//result from expressions are discarded
-			result = _InteralProcess(it->second, node, tar, out);
+			result = _InteralProcess(it->second, node, out);
 
 			_prefered = prev;
 
 			return result;
 		}
-
-		Solution CompileExpression(Record& node, Register pref, Solution* tar = nullptr)
+		using ExpressionCompiler::CompileExpression;
+		
+		/*
+		Solution CompileExpression(Record& node, Register pref)
 		{
 			//uses the current loaded op vector. if non-exists error
-			return CompileExpression(node, pref, tar, *_current);
+			return CompileExpression(node, pref, *_current);
 		}
 
 		Solution CompileExpression(Record& node, Register pref, Solution tar)
 		{
-			//Using target directly is the only way I can not make like 5 of these functions each.
-			return CompileExpression(node, pref, &tar, *_current);
+			TargetObject target{ tar, GetTarget_(), true };
+			
+			PushTargetObject(target);
+			
+			Solution result = CompileExpression(node, pref, *_current);
+
+			PopTargetObject();
+
+			return result;
 		}
+		//*/
 
 
-
-		void CompileStatement(Record& node, Register pref, Solution* tar, std::vector<Operation>& out)
+		void CompileStatement(Record& node, Register pref, std::vector<Operation>& out)
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -417,34 +447,37 @@ namespace LEX
 			if (generatorList.end() == it)
 			{
 
-				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever");
-				throw nullptr;
+				report::compile::critical("SyntaxType unaccounted for whatever whatever");
 			}
 
 			if (false)//Confirm that the factory is actually made for expressions
 			{
-				RGL_LOG(critical, "Syntax is not a statement");
-				throw nullptr;
+				report::compile::critical("Syntax is not a statement");
 			}
 
 			logger::debug("RoutineCompiler::CompileStatement: Processing {} . . .", ExpressionToString(node.SYNTAX().type));
 
 			//result from expressions are discarded
-			_InteralProcess(it->second, node, tar, out);
+			_InteralProcess(it->second, node, out);
 
 			_prefered = prev;
 		}
 
-		void CompileStatement(Record& node, Register pref, Solution* tar = nullptr)
+		void CompileStatement(Record& node, Register pref)
 		{
 			//uses the current loaded op vector. if non-exists error
-			return CompileStatement(node, pref, tar, *_current);
+			return CompileStatement(node, pref, *_current);
 		}
 
 		void CompileStatement(Record& node, Register pref, Solution tar)
 		{
-			//uses the current loaded op vector. if non-exists error
-			return CompileStatement(node, pref, &tar, *_current);
+			TargetObject target{ tar, GetTarget(), true };
+
+			PushTargetObject(target);
+
+			CompileStatement(node, pref, *_current);
+
+			PopTargetObject();
 		}
 
 
@@ -471,12 +504,11 @@ namespace LEX
 
 			if (generatorList.end() == it)
 			{
-				RGL_LOG(critical, "SyntaxType unaccounted for whatever whatever {}", (uint8_t)node.SYNTAX().type);
-				throw nullptr;
+				report::compile::critical("SyntaxType unaccounted for whatever whatever {}", (uint8_t)node.SYNTAX().type);
 			}
 
 			//result from expressions are discarded
-			_InteralProcess(it->second, node, nullptr, result);
+			_InteralProcess(it->second, node, result);
 
 			_prefered = prev;
 

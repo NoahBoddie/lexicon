@@ -23,9 +23,9 @@ namespace LEX
 	}
 
 	
-
+	//This is storageType
 	template <typename T>
-	struct ReturnType : public detail::not_implemented
+	struct StorageType : public detail::not_implemented
 	{
 		//instead of void, I can perhaps use a different type.
 		//No operator as we can see.
@@ -39,9 +39,9 @@ namespace LEX
 		}
 	};
 
-
+	//And this is value type.
 	template <typename T>
-	struct VariableType : public detail::not_implemented
+	struct ValueType : public detail::not_implemented
 	{
 #pragma region a spiel
 		//this one is a bit special dig? See I want to decay whatever T is so there aren't any references, pointers
@@ -92,7 +92,7 @@ namespace LEX
 	//Note: Remove static_assert and "using T" in implementation.
 	
 	template <>
-	struct ReturnType<detail::example>
+	struct StorageType<detail::example>
 	{
 		using T = detail::example;
 
@@ -107,7 +107,7 @@ namespace LEX
 	};
 	
 	template <>
-	struct VariableType<detail::example>
+	struct ValueType<detail::example>
 	{
 		using T = detail::example;
 		
@@ -131,11 +131,11 @@ namespace LEX
 
 	namespace detail
 	{
-		template<typename T> concept ret_impl = !std::is_base_of_v<detail::not_implemented, ReturnType<T>> &&
-			!std::is_same_v<ReturnType<example>, ReturnType<T>>;
+		template<typename T> concept ret_impl = !std::is_base_of_v<detail::not_implemented, StorageType<T>> &&
+			!std::is_same_v<StorageType<example>, StorageType<T>>;
 
-		template<typename T> concept var_impl = !std::is_base_of_v<detail::not_implemented, VariableType<T>> &&
-			!std::is_same_v<VariableType<example>, VariableType<T>>;
+		template<typename T> concept var_impl = !std::is_base_of_v<detail::not_implemented, ValueType<T>> &&
+			!std::is_same_v<ValueType<example>, ValueType<T>>;
 		
 		//
 		template<typename T> concept obj_impl = ret_impl<T> && var_impl<T>;
@@ -171,7 +171,7 @@ namespace LEX
 		}
 		else
 		{
-			return VariableType<_T>{}(arg);
+			return ValueType<_T>{}(arg);
 		}
 		
 	}
@@ -189,12 +189,12 @@ namespace LEX
 		}
 		else
 		{
-			return ReturnType<_T>{}(arg);
+			return StorageType<_T>{}(arg);
 		}
 
 	}
 
-
+	//This should be called GetVariablePolicy or GetVariableType
 	template <detail::obj_impl T>
 	ITypePolicy* GetTypePolicy(detail::custom_decay<T>& arg)
 	{

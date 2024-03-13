@@ -23,9 +23,13 @@
 
 #include "IdentityManager.h"
 
+#include "OverloadInput.h"
 
-#ifndef gbirhyigo
-//*
+#include "DeclareHeader.h"
+
+
+#include "VoidPolicy.h"
+
 struct Initializer
 {
 	using def = void(*)();
@@ -58,13 +62,19 @@ namespace LEX
 		template<class Operatable, bool Assign = false>
 		static RuntimeVariable BinaryMath(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
 		{
+
+			logger::critical("A");
+
 			//This covers basically most of the below stuff.
 			Number back = a_lhs->AsNumber();
+			logger::critical("a");
 			Number front = a_rhs->AsNumber();
-
+			logger::critical("B");
 			Operatable op{};
 
 			Number result = op(back, front);
+
+			logger::critical("C");
 			//The below needs to curb "class std::" from the below
 			RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
 
@@ -133,9 +143,9 @@ namespace LEX
 			Index count = a_rhs.Get<Index>();
 
 			
-
+			
 			std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
-
+			
 			ret = func->Call(args);
 
 		
@@ -181,21 +191,19 @@ namespace LEX
 			runtime->AdjustStackPointer(StackPointer::Variable, a_lhs.Get<Differ>());
 			logger::critical("exit out");
 		}
-
+		
 
 		static void DefVarPolicy(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{ 
 			logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
 			std::system("pause");
-
+			
 			RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
-			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->GetTypePolicy(runtime);
+			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
 			
 			//if no policy, fatal fault
-			if (!policy)
-			{
-				RGL_LOG(critical, "no policy");
-				throw nullptr;
+			if (!policy){
+				report::compile::critical("no policy found.");
 			}
 		
 			var = policy;
@@ -218,8 +226,7 @@ namespace LEX
 
 			if (a_lhs.type == OperandType::Literal) {
 				//This is hard enforced because this will impact so much more than this function.
-				RGL_LOG(critical, "Move attempted to set literal value.");
-				throw nullptr;
+				report::runtime::fatal("Move attempted to set literal value.");
 			}
 
 			if (instruct == InstructType::Forward)
@@ -297,6 +304,48 @@ namespace LEX
 
 			runtime->SetStackPointer(StackPointer::Runtime, a_lhs.Get<Index>());
 		}
+
+
+
+		static void Convert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		{
+
+			RuntimeVariable from = a_rhs.GetVariable(runtime);
+			AbstractTypePolicy* to = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			//from->
+		}
+
+		static void __GenericCtor(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data)
+		{
+			FunctionBase* base = const_cast<FunctionBase*>(dynamic_cast<const FunctionBase*>(data.srcFunc));
+
+			if (!base)
+				report::runtime::fatal("No function base on source function");
+
+			Environment* env = base->GetEnvironment();
+
+			//Have a AsScript/AsPolicy possibly?
+
+			ConcretePolicy* policy = dynamic_cast<ConcretePolicy*>(env);
+
+			result = policy->GetDefault();
+		}
+
+
+		static void Construct(RuntimeVariable& result, Operand a_lhs, Operand, InstructType, Runtime* runtime)
+		{
+			
+			AbstractTypePolicy* policy = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+
+			if (!policy)
+				report::runtime::fatal("No policy could be fetched.");
+
+			result = policy->GetDefault();
+
+			logger::critical("type is in result? {}, is void {}", !!result->GetPolicy(), result->IsVoid());
+		}
+
+
 		//Conditional instructions
 		// SOME of these could have 2 versions one conditional and the other not conditional, which would determine if it's going to do the conditional verison of it or not
 		// The conditional version should probably always likely be a plus 1.
@@ -380,6 +429,18 @@ namespace LEX
 			Operation result = CompUtil::Transfer(op, sol);
 
 			//This will set what operand stores into the solution without touching the type data within
+			sol = op;
+
+			return result;
+		}
+
+		//Changes the solution to be where the operand is similar to mutate, but forces it to copy instead.
+		[[nodiscard]] static Operation MutateCopy(Solution& sol, Operand op)
+		{
+			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
+
+			Operation result = Operation{ InstructType::Move, op, sol };
+				
 			sol = op;
 
 			return result;
@@ -516,7 +577,7 @@ namespace LEX
 
 
 
-		InstructType GetInstructType(Record& target)
+		InstructType GetOperatorype(Record& target)
 		{
 			bool binary = target.SYNTAX().type == SyntaxType::Binary;
 
@@ -612,7 +673,15 @@ namespace LEX
 			case "%"_h:
 				logger::debug("construct symbol \'%\'");
 				return InstructType::Modulo;
+			
+			case "."_h:
+				logger::debug("construct symbol \'.\'");
+				return InstructType::Access;
 
+			case "="_h:
+				logger::debug("construct symbol \'=\'");
+				return InstructType::Assign;
+			
 			default:
 				//ARTHMETIC_LOGGER(info, "Failure to handle operator, value \'{}\'", data->view[0]);
 				return InstructType::Invalid;
@@ -695,12 +764,11 @@ namespace LEX
 				Register prefered = compiler->GetPrefered();
 
 				//OperatorType op = GetOperatorType(target);
-				//InstructType op = GetInstructType(target);
+				//InstructType op = GetOperatorype(target);
 
 				//if (op == OperatorType::Invalid) {
 				if (op == InstructType::Invalid) {
-					RGL_LOG(critical, "Invalid something something");
-					throw nullptr;
+					report::compile::critical("Invalid instruction for operation.");
 				}
 
 				Solution lhs{};
@@ -780,12 +848,16 @@ namespace LEX
 				std::string str1 = "left";
 				std::string str2 = "right";
 
-				Record& left = target.FindChild(str1)->GetChild(0);
-				Record& right = target.FindChild(str2)->GetChild(0);
+
+
+				Record& left = target.FindChild(str1)->GetFront();
+				Record& right = target.FindChild(str2)->GetFront();
 
 
 
 				Solution tar = compiler->CompileExpression(left, compiler->GetPrefered());
+				logger::info("tar {}?", (int)tar.type);
+				//Something is wrong here, member access isn't getting the right thing and I haven't a clue why
 
 				Solution result = compiler->CompileExpression(right, compiler->GetPrefered(), tar);
 
@@ -795,21 +867,70 @@ namespace LEX
 			}
 
 
+			static Solution AssignProcess(ExpressionCompiler* compiler, Record& target)
+			{
+				Register prefered = compiler->GetPrefered();
+
+				std::string str1 = "left";
+				std::string str2 = "right";
+
+
+				Register reg1 = Register::Left;
+				Register reg2 = Register::Right;
+
+				Record& left = target.FindChild(str1)->GetFront();
+				Record& right = target.FindChild(str2)->GetFront();
+
+
+
+				Solution to = compiler->CompileExpression(left, prefered);
+				
+				if (to.IsReadOnly() == true) {
+
+					report::compile::critical("target solution is read only.");
+				}
+			
+				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true){
+					compiler->GetOperationList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
+				}
+
+		
+
+
+				Solution from = compiler->CompileExpression(right, reg2, to, TargetObject::Assign);
+
+				//compiler->GetOperationList().push_back(CompUtil::MutateCopy(from, to));
+
+				//return from;
+
+				compiler->GetOperationList().push_back(Operation{ InstructType::Move, to, from });
+
+				return to;
+			}
+
+
 		};
 
 
 		//RecordProcessors
 		Solution OperatorProcess(ExpressionCompiler* compiler, Record& target)
 		{
-			InstructType op = GetInstructType(target);
+			InstructType op = GetOperatorype(target);
 
 			switch (op)
 			{
+			case InstructType::Invalid:
+				report::compile::critical("Unhandled operator"); break;
+
 			case InstructType::Access:
 				return OpProcessors::AccessProcess(compiler, target);
 
+
+			case InstructType::Assign:
+				return OpProcessors::AssignProcess(compiler, target);
+
 			default: 
-				OpProcessors::GenericProcess(compiler, target, op);
+				return OpProcessors::GenericProcess(compiler, target, op);
 			}
 		}
 
@@ -827,21 +948,19 @@ namespace LEX
 			return sol;
 		}
 
-		Solution VariableProcess(ExpressionCompiler* compiler, Record& target)
+		Solution FieldProcess(ExpressionCompiler* compiler, Record& target)
 		{
-			RGL_LOG(critical, "Var__1");
 			VariableInfo* var = compiler->GetScope()->GetVariable(target.GetTag());
 			
 			if (!var) {
-				RGL_LOG(critical, "Cannot find variable '{}'.", target.GetTag());
-				throw nullptr;
+				report::compile::critical("Cannot find variable '{}'.", target.GetTag());
 			}
-			RGL_LOG(critical, "Var__2");
+	
 			Solution result{ var->GetTypePolicy(), OperandType::Index, var->GetFieldIndex()};
 			
 			assert(result.policy);
 
-			RGL_LOG(critical, "Var__3");
+			logger::debug("Var__3 {:X}", (uint64_t)result.policy);
 			//TODO: BIG NOTE, the resulting solution should note that it's a reference type.
 
 		
@@ -849,7 +968,7 @@ namespace LEX
 		}
 
 
-		Solution CallProcess(ExpressionCompiler* compiler, Record& target)
+		Solution HandleCall(ExpressionCompiler* compiler, Record& target)
 		{
 
 			//The argument check has to happen first.
@@ -857,8 +976,7 @@ namespace LEX
 			Record* arg_record = target.FindChild("args");
 
 			if (!arg_record) {
-				RGL_LOG(critical, "no args record in '{}' detected.", target.GetTag());
-				throw nullptr;
+				report::compile::critical("no args record in '{}' detected.", target.GetTag());
 			}
 
 			//This is used so that we know what size we're to after the fact, and place it at the head.
@@ -866,73 +984,74 @@ namespace LEX
 			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
 			//std::vector<Operation> ops{1};
 
-			Solution* self = compiler->GetTarget();
+			TargetObject* self = compiler->GetTarget()->GetCallTarget();
 
 			std::vector<Solution> args;
 
-			args.reserve(arg_record->size());
+			size_t alloc_size = arg_record->size();
+			size_t dealloc_size = alloc_size;
+
+			args.resize(alloc_size);
+
+
+
+			if (self) {
+				//This will push itself into the arguments, but it will only be used under certain situations.
+				compiler->GetOperationList().push_back(CompUtil::Mutate(*self->target, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+				dealloc_size++;
+			}
 
 			//At a later point, one will get the ability to define default arg out of order, via the below:
 			// function(arg1, arg2, def_param4 = arg3);
 			// This sort of thing is known as a default argument, and instead of processing it here,
 			// it will process it later, when it is processing default arguments. 
 			//std::vector<Record*> def_args;
-			
+
 
 
 			//I do the index this way in prep for explicit default arguments, where any default argument found
 			// will NOT increment the index, instead storing the record for later use.
 			//Additionally, I use get arg count so that the index being pushed
 			//*Turns out, the I was not required.
-			//for (size_t i = compiler->GetArgCount(); auto& arg : arg_record->GetChildren())
-			for (auto& arg : arg_record->GetChildren())
+			for (size_t i = 0; auto & arg : arg_record->GetChildren())
 			{
-				
+
 				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered());//, ops);
-				
-
-#ifdef MUTATING_STUFF
-				Operand mov = { compiler->ModArgCount(), OperandType::Argument};
-				
-				//compiler->GetOperationList().emplace_back(InstructType::Forward, mov, result);
-				compiler->GetOperationList().emplace_back(CompUtil::Transfer(mov, result));
-
-				//This will set what operand stores into the solution without touching the type data within
-				result = mov;
-
-				args.push_back(result);
-#endif
 
 				compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
-				//i++;
+
+				args[i++] = result;
 			}
 
 
 			//'function' <Expression: Call>
 			//		'args' <Expression: Header>
 
+
+			OverloadInput input;
+			input.object = self;
+			input.paramInput = args;
+
+
 			//Around here, you'd use the args.
-			Field* field = compiler->GetScope()->GetField(target.GetTag());
+			Field* field = compiler->GetScope()->SearchField(target.GetTag(), input);
 
 			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
 
-			if (!field){
-				RGL_LOG(critical, "No field for '{}' detected.", target.GetTag());
-				throw nullptr;
+			if (!field) {
+				report::compile::critical("No field for '{}' detected.", target.GetTag());
 			}
 
 			FunctionInfo* info = dynamic_cast<FunctionInfo*>(field);
 
 			if (!info) {
-				RGL_LOG(critical, "Field for '{}' not a function info.", target.GetTag());
-				throw nullptr;
+				report::compile::critical("Field for '{}' not a function info.", target.GetTag());
 			}
 
 			FunctionBase* func = info->Get();
 
 			if (!func) {
-				RGL_LOG(critical, "No callable for info at '{}' detected.", target.GetTag());
-				throw nullptr;
+				report::compile::critical("No callable for info at '{}' detected.", target.GetTag());
 			}
 
 			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
@@ -940,59 +1059,106 @@ namespace LEX
 			size_t req_args = func->GetReqArgCount();
 
 			if (args.size() < req_args) {
-				RGL_LOG(critical, "Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
-				throw nullptr;
+				report::compile::critical("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 			}
-		
 
+			if (func->GetTargetType() != nullptr) {
+				//Increase the allocation size to include the "this" argument.
+				alloc_size++;
+			}
 
 
 			compiler->GetOperationList().emplace_back(InstructType::Call, compiler->GetPrefered(),
-				Operand{ func, OperandType::Function }, 
-				Operand{ args.size(), OperandType::Index });
+				Operand{ func, OperandType::Function },
+				Operand{ alloc_size, OperandType::Index });
 
-			compiler->ModArgCount(-static_cast<int64_t>(args.size()));
-			
-			
-			
+			compiler->ModArgCount(-static_cast<int64_t>(dealloc_size));
+
+
+
 			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
+		}
+
+		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, Record& target) 
+		{ 
+			
+			//OverloadInput input;
+			//input.object = self;
+			//input.paramInput = args;
+
+
+			ITypePolicy* type = compiler->GetScope()->SearchType(target.GetTag());
+		
+			if (type)
+			{
+				//TODO: Give this a compiler utility function, in case it has a manually defined constructor.
+				compiler->GetOperationList().emplace_back(InstructType::Construct, compiler->GetPrefered(),
+					Operand{ type, OperandType::Type });
+
+				result = Solution{ type, OperandType::Register, compiler->GetPrefered() };
+			}
+			
+
+			return type;
+		}
+	
+
+
+
+
+		Solution CallProcess(ExpressionCompiler* compiler, Record& target)
+		{
+			//I seek to merge the functionality of these 2 functions into this one, seeing as they need to tread the same ground.
+
+			Solution result;
+
+			if (HandleCtor(result, compiler, target) == false) {
+				result = HandleCall(compiler, target);
+			}
+
+
+			return result;
 		}
 
 
 
-		void VarDeclareProcess(RoutineCompiler* compiler, Record& target)
+		void VariableProcess(RoutineCompiler* compiler, Record& target)
 		{
 
-			//TODO: Readdress VarDeclareProcess. Also might be an expression?
+			//TODO: Readdress VariableProcess. Also might be an expression?
 
-			Record* type_name = target.FindChild("type");
+
+
+			Record* head_rec = target.FindChild("<header>");
+
+			if (!head_rec)
+				report::compile::fatal("No record named header.");
 			
-			if (!type_name)
-			{
-				RGL_LOG(critical, "kill");
-				throw nullptr;
+			DeclareHeader header{ *head_rec, compiler->GetEnvironment()};
+
+			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
+			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
+			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
+			if (header.Matches(true, BasicQualifier::Const) == false) {
+				report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
 
-			//this is omega temp instead of this, getting the expression of a type would be prefered.
-			if (type_name->GetChild(0).GetTag() != "int")
-			{
-				RGL_LOG(critical, "kill2");
-				throw nullptr;
-			}
-			
+			ITypePolicy* policy = header.policy;
 
 
-			//This shit is even dumber than the above. Please redo.
-			constexpr auto offset = Number::Settings::GetOffset(NumeralType::Floating);
-			ITypePolicy* policy = IdentityManager::GetTypeByID(offset + 1);//TODO: actually search types pls
+
+			//Record* type_name = target.FindChild("type");
 			
-			if (!policy)
-			{
-				RGL_LOG(critical, "kill3");
-				throw nullptr;
+			//if (!type_name){
+			//	report::compile::critical("Couldn't find type");
+			//}
+
+			//ITypePolicy* policy = compiler->GetEnvironment()->TEMPSearchType(type_name->GetFront().GetTag());
+
+			if (!policy){
+				report::compile::critical("Couldn't find type name.");
 			}
 
-			RGL_LOG(critical, "why error");
 			size_t var_index = compiler->GetScope()->CreateVariable(target.GetTag(), policy);	
 			
 			if (Record* definition = target.FindChild("def"); definition) {
@@ -1019,6 +1185,7 @@ namespace LEX
 		{
 			if (target.size() != 0)
 			{
+				logger::info("BEFORE");
 				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result);
 
 				//Right here the solutions given type should be evaluated to see if a correct type is being returned.
@@ -1033,18 +1200,18 @@ namespace LEX
 				//Basically, if one doesn't exist, and they aren't both just void.
 				//TODO: Actually use void for this, at no point should null be used here. Such would be a statement.
 				if (!return_policy && return_policy != result.policy) {
-					RGL_LOG(critical, "Expecting return value but value is found.");
-					throw nullptr;
+					report::compile::critical("Expecting return value but value is found.");
 				}
 
 
 				ICallableUnit* out = nullptr;
 
-				//TODO: Currently ReturnProcess use equivalence to handle this.
+				assert(result.policy);
+				report::compile::debug("result {:X}", (uint64_t)result.policy);
+
 				if (result.policy->IsConvertibleTo(return_policy) == false)
 				{
-					RGL_LOG(critical, "Expression not convertible to return type.");
-					throw nullptr;
+					report::compile::critical("Expression not convertible to return type.");
 				}
 
 				if (out){
@@ -1112,13 +1279,14 @@ namespace LEX
 			generatorList[SyntaxType::String] = LiteralProcess;
 			generatorList[SyntaxType::Object] = LiteralProcess;
 
-			generatorList[SyntaxType::VarDeclare] = VarDeclareProcess;
-			generatorList[SyntaxType::VarUsage] = VariableProcess;
+			generatorList[SyntaxType::Variable] = VariableProcess;
+			generatorList[SyntaxType::Field] = FieldProcess;
 			generatorList[SyntaxType::Call] = CallProcess;
 
 
 
 			instructList[InstructType::Call] = InstructWorkShop::Call;
+			instructList[InstructType::Construct] = InstructWorkShop::Construct;
 
 			instructList[InstructType::Push] = InstructWorkShop::Push;//deprecated
 			//These 2 are one in the same.
@@ -1144,6 +1312,9 @@ namespace LEX
 			__init = 1;
 
 
+
+			IdentityManager::_voidPolicy = new VoidPolicy{};
+
 			//IDENTITY MANAGER TEST
 			IdentityManager::GenerateID("NUMBER", Number::Settings::length);
 			
@@ -1154,6 +1325,8 @@ namespace LEX
 
 			static ConcretePolicy* float64 = new ConcretePolicy{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
 
+
+			float64->EmplaceDefault(static_cast<double>(0));
 			//RGL_LOG(info, "{} float64", (uint32_t)float64.GetTypeID());
 
 			
@@ -1166,4 +1339,3 @@ namespace LEX
 
 //*/
 
-#endif

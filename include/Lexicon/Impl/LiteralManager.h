@@ -17,7 +17,7 @@ namespace LEX
 
 		if (is_int)
 		{
-			throw nullptr;
+			throw nullptr;//TODO: REMOVE THROW, SHIT MAKES IT A DOUBLE
 			try {
 				number = std::stoll(value);
 
@@ -71,8 +71,7 @@ namespace LEX
 
 				if (CreateNum(code, free_value, out) == false) {
 					//send an exception
-					RGL_LOG(critical, "invalid to be a number");
-					throw nullptr;
+					report::compile::critical("invalid to be a number");
 				}
 
 				result = out;
@@ -85,8 +84,7 @@ namespace LEX
 				break;
 
 			default:
-				RGL_LOG(critical, "Not a literal expression.");
-				throw nullptr;
+				report::compile::critical("Not a literal expression."); break;
 		}
 		AbstractTypePolicy* policy = result.GetPolicy();
 
@@ -97,7 +95,8 @@ namespace LEX
 
 	struct LiteralManager
 	{
-
+		//Whenever an object literal is used,
+		//static std::unordered_map<size_t, Record*> resolveMap;
 
 		//TODO: Ideally obtain literal, this returns const, will want to experiment with that later.
 		static Literal ObtainLiteral(Record& ast);

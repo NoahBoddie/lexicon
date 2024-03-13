@@ -55,10 +55,11 @@ namespace LEX::Impl
 		bool module_check = mdl->CanHandle(this, rec_nest, atomic);
 		bool context_check = module_check ? contextChain->current->ContextAllowed(mdl, contextChain) : false;
 		bool handle = module_check && context_check;
-
-		RGL_LOG(info, "try success? {} {}", module_check, context_check);
-		RGL_LOG(info, "try module: {}, token: {}, success: {}", mdl->GetContext(), peek().GetTag(), handle);
-
+		if (handle)
+		{
+			//RGL_LOG(info, "try success? {} {}", module_check, context_check);
+			logger::info("try module: {}, token: {}", mdl->GetContext(), peek().GetTag());
+		}
 
 		if (handle) {
 			_ExecuteModule(out, rec_nest, mdl);
@@ -94,7 +95,7 @@ namespace LEX::Impl
 
 	}
 
-
+	
 
 	Record Parser::_ParseTopLevel()
 	{
@@ -163,7 +164,8 @@ namespace LEX::Impl
 		//TODO:Fix Format #1
 		//TokenToString
 		if (IsType(type, str) == false) {
-			tokenizer.croak(std::format("Expecting {}, recieved {} from \"{}\"", TokenToString(type, false), TokenToString(tokenizer.peek().TOKEN().type, false), str));
+			auto token = peek();
+			tokenizer.croak(std::format("Expecting {}, recieved {} from \"{}\"", TokenToString(type, false), TokenToString(token.TOKEN().type, false), token.GetTag()));
 		}
 
 		return tokenizer.next(); 
@@ -184,12 +186,10 @@ namespace LEX::Impl
 		return result;
 	}
 
-
-	//Make a version of this that can take a parser and record, and a version that can take nothing at all.
-	std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func) {
+	std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<ParseFunc> func) {
 		//I would like a delimit that expects the seperator to be the second to last, and another that prevents it from being second to last.
 		//Having a version of this with no parameters or just parser would be ideal, that way I can use member functions.
-		
+
 		//Checking for first might not really be that difficult.
 
 		std::vector<Record> result;
@@ -199,13 +199,14 @@ namespace LEX::Impl
 		SkipType(TokenType::Punctuation, start);
 		while (tokenizer.eof() == false) {
 			//bool start = first;
-			
+
 			if (IsType(TokenType::Punctuation, stop) == true) break;
-			
-			RGL_LOG(debug, "skipping seperator '{}'", separator);
-			
-			if (first) first = false; else SkipType(TokenType::Punctuation, separator);
-			
+
+			//RGL_LOG(debug, "skipping seperator '{}'", separator);
+
+			if (first) first = false; 
+			else if (separator) separator();
+
 			RGL_LOG(debug, "delimit check b");
 
 			if (IsType(TokenType::Punctuation, stop) == true) break;
@@ -227,6 +228,14 @@ namespace LEX::Impl
 		SkipType(TokenType::Punctuation, stop);
 
 		return result;
+	}
+
+
+
+
+	//Make a version of this that can take a parser and record, and a version that can take nothing at all.
+	std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func) {
+		return Parser::Delimited(start, stop, [&]() { SkipType(TokenType::Punctuation, separator); }, func);
 	}
 
 	
@@ -276,6 +285,12 @@ namespace LEX::Impl
 	Record Parser::ParseExpression() {
 		Record result = _Parse(false);
 		return result;
+	}
+
+	Record Parser::EndExpression(Record rec)
+	{
+		ParseModule::ExecuteModule<EndParser>(this, nullptr);
+		return rec;
 	}
 
 	TokenStream* Parser::GetTokenizer()
@@ -351,3 +366,54 @@ namespace LEX::Impl
 
 	}
 }
+
+
+
+/*
+
+	//Make a version of this that can take a parser and record, and a version that can take nothing at all.
+std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func) {
+	//I would like a delimit that expects the seperator to be the second to last, and another that prevents it from being second to last.
+	//Having a version of this with no parameters or just parser would be ideal, that way I can use member functions.
+
+	//Checking for first might not really be that difficult.
+
+	std::vector<Record> result;
+
+	bool first = true;
+	RGL_LOG(debug, "skipping start '{}'", stop);
+	SkipType(TokenType::Punctuation, start);
+	while (tokenizer.eof() == false) {
+		//bool start = first;
+
+		if (IsType(TokenType::Punctuation, stop) == true) break;
+
+		RGL_LOG(debug, "skipping seperator '{}'", separator);
+
+		if (first) first = false; else SkipType(TokenType::Punctuation, separator);
+
+		RGL_LOG(debug, "delimit check b");
+
+		if (IsType(TokenType::Punctuation, stop) == true) break;
+
+		//Thinking of using the second arg for something.
+		//Record entry = start && begin ? begin(this, nullptr) : func(this, nullptr);
+		Record entry = func(this, nullptr);
+
+		if (entry) {
+			RGL_LOG(debug, "push back function");
+			result.push_back(entry);
+		}
+		else {
+			RGL_LOG(debug, "empty record discared");
+		}
+	}
+
+	RGL_LOG(debug, "skipping end '{}'", stop);
+	SkipType(TokenType::Punctuation, stop);
+
+	return result;
+}
+
+
+//*/

@@ -202,8 +202,7 @@ namespace LEX
 				return _rsp += step;
 			}
 
-			RGL_LOG(critical, "Unknown stack pointer");
-			throw nullptr;
+			report::runtime::fatal("Unknown stack pointer");
 		}
 
 
@@ -222,8 +221,7 @@ namespace LEX
 				return _rsp;
 			}
 
-			RGL_LOG(critical, "Unknown stack pointer");
-			throw nullptr;
+			report::runtime::fatal("Unknown stack pointer");
 		}
 
 		size_t SetStackPointer(StackPointer type, uint64_t index)
@@ -244,16 +242,14 @@ namespace LEX
 				return _rsp += index;
 			}
 
-			auto t = "Unknown stack pointer";
-			throw nullptr;
+			report::runtime::fatal("Unknown stack pointer type");
 		}
 
 		//May be replaced in the coming times.
 		RuntimeVariable& GetVariable(size_t i)
 		{
 			if (i >= _vsp) {
-				RGL_LOG(critical, "Variable stack index larger than current stack size.");
-				throw nullptr;
+				report::runtime::fatal("Variable stack index larger than current stack size.");
 			}
 
 			return _varStack[i];
@@ -334,16 +330,16 @@ namespace LEX
 				{
 					RGL_LOG(trace, "in loop {}", _rsp);
 					if (_rsp >= _limit) {
-						RGL_LOG(critical, "Runtime Stack Pointer equals or exceeds op size ({}/{}), terminating program.", _rsp, _limit);
-						throw nullptr;
+						report::runtime::fatal("Runtime Stack Pointer equals or exceeds op size ({}/{}), terminating program.", _rsp, _limit);
 					}
 
 					//Probably want to do a try catch around here.
 					Operate(_data[_rsp]);
+					
 					_data[_rsp].Execute(this);
+					
 					if (_psp > _vsp) {
-						RGL_LOG(critical, "Param Stack Pointer greater than Var Stack Pointer ({}/{}), terminating program.", _psp, _vsp);
-						throw nullptr;	
+						report::runtime::fatal("Param Stack Pointer greater than Var Stack Pointer ({}/{}), terminating program.", _psp, _vsp);
 					}
 						
 
@@ -351,11 +347,12 @@ namespace LEX
 						_rsp++;
 					}
 				}
-				RGL_LOG(trace, "out loop");
+				
+
+
 				if (_asp) {
 					//If not the value it started as (zero) something was called incorrectly. This is a proper crash.
-					RGL_LOG(critical, "Argument Stack Pointer not 0 (is {}), terminating program", _asp);
-					throw nullptr;
+					report::runtime::fatal("Argument Stack Pointer not 0 (is {}), terminating program", _asp);
 				}
 
 				_rsp = max_value<size_t>;
@@ -385,7 +382,7 @@ namespace LEX
 		//THIS is the gist of what I'd like.
 		static RuntimeVariable Run(ICallableUnit* unit, container<RuntimeVariable> args, Runtime* from = nullptr)
 		{	
-			RGL_LOG(critical, "This shit is NOT SUPPOSED TO BE USED RIGHT NOW");
+			report::apply::fatal("This shit is NOT SUPPOSED TO BE USED RIGHT NOW");
 			assert(false);
 
 			//static_assert(false);

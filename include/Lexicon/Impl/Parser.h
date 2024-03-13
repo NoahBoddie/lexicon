@@ -70,7 +70,12 @@ namespace LEX::Impl
 
 		//Would like something called required type which fulfills the role of next and istype
 
+
 		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func);
+
+
+		std::vector<Record> Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<ParseFunc> func);
+
 
 		//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
 		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<Record()> func)
@@ -88,6 +93,27 @@ namespace LEX::Impl
 			return Delimited(start, stop, separator, [=](Parser* a1, auto) { return func(a1); });
 		}
 
+
+
+		//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
+		std::vector<Record> Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<Record()> func)
+		{
+			//std::function<ParseFunc> _b = nullptr;
+
+			//_b = begin ? [=](auto, auto) { return begin(); } : _b;
+
+			return Delimited(start, stop, separator, [=](auto, auto) { return func(); });
+		}
+		
+
+
+		//template <typename TClass>
+		std::vector<Record> Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<Record(Parser*)> func)
+		{
+			return Delimited(start, stop, separator, [=](Parser* a1, Record*) { return func(a1); });
+		}
+
+
 		//std::vector<Record>
 
 		void unexpected();
@@ -103,7 +129,6 @@ namespace LEX::Impl
 
 
 
-
 		
 
 
@@ -111,30 +136,9 @@ namespace LEX::Impl
 		Record ParseExpression();
 
 		Record ParseAtomic();
-		//{
-			//TODO: I need ParseAtomic back
-			// it would basically serve as a flag, but the idea would be I wouldn't start processing operators, I'd only process the next thing as much to make a singular
-			// series of tokens to make sense.
-			//It is to be noted that everywhere within the parser test this is used will need to be altered.
+		
 
-
-			//TO handle this, I'll have a generic Parse function that switches an atomic flag on and off, and once complete sets the flag to what it was previously.
-
-
-			//In atomic mode the first modules are evaluated, but for the auxiliary set they must be set to Atomic to be able to run. So I will not be needing a new flag 
-			// for this.
-
-			//To actually handle this, it will just be a variable on search,try, etc. Most things will not be trying to parse atomically, so I'll probably mark it
-			// it with false by default.
-
-			//Things that are atomic
-			// Parenthesis
-			// Casts/Calls
-			// Objects?
-			// Unary
-
-			//return ParseExpression();
-		//}
+		Record EndExpression(Record rec);
 
 		
 

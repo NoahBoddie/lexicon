@@ -26,11 +26,10 @@ namespace LEX
 
 			enum struct Update
 			{
-				//Rename all of these some time.
-				Invalid,//Object does not exist.
-				RightOnTime,//Versions match
-				TooOld,//LibraryIsOld
-				TooNew//EngineOutOfData
+				Invalid,//Query is invalid
+				Match,//Update versions match
+				Library,//Library is out of date
+				Engine//Engine is out of date
 				
 			};
 
@@ -64,12 +63,12 @@ namespace LEX
 				auto version = GetVersion();
 
 				if (version == Version::Current)
-					return Update::RightOnTime;
+					return Update::Match;
 				else if ((int)version < (int)Version::Current)
-					return Update::TooOld;
+					return Update::Library;
 				
 				else
-					return Update::TooNew;
+					return Update::Engine;
 
 			}
 		};

@@ -3,6 +3,8 @@
 
 namespace LEX
 {
+	//Is access specifier.
+
 	enum struct AccessModifier
 	{//The base struct that handles this might be later named "ClassicInfos". Maybe. Will decide if it sounds dumb.
 

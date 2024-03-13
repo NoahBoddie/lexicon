@@ -4,12 +4,13 @@
 #include "ITypePolicy.h"
 #include "Environment.h"
 #include "PolicyData.h"
+#include "OverloadClause.h"
 
 namespace LEX
 {
 
 
-	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public PolicyData
+	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public OverloadClause, public PolicyData
 	{
 
 		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like
@@ -34,6 +35,22 @@ namespace LEX
 			return _name;
 		}
 
+		OverloadClause* GetClause() { return this; }
+
+		//With no generic shit going on, this completely lacks the ability to be used.
+		BasicQualifier GetBasicFlags() const override { return BasicQualifier::None; }
+		RuntimeQualifier GetRuntimeFlags() const override { return RuntimeQualifier::None; }
+
+
+		std::vector<ITypePolicy*> GetGenericInput() override { return {}; }
+		std::vector<DefaultGenericInput> GetDefaultGenericInput() override { return {}; }
+
+		ITypePolicy* GetTarget() override { return nullptr; }
+
+		std::vector<ParamInput> GetParamInput() override { return  {}; }
+
+		std::vector<DefaultParamInput> GetDefaultParamInput() override { return {}; }
+		//~
 
 
 		//These doing this is kinda ill advised, but since the function is defined here, it's safe to do. Specially since

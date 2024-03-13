@@ -62,6 +62,25 @@
 
 #include "ConcreteFunction.h"
 
+#include "OverloadClause.h"
+
+
+
+namespace std
+{
+	template <class _Elem, class _Alloc>
+	struct hash<vector<_Elem, _Alloc>>
+	{
+		_NODISCARD static size_t _Do_hash(const vector<_Elem, _Alloc>& _Keyval) noexcept {
+			return _Hash_array_representation(_Keyval.data(), _Keyval.size());
+		}
+	};
+}
+
+//This is to be my method of hashing.
+inline std::hash<std::vector<uint64_t>> hasher;
+
+
 namespace LEX
 {
 	struct SourceObject
@@ -141,7 +160,7 @@ namespace LEX
 
 
 	template <>
-	struct ReturnType<Void>
+	struct StorageType<Void>
 	{
 
 		ITypePolicy* operator()()
@@ -152,7 +171,7 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<Void>
+	struct ValueType<Void>
 	{
 
 		AbstractTypePolicy* operator()(Void&)
@@ -164,7 +183,7 @@ namespace LEX
 
 
 	template <>
-	struct ReturnType<Number>
+	struct StorageType<Number>
 	{
 
 		ITypePolicy* operator()()
@@ -177,7 +196,7 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<Number>
+	struct ValueType<Number>
 	{
 
 		AbstractTypePolicy* operator()(Number& it)
@@ -194,7 +213,7 @@ namespace LEX
 
 
 	template <>
-	struct ReturnType<String>
+	struct StorageType<String>
 	{
 
 		ITypePolicy* operator()()
@@ -207,12 +226,12 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<String>
+	struct ValueType<String>
 	{
 
 		AbstractTypePolicy* operator()(String& it)
 		{
-			return ReturnType<String>{}()->GetTypePolicy(nullptr);
+			return StorageType<String>{}()->GetTypePolicy(nullptr);
 		}
 	};
 
@@ -220,7 +239,7 @@ namespace LEX
 	//The currently unused once
 
 	template <>
-	struct ReturnType<Delegate>
+	struct StorageType<Delegate>
 	{
 
 		ITypePolicy* operator()()
@@ -230,7 +249,7 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<Delegate>
+	struct ValueType<Delegate>
 	{
 
 		AbstractTypePolicy* operator()(Delegate& it)
@@ -243,7 +262,7 @@ namespace LEX
 	///Need to handle the regular versions too.
 
 	template <>
-	struct ReturnType<ExternalHandle>
+	struct StorageType<ExternalHandle>
 	{
 
 		ITypePolicy* operator()()
@@ -253,7 +272,7 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<ExternalHandle>
+	struct ValueType<ExternalHandle>
 	{
 
 		AbstractTypePolicy* operator()(ExternalHandle& it)
@@ -266,7 +285,7 @@ namespace LEX
 	///
 
 	template <>
-	struct ReturnType<FunctionHandle>
+	struct StorageType<FunctionHandle>
 	{
 
 		ITypePolicy* operator()()
@@ -276,7 +295,7 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<FunctionHandle>
+	struct ValueType<FunctionHandle>
 	{
 
 		AbstractTypePolicy* operator()(FunctionHandle& it)
@@ -290,7 +309,7 @@ namespace LEX
 	///
 
 	template <>
-	struct ReturnType<Array>
+	struct StorageType<Array>
 	{
 
 		ITypePolicy* operator()()
@@ -300,7 +319,7 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<Array>
+	struct ValueType<Array>
 	{
 
 		AbstractTypePolicy* operator()(Array& it)
@@ -312,7 +331,7 @@ namespace LEX
 
 
 	template <>
-	struct ReturnType<Variable>//
+	struct StorageType<Variable>//
 	{
 		//This wouldn simply return the object type, as a 
 		ITypePolicy* operator()()
@@ -322,7 +341,7 @@ namespace LEX
 	};
 
 	template <>
-	struct VariableType<Variable>// : single_type
+	struct ValueType<Variable>// : single_type
 	{
 		//this should visit its data, but this doesn't have permission. Likely best to test the implementation 
 		// inside fo the thing.
@@ -346,8 +365,8 @@ namespace LEX
 
 	void test()
 	{
-		ReturnType<void> t;
-		VariableType<void> t2;
+		StorageType<void> t;
+		ValueType<void> t2;
 
 
 	}
@@ -355,441 +374,6 @@ namespace LEX
 
 
 
-
-
-	ENUM(IssueType, uint8_t)
-	{
-		Parse,				//A fundemental syntax issue possibly preventing the rest from being read properly.
-			Compile,			//An error that occurs trying to use data as provided
-			Link,				//An error that occurs trying to connect or look up elements
-			Runtime,			//An issue occuring at runtime, undetectable at compile time.
-			Fault,		//An issue in C++ implementation, often fatal.
-			Total
-	};
-
-	ENUM(IssueLevel, uint8_t)
-	{
-		Debug,
-			Warning,
-			Error,
-			Fatal,
-			Total
-	};
-
-
-	using IssueCode = uint16_t;//lynchpin this by removing it.
-
-	using LChar = char;
-	using LString = std::basic_string<LChar>;
-	//IssueCodes will come with names, at a later point, needing to be picked from a list somewhere, that
-	// isn't the table for codes. That table only cares about the numbers. 
-	// But if one tries to print a code it will tell it's name.
-
-	struct IssueTable
-	{
-		constexpr static const LChar* npos = "";
-
-		using _Table = std::array<std::unordered_map<size_t, LChar*>, IssueType::Total>;
-
-		inline static _Table _table;
-
-
-		static const LChar* GetIssueMessage(IssueType type, IssueCode code)
-		{
-			//use find
-			return _table[type][code];
-		}
-	};
-
-	struct Issue
-	{
-		std::string_view	name = "";//debug name for when the path is not found.
-		size_t				code = 0;
-
-		constexpr Issue(std::string_view _n, uint16_t _c) : 
-			name { _n }, code { _c } {}
-	};
-	
-#define DECLARE_ISSUE(mc_name, mc_code) Issue mc_name(#mc_name, mc_code)
-
-	//ex. //DECLARE_ISSUE(Test, 49);
-
-
-
-	//where would you store these?
-
-
-
-	//Turns the issue data into a header for the message.
-	LString IssueToString(IssueType type, IssueCode code, IssueLevel level)
-	{
-		//might do format instead.
-		LString result;
-
-		switch (level)
-		{
-		case IssueLevel::Debug:
-			result = "Debug "; break;
-
-		case IssueLevel::Error:
-			result = "Error "; break;
-
-		case IssueLevel::Fatal:
-			result = "Fatal "; break;
-
-		case IssueLevel::Warning:
-			result = "Warn "; break;
-		}
-
-		switch (type)
-		{
-		case IssueType::Compile:
-			result += "C"; break;
-
-		case IssueType::Parse:
-			result += "P"; break;
-
-		case IssueType::Link:
-			result += "L"; break;
-
-		case IssueType::Runtime:
-			result += "R"; break;
-
-		case IssueType::Fault:
-			result += "F"; break;
-
-		//case IssueType::Application:
-			//result += "A; break;
-		}
-
-		uint16_t number = code;
-
-		//"Severity X0000: "
-
-		if (!code)
-		{
-			result += "0000";
-
-		}
-		else
-		{
-
-			char str[5];
-			snprintf(str, 5, "%04d", number);
-			result += str;
-		}
-
-
-
-		return result + ": ";
-	}
-
-	//I think there shouldn't be a set place where issues are stored, at least not as an object like this.
-	//Rather, I think issues like this shouldn't be the focus, and the result
-
-	LString _CreateArgSlots(size_t size)
-	{
-		if (!size)
-			return "";
-
-		constexpr const LChar* genericSlot = "{}";
-
-		LString result = genericSlot;
-
-		for (auto i = 1; i < size; i++)
-		{
-			result += ", "s + genericSlot;
-		}
-
-		return result;
-	}
-
-	
-
-	
-	namespace detail
-	{
-		//this shouldn't be in detail
-		template <typename... Ts>
-		void _raise_message(LEX::IssueLevel level, LEX::IssueType type, LString message, bool has_header, std::source_location loc, Ts&... ts)
-		{
-			//insist that ts... can be formated.
-			constexpr auto size = sizeof...(Ts);
-
-
-			LString base = has_header ? "" : IssueToString(type, 0, level);
-			LString body = base + message;;
-
-
-			LString result;
-
-
-			if constexpr (size != 0)
-			{
-				try
-				{
-					result = std::vformat(body, std::make_format_args(ts...));
-
-				}
-				catch (std::format_error& f_error)
-				{
-					body = base + "Invalid format string(\'{}\')"s + " Args(" + _CreateArgSlots(size) + ")";
-
-					result = std::vformat(body, std::make_format_args(f_error.what(), ts...));
-				}
-
-				body += " Args("s + _CreateArgSlots(size) + ")";
-			}
-			else
-			{
-				result = body;
-			}
-			//needs fix
-
-			constexpr fmt::format_string<std::string> a_fmt{ "{}" };
-
-			logger::InitializeLogging();
-
-			//logging level should depend on what this is.
-
-			spdlog::level::level_enum spdlog_level;
-
-
-			switch (level)
-			{
-			case IssueLevel::Debug:
-				spdlog_level = type == IssueType::Runtime ? spdlog::level::info : spdlog::level::debug; break;
-
-			case IssueLevel::Error:
-				spdlog_level = spdlog::level::err; break;
-			
-			case IssueLevel::Warning:
-				spdlog_level = spdlog::level::warn; break;
-			
-			case IssueLevel::Fatal:
-				spdlog_level = spdlog::level::critical; break;
-
-			default:
-				spdlog_level = spdlog::level::trace; break;
-			}
-
-
-			spdlog::log(spdlog::source_loc{
-						loc.file_name(),
-						static_cast<int>(loc.line()),
-						loc.function_name() },
-						spdlog_level, a_fmt, std::forward<LString>(result));
-
-
-
-		}
-
-		template <typename... Ts>
-		void _raise_code(LEX::IssueLevel level, LEX::IssueType type, IssueCode code, std::source_location loc, Ts&... ts)
-		{
-			//insist that ts... can be formated.
-			constexpr auto size = sizeof...(Ts);
-
-
-			LString base = IssueToString(type, code, level);
-			LString body;
-
-			const LChar* message = IssueTable::GetIssueMessage(type, code);
-
-			//LString argSlots;
-
-			if (!message)
-			{
-				//If there is no message, send the "no message" message. Gives code
-
-				body = base + "No message for issue code.";
-
-				if constexpr (size != 0)
-				{
-					body += " Args("s + _CreateArgSlots(size) + ").";
-				}
-			}
-			else
-			{
-				body = base + message;
-			}
-
-			return _raise_message(level, type, body, true, loc, ts...);
-		}
-
-
-	}
-
-	template <IssueType Type>
-	struct Report
-	{
-		//I would like to cut the name down some, Like, no one wants to put issue type every time right?
-		// So instead, why not use something smaller.
-
-		void _ThrowReport()
-		{
-			//This should through differently depending on what type it is, and if it's fatal it should be
-			// a fault regardless.
-
-			//If I can, I would like for this 
-		}
-
-
-		//private this struct
-		template <IssueLevel Level, typename... Ts>//requires(!std::same_as<std::source_location, Ts> && ...)
-		struct _log_base
-		{
-
-			_log_base() = default;
-			_log_base(_log_base&) = delete;
-			_log_base(const _log_base&) = delete;
-
-
-
-			static void _ThrowReport()
-			{
-				//This should through differently depending on what type it is, and if it's fatal it should be
-				// a fault regardless.
-
-				//This might take a string as well.
-
-				if constexpr (Level == IssueLevel::Error)
-				{
-					if constexpr (Type == IssueType::Compile)
-					{
-						throw CompileError("Not implemented");
-					}
-					else if constexpr (Type == IssueType::Link)
-					{
-						throw LinkError("Not implemented");
-					}
-					else if constexpr (Type == IssueType::Parse)
-					{
-						throw ParseError("Not implemented");
-					}
-					else if constexpr (Type == IssueType::Runtime)
-					{
-						throw RuntimeError("Not implemented");
-					}
-					//No exception found.
-
-					//unhandled exception type.
-					throw nullptr;
-				}
-				else if (Level == IssueLevel::Fatal)
-				{
-
-					//throw fatal error
-					throw nullptr;
-				}
-
-			}
-
-			//TODO: Report::_log functions have no reason to be a template, may locate in detail
-			template <typename... Ts>//requires(!std::same_as<std::source_location, Ts> && ...)
-			static void _log(IssueCode code, std::source_location loc, Ts&... ts)
-			{
-				detail::_raise_code(Level, Type, code, loc, ts...);
-
-				_ThrowReport();
-			}
-
-			template <typename... Ts>//requires(!std::same_as<std::source_location, Ts> && ...)
-			static void _log_message(LString message, std::source_location loc, Ts&... ts)
-			{
-				detail::_raise_message(Level, Type, message, false, loc, ts...);
-
-				_ThrowReport();
-			}
-
-
-
-
-
-			_log_base(IssueCode code, Ts&&... ts, std::source_location loc = std::source_location::current())
-			{
-				_log(code, loc, ts...);
-			}
-
-			_log_base(IssueCode code, std::source_location loc, Ts&&... ts)
-			{
-				_log(code, loc, ts...);
-			}
-
-
-			_log_base(LString message, Ts&&... ts, std::source_location loc = std::source_location::current())
-			{
-				_log_message(message, loc, ts...);
-			}
-
-			_log_base(LString message, std::source_location loc, Ts&&... ts)
-			{
-				_log_message(message, loc, ts...);
-			}
-
-		};
-
-
-
-		template <IssueLevel Level, typename... Ts>
-		_log_base(IssueCode code, Ts&&... ts) -> _log_base<Level, Ts...>;
-
-		template <IssueLevel Level, typename... Ts>requires(sizeof...(Ts) != 0)
-			_log_base(IssueCode code, std::source_location, Ts&&... ts)->_log_base<Level, Ts...>;
-
-
-		template <IssueLevel Level, typename... Ts>
-		_log_base(LString message, Ts&&... ts) -> _log_base<Level, Ts...>;
-
-		template <IssueLevel Level, typename... Ts>requires(sizeof...(Ts) != 0)
-			_log_base(LString message, std::source_location, Ts&&... ts)->_log_base<Level, Ts...>;
-
-
-
-		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
-			using debug = _log_base<IssueLevel::Debug, Ts...>;
-
-
-		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
-			using warn = _log_base<IssueLevel::Warning, Ts...>;
-
-
-		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
-			using error = _log_base<IssueLevel::Error, Ts...>;
-
-
-		template <typename... Ts>requires(!std::same_as<std::source_location, Ts> && ...)
-			using fatal = _log_base<IssueLevel::Fatal, Ts...>;
-	};
-	//this fixes intellisense and I don't know why. This isn't even valid syntax
-	template<typename... Ts>
-	using __stupid_intellisense_fix = Report<LEX::IssueType::Compile>::debug<Ts...>;
-
-
-
-	//*/
-		//RaiseIssue(IssueLevel level, IssueType type, IssueCode code, std::source_location)->RaiseIssue<>;
-
-
-
-	void Test2()
-	{
-
-		Report<LEX::IssueType::Compile>::debug<int>;
-
-		//Report<IssueType::Compile>::_log_base<IssueLevel::Debug>(1);
-		Report<IssueType::Compile>::debug(1, 1, 1);
-		//Report<IssueType::Compile>::RaiseIssue(IssueLevel::Debug, IssueType::Compile, 100, std::source_location::current(), 1, 1);
-
-		//TestName<int>::RaiseAlias(IssueLevel::Debug, IssueType::Compile, 100, std::source_location::current(), 1, 1);
-		logger::info("f");
-		std::string* test = nullptr;
-		
-
-		//_RaiseIssue(IssueType::Compile, 100, IssueLevel::Debug, 1, 23, 4);
-		//This shows that theoretically, this should work.
-
-	}
 
 
 	class Formula :public ICallableUnit, public RoutineBase
@@ -804,14 +388,14 @@ namespace LEX
 
 	namespace detail
 	{
-		
+
 		struct ThisHelperImpl
 		{
 			using _Base = ThisHelperImpl;
 
 			//This is the thing that actually does the calling. This is given based on whether the target is a reference
 			// type, or a pointer type.
-			
+
 			//The callable functions will have a few different versions, depending on one's faith in the system/preference.
 			//For now, I'm not going to care about the alternate versions of this. BUT here is the low down on what I want
 			//-A central and somewhat raw function for how I want everything packaged and sent to the Runtime
@@ -847,12 +431,12 @@ namespace LEX
 			Variable _this;
 		};
 	}
-	
+
 	//*
-	
+
 	//std::convertible_to<Variable>//I want to use this, but I cannot because it doesn't yet account for pointer
 	// types. Readdress another time.
-	template <typename T, typename =  void>
+	template <typename T, typename = void>
 	struct ThisHelper {};
 
 
@@ -885,7 +469,7 @@ namespace LEX
 	{
 		using TypeC = int;
 		using _Self = ThisHelper<T>;
-		
+
 		_Base* operator->()
 		{
 			//This gets the TargetBase, the thing that actually has the run function, to resume the 
@@ -910,7 +494,7 @@ namespace LEX
 	template <typename T>
 	ThisHelper(T) -> ThisHelper<T>;
 
-	
+
 
 	//this helper should be moved to something else.
 //maybe name METHOD?
@@ -965,7 +549,7 @@ namespace LEX
 						number_policy->EmplaceDefault(defaultValue);
 						results.emplace_back(number_policy);
 
-						
+
 					}
 				}
 			}
@@ -981,11 +565,11 @@ namespace LEX
 	{
 		//Intrinsic policies are core policies that are accessible via any script, even if it's not included in commons.
 		// this usually means that you don't need to use it's actual name, like with arrays and such.
-		
+
 		//The idea of intrinsic policies is that their names are found by having a type name with @at the beginning.
 		// This means that it was created via keyword and is findable via all locations.
 	public:
-		
+
 		/*
 		PolicyBase();
 
@@ -994,9 +578,9 @@ namespace LEX
 		PolicyBase(std::string_view name, TypeOffset offset);
 
 
-		
 
-		
+
+
 
 
 
@@ -1015,12 +599,29 @@ namespace LEX
 
 
 
-		
-	
+
+
 	};
 
 
 
+
+
+
+
+
+
+
+
+	struct TypeA1 {};
+	struct TypeA2 :public TypeA1 {};
+
+	struct TypeB1 {};
+	struct TypeB2 : public TypeB1 {};
+
+	struct TypeA : public TypeA2 {};
+	struct TypeB : public TypeA, public TypeB2 {};
+	struct TypeC : public TypeB {};
 
 
 	namespace NewSpecials
@@ -1041,7 +642,7 @@ namespace LEX
 
 		//Dont
 		//These are both bases to a template class that handles it. I think.
-		class ResolvedVariant : public Specialization 
+		class ResolvedVariant : public Specialization
 		{
 			//this is abstract
 
@@ -1050,7 +651,7 @@ namespace LEX
 		};
 
 		//Dont
-		class UnresolvedVariant : public Specialization 
+		class UnresolvedVariant : public Specialization
 		{
 			//this is interface
 
@@ -1061,7 +662,7 @@ namespace LEX
 
 			std::vector<ITypePolicy*> _types;
 
-			
+
 		};
 
 
@@ -1075,7 +676,7 @@ namespace LEX
 		template <typename T1, typename T2>
 		struct Generic : public BasicGeneric, public virtual T1
 		{
-			
+
 
 			using Interface = T1;		//The interface is the type used to symbolize the idea of being the type.
 			using Abstract = T2;		//The abstraction is the type used to say something is ready to be used as the type.
@@ -1084,7 +685,7 @@ namespace LEX
 			{
 
 			};
-			
+
 			//The existence of this is not so that the interface can become the abstract, rather it's so this
 			// has a way of communicating with it's later version on how to do that very thing.
 			virtual Abstract* ResolveVariant(Interface*, IGenericArgument*) = 0;
@@ -1096,7 +697,7 @@ namespace LEX
 			//std::vector<UnresolvedVariant*> _clients;	//partial
 			//std::vector<ResolvedVariant*> _servers;		//complete
 		};
-		
+
 
 		//Do
 		struct Interface
@@ -1107,10 +708,10 @@ namespace LEX
 		//Do
 		struct Abstract : public virtual Interface
 		{
-		
+
 		};
-	
-	
+
+
 
 		//Do
 		//Advisable base structure that should be the pivot between generic and concrete classes.
@@ -1142,7 +743,7 @@ namespace LEX
 		};
 		//The above structure seems to work, most importantly, it doesn't take undue size for the concrete type.
 		// At least, not much.
-		
+
 
 		int main()
 		{
@@ -1161,9 +762,430 @@ namespace LEX
 
 	}
 
+	struct T
+	{
+
+		int foo(TypeA1&)
+		{
+			return 1;
+		}
+
+
+		int foo(TypeB2&)
+		{
+			return 1;
+		}
+
+
+
+		int bar(TypeA1&)
+		{
+			return 1;
+		}
+
+
+		int bar(TypeB1&)
+		{
+			return 1;
+		}
+
+
+		void Test()
+		{
+			TypeA a;
+			TypeB b;
+			TypeC c;
+
+			//First: arg1 par 3, arg2 par 3 (or actual 5 if we consider multiple inherit)
+			//Second call: arg1 par 7, arg2 par 4
+
+			//foo(c);
+
+			//bar(c);
+		}
+	};
+
+
+
+
+
+
+
+	/*
+	class Signature : public OverloadClause
+	{
+		//Signature is a very temporary thing, at later point, most of this information will be viewable loose
+		// with the function
+
+		template <typename T1, typename T2>
+		using _OrderedMap = std::vector <std::pair<T1, T2>>;
+
+		enum Usage
+		{
+			Required,	//Theres no possible deduction
+			Optional,	//It comes with a default value
+			Implied		//It's use isn't default, but is deducible from a
+		};
+
+		struct GenericReq
+		{
+			ITypePolicy*	policy = nullptr;
+			Usage			usage = Required;
+		};
+
+		std::vector<GenericReq>				genericInput;//This can be handled through the genericpolicie
+		std::vector<Solution>					parameterInput;//This is handled in full via the parameter stuff
+		_OrderedMap<std::string, Solution>		defaultInput;//This can be handled the same as the above.
+
+
+
+	};
+	//*/
+
+
+
+
+
+
+	
+
+	struct Object;
+
+	template <typename T>
+	//using pointer = std::unique_ptr<T>;
+	using pointer = T*;
+
+	//In the future, object builds have the same requirements as a regular native function. Actually, maybe not the best idea. Have different functions handle that.
+	using ObjectBuilder = pointer<Object>(*)();
+
+
+
+	struct ObjectInfo
+	{
+		const std::type_info* type;//This is made with create, to denote source.
+		HMODULE program;
+
+
+
+		ObjectBuilder ctor;
+
+
+		//All ideas from the claimed id to  the end of the offset are a part of the registered type.
+		// So think of from form all the way
+		TypeIndex index;
+		TypeOffset offset;
+
+
+		pointer<Object> BuildObject();
+	};
+
+	struct Object
+	{
+		friend ObjectInfo;
+
+		virtual ~Object() = default;
+		ObjectInfo* GetInfo()
+		{
+			return _info;
+		}
+		
+	private:
+		ObjectInfo* _info;
+
+
+	};
+	pointer<Object> ObjectInfo::BuildObject()
+	{
+		pointer<Object> obj = ctor();
+
+		obj->_info = this;
+
+		return obj;
+	}
+
+
+
+	HMODULE GetCurrentModule()
+	{ // NB: XP+ solution!
+		HMODULE hModule = NULL;
+		GetModuleHandleEx(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+			(LPCTSTR)GetCurrentModule,
+			&hModule);
+
+		return hModule;
+	}
+
+
+	void NewProject()
+	{
+
+	}
+	
+	//Shit should probably use some const
+	std::unique_ptr<ObjectInfo> NewObjectType(const std::type_info& type, std::string_view category, TypeOffset range, ObjectBuilder builder, HMODULE source)
+	{
+		IdentityManager::GenerateID(category, range);
+
+		std::unique_ptr<ObjectInfo> info = std::make_unique<ObjectInfo>();
+
+		info->type = &type;
+		info->index = IdentityManager::GetIndexFromName(category);
+		info->program = source;
+		info->offset = 0;
+		info->ctor = builder;
+
+		return info;
+	}
+
+	template <std::derived_from<Object> T>
+	std::unique_ptr<ObjectInfo> NewObjectType(std::string_view category, TypeOffset range = 0)
+	{
+		const std::type_info& type = typeid(T);
+
+
+		HMODULE source = GetCurrentModule();
+		
+		//This should probably go in an non-template function to reduce the amount of times something like this is created.
+		ObjectBuilder builder = []() -> pointer<Object> {
+			return { new T() };
+		};
+
+		return NewObjectType(type, category, range, builder, source);
+	}
+
 }
 
 
+namespace Banishment
+{
+	/*
+
+	namespace
+	{
+		//I think I'll actually be putting the external interface IN external. Nah, that would increase size. But 
+		// It should contain a type alias to it's current interface type as convience.
+
+		struct External;
+
+		using ExternalCtor = External * (*)();
+
+		namespace detail
+		{
+			struct ExternalInterface
+			{
+				virtual ~ExternalInterface() = default;
+
+				enum struct Version
+				{
+					V1,
+
+					Current = V1
+				};
+
+				enum struct Update
+				{
+					Invalid,//Query is invalid
+					Match,//Update versions match
+					Library,//Library is out of date
+					Engine//Engine is out of date
+
+				};
+
+			};
+		}
+
+		namespace Version1
+		{
+			//This answers questions
+			struct ExternalInterface : public detail::ExternalInterface
+			{
+
+				//Largely, this doesn't need to be changed between implementations, as someone should always be
+				// using Current, and whatever version they're on will sort it out.
+				virtual Version GetVersion() final { return Version::Current; }
+
+				//For all functions within the external interface, I could possibly make it so there are rules on
+				// operating on new interfaces and such. This may allow one to use newer plugins with older engines.
+				// however, this is likely, a bad idea.
+
+
+				//The Non-virtual Functions
+
+				//This call will use the version given from the 
+				Update CheckUpdate()
+				{
+					//Likely will rename, this function also might be moved to a more static environment.
+					if (!this)
+						return Update::Invalid;
+
+					auto version = GetVersion();
+
+					if (version == Version::Current)
+						return Update::Match;
+					else if ((int)version < (int)Version::Current)
+						return Update::Library;
+
+					else
+						return Update::Engine;
+
+				}
+			};
+		}
+
+		using ExternalInterface = Version1::ExternalInterface;
+
+
+	}
+
+	struct ExternalInterfaceImpl : public LEX::ExternalInterface
+	{
+		//Basically never needs to occur
+		//ExternalInterface::Version GetVersion() override { return ExternalInterface::Version::Current; }
+
+
+		//This contains the original type_info and module the object came from.
+		Origin _origin{};
+
+		//To all things that will submit and try to request an object that's submitted, this is what will handle
+		// different interpretations of that object. (Such as being in a different namespace, a different version
+		// or biggest of all, SKSE's TESForm vs RE::TESForm
+		//May delegate this to the object manager.
+		std::vector<std::string_view> _sourceNames;
+
+		//Unsure if this would even be needed, but it would make the looking up a bit faster.
+		//This should be as large as id offset.
+		//^//std::vector<ITypePolicy*> _typeRange;
+
+		//This function carried from another project is a constructor that allows an object to be able to
+		// create new versions of itself, or allow one to request a new object merely by knowing its type even
+		// if the object didn't come from that very project.
+		ExternalCtor _ctor;
+
+
+		//All ideas from the claimed id to  the end of the offset are a part of the registered type.
+		// So think of from form all the way
+		uint32_t claimedID;
+		uint32_t idOffset;
+
+	};
+
+
+	struct External {
+		virtual ~External() = default;
+
+		//This is the core function of the object type. In it's implementation,
+		virtual void Invoke(std::string_view func_name, Variable& ret, ArgContainer<Variable>& args)
+		{
+			//The above should be const.
+
+			//Extra point should go toward notifying one that this literaly is unimplemented.
+			// A specific function should be the thing that does this btw.
+			"No implementation of [Put type name here]::Invoke exists. ";
+			throw nullptr;
+
+		}
+
+		virtual constexpr const std::type_info& GetTypeInfo() const
+		{
+			return typeid(*this);
+		}
+
+		virtual constexpr std::string_view GetName()
+		{
+			//This cannot work properly for the const version. So I may make 2 versions
+
+			//Returns the top level name of this polymorphic type. Can be changed to get the current name
+			// in order to have a central version be the registered type.
+			return typeid(*this).name();
+		}
+
+		//Need to make sure they're of the same type.
+		virtual External& operator=(const External& a_rhs) = 0;
+
+		virtual std::strong_ordering operator<=>(const External& a_rhs) = 0;
+
+
+
+
+		template <typename Self>
+		constexpr std::string_view GetCurrentName(this Self&& self)
+		{
+			//The name of the type this was called at, regardless of what it inherits.
+			return typeid(Self).name();
+		}
+
+		template <std::derived_from<External> Self>
+		constexpr Self& MatchType(this Self&& self, const External& a_rhs)
+		{
+			//Also maybe use that type name implementation if you can. Just so different versions don't get caught on each other.
+
+			if (_registry != a_rhs._registry)
+			{
+				//Types were not matched. Reporting failure.
+				//Complete and utter failure.
+			}
+
+			return static_cast<Self&>(a_rhs);
+		}
+
+
+		External()
+		{
+
+			_registry = ExternalManager::GetInterface(std::string{ GetName() });
+
+			//I'mma do this differently else where. Rather, I want to return an API result.
+			if (!_registry) {
+				"Object Type is unregistered or malformed. Confirm registration before use.";
+				throw nullptr;
+			}
+		}
+
+		//Basically, the object's job is to find the type.
+		virtual AbstractTypePolicy* GetType() = 0;
+
+
+
+		//This would be a virtual function that is required to be implemented by the derived class.
+		//virtual TypeCode TypeCodeOf() = 0;
+
+		ExternalInterface* _registry = nullptr;
+	};
+
+	//*/
+}
+
+
+namespace fmt
+{
+	//Really want this to work
+
+	template <std::convertible_to<std::string> T>
+	struct formatter
+	{
+		template <class ParseContext>
+		constexpr auto parse(ParseContext& a_ctx)
+		{
+			return a_ctx.begin();
+		}
+
+		template <class FormatContext>
+		auto format(const T& v, FormatContext& a_ctx)
+		{
+			return static_cast<std::string>(v);
+			//auto* info = RE::ActorValueList::GetSingleton()->GetActorValue(a_actorValue);
+			//return fmt::format_to(a_ctx.out(), "{}", info ? info->enumName : "None");
+		}
+	};
+
+	void Test()
+	{
+		LEX::Number num{ 1.5f };
+
+		logger::info("{} test", num);
+	}
+}
 
 
 

@@ -237,7 +237,14 @@ namespace logger
 
 #include "RoguesGallery.hpp"
 
+
+
+
 using namespace std::literals;
+
+#include "Lexicon/Impl/Report.h"
+
+
 
 //This shit is supposed to be in src, it's not making it into the next project stupid.
 namespace LEX
@@ -247,6 +254,5 @@ namespace LEX
 
     using String = std::string;
 }
-
 
 inline int __init = 0;

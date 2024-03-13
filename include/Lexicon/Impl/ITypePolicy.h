@@ -8,39 +8,43 @@ namespace LEX
 {
 	struct TypeID;
 	class Variable;
-	struct ICallableUnit;
+	struct ICallableUnit;//No longer needed
+	struct IFunction;
 	struct AbstractTypePolicy;
+	class RuntimeVariable;
 
 
-	//A struct used to take a variable, and convert it into a given type.
-	struct IConvertFunctor
+	//Using this will allow manual conversions to other types that ordinarily cannot convert, even without a explicitly declared conversion.
+	//using Conversion = std::function<RuntimeVariable(RuntimeVariable)>;
+	struct Conversion
 	{
-		//Its best to use a unique pointer for this, due to the fact that you can't carry abstractions though
-		// functions returns as a value type.
-		virtual ~IConvertFunctor() = default;
-
-		//Function* GetConversionFunc();
-
-
-		virtual void HandleConvert(AbstractTypePolicy*, Variable&) = 0;
-
-
-
-		bool operator()(AbstractTypePolicy* policy, Variable& var)
+		enum Enum
 		{
-			if (this)
-				HandleConvert(policy, var);
+			Type,
+			Policy,
+			Function,
+		};
 
-			return this;
+		union
+		{
+			uint64_t raw = 0;
+			ITypePolicy* convertPolicy;
+			IFunction* convertFunction;
+		};
+
+		Enum type = Enum::Type;
+		
+		operator bool() const
+		{
+			return raw;
 		}
 	};
 
-	using _ConvertFunctorPtr = std::unique_ptr<IConvertFunctor>;
 
 	enum struct ConversionType
 	{
 		Implicit,
-		Explicit
+		Explicit,
 	};
 
 
@@ -92,7 +96,7 @@ namespace LEX
 			return IsConvertibleTo(rhs) || rhs->IsConvertibleTo(this);
 		}
 
-		virtual bool IsConvertibleTo(const ITypePolicy* rhs, ICallableUnit** out = nullptr, ConversionType convert = ConversionType::Implicit) const
+		virtual bool IsConvertibleTo(const ITypePolicy* rhs, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const
 		{
 			//The function to tell if this is convertiable to the rhs. the out function is the required conversion
 			// function. Unsure about what type to use right now, so it's void and defaulted to nothig.
@@ -104,13 +108,15 @@ namespace LEX
 
 		}
 
-		bool IsConvertibleTo(const ITypePolicy* rhs, ICallableUnit*& out) const
+		bool IsConvertibleTo(const ITypePolicy* rhs, Conversion& out, ConversionType type = ConversionType::Implicit) const
 		{
-
-			return IsConvertibleTo(rhs, &out);
+			//TODO: this is going to be hidden once specialized, so rename this and make the main version a pivot
+			return IsConvertibleTo(rhs, &out, type);
 		}
 
 
+		
+		
 
 		bool IsGenericArg()
 		{

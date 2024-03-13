@@ -4,16 +4,79 @@
 
 namespace LEX
 {
-	RuntimeVariable ConcreteFunction::Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable*)
+	RuntimeVariable ConcreteFunction::Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
 	{
+		//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
 
-		Runtime runtime{ *GetRoutine(), args};//The creation of runtime yields 2 numbers that should not exist.
+		Runtime* runtime = nullptr;
+		Variable* target = nullptr;
 
-		RuntimeVariable result = runtime.Run();
+		if (args.size() != parameters.size() + IsMethod())
+			report::apply::fatal("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
 
-		//verify
+		size_t size = parameters.size();
 
-		return result;
+		for (int i = 0; i < size; i++)
+		{
+			//Cancelling this for now.
+			break;
+			int j = i + IsMethod();
+
+			AbstractTypePolicy* expected = parameters[i].GetTypePolicy()->FetchTypePolicy(runtime);
+			if (!expected)
+				throw nullptr;
+			RuntimeVariable check = args[j]->Convert(expected);
+
+			if (check.IsVoid() == true)
+				report::apply::fatal("cannot convert argument into parameter {}, {} vs {}", parameters[i].name, i, j);
+
+			args[i] = check;
+		}
+
+
+
+		RuntimeVariable result;
+
+		if (Procedure prod = GetProcedure(); prod)
+		{
+			ProcedureData data;
+
+			data.runtime = runtime;
+			data.def = def;
+			data.srcFunc = this;
+
+			auto begin = args.begin();
+			
+			std::vector<Variable*> send_args;
+
+			send_args.reserve(parameters.size());
+
+			if (IsMethod() == true)
+			{
+				target = args[0].Ptr();
+				begin++;
+			}
+
+			std::transform(begin, args.end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
+			
+			logger::critical("size check {} {}, {}", args.size(), parameters.size(), send_args.size());
+
+
+			prod(result, target, send_args, data);
+		}
+		else
+		{
+			Runtime runtime{ *GetRoutine(), args };//The creation of runtime yields 2 numbers that should not exist.
+
+			result = runtime.Run();
+
+			//verify
+
+			return result;
+		}
+
 	}
+
+
 
 }

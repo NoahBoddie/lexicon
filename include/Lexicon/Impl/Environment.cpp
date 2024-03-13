@@ -22,13 +22,16 @@
 
 #include "GlobalVariable.h"
 
+
+#include "OverloadInput.h"
+
 namespace LEX
 {
 
 		void Environment::AddFunction(FunctionBase* tar)
 		{
 			if (!tar) {
-				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
+				report::compile::critical("Non - FunctionData IFunction attempted to be added");
 				throw nullptr;
 			}
 
@@ -37,7 +40,7 @@ namespace LEX
 			auto name = tar->GetName();
 
 			if (auto it = functionMap.find(name); end != it) {
-				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
+				report::compile::critical("Non - FunctionData IFunction attempted to be added");
 				throw nullptr;
 			}
 			else {
@@ -57,7 +60,7 @@ namespace LEX
 			auto name = tar->GetName();
 
 			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
-				RGL_LOG(critical, "Variable already existed");
+				report::compile::critical("Variable already existed");
 				throw nullptr;
 			}
 			else {
@@ -108,8 +111,6 @@ namespace LEX
 				return { it->second };
 			}
 			else {
-				logger::critical("no type of {} found", !typeMap[name]);
-				throw nullptr;
 				return {};
 			}
 		}
@@ -151,21 +152,10 @@ namespace LEX
 		}
 
 
-		Field* Environment::SearchField(std::string name, Environment* scope, ITypePolicy* target, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, FieldSearch func)
+		Field* Environment::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
 		{
-			SearchParams params;
-
-			params.name = name;
-			params.scope = scope;
-			params.target = target;
-			//This is stupid, I don't need this.
-			if (temp_args) params.tempArgs = *temp_args;
-			if (func_args) params.funcArgs = *func_args;
-
 			std::vector<Environment*> query;
 
-
-			logger::critical("AAAAAAAAAAA");
 
 
 
@@ -174,7 +164,6 @@ namespace LEX
 
 			for (auto env : query)
 			{
-				logger::critical("FFFFFF");
 				std::vector<Field*> result;
 
 				std::vector<FunctionInfo*> functions = env->FindFunctions(name);
@@ -186,7 +175,7 @@ namespace LEX
 
 				//TODO: VERY temporary idea. No pattern matching, no checking. This is basically the same that we did before
 				if (size > 1 || size && global) {
-					RGL_LOG(critical, "mulitple fields of same name detected.");
+					report::compile::critical("mulitple fields of same name detected.");
 					throw nullptr;
 				}
 				else if (global)
@@ -209,20 +198,10 @@ namespace LEX
 		}
 
 
-		ITypePolicy* Environment::SearchType(std::string name, Environment* scope, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, TypeSearch func)
+		ITypePolicy* Environment::SearchType(std::string name, OverloadKey& key, TypePredicate pred)
 		{
 			//One cannot get a type
 			//Returns an ITypePolicy because the template args can still be
-
-
-			SearchParams params;
-
-			params.name = name;
-			params.scope = scope;
-
-			//This is stupid, I don't need this.
-			if (temp_args) params.tempArgs = *temp_args;
-			if (func_args) params.funcArgs = *func_args;
 
 			std::vector<Environment*> query;
 
@@ -245,7 +224,7 @@ namespace LEX
 
 				//TODO: VERY temporary idea. No pattern matching, no checking. This is basically the same that we did before
 				if (size > 1) {
-					RGL_LOG(critical, "mulitple types of same name detected.");
+					report::compile::critical("mulitple types of same name detected.");
 					throw nullptr;
 				}
 				else if (size)
@@ -253,7 +232,7 @@ namespace LEX
 					//IFunction is not a field
 					return types[0];
 				}
-
+				
 			}
 			return nullptr;
 		}
@@ -261,13 +240,16 @@ namespace LEX
 
 		Field* Environment::TEMPSearchField(std::string name)
 		{
-			return SearchField(name, nullptr, nullptr, nullptr, nullptr, nullptr);
+			OverloadInput input;
+
+			return SearchField(name, input, nullptr);
 		}
 
 
 		ITypePolicy* Environment::TEMPSearchType(std::string name)
 		{
-			return SearchType(name, nullptr, nullptr, nullptr, nullptr);
+			OverloadInput input;
+			return SearchType(name, input, nullptr);
 		}
 
 		Environment* Environment::GetEnvironment()
@@ -295,7 +277,7 @@ namespace LEX
 
 			//if (par->FetchProject() != par && par->FetchEnvironment() != par) {
 			if (!dynamic_cast<Project*>(par) && !dynamic_cast<Environment*>(par)) {
-				RGL_LOG(critical, "parent set for Element was not an environment.");
+				report::compile::critical("parent set for Element was not an environment.");
 				throw nullptr;
 			}
 
@@ -305,7 +287,7 @@ namespace LEX
 		void Environment::AddType(PolicyBase* policy)
 		{
 			if (!policy) {
-				RGL_LOG(critical, "Null Policy attempted to be added");
+				report::compile::critical("Null Policy attempted to be added");
 				throw nullptr;
 			}
 
@@ -314,7 +296,7 @@ namespace LEX
 			auto name = policy->GetName();
 
 			if (auto it = typeMap.find(name); end != it) {
-				RGL_LOG(critical, "Non - FunctionData IFunction attempted to be added");
+				report::compile::critical("Non - FunctionData IFunction attempted to be added");
 				throw nullptr;
 			}
 			else {

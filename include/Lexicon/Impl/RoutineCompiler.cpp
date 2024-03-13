@@ -89,6 +89,10 @@ namespace LEX
 
 	RoutineBase RoutineCompiler::CompileRoutine()
 	{
+		//SO I would very much like to removed the excess use of scope here. The FunctionData is here for a reason, 
+		// pull the parameter info please. It's a local too, so it works damn it.
+
+
 		//This automatically searching for the code is probably not the best idea. Maybe change the response depending on what's encountered?
 		std::vector<Operation> operations;
 
@@ -100,15 +104,35 @@ namespace LEX
 
 			size_t size = params.size();
 
-			std::vector<std::string> names{ params.size() };
-			std::vector<ITypePolicy*> policies{ params.size() };
+			bool method = false;
+
+			Solution solution{ _targetFunc->GetTargetType(), OperandType::Index, 0 };
+			
+			
+			//Assign const here.
+
+			TargetObject target{ solution };
+
+			if (solution.policy) {
+				PushTargetObject(target);
+				method = true;
+			}
+			
+
+			std::vector<std::string> names{ size + method };
+			std::vector<ITypePolicy*> policies{ size + method };
+
+			if (method) {
+				names[0] = "<this>";
+				policies[0] = solution.policy;
+			}
 
 			for (int i = 0; i < size; i++){
 				auto& param = params[i];
-				names[i] = param.name;
-				policies[i] = param.GetTypePolicy();
+				names[i + method] = param.name;
+				policies[i + method] = param.GetTypePolicy();
 			}
-
+			logger::debug("Parameter Size: {}", size + method);
 			a_scope.CreateVariables(names, policies);
 
 
@@ -128,10 +152,11 @@ namespace LEX
 				break;
 
 			default:
-				RGL_LOG(critical, "Unsupported syntax type.");
-				throw nullptr;
+				report::runtime::error("Unsupported syntax type.");
 			}
-
+			
+			PopTargetObject();
+			
 			operations.shrink_to_fit();
 
 			//Dead header scope should validate the returns, making sure that it actually has one.

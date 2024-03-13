@@ -5,18 +5,16 @@
 #include "OperandType.h"
 #include "Operand.h"
 
+
 #include "BasicQualifier.h"
 #include "RuntimeQualifier.h"
+#include "ParamInput.h"
+
 
 namespace LEX
 {
-	struct Solution : public Operand
+	struct Solution : public Operand, public ParamInput
 	{
-		ITypePolicy* policy{};		//I think I use an ITypePolicy? That's sorta the rule here.
-
-		RuntimeQualifier runtimeFlags{};
-		BasicQualifier basicFlags{};
-
 
 
 		//Solution needs some qualifiers, but to that it needs 3 types
@@ -34,7 +32,7 @@ namespace LEX
 
 		bool IsReadOnly() const
 		{
-			return false;
+			return type == OperandType::Literal || !FilterEquals<BasicQualifier::Volatility_>(basicFlags, BasicQualifier::Modable);
 		}
 
 		bool IsReference() const
@@ -44,10 +42,9 @@ namespace LEX
 
 		Solution() = default;
 
-		Solution(ITypePolicy* a_policy, OperandType a_type, Target a_target) :
-			policy{ a_policy }, Operand{ a_target, a_type }
+		Solution(ITypePolicy* a_policy, OperandType a_type, Target a_target) :  Operand{ a_target, a_type }
 		{
-			//RGL_LOG(trace, "sol ctor ops {}", a_type);
+			policy = a_policy;
 		}
 
 

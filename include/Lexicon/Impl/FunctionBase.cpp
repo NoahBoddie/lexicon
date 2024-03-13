@@ -2,6 +2,7 @@
 
 #include "Expression.h"
 #include "Environment.h"
+#include "DeclareHeader.h"
 #include "RoutineCompiler.h"
 namespace LEX
 {
@@ -33,8 +34,7 @@ namespace LEX
         //*/
 
         if (target.SYNTAX().type != SyntaxType::Function) {
-            RGL_LOG(critical, "Not a function, cannot load.");
-            throw nullptr;
+            report::compile::critical("Not a function, cannot load.");
         }
 
         _name = target.GetTag();
@@ -48,31 +48,81 @@ namespace LEX
         Environment* environment = GetEnvironment();
 
         if (!environment) {
-            logger::critical("environ issues cont.");
-            throw nullptr;
+            report::link::error("environ issues cont.");
         }
+        
+        Record* head_rec = target.FindChild("<header>");
+
+        if (!head_rec)
+            report::compile::fatal("No record named header.");
         //LINK_AFTER
 
-        ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
+        DeclareHeader header{ *head_rec, environment };
+
+        if (header.Matches(true, BasicQualifier::Const) == false) {
+            report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
+        }
+
+        //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
+
+        ITypePolicy* policy = header.policy;
 
         //GENERIC_SPACE
 
         SetReturnType(policy);
 
+
+        //STATIC_CHECK
+
+        bool method = false;
+
+        if (auto extend = target.FindChild("extend"); extend)
+        {
+            method = true;
+            
+            auto& tag = extend->GetFront().GetTag();
+
+            _targetType = GetPolicyFromSpecifiers(*extend, environment);
+            //_targetType = environment->TEMPSearchType(tag);
+
+            if (!_targetType) {
+                report::link::error("No type found with the name '{}' (tag not accurate anymore)", tag);
+            }
+            else {
+                logger::debug("I, {}, have type {}", _name, (uint64_t)_targetType);
+            }
+        }
+
+
         for (size_t i = 0; auto & node : target.FindChild("params")->GetChildren())
         {
-            auto tag = node.FindChild("type")->GetFront().GetTag();
+            Record* node_head = node.FindChild("<header>");
 
-            ITypePolicy* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
+            if (!node_head)
+                report::compile::fatal("No record named header.");
 
-            if (!policy) {
-                RGL_LOG(critical, "Parameter type '{}' couldn't be found", tag);
-                throw nullptr;
+            DeclareHeader header{ *node_head, environment };
+
+            //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
+            if (header.Matches(true, BasicQualifier::Const, RuntimeQualifier::All, DeclareSpecifier::Const) == false) {
+                report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
+
+            ITypePolicy* policy = header.policy;
+
+            //auto& tag = node.FindChild("type")->GetFront().GetTag();
+
+            //ITypePolicy* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
+
+            //if (!policy) {
+            //    report::link::error("Parameter type '{}' couldn't be found", tag);
+            //}
 
             //GENERIC_SPACE
 
-            logger::debug("test {}", !parameters.emplace_back(policy, i++, node.GetTag()).GetTypePolicy());
+            auto& param = parameters.emplace_back(policy, method + i++, node.GetTag());
+
+            assert(param.GetTypePolicy());
         }
 
         _routine = RoutineCompiler::Compile(target, this, GetEnvironment());
@@ -80,6 +130,6 @@ namespace LEX
 
     void FunctionBase::SetReturnType(ITypePolicy* policy)
     {
-        temp_returnType = policy;
+        _returnType = policy;
     }
 }

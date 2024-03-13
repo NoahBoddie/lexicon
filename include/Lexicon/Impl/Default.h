@@ -17,4 +17,16 @@ namespace LEX
 
 		}
 	};
+
+	//A struct that allows call to have targets for invoke.
+	struct Focus
+	{
+		RuntimeVariable value;
+
+		template <std::convertible_to<RuntimeVariable> T>
+		explicit Focus(T&& t) : value{ t }
+		{
+
+		}
+	};
 }

@@ -34,6 +34,7 @@ namespace LEX
 		virtual void SetDefault(Variable&) = 0;
 	public:
 		//Make these work like an actual emplace function, where it basically does the construction elsewhere.
+		// Move into function base? Largely non-basic structures depend on something else for this shit.
 		void EmplaceDefault(Variable& var);
 		void EmplaceDefault(Variable&& var) { return EmplaceDefault(var); }
 
@@ -95,6 +96,9 @@ namespace LEX
 
 
 		}
+
+
+		virtual RuntimeVariable ConvertTo(RuntimeVariable var, AbstractTypePolicy* to);
 	};
 
 }

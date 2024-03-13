@@ -32,27 +32,20 @@ namespace LEX
     using String = std::string;
 
     
-
-    struct Variable;
-
     
-    struct VariableRef
-    {
-        //The idea of this struct is that it takes a reference to a variable.
-        // I think the concept is, if it's copy constructing, it will transfer over the reference. If copy assigning it will copy it's target.
-        // or something. I'll need to put some thought into this.
-
-
-        //Also note, ref types will have to exist A, outside of any (not derived from voidable, nor any).
-        Variable* _ref;
-
-        
-    };
-
+    
+    //using Typer = decltype(std::variant<size_t>::_Which);
+    //constexpr auto size__ = sizeof(decltype(std::variant<size_t>::_Which));
+    
+    
+   
+    
+    
+    
     //TODO: Do the below. Medium priority.
     //Resuming the style from last time, there's a single function that one overloads for each of these to determine how their IDs are recieved.
     // Accompanying that, there should be a handler function that turns a type into a variable. Either by turning it into an object, or transfering it into one of the types.
-    using VariableData = std::variant
+    using VariableValue =  std::variant
         <
         //Types that will not need to exist coming soon:
         // prompt, Index,
@@ -65,7 +58,39 @@ namespace LEX
         Delegate
         >;
     
+#pragma pack (push, 1)
+    
 
+    using SizeType = std::_Variant_index_t<std::variant_size_v<VariableValue>>;
+
+    constexpr auto req_size = 8 - sizeof(SizeType);
+
+    ENUM(VariableFlag, uint8_t)
+    {
+        None,
+        Polymorphic = 1 << 0,
+
+
+
+    };
+
+    struct VariableData
+    {
+        //Program the clearing of this padding into the component.
+        
+        VariableFlag flags = VariableFlag::None;
+        uint8_t changed = 0;//Used to tell if it has changed between function calls.
+
+
+        void Clear()
+        {
+            *this = VariableData();
+        }
+    };
+    static_assert(sizeof(VariableData) <= req_size, "VarData must equal the size of the padding in VariableValue");
+
+#pragma pack(pop)
+    
     namespace 
     {
         //Method to find an object or variable.
@@ -79,7 +104,7 @@ namespace LEX
 
 
         template<typename T>
-        concept ObjectClass = is_one_of<T, VariableData>::value;
+        concept ObjectClass = is_one_of<T, VariableValue>::value;
 
     }
 
@@ -114,18 +139,50 @@ namespace LEX
 
     constexpr std::array<size_t, (size_t)BasicType::Total> basicTypeIndices
     {
-        variant_index<VariableData, Void>(),
-        variant_index<VariableData, Number>(),
-        variant_index<VariableData, Array>(),
-        variant_index<VariableData, String>(),
-        variant_index<VariableData, FunctionHandle>(),
-        variant_index<VariableData, Delegate>(),
-        variant_index<VariableData, ExternalHandle>()
+        variant_index<VariableValue, Void>(),
+        variant_index<VariableValue, Number>(),
+        variant_index<VariableValue, Array>(),
+        variant_index<VariableValue, String>(),
+        variant_index<VariableValue, FunctionHandle>(),
+        variant_index<VariableValue, Delegate>(),
+        variant_index<VariableValue, ExternalHandle>()
     };
 
+    struct DataHelper
+    {
+        //This will help clear the Variable data spot without me having to put clear in every constructor. Hopefully.
+
+
+        VariableData& GetData()
+        {
+            auto a_this = (uintptr_t)this;
+
+            return *reinterpret_cast<VariableData*>(a_this + sizeof(VariableComponent) - sizeof(VariableData));
+        }
+
+
+        void HelpClear()
+        {
+            GetData().Clear();
+        }
+
+
+        DataHelper()
+        {
+            HelpClear();
+        }
+
+        //Implicitly deletes copy assignment. So no use.
+        //DataHelper(DataHelper&& other){HelpClear();}
+
+        DataHelper(const DataHelper& other)
+        {
+            HelpClear();
+        }
+    };
 
     //Make a copy of the copy constructors
-    struct VariableComponent : public RGL::ClassAlias<VariableData>
+    struct VariableComponent : public RGL::ClassAlias<VariableValue>, public DataHelper
     {
         ALIAS_HEADER;
 
@@ -133,7 +190,7 @@ namespace LEX
         //If I do, this might become the primary class Variable uses
 
 
-        BasicType GetType() const
+        BasicType GetBasicType() const
         {
             //I want to put this shit within Variable Component and make this use that instead.
             switch (index())
@@ -148,7 +205,14 @@ namespace LEX
             default:                                    return BasicType::Total;
             }
         }
+
+
+
+
+
     };
+
+    static_assert(sizeof(VariableComponent) == sizeof(VariableValue), "Size of Variable Component and Value must be equal for data helper to work.");
 
     //The concept for the abstract version of a poly morphic class.
     struct IVariable;
@@ -163,17 +227,17 @@ namespace LEX
         { T2{ insert } };
     };
 
-    template <typename T>
-    AbstractTypePolicy* TypeOf()
-    {
+    //template <typename T>
+    //AbstractTypePolicy* TypeOf()
+    //{
         //The idea of this function is that it takes the core type and splits how it finds it's type.
         //For objects it should be their object interface that does it. However, part of this might be that the actual object will need to find that itself (if it can).
         // For example, delegates and function pointers will be able to use their real types to get that information
         //For Numbers the setting should do it
         //For Booleans it's obvious
         //For
-        return nullptr;
-    }
+        //return nullptr;
+    //}
 
 
     struct TestUnion
@@ -236,6 +300,8 @@ namespace LEX
 
         Variable() = default;
         
+        //IMPORTANT, DO NOT DELETE.
+        /*
         template <Constructible<VariableComponent> T>
         Variable(T&& value)//, AbstractTypePolicy* type)
         {
@@ -277,6 +343,12 @@ namespace LEX
             *this = policy;
         }
 
+        explicit Variable(AbstractTypePolicy* policy, int t = 0)
+        {
+            *this = policy;
+        }
+
+
         
         Variable(const Record& a_rhs)
         {
@@ -305,7 +377,7 @@ namespace LEX
             return *this;
         }
 
-        Variable& operator=(const Variable&& rhs)
+        Variable& operator=(const Variable&& rhs) noexcept
         {
             _data = rhs._data;
             _SetPolicy(rhs.GetPolicy());
@@ -335,7 +407,7 @@ namespace LEX
             return *this;
         }
 
-
+        //*/
 
 
         //Deprecated. ConcretePolicy will deal with this later,
@@ -459,19 +531,19 @@ namespace LEX
 
         BasicType GetBasicType() const
         {
-            return BasicType::Void;
+            return _data.GetBasicType();
         }
 
         bool IsBasicType(BasicType type) const
         {
-            return false;
+            return GetBasicType() == type;
         }
 
         //These should also maybe check the policies?
         bool IsVoid() const { return IsBasicType(BasicType::Void); }
-        bool IsObject() const { return false; }
-        bool IsNumber() const { return false; }
-        bool IsString() const { return false; }
+        bool IsObject() const { return IsBasicType(BasicType::Object);}
+        bool IsNumber() const { return IsBasicType(BasicType::Number); }
+        bool IsString() const { return IsBasicType(BasicType::String); }
 
 
 
@@ -542,7 +614,7 @@ namespace LEX
 
             Variable& self = *this;
 
-            ICallableUnit* out = nullptr;
+            Conversion out;
 
             if (GetPolicy()->IsConvertibleTo(policy, out) == false){
                 Clear();
@@ -564,51 +636,16 @@ namespace LEX
 
 
 
-        //With assignments should only be between the types that are considered core to this object, and shouldn't clear flags. There should additionally be 
-        // a version of the function that sends exceptions if the wrong interaction is going on.
-        //If you use an construction with a different variable this will reset the value (IE, it uses a version that does not preserve flags).
-        
-        //Revise. The below needs to be primary if I take it to be true
-        // other than variables being copied to variables, assignments from the variable components to an unexpected type will result in a crash.
-        // to confirm this, the object policy is given the variable form of the new object to see if it's valid.
-
-        //Last revision. No Assignment from the components. Assignments are only allowed between variables, as their idea is the overwriting of previous
-        // settings, including types. In that, they are to be used sparingly.
-        //When Convert is used (the function that will set one to the other with respects to the types) if the variable component indices don't match 
-        // a runtime error will be observed.
-        //If you assign with a variable that doesn't have a type
-
-        //For each component then, there's a function that will help find it's type.
-        // Since arrays are soon to be an object, as are delegates and function pointers, they're easier to handle in a sense.
-        // Boolean is easy, Number will take some doing, Strings are easy etc.
-        // So the function to get an
-
-        //It can construct with the components though, note that's not a viable variable for anything.
-        
-        //Variable& operator=(const Variable& a_rhs)
-        //{
-        //    Copy(a_rhs, true);
-        //}
-        //Variable& operator=(const Variable&& a_rhs)
-        //{
-        //    wchar_t t;
-        //}
-
-
-
-
-        //None of these account for index.
-
-        //As will be unsafe for now.
-
-        //TODO: All "Variable::As" functions will return references (hence the unsafeness).
-
-        //I may make a safe version of this to use, that takes a ref argument.
-        //Also another version that's not enum dependent.
+        RuntimeVariable Convert(AbstractTypePolicy* to);
     };
 
 
+
+
 }
+
+
+
 
 
 /*

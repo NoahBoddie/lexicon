@@ -14,6 +14,7 @@ namespace LEX::Impl
 		Object,
 		Boolean,
 		Field,
+		Declare,			//A declaration of a thing, but undetermined what.
 		Variable, 
 		
 		//Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
@@ -23,7 +24,7 @@ namespace LEX::Impl
 		Return,
 		Block,			//The declaration of a code block, a manually denoted one. Basically scopes off shit.
 		Typename,		//The type name of something. This encapsulates similar to how call will, but not on the same hierarchy of operators.
-		TypeDeclare,
+		Type,
 		Format,			//A change in language format. Can be select from TOML, JSON, etc
 		//Operators
 		Assign,
@@ -35,6 +36,8 @@ namespace LEX::Impl
 		While,
 		For,//Should compile like a while statement
 
+
+
 		//Individual operators will not be used, I can just have something hash into an
 		//I mean, I feel like I could just have something hash an operator into a literal integer, and that would work well enough into getting it's operator code.
 		// So maybe not needed.
@@ -43,11 +46,13 @@ namespace LEX::Impl
 		Total,
 
 		//Aliases- Short hand that makes my job a bit easier.
+
+		TypeOverScopeName = Scopename, //I'm currently trying to figure out if I want to use typename to say explicitly search type. For now I wont.
+
 		Invalid = Total,
 		//TODO: Separate header.
 		Header = Total,//Within the context of an expression class. 
-		VarDeclare = Variable,		//Used if something might be a variable, but could be a call.
-		VarUsage = Field,		//should handle constants and variables, and when assign is detected, the difference is handled at compile time. Otherwise for comparisons don't matter.
+		Tab = Total,
 	};
 	
 
@@ -103,9 +108,11 @@ namespace LEX::Impl
 				return cap ? "Object" : "Object";
 			case SyntaxType::Boolean:
 				return cap ? "Boolean" : "Boolean";
-			case SyntaxType::VarUsage:
+			case SyntaxType::Field:
 				return cap ? "Field" : "Field";
-			case SyntaxType::VarDeclare:
+			case SyntaxType::Declare:
+				return cap ? "Declaration" : "declaration";
+			case SyntaxType::Variable:
 				return cap ? "Variable" : "Variable";
 			//case SyntaxType::Scriptname:
 			//	return cap ? "Scriptname" : "Scriptname";
@@ -119,8 +126,8 @@ namespace LEX::Impl
 				return cap ? "Scopename" : "Scopename";
 			case SyntaxType::Typename:
 				return cap ? "Typename" : "Typename";
-			case SyntaxType::TypeDeclare:
-				return cap ? "TypeDeclare" : "TypeDeclare";
+			case SyntaxType::Type:
+				return cap ? "Type" : "Type";
 			case SyntaxType::Format:
 				return cap ? "Format" : "format";
 			case SyntaxType::Assign:

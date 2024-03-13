@@ -6,5 +6,8 @@ namespace LEX
 	{
 		None = 0,
 		Refr = 1 << 1,
+
+
+		All =  max_value<std::underlying_type_t<RuntimeQualifier>>,
 	};
 }

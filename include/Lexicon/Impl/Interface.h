@@ -2,6 +2,7 @@
 
 namespace LEX
 {
+	struct OverloadClause;
 	struct ISpecializable;
 
 	struct Interface
@@ -15,5 +16,7 @@ namespace LEX
 
 		//This is part of the specializing interface or fucking whatever.
 		virtual ISpecializable* GetSpecializable() { return nullptr; }
+
+		virtual OverloadClause* GetClause() = 0;
 	};
 }

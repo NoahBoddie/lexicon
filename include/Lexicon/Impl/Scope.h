@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RoutineCompiler.h"
+#include "SearchPredicate.h"
 
 //*src?
 #include "VariableInfo.h"//InfoBase
@@ -76,7 +77,7 @@ namespace LEX
 			process->currentScope = this;
 
 			if (parent && s == ScopeType::Header) {
-				RGL_LOG(critical, "invalid header scope with parent detected.");
+				report::compile::fatal("invalid header scope with parent detected.");
 			}
 		}
 
@@ -90,8 +91,7 @@ namespace LEX
 			size_t size = policies.size();
 			
 			if (names.size() != size) {
-				RGL_LOG(critical, "Amount of names do not match the amount of policies.");
-				throw nullptr;
+				report::compile::critical("Amount of names do not match the amount of policies.");
 			}
 
 			std::vector<size_t> result{};
@@ -103,10 +103,8 @@ namespace LEX
 				std::string& name = names[i];
 				ITypePolicy* policy = policies[i];
 				
-				if (auto& var = vars[name]; var)
-				{
-					RGL_LOG(critical, "Variable name already taken");
-					throw nullptr;
+				if (auto& var = vars[name]; var){
+					report::compile::critical("Variable name already taken");
 				}
 
 				auto index = !header ? process->ModVarCount(policy) : process->ModParamCount();
@@ -129,10 +127,8 @@ namespace LEX
 			
 			//variables.push_back(name);
 
-			if (auto& var = vars[name]; var)
-			{
-				RGL_LOG(critical, "Variable name already taken");
-				throw nullptr;
+			if (auto& var = vars[name]; var){
+				report::compile::critical("Variable name already taken");
 			}
 
 			auto index = !header ? process->ModVarCount(policy) : process->ModParamCount();
@@ -166,20 +162,15 @@ namespace LEX
 			}
 		}
 
-		Field* GetField(std::string name, ITypePolicy* = nullptr);
+		//TODO: make a SearchType function in scope, TypeAliases being here would be peachy.
+
+		Field* SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
+		
+		//I will abet this for now, but it dies some day
+		Field* SearchField(std::string name, FieldPredicate pred = nullptr);
 
 
-		std::vector<Field*> SearchField(std::string name, ITypePolicy* = nullptr)
-		{
-			auto var = GetVariable(name);
-
-			if (var)
-				return { var };
-			else
-				return {};
-
-			//This basically needs to search through itself first for results before it starts searching environments and such.
-		}
+		ITypePolicy* SearchType(std::string name);
 
 		//If this is the scope that the routine uses to hold its top level data returns true.
 		bool IsRoutine() const { return !parent; }

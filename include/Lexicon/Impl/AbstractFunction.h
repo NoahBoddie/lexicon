@@ -20,7 +20,7 @@ namespace LEX
 
 		virtual bool IsGeneric() const { return false; }
 		
-		virtual bool IsMethod() const { return false; }
+		
 
 		//Change this when generic gets into the picture
 		AbstractFunction* GetFunction(IGenericArgument* args) override

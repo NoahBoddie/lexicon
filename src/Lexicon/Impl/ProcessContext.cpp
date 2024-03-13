@@ -59,6 +59,24 @@ namespace LEX::Impl
 		return false;
 	}
 
+	bool ProcessChain::HasKeyword(std::string_view type)
+	{
+		if (!this)
+			return false;
+		
+		ProcessChain* link = this;
+
+		while (link)
+		{
+			if (link->current && link->current->HasKeyword(type) == true)
+				return true;
+
+			link = link->previous;
+		}
+		
+		return false;
+	}
+
 	ProcessChain ProcessChain::InheritChain(ProcessContext* cur, ProcessChain* prev)
 	{
 		return ProcessChain{ cur, prev, process };

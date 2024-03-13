@@ -18,8 +18,7 @@ namespace LEX
 			switch (index())
 			{
 			default:
-				RGL_LOG(critical, "RuntimeVariable is undefined.");
-				throw nullptr;
+				report::runtime::fatal("RuntimeVariable is undefined."); break;
 
 			case 1:
 				return std::get<Variable>(*this);
@@ -27,6 +26,12 @@ namespace LEX
 			case 2:
 				return std::get<VariableRef>(*this);
 			}
+		}
+
+
+		Variable* Ptr()
+		{
+			return &Ref();
 		}
 
 		RuntimeVariable AsRef()
@@ -38,7 +43,10 @@ namespace LEX
 
 		Variable* operator->()
 		{
-			return IsVoid() ? nullptr : &Ref();
+			if (IsVoid() == true)
+				report::runtime::fatal("RuntimeVariable is undefined, cannot be accessed.");
+
+			return &Ref();
 		}
 
 		bool IsVoid() { return !index() || Ref().IsVoid(); }

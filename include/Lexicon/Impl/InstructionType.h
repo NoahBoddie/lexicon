@@ -42,6 +42,8 @@ namespace LEX
 		Exponent,
 		Access,
 
+		Assign, 
+
 		//Directives (Instructions created don't match 1 to 1 the operator used)	
 		Push,
 		Move, 
@@ -62,6 +64,7 @@ namespace LEX
 
 
 		Call,
+		Construct,				//Constructs the default uninitialized object.
 		ReturnDefault,
 		DropStack,
 		JumpStack,

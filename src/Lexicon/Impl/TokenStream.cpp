@@ -79,7 +79,7 @@ namespace LEX::Impl
 		switch (type)
 		{
 		case TokenType::Number:
-			return std::isdigit(token.front()) || token.front() == '.' && std::isdigit(token.front()++);
+			return std::isdigit(token.front()) || token.front() == '.' && token.size() > 1 && std::isdigit(token[1]);
 
 		case TokenType::String:
 			//return token.front() == quote_char && token.back() == quote_char ||
@@ -145,7 +145,7 @@ namespace LEX::Impl
 				return false;
 
 		default:
-			RGL_LOG(critical, "unconfirmable token type {} detected. Terminating program.", (int)type);
+			report::parse::error("unconfirmable token type {} detected. Terminating program.", (int)type);
 			throw nullptr;
 		}
 
@@ -186,7 +186,6 @@ namespace LEX::Impl
 			return _ReadNext();
 		}
 
-
 		if (SetIfToken(data, TokenType::Boolean) == true)
 			return data;
 
@@ -202,9 +201,9 @@ namespace LEX::Impl
 		if (SetIfToken(data, TokenType::Number) == true)
 			return data;
 
-		if (SetIfToken(data, TokenType::Operator) == true)
+		if (SetIfToken(data, TokenType::Operator) == true) {
 			return data;
-
+		}
 		//Might have to go below format.
 		if (SetIfToken(data, TokenType::Identifier) == true)
 			return data;

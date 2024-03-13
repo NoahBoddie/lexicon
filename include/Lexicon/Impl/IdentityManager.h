@@ -66,6 +66,9 @@ namespace LEX
 		//Zero is a claimed id, I'll make it likely an actual value.
 		inline static uint32_t nextID = 1;
 
+	public:
+		//TODO: Unpublic this, and make this shit deal with this itself.
+		inline static PolicyBase* _voidPolicy = nullptr;
 
 	protected:
 		static IdentitySet* _GetIDSet(uint32_t id)
@@ -330,6 +333,10 @@ namespace LEX
 
 		static PolicyBase* GetTypeByID(TypeID id)
 		{
+			if (!id) {
+				return _voidPolicy;
+			}
+
 			TypeCode code = _GetTypeCode(id);
 			RGL_LOG(trace, "@id {}:{}", code.index, code.offset);
 			//I don't care about safies right now

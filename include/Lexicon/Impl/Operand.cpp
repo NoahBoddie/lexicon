@@ -39,7 +39,6 @@ namespace LEX
 
 		case OperandType::Index:
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
-			RGL_LOG(critical, "Index__1 {}", Get<Index>());
 			return runtime->GetVariable(Get<Index>()).AsRef();
 
 		case OperandType::Variable:
@@ -68,7 +67,7 @@ namespace LEX
 			break;
 		}
 
-		RGL_LOG(critical, "Operand didn't exist. Fixer later. {} ", type);
+		report::runtime::fatal("Operand didn't exist. Fixer later. {} ", (uint8_t)type);
 		throw nullptr;//Error.
 
 		//*/

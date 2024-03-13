@@ -10,6 +10,19 @@ namespace LEX
 	struct ITypePolicy;
 	class ParameterInfo;
 	
+	struct ProcedureData
+	{
+		Runtime* runtime = nullptr;
+		RuntimeVariable* def = nullptr;
+		const AbstractFunction* srcFunc = nullptr;
+	};
+
+	//Definition is the name of the struct that holds either routine data, or caller data.
+	//Or maybe it should be an enum.
+	using Procedure = void(*)(RuntimeVariable&, Variable*, std::vector<Variable*>, ProcedureData&);
+	
+
+
 	struct FunctionData
 	{
 		//A struct to be owned protected.
@@ -49,7 +62,7 @@ namespace LEX
 
 		RoutineBase _routine;//actually needs to be a pointer
 
-		
+		Procedure _procedure = nullptr;
 
 
 		RoutineBase* GetRoutine()
@@ -58,6 +71,10 @@ namespace LEX
 			return &_routine;
 		}
 
+		Procedure GetProcedure()
+		{
+			return _procedure;
+		}
 
 		std::vector<ParameterInfo> GetParameters()
 		{
@@ -90,6 +107,12 @@ namespace LEX
 		{
 			return _returnType;
 		}
+
+		ITypePolicy* GetTargetType()
+		{
+			return _targetType;
+		}
+
 
 		//AbstractTypePolicy* GetConcreteReturnType();//move to abstractFunction
 

@@ -9,10 +9,14 @@
 #include "TypeID.h"
 #include "FunctionInfo.h"
 #include "VariableInfo.h"//For tests only
+
+#include "SearchPredicate.h"
+
 //*src
 #include "ConcreteFunction.h"
 
 #include "GlobalVariable.h"
+
 
 namespace LEX
 {
@@ -30,6 +34,8 @@ namespace LEX
 	struct ConcretePolicy;
 	struct AbstractTypePolicy;
 
+	struct OverloadKey;
+
 	//For now, this is just a fucking dummy class, as nothing uses it, but it's here to remind myself of it. For now.
 	class CompilerMemory;
 	
@@ -43,9 +49,8 @@ namespace LEX
 		Skip,
 		Force
 	};
-
-
-	struct SearchParams
+	
+	struct [[deprecated("replaced by OverloadInput")]] SearchParams//Deprecated, 
 	{
 		std::string					name{};
 		Environment*				scope = nullptr;
@@ -56,11 +61,7 @@ namespace LEX
 		
 	};
 
-	//Will expand later.
-	using FieldSearch = std::function<SearchResult(SearchParams&, Field*)>;
-
-	using TypeSearch = std::function<SearchResult(SearchParams&, ITypePolicy*)>;
-	 
+	
 	//TODO: TypeContainer needs to be be PolicyBase, not ITypePolicy. Excludes specializations that way.
 	//For now only one per name. I'm not dealing with function and type signatures.
 	//using FunctionContainer = std::vector<FunctionInfo>;
@@ -231,10 +232,10 @@ namespace LEX
 		//TODO: SEVERE: Read below, big important.
 		//If I can, I'd like to put this in element some how. I can have calls of GetIncluded target explicitly
 		// the script that the given thing is in. For some, that'd be itself. For classes and functions, elsewhere.
-		Field* SearchField(std::string name, Environment* scope, ITypePolicy* target, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, FieldSearch func);
+		Field* SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
 		
 
-		ITypePolicy* SearchType(std::string name, Environment* scope, std::vector<ITypePolicy*>* temp_args, std::vector<ITypePolicy*>* func_args, TypeSearch func);
+		ITypePolicy* SearchType(std::string name, OverloadKey& key, TypePredicate pred = nullptr);
 
 
 		Field* TEMPSearchField(std::string name);

@@ -20,7 +20,36 @@ namespace LEX::Impl
 
 		//Op codes are codes that are the strings of various operators. Their sorting requires that the longer operators are first, while the smaller later.
 		// This ensures that a smaller operator doesn't consume a bigger one.
-		inline static std::vector<std::string> _opCodes{ "+", "-", "*", "/", "%", "=", "&", "|", "<", ">","!", "||", "&", "&&", ".", "^", "**", "++", "--", "<<", ">>", "==", "!="};
+		inline static std::vector<std::string> _opCodes
+		{ 
+			"+", 
+			"-", 
+			"*", 
+			"/", 
+			"%", 
+			"=", 
+			"&", 
+			"|", 
+			"<", 
+			">",
+			"!", 
+			"||", 
+			"&", 
+			"&&", 
+			".", 
+			"^", 
+			"**", 
+			"++", 
+			"--", 
+			"<<", 
+			">>", 
+			"==", 
+			"!=",
+			">=",
+			"<=",
+			"|=",
+			"&=",
+		};
 		//Extra op keys
 		//OR or AND and, NOT, not, XOR/xor (not sure how to handle that), is (and is not should be something to write, knowing is came before can help with that)
 		// as, also is ":" an operator? Should ? be an operator too?
@@ -28,7 +57,9 @@ namespace LEX::Impl
 		// === is another one, and maybe !==
 		//Also to tell if something is not some form of assign, if it doesn't start with '=' or '!' and ends with '='
 
+
 		inline static std::vector<std::string> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::" };//?
+		
 		inline static std::vector<std::string> _keyCodes
 		{ 
 			"if", 
@@ -40,7 +71,21 @@ namespace LEX::Impl
 			"intrinsic", 
 			"interface", 
 			"bind",
-			"this"
+			"this",
+			"static",
+			"signed",
+			"unsigned",
+			"short",
+			"long",
+			"bool",
+			"int",
+			"float",
+			"string",
+			"double",
+			"const",
+			"mutable",
+			"void",
+			"ref",
 		};
 
 		inline static std::string _compRegex;

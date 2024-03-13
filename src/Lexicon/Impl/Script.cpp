@@ -109,7 +109,7 @@ namespace LEX
 			break;
 
 		default:
-			RGL_LOG(critical, "Couldn't ObtainPolicy");
+			report::apply::debug("Couldn't ObtainPolicy");
 			result = nullptr;
 			break;
 		}
@@ -221,7 +221,7 @@ namespace LEX
 				break;
 
 			}
-			case SyntaxType::TypeDeclare:
+			case SyntaxType::Type:
 			{
 				//auto* policy = ObtainPolicy(node);
 				
@@ -232,7 +232,7 @@ namespace LEX
 				AddType(ObtainPolicy(node));
 				break;
 			}
-			case SyntaxType::VarDeclare:
+			case SyntaxType::Variable:
 			{
 				//This is very incorrect btw
 				AddVariable(Component::Create<Global>(node));
@@ -243,8 +243,7 @@ namespace LEX
 			case SyntaxType::Directive:
 
 			default:
-				RGL_LOG(critical, "Syntax not valid for script");
-				throw nullptr;
+				report::compile::critical("Syntax not valid for script"); break;
 			}
 		}
 	}

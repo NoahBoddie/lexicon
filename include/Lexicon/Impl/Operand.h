@@ -35,7 +35,7 @@ namespace LEX
 						return result;
 					}
 					else {
-						RGL_LOG(critical, "Failure to get Target, OperandType {}", (uint8_t)Type);
+						report::runtime::fatal("Failure to get Target, OperandType {}", (uint8_t)Type);
 						throw nullptr;
 					}
 				}
@@ -47,9 +47,9 @@ namespace LEX
 			}
 
 			//error here.
-			RGL_LOG(critical, "BEEG ERRAR");
+			report::compile::critical("Unexpected type in Operand, cannot get value.");
 
-			throw nullptr;
+			return {};
 		}
 
 		template <typename T>
@@ -67,7 +67,10 @@ namespace LEX
 
 			T result{};
 			
-			return data().Get<Type>(result);
+			if (data().Get<Type>(result) == false)
+				return false;
+
+			return result == value;
 		}
 
 		Variable CopyVariable(Runtime* runtime);

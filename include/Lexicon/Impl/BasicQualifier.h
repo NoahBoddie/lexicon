@@ -6,7 +6,13 @@ namespace LEX
 	ENUM(BasicQualifier, uint8_t)
 	{
 		None = 0,
-		Const = 1 << 0,
-			
+		
+		Volatility_		= 0b11 << 0,
+		Modable			= 0b00 << 0,
+		Mutable			= 0b01 << 0,
+		Const			= 0b11 << 0,
+		
+
+		All = max_value<std::underlying_type_t<BasicQualifier>>,
 	};
 }

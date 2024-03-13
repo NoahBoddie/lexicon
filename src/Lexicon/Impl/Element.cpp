@@ -28,8 +28,7 @@ namespace LEX
 		Environment* env = dynamic_cast<Environment*>(par);
 
 		if (!env) {
-			RGL_LOG(critical, "parent set for Element was not an environment.");
-			throw nullptr;
+			report::compile::critical("parent set for Element was not an environment.");
 		}
 
 		_parent = env;
