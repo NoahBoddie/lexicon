@@ -54,7 +54,8 @@ namespace LEX
 
 		IncrementArgStack,//PrepArgs
 		IncrementVarStack,
-		DefineVarPolicy,		//TODO: Remove DefineVarPolicy, it is basically a move instruction.
+		DefineVariable,		//Defines a variable as it's default. May not fully define. TODO: Remove DefineVarPolicy, it is basically a move instruction.
+		DefineParameter,	//Defines a parameter merely by assigning it's storage type.
 		// For these I could make them the same function, but make an index what makes them differ. In that I could send it it's index, similar to how
 		//  native functions get a string view of their names.
 		Test,//General test
