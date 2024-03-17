@@ -8,6 +8,7 @@ namespace LEX
 {
 	//Include questions for qualifiers
 	struct ITypePolicy;
+	struct Solution;
 
 	enum struct FieldType
 	{
@@ -29,6 +30,14 @@ namespace LEX
 		virtual size_t GetFieldIndex() const { return max_value<size_t>; }
 		
 		virtual ITypePolicy* GetTypePolicy() const { return nullptr; }
+
+		//TODO: Make Field::AsSolution virtual
+		Solution AsSolution();
+
+		//move lower
+		virtual BasicQualifier GetBasicFlags() const = 0;
+
+		virtual RuntimeQualifier GetRuntimeFlags() const = 0;
 
 
 		bool IsLocal() const { return GetFieldType() == FieldType::Local; }
