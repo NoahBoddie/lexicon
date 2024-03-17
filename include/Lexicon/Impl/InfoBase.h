@@ -54,11 +54,7 @@ namespace LEX
 		}
 
 	public:
-		//move lower
-		virtual BasicQualifier GetBasicFlags() const = 0;
-
-		virtual RuntimeQualifier GetRuntimeFlags() const = 0;
-
+		
 
 		size_t GetFieldIndex() const override
 		{

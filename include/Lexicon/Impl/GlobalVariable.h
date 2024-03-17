@@ -36,6 +36,16 @@ namespace LEX
 		{ 
 			return GetPolicy(); 
 		}
+		
+		BasicQualifier GetBasicFlags() const override
+		{
+			return {};
+		}
+
+		RuntimeQualifier GetRuntimeFlags() const override
+		{
+			return {};
+		}
 
 		std::string GetName() override
 		{
