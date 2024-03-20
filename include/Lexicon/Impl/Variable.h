@@ -68,18 +68,45 @@ namespace LEX
     ENUM(VariableFlag, uint8_t)
     {
         None,
-        Polymorphic = 1 << 0,
-
-
-
+        Polymorphic     = 1 << 0,
+        Readonly        = 1 << 1, //This is a constant that is baked into the variable. Used for things like literals maybe.
+        ExternCreated   = 1 << 2, //likely to be unused, but a left over from the previous flag.
+        Defined         = 1 << 3, //Used to read if the value is defined. Generally, this will just be ticked in situations like make object, or assigning a value.
     };
 
     struct VariableData
     {
         //Program the clearing of this padding into the component.
         
-        VariableFlag flags = VariableFlag::None;
+        mutable VariableFlag flags = VariableFlag::None;
+        
         uint8_t changed = 0;//Used to tell if it has changed between function calls.
+
+
+        uint8_t GetChangeNum()
+        {
+            return changed;
+        }
+
+        bool HasFlag(VariableFlag flag) const
+        {
+            return flags & flag;
+        }
+
+        void SetFlag(VariableFlag flag, bool value)
+        {
+            if (value)
+                flags |= flag;
+            else
+                flags &= ~flag;
+        }
+
+
+
+        bool IsPolymorphic() const { return HasFlag(VariableFlag::Polymorphic); }
+        bool IsReadonly() const { return HasFlag(VariableFlag::Readonly); }
+        bool IsDefined() const { return HasFlag(VariableFlag::Defined); }
+
 
 
         void Clear()
@@ -157,7 +184,14 @@ namespace LEX
         {
             auto a_this = (uintptr_t)this;
 
-            return *reinterpret_cast<VariableData*>(a_this + sizeof(VariableComponent) - sizeof(VariableData));
+            return *reinterpret_cast<VariableData*>(a_this + sizeof(VariableValue) - sizeof(VariableData));
+        }
+        
+        const VariableData& GetData() const
+        {
+            auto a_this = (uintptr_t)this;
+
+            return *reinterpret_cast<VariableData*>(a_this + sizeof(VariableValue) - sizeof(VariableData));
         }
 
 
@@ -182,13 +216,12 @@ namespace LEX
     };
 
     //Make a copy of the copy constructors
-    struct VariableComponent : public RGL::ClassAlias<VariableValue>, public DataHelper
+    struct VariableComponent : public DataHelper, public RGL::ClassAlias<VariableValue>
     {
         ALIAS_HEADER;
 
         //I want to make some ease of access functions in this.
         //If I do, this might become the primary class Variable uses
-
 
         BasicType GetBasicType() const
         {
@@ -211,7 +244,6 @@ namespace LEX
 
 
     };
-
     static_assert(sizeof(VariableComponent) == sizeof(VariableValue), "Size of Variable Component and Value must be equal for data helper to work.");
 
     //The concept for the abstract version of a poly morphic class.
@@ -261,78 +293,102 @@ namespace LEX
 
     struct Variable
     {
-        //A thing to think about, if how this interacts between versions is ever a problem, simply including a vtable so the implementations are always the same
-        // would be easy.
-
-        //If an object is created with a type and nothing else, this bit will not be on.
-        constexpr static size_t k_defineFlag = 1 << 0;
-        //If an object has been assigned since 
-        constexpr static size_t k_changeFlag = 1 << 1;
-        //A bit that represents a larger class at hand. Allows it to be static cast to a version of variable which has a vtable, allowing it to be converted 
-        // dynamically
-        constexpr static size_t k_polyFlag = 1 << 2;
-
-        constexpr static size_t k_flags = k_defineFlag | k_changeFlag | k_polyFlag;
-
-
-
-        //No idea why this delegating ctor crashes, will address when I can actually be arsed
-        //template <Constructible<VariableComponent> T>
-        //Variable(T&& value) : Variable{ value, _CheckVariableType() }
-        //{}
-
-
-
-
-        /*
-        X Construction From Default- No define, no change.
-        X Construction From Convertible- Construction based on "convertible to data" will  attempt to automatically create the variable based on the type. Define, maybe clear change?
-        X Construction From Variable- Construction from variable is viewed as a copy, taking on the values of the right side excluding the polymorhic flag. Define, Clear change.
-        Construction from type- Being constructed from a type basically assigns the default value from the type to it. No Define, No change.
-        Construction From Function- Using a specific function to create the Variable will lead to the resulting value being not filling the variables policy. Creates the value, not the type. Defined, no change
-
-        Assigning from Convertible- Assigning from convertible will lead to the change flag being edited, as well as the definition flag. In addition, this should edit the stored type. Change flag ticked.
-
-        Assign from variable- seen very similar from how construct from variable is seen, this is a complete reset.
-        Assign from Type- reflect ctor
-
-        //*/
 
         Variable() = default;
         
-        //IMPORTANT, DO NOT DELETE.
-        /*
+        //*
         template <Constructible<VariableComponent> T>
         Variable(T&& value)//, AbstractTypePolicy* type)
         {
-            _data = value;
-            _SetPolicy(_CheckVariableType());//REFUTE
+            _value = value;
+            SetPolicy(_CheckVariableType());//REFUTE
             _SetDefined(true);
         }
-
-        //For its
-        template <Assignable<VariableComponent> T>
-        Variable(T&& value, AbstractTypePolicy* policy)
-        {
-            _data = value;
-            //Might not do it like this no more.
-            _SetPolicy(policy);
-            _SetDefined(true);
-        }
-
-
 
         Variable(const Variable& rhs)
         {
-            _data = rhs._data;
-            _SetPolicy(rhs.GetPolicy());
+            _value = rhs._value;
+            SetPolicy(rhs.GetPolicy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
         }
+        //*/
+
+        template <Assignable<VariableComponent> T>
+        Variable(T&& other, AbstractTypePolicy* policy)
+        {
+            _value = other;
+            //Might not do it like this no more.
+            SetPolicy(policy);
+            _SetDefined(true);
+        }
+
+
+
+
+
+        Variable(Variable& var, AbstractTypePolicy* policy)
+        {
+            //Unsure about this one.
+            _value = var._value;
+            SetPolicy(policy);
+        }
+
+
+
+
+        Variable& operator=(const Variable& rhs)
+        {
+            _value = rhs._value;
+            SetPolicy(rhs.GetPolicy());
+            _SetDefined(rhs.IsDefined());
+            _SetChanged(rhs.IsChanged());
+            return *this;
+        }
+
+        //Pretty sure this is implicitly more important than the other.
+        Variable& operator=(const Variable&& rhs) noexcept
+        {
+            _value = rhs._value;
+            SetPolicy(rhs.GetPolicy());
+            _SetDefined(rhs.IsDefined());
+            _SetChanged(rhs.IsChanged());
+            return *this;
+        }
+
+
+        template <Constructible<VariableComponent> T>
+        Variable& operator=(T& value)
+        {
+            _value = value;
+            SetPolicy(_CheckVariableType());//REFUTE
+            _SetDefined(true);
+            _SetChanged(true);
+            return *this;
+        }
+
+
+
+    private:
+        Variable(const Record& a_rhs)
+        {
+            //Used to construct literals.
+        }
+    public:
+
+        //IMPORTANT, DO NOT DELETE.
+        /*
+        
+
+        //For its
+        
+
+
+
         Variable(const Variable&& rhs)
         {
-            _data = rhs._data;
-            _SetPolicy(rhs.GetPolicy());
+            _value = rhs._value;
+            SetPolicy(rhs.GetPolicy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
         }
@@ -343,25 +399,9 @@ namespace LEX
             *this = policy;
         }
 
-        explicit Variable(AbstractTypePolicy* policy, int t = 0)
-        {
-            *this = policy;
-        }
-
 
         
-        Variable(const Record& a_rhs)
-        {
-            //Used to construct literals.
-        }
 
-
-        Variable(Variable& var, AbstractTypePolicy* policy)
-        {
-            //Unsure about this one.
-            _data = var._data;
-            _SetPolicy(policy);
-        }
 
 
 
@@ -370,17 +410,18 @@ namespace LEX
 
         Variable& operator=(const Variable& rhs)
         {
-            _data = rhs._data;
-            _SetPolicy(rhs.GetPolicy());
+            _value = rhs._value;
+            SetPolicy(rhs.GetPolicy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
             return *this;
         }
 
+        //Pretty sure this is implicitly more important than the other.
         Variable& operator=(const Variable&& rhs) noexcept
         {
-            _data = rhs._data;
-            _SetPolicy(rhs.GetPolicy());
+            _value = rhs._value;
+            SetPolicy(rhs.GetPolicy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
             return *this;
@@ -390,8 +431,8 @@ namespace LEX
         Variable& operator=(AbstractTypePolicy* policy)
         {
             //should clear
-            _SetPolicy(policy);
-            _data = policy->GetDefault()._data;
+            SetPolicy(policy);
+            _value = policy->GetDefault()._value;
             _SetDefined(false);
             _SetChanged(false);
             return *this;
@@ -400,8 +441,8 @@ namespace LEX
         template <Constructible<VariableComponent> T>
         Variable& operator=(T& value)
         {
-            _data = value;
-            _SetPolicy(_CheckVariableType());//REFUTE
+            _value = value;
+            SetPolicy(_CheckVariableType());//REFUTE
             _SetDefined(true);
             _SetChanged(true);
             return *this;
@@ -410,33 +451,14 @@ namespace LEX
         //*/
 
 
-        //Deprecated. ConcretePolicy will deal with this later,
-        static Variable Default() { return Variable(); }
-        
-        //This tag is always false, but empty for the API to tell where a variable came from. Essentially allows us to know whether 
-       // we're allowed to delete it when it's a pointer or not.
-        //DEPRECATED, you aren't allowed to set these from a project, variables from projects can only hold data, and are marked as temporary.
-        bool _apiTag = false;
+        AbstractTypePolicy* _type = nullptr;
 
-        union
-        {
-            //REIMPLEMENTATION REMINDER, I would like this to have flags for definition and change
-
-            //This is used to get the 3 least significant bits.
-            std::bitset<64> _bits;
-            uint64_t        _raw;
-            //This might be const later?
-            // Also, this is literally useless. Not worth the sun above clouds.
-            AbstractTypePolicy* _type = nullptr;
-        };
        
-        VariableComponent _data{ Void::value() };
+        VariableComponent _value{ Void::value() };
 
         AbstractTypePolicy* GetPolicy() const
         {
-            //TODO: return to GetPolicy/SetPolicy, I've disabled the bits because shits experimental
-            //return _type;
-            return (AbstractTypePolicy*)(_raw & ~k_flags);
+            return _type;
         }
 
 
@@ -444,39 +466,44 @@ namespace LEX
 
         void _SetDefined(bool value)
         {
-            _bits.set(0, value);
+            //Defined is now based upon the value that is used. To cover stuff like classes not being set up properly, I'm keeping the defined bit.
+            _value.GetData().SetFlag(VariableFlag::Defined, value);
         }
 
         void _SetChanged(bool value)
         {
-            _bits.set(1, value);
+            if (value) {
+                auto& change = _value.GetData().changed;
+
+                change++;
+
+                if (!change) change++;
+            }
+                
+            else
+                _value.GetData().changed = 0;
         }
 
 
-        void _SetPolicy(AbstractTypePolicy* policy)
-        {
-            //_type = policy;
-
-
-            //Purge except the flags, then add the policy pointer.
-            _raw &= k_flags;
-            //Check for bits in policy at this junction here.
-
-            _raw |= reinterpret_cast<uint64_t>(policy);
-            
-        }
 
 
     protected:
         
         void SetPolymorphic(bool value)
         {
-            _bits.set(2, value);
+            _value.GetData().SetFlag(VariableFlag::Polymorphic, value);
         }
 
         AbstractTypePolicy* _CheckVariableType();
 
     public:
+
+        //PRIVATE_INTERNAL:
+        void SetPolicy(AbstractTypePolicy* policy)
+        {
+            _type = policy;
+        }
+
 
         explicit operator IVariable* ()
         {
@@ -490,18 +517,19 @@ namespace LEX
         
         bool IsPolymorphic() const
         {
-            return _raw & k_polyFlag;
+            return _value.GetData().IsPolymorphic();
         }
 
 
         bool IsDefined() const
         {
-            return _raw & k_defineFlag;
+            //TODO: Use IsDefined to determine definition. It will be vital at some point.
+            return !IsVoid();// && _value.GetData().IsDefined();
         }
 
         bool IsChanged() const
         {
-            return _raw & k_changeFlag;
+            return _value.GetData().changed;
         }
 
         //So typeinfo is something I'll be putting right here. If the value is 0xFFFFFFFF or something rather other,
@@ -512,13 +540,13 @@ namespace LEX
         std::strong_ordering operator<=>(const Variable& a_rhs) const
         {
             //This is bogus, doesn't really properly test inequivalency
-            if (auto result = _raw <=> a_rhs._raw; result != std::strong_ordering::equal)
+            if (auto result = _type <=> a_rhs._type; result != std::strong_ordering::equal)
                 return result;
             
-            if (_data < a_rhs._data)
+            if (_value < a_rhs._value)
                 return std::strong_ordering::less;
 
-            if (_data > a_rhs._data)
+            if (_value > a_rhs._value)
                 return std::strong_ordering::greater;
 
             return std::strong_ordering::equal;
@@ -531,7 +559,7 @@ namespace LEX
 
         BasicType GetBasicType() const
         {
-            return _data.GetBasicType();
+            return _value.GetBasicType();
         }
 
         bool IsBasicType(BasicType type) const
@@ -548,7 +576,7 @@ namespace LEX
 
 
 
-        Number AsNumber() { return std::get<Number>(_data); }
+        Number AsNumber() { return std::get<Number>(_value); }
         Integer AsInteger() { return 0; }
         String AsString() { return ""; }
         ExternalHandle AsExternal() { return nullptr; }
@@ -560,7 +588,7 @@ namespace LEX
 
         void Clear()
         {
-            _data = Void{};
+            _value = Void{};
             _SetDefined(false);
             _SetChanged(false);
         }
@@ -572,39 +600,18 @@ namespace LEX
 
             switch (a_rhs)
             {
-            case BasicType::String:     _data = ""; break;
-            //case BasicType::Number:     _data = (Number)0; break;
-            case BasicType::Array:      _data = Array{}; break;
-            case BasicType::Object:     _data = ExternalHandle(nullptr); break;
-            case BasicType::Delegate:   _data = Delegate{}; break;
-            case BasicType::Function:   _data = FunctionHandle{}; break;
+            case BasicType::String:     _value = ""; break;
+            //case BasicType::Number:     _value = (Number)0; break;
+            case BasicType::Array:      _value = Array{}; break;
+            case BasicType::Object:     _value = ExternalHandle(nullptr); break;
+            case BasicType::Delegate:   _value = Delegate{}; break;
+            case BasicType::Function:   _value = FunctionHandle{}; break;
 
             default:    throw nullptr;// This is in error, just have no idea how.
             }
         }
 
-        //Doesn't transfer qualifiers
-        void Copy(const Variable& a_rhs, bool lock_type, bool preserve)
-        {
-            //If type is locked it will use the AbstractTypePolicy to prevent the variable from changing to a value that it isn't.
-
-            //The idea of either the transfer or assign is that copying a variable will not copy over the actual type.
-            // I'm not sure which should do it, or how to handle convertible types.
-
-            //This is the function that will override types and such.
-
-            //These lsb's need to be preserved. Such as if they're polymorphic a copy won't affect that.
-            size_t lsb = _raw & k_flags;
-
-            //Though, Im unsure of which I should be keeping to be honest.
-
-            _raw = a_rhs._raw;
-            _data = a_rhs._data;
-            
-            //ClearFlags();
-            _raw &= k_flags;
-            _raw |= lsb;
-        }
+      
         
         //Resolves a variable to be like another variable. If they aren't directly convertible, conversions
         // may be detected and used.
@@ -626,22 +633,84 @@ namespace LEX
             }
             else {
                 //otherwise, it can let it go on as seen and will just adjust the type.
-                _SetPolicy(policy);
+                SetPolicy(policy);
             }
             
-
+            
             return IsVoid();
 
         }
+    
+        void CheckAssign(AbstractTypePolicy* other)
+        {
+            //Conversion must be a type conversion.
+            //if (other->IsConvertibleTo(_type) == false)
+            //    report::runtime::error("No type conversion between values.");
+        }
 
+        
+        //This is probably the main thing I seek to be using.
+        //Assign is kinda rough, for starters, it needs something to exist to work. Second, I'm not 100% sure where it would actually be used.
+        // I guess it would be used in situation where I need to guard a given variable. Thus, if I'm working with RuntimeVariables, and I'm NOT
+        // intending on setting 
+        Variable& Assign(Variable& other)
+        {
+            if (_type)
+                CheckAssign(GetValueType(other));
+
+            _value = other._value;
+
+            _SetDefined(true);
+            _SetChanged(true);
+
+            return *this;
+        }
+
+        Variable& Assign(Variable&& other)
+        {
+            return Assign(other);
+        }
+
+        template <Constructible<VariableComponent> T>
+        Variable& Assign(T&& other)
+        {
+            if (_type)
+                CheckAssign(GetValueType(other));
+           
+            _value = other;
+            
+            _SetDefined(true);
+            
+            
+            return *this;
+        }
 
 
         RuntimeVariable Convert(AbstractTypePolicy* to);
     };
 
 
+   
+    template <Assignable<VariableComponent> T>
+    Variable MakeVariable(T&& other)
+    {
+        //TODO: Constraint to make_variable should be has assign variable and get storage type. For now, I'll only target it to do what the constructor did previously.
+        //TODO: Later, needs to implement assign variable, which creates the initial variable to send.
+
+        VariableComponent temp{ other };
+
+        //This shouldn't need to work like this, but it's what it does for now.
+        AbstractTypePolicy* policy = std::visit([](auto&& lhs) {
+            return GetValueType(lhs);
+            }, temp);
+
+        //AbstractTypePolicy* policy = GetValueType(other);
+
+        Variable result{ other, policy };
 
 
+        return result;
+    }
 }
 
 
