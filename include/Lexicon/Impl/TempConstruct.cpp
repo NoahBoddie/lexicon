@@ -62,19 +62,16 @@ namespace LEX
 		template<class Operatable, bool Assign = false>
 		static RuntimeVariable BinaryMath(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
 		{
-
-			logger::critical("A");
-
 			//This covers basically most of the below stuff.
 			Number back = a_lhs->AsNumber();
-			logger::critical("a");
+			
 			Number front = a_rhs->AsNumber();
-			logger::critical("B");
+			
 			Operatable op{};
 
 			Number result = op(back, front);
 
-			logger::critical("C");
+			
 			//The below needs to curb "class std::" from the below
 			RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
 
@@ -146,9 +143,11 @@ namespace LEX
 			
 			std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
 			
+			logger::critical("Tar before call {}", runtime->GetVariable(3).index());
+
 			ret = func->Call(args);
 
-		
+			logger::critical("Tar after call {}", runtime->GetVariable(3).index());
 
 			/*
 			Coroutine* routine = a_lhs.As<Coroutine*>();
@@ -185,7 +184,7 @@ namespace LEX
 		{
 
 			logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
-			std::system("pause");
+			//std::system("pause");
 
 			//Pretty simple honestly. Increase by the amount.
 			runtime->AdjustStackPointer(StackPointer::Variable, a_lhs.Get<Differ>());
@@ -193,10 +192,9 @@ namespace LEX
 		}
 		
 
-		static void DefVarPolicy(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void DefineVar(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{ 
-			logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
-			std::system("pause");
+			//logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
 			
 			RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
 			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
@@ -205,9 +203,32 @@ namespace LEX
 			if (!policy){
 				report::compile::critical("no policy found.");
 			}
-		
-			var = policy;
+
+			logger::critical(" index of set {}", a_lhs.Get<Index>());
+
+			var = policy->GetDefault();
+
 		}
+
+		static void DefineParam(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		{
+			//While this may seem useless, this prevents things like where a float is given where a number is expected, causing any giving of a non-float number
+			// to result in an error within assign.
+
+			RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
+			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+
+			//if no policy, fatal fault
+			if (!policy) {
+				report::compile::critical("no policy found.");
+			}
+
+			logger::critical(" index of set {}", a_lhs.Get<Index>());
+
+			var->SetPolicy(policy);
+
+		}
+
 
 		static void Push(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
@@ -229,13 +250,27 @@ namespace LEX
 				report::runtime::fatal("Move attempted to set literal value.");
 			}
 
-			if (instruct == InstructType::Forward)
+
+			//Note, these likely are reversed. Move replaces, forward copies.
+			if (instruct == InstructType::Forward)	//Forward//References
 			{
-				a_lhs.ObtainVariable(runtime).Ref() = a_rhs.GetVariable(runtime).Ref();
+				
+				//As shown in the logging, the addresses are not the same.
+				//auto first = (uintptr_t)&a_rhs.GetVariable(runtime).Ref();
+
+				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.GetVariable(runtime).Ref();
+				//a_lhs.ObtainVariable(runtime)->Assign(a_rhs.GetVariable(runtime).Ref());
+				a_lhs.ObtainAsVariable(runtime).AssignRef(a_rhs.GetVariable(runtime));
+				
+				//auto second = (uintptr_t)&a_lhs.ObtainVariable(runtime).Ref();
+				//logger::critical("forward test, {} vs {}", first, second);
+				//std::system("pause");
+
 			}
-			else
+			else									//Move//Copies
 			{
-				a_lhs.ObtainVariable(runtime).Ref() = a_rhs.CopyVariable(runtime);
+				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.CopyVariable(runtime);
+				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
 			}
 		}
 
@@ -396,6 +431,12 @@ namespace LEX
 	{
 		//A set convenience functions.
 
+	private:
+		static Operation _Transfer(Operand& left, Operand& right, bool is_ref)
+		{
+			return Operation{ false ? InstructType::Forward : InstructType::Move, left, right };
+		}
+	public:
 
 		static Operation Transfer(Operand& left, Solution& right)
 		{
@@ -410,14 +451,33 @@ namespace LEX
 			}
 			
 
-			return Operation{ is_ref ? InstructType::Forward : InstructType::Move, left, right };
+			return _Transfer(left, right, is_ref);
 		}
+
+
+		static Operation Transfer(Solution& left, Solution& right)
+		{
+			//If the left is a reference already, it's not allowed to be overriden.
+			if (left.IsReference() == true)
+				return _Transfer(left, right, false);
+
+			return Transfer(static_cast<Operand&>(left), right);
+		}
+
 
 
 		static Operation Transfer(Operand&& left, Solution& right)
 		{
 			return Transfer(static_cast<Operand&>(left), right);
 		}
+
+
+		static Operation Transfer(Solution&& left, Solution& right)
+		{
+			return Transfer(static_cast<Solution&>(left), right);
+		}
+
+
 
 
 		//Changes the solution to be where the operand is, and gives the operation that would make it where it's expected.
@@ -431,6 +491,7 @@ namespace LEX
 			//This will set what operand stores into the solution without touching the type data within
 			sol = op;
 
+
 			return result;
 		}
 
@@ -441,6 +502,20 @@ namespace LEX
 
 			Operation result = Operation{ InstructType::Move, op, sol };
 				
+			sol = op;
+
+			return result;
+		}
+
+
+
+		//Changes the solution to be where the operand is similar to mutate, but forces it to ref instead. A temporary function to sus out issue with member accesses.
+		[[nodiscard]] static Operation MutateRef(Solution& sol, Operand op)
+		{
+			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
+
+			Operation result = Operation{ InstructType::Forward, op, sol };
+
 			sol = op;
 
 			return result;
@@ -902,7 +977,7 @@ namespace LEX
 				//compiler->GetOperationList().push_back(CompUtil::MutateCopy(from, to));
 
 				//return from;
-
+				//TRANSFOR
 				compiler->GetOperationList().push_back(Operation{ InstructType::Move, to, from });
 
 				return to;
@@ -954,9 +1029,14 @@ namespace LEX
 			
 			if (!var) {
 				report::compile::critical("Cannot find variable '{}'.", target.GetTag());
+				return {};
 			}
+
+			//XTOR
+			//Solution result{ var->GetTypePolicy(), OperandType::Index, var->GetFieldIndex() };
+			Solution result = var->AsSolution();
 	
-			Solution result{ var->GetTypePolicy(), OperandType::Index, var->GetFieldIndex()};
+			
 			
 			assert(result.policy);
 
@@ -997,7 +1077,7 @@ namespace LEX
 
 			if (self) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
-				compiler->GetOperationList().push_back(CompUtil::Mutate(*self->target, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+				compiler->GetOperationList().push_back(CompUtil::MutateRef(*self->target, Operand{ compiler->ModArgCount(), OperandType::Argument }));
 				dealloc_size++;
 			}
 
@@ -1086,6 +1166,7 @@ namespace LEX
 			//input.object = self;
 			//input.paramInput = args;
 
+			//TODO: Should be in error if has an explicit target.
 
 			ITypePolicy* type = compiler->GetScope()->SearchType(target.GetTag());
 		
@@ -1159,8 +1240,8 @@ namespace LEX
 				report::compile::critical("Couldn't find type name.");
 			}
 
-			size_t var_index = compiler->GetScope()->CreateVariable(target.GetTag(), policy);	
-			
+			VariableInfo* var = compiler->GetScope()->CreateVariable(target.GetTag(), policy);	
+			size_t var_index = var->_index;
 			if (Record* definition = target.FindChild("def"); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
@@ -1202,7 +1283,7 @@ namespace LEX
 				if (!return_policy && return_policy != result.policy) {
 					report::compile::critical("Expecting return value but value is found.");
 				}
-
+				
 
 				ICallableUnit* out = nullptr;
 
@@ -1296,7 +1377,8 @@ namespace LEX
 			instructList[InstructType::JumpStack] = InstructWorkShop::JumpStack;
 			instructList[InstructType::IncArgStack] = InstructWorkShop::IncArgStack;
 			instructList[InstructType::IncVarStack] = InstructWorkShop::IncVarStack;
-			instructList[InstructType::DefineVarPolicy] = InstructWorkShop::DefVarPolicy;
+			instructList[InstructType::DefineVariable] = InstructWorkShop::DefineVar;
+			instructList[InstructType::DefineParameter] = InstructWorkShop::DefineParam;
 			instructList[InstructType::DropStack] = InstructWorkShop::DropStack;
 
 
@@ -1327,7 +1409,7 @@ namespace LEX
 
 
 			float64->EmplaceDefault(static_cast<double>(0));
-			//RGL_LOG(info, "{} float64", (uint32_t)float64.GetTypeID());
+		
 
 			
 			RGL_LOG(info, "{} float64?", (uint32_t)IdentityManager::GetTypeByID(offset + 1)->GetTypeID());
