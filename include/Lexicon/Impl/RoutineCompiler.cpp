@@ -132,8 +132,16 @@ namespace LEX
 				names[i + method] = param.name;
 				policies[i + method] = param.GetTypePolicy();
 			}
+
+			auto old = _current;
+			_current = &operations;
+
+
 			logger::debug("Parameter Size: {}", size + method);
 			a_scope.CreateVariables(names, policies);
+
+
+			_current = old;
 
 
 			auto end = operations.end();

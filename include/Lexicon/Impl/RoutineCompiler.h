@@ -145,14 +145,44 @@ namespace LEX
 
 	protected:
 
+		//Please merge these 2 functions. make them mod var count, with a boolean to handle it being a param.
+
 		//Mods the count for parameters, not including the increment instructions.
-		size_t ModParamCount(int64_t inc = 1)
+		size_t ModParamCount(int64_t inc, std::vector<ITypePolicy*> policies = {})
 		{
+			auto size = policies.size();
+
+			if (inc > 0 && size != inc)
+			{
+				//TODO: make error a Fatal Fault
+				report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
+				throw nullptr;
+			}
+
 			//make the below use this.
 			size_t count = varCount[0];
 
 			if ((varCount[0] += inc) > varCount[1])
 				varCount[1] = varCount[0];
+
+
+			auto& op_list = GetOperationList();
+
+
+			if (inc > 0)
+			{
+				for (auto i = 0; i < size; i++)
+				{
+					//for each policy, starting at count and increasing by i, each policy needs to be loaded into
+					// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
+					// have an instruction intend to specialize.
+
+					size_t index = count + i;
+					ITypePolicy* policy = policies[i];
+					op_list.emplace_back(InstructionType::DefineParameter, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+				}
+			}
+
 
 			return count;
 		}
@@ -194,7 +224,7 @@ namespace LEX
 
 						size_t index = count + i;
 						ITypePolicy* policy = policies[i];
-						op_list.emplace_back(InstructionType::DefineVarPolicy, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+						op_list.emplace_back(InstructionType::DefineVariable, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 					}
 				}
 			}
@@ -206,6 +236,12 @@ namespace LEX
 		size_t ModVarCount(ITypePolicy* policy)
 		{
 			return ModVarCount(1, { policy });
+		}
+
+
+		size_t ModParamCount(ITypePolicy* policy)
+		{
+			return ModParamCount(1, { policy });
 		}
 
 		CompilerBase(Record& ast, FunctionData* owner = nullptr, Environment* env = nullptr) :
