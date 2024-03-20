@@ -91,6 +91,8 @@ void LexTesting(std::string formula)
     /*/
     //adding the ; seems to help. Some how, it seems to simultaneously not be able to read the last token
     // and also skip right past it.
+    //*
+#pragma region Texts
     std::string text_hope = R"(
         ActorValue::ActorValueStruct GetActorValue(float a1, float a2, commons::type a3)
         {
@@ -130,34 +132,6 @@ void LexTesting(std::string formula)
 
     )"s;
 
-    std::string crash2 = R"(
-        struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
-
-        void otherTest()
-        {
-        };
-
-        float TestCall(this float, float a, float b)
-        {
-            return a + b + this;
-        };
-
-        float GetActorValue(this float, float othername, float shootfol, float tellinal, float peacefal, float scrundal)
-        {
-            //int test = othername + shootfol + tellinal + peacefal + scrundal;
-            //Nope, it's just broken right now.
-            //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
-            
-
-            float test = tellinal.TestCall(othername, shootfol) + tellinal + peacefal + scrundal + this;
-            this = 0;
-            
-            float testB = __float64();
-
-            return this + test * testB;
-        };
-
-    )"s;
 
     std::string crash3 = R"(
         Scope::Scope::Scope::Type1 ref type = 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -182,6 +156,40 @@ void LexTesting(std::string formula)
         };
 
     )"s;
+#pragma endregion
+
+    std::string crash2 = R"(
+        struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
+
+        void otherTest()
+        {
+        };
+
+        float TestCall(this float, float a, float b)
+        {
+
+            this = this + 3;//This is the bread and butter of what we want. All considered, it should be 93, but if not done right, it's 90.
+
+            return a + b + this;
+        };
+
+        float GetActorValue(this float, float othername, float shootfol, float tellinal, float peacefal, float scrundal)
+        {
+            //int test = othername + shootfol + tellinal + peacefal + scrundal;
+            //Nope, it's just broken right now.
+            //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
+            
+
+            float test = tellinal.TestCall(othername, shootfol) + tellinal + peacefal + scrundal + this;
+            this = 0;
+            
+            float testB = __float64();
+
+            return;
+        };
+
+    )"s;
+
     //Identifier, Header
     std::string text = crash2;
 
@@ -202,7 +210,7 @@ void LexTesting(std::string formula)
     
     Script* script = Component::Create<Script>(ast);
 
-
+    if (0)
     {
         auto funcs = script->FindFunctions("TestCall");
 
@@ -378,6 +386,32 @@ struct TestObject : public Object
 
 
 
+void SafeInvoke(std::function<void()> func)
+{
+    if (!func)
+        return;
+    
+    if (IsDebuggerPresent() == false)
+    {
+        try {
+            func();
+
+        }//*
+        catch (...) {
+            logger::critical("critical error occured.");
+            std::system("pause");
+            std::exception_ptr p = std::current_exception();
+
+
+            std::rethrow_exception(p);
+        }
+    }
+    else {
+        func();
+    }
+}
+
+
 int main(int argc, char** argv) {
 #ifdef _DEBUG
     //Need a way to only have this happen when holding down a key
@@ -408,14 +442,28 @@ int main(int argc, char** argv) {
     //using input causes a crash for some reason.
     std::string formula;
     //std::cin >> formula;
+
+    SafeInvoke([&]() {
+        std::getline(std::cin >> std::ws, formula);
+
+        LexTesting(formula);
+
+        auto info = NewObjectType<TestObject>("TEST");
+
+        Object* obj = info->BuildObject();
+
+        if (auto test = dynamic_cast<TestObject*>(obj); test)
+        {
+            logger::info("Test success, string: {}, info: {}", test->var, test->GetInfo() == info.get());
+        }
+    });
     
-
-
+    /*
     try {
         std::getline(std::cin >> std::ws, formula);
-        
+
         LexTesting(formula);
-        
+
         auto info = NewObjectType<TestObject>("TEST");
 
         Object* obj = info->BuildObject();
@@ -435,7 +483,7 @@ int main(int argc, char** argv) {
         
         std::rethrow_exception(p);
     }
-    
+    //*/
 
 	//std::string out;
 	//std::cin >> out;
