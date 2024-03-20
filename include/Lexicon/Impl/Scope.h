@@ -107,7 +107,7 @@ namespace LEX
 					report::compile::critical("Variable name already taken");
 				}
 
-				auto index = !header ? process->ModVarCount(policy) : process->ModParamCount();
+				auto index = !header ? process->ModVarCount(policy) : process->ModParamCount(policy);
 
 				RGL_LOG(debug, "Scope creating {} at index {}, policy {}", name, index, !!policy);
 
@@ -119,8 +119,11 @@ namespace LEX
 			return result;
 		}
 
-		size_t CreateVariable(std::string name, ITypePolicy* policy)
+
+		VariableInfo* CreateVariable(std::string name, ITypePolicy* policy)
 		{
+			//Should consider not using a pointer due to invalidation. Instead, maybe give a copy.
+
 			bool header = IsHeader();
 
 			//auto result = variables.size();
@@ -131,15 +134,15 @@ namespace LEX
 				report::compile::critical("Variable name already taken");
 			}
 
-			auto index = !header ? process->ModVarCount(policy) : process->ModParamCount();
+			auto index = !header ? process->ModVarCount(policy) : process->ModParamCount(policy);
 
 			
 			RGL_LOG(debug, "Attempting to create {} at index {}", name, index);
 
-			vars[name] = VariableInfo{ policy, index };
+			VariableInfo& result = vars[name] = VariableInfo{ policy, index };
 			
-
-			return index;
+			//This is only temporarily valid.
+			return &result;
 		}
 
 		VariableInfo* GetVariable(std::string& name)
