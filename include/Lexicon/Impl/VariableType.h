@@ -157,9 +157,9 @@ namespace LEX
 		using custom_decay = T;//std::decay_t<T>;//
 	}
 	
-
+	
 	template <detail::var_impl T>
-	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>& arg)
+	AbstractTypePolicy* GetValueType(detail::custom_decay<T>& arg)
 	{
 		using _T = detail::custom_decay<T>;
 
@@ -176,8 +176,9 @@ namespace LEX
 		
 	}
 
+	
 	template <detail::ret_impl T>
-	ITypePolicy* GetReturnType(detail::custom_decay<T>& arg)
+	ITypePolicy* GetStorageType(detail::custom_decay<T>& arg)
 	{
 		using _T = detail::custom_decay<T>;
 
@@ -194,7 +195,7 @@ namespace LEX
 
 	}
 
-	//This should be called GetVariablePolicy or GetVariableType
+	//This should be called GetVariablePolicy or GetValueType
 	template <detail::obj_impl T>
 	ITypePolicy* GetTypePolicy(detail::custom_decay<T>& arg)
 	{
@@ -210,9 +211,178 @@ namespace LEX
 		}
 		else
 		{
-			if (auto policy = GetVariableType<_T>(arg); !policy)//or if the policy is the policy of none
-				return GetReturnType<_T>(arg);
+			if (auto policy = GetValueType<_T>(arg); !policy)//or if the policy is the policy of none
+				return GetStorageType<_T>(arg);
 		}
 
 	}
+
+
+
+
+
+#pragma region Implementation
+
+
+
+	//At a later point a single function and probably handle all of these.
+
+	class Number;
+	struct Delegate;
+	struct ExternalHandle;
+	struct FunctionHandle;
+	struct Array;
+	class Variable;
+
+
+
+	template <>
+	struct StorageType<Void>
+	{
+
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<Void>
+	{
+
+		AbstractTypePolicy* operator()(Void&);
+	};
+
+
+
+	template <>
+	struct StorageType<Number>
+	{
+
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<Number>
+	{
+
+		AbstractTypePolicy* operator()(Number& it);
+	};
+
+
+
+	template <>
+	struct StorageType<String>
+	{
+
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<String>
+	{
+
+		AbstractTypePolicy* operator()(String& it);
+	};
+
+
+	//The currently unused once
+
+	template <>
+	struct StorageType<Delegate>
+	{
+
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<Delegate>
+	{
+
+		AbstractTypePolicy* operator()(Delegate& it);
+	};
+
+
+	///Need to handle the regular versions too.
+
+	template <>
+	struct StorageType<ExternalHandle>
+	{
+
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<ExternalHandle>
+	{
+
+		AbstractTypePolicy* operator()(ExternalHandle& it);
+	};
+
+
+	///
+
+	template <>
+	struct StorageType<FunctionHandle>
+	{
+
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<FunctionHandle>
+	{
+
+		AbstractTypePolicy* operator()(FunctionHandle& it);
+	};
+
+
+
+	///
+
+	template <>
+	struct StorageType<Array>
+	{
+
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<Array>
+	{
+		AbstractTypePolicy* operator()(Array& it);
+	};
+
+
+
+	template <>
+	struct StorageType<Variable>//
+	{
+		//This wouldn simply return the object type, as a 
+		ITypePolicy* operator()();
+	};
+
+	template <>
+	struct ValueType<Variable>// : single_type
+	{
+		//this should visit its data, but this doesn't have permission. Likely best to test the implementation 
+		// inside fo the thing.
+		AbstractTypePolicy* operator()(const Variable& it);
+	};
+
+
+
+	
+
+
+
+
+
+	inline void TESTGjowrbgyopg()
+	{
+		using TestType = Variable;
+		TestType& v = reinterpret_cast<TestType&>(*(int*)0);
+		ValueType<TestType>{}(v);
+	}
+
+
+
+#pragma endregion
 }

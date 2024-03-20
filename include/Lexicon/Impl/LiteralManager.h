@@ -54,10 +54,12 @@ namespace LEX
 		{
 			case SyntaxType::Boolean:
 				if (code == "true") {
-					result = true;
+					result = MakeVariable(true);
+					//result = true;
 				}
 				else {
-					result = false;
+					result = MakeVariable(true);
+					//result = true;
 				}
 				break;
 
@@ -74,13 +76,15 @@ namespace LEX
 					report::compile::critical("invalid to be a number");
 				}
 
-				result = out;
+				result = MakeVariable(out);
+				//result = out;
 			}
 			break;
 
 			case SyntaxType::Object:
 			case SyntaxType::String:
-				result = code;
+				result = MakeVariable(code);
+				//result = code;
 				break;
 
 			default:

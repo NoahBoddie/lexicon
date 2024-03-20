@@ -135,6 +135,8 @@ namespace LEX
 	//Implementations
 	////////////////////////
 
+
+
 	struct CoreOffset
 	{
 		//CORE isn't a thing yet, but when it is this is what it'd be using.
@@ -154,213 +156,136 @@ namespace LEX
 #define DELEGATE_SET_NAME "DELEGATE"
 
 
+	//I need to figure out why these only work if being used by 1 source, and why it won't work if that source
+	// is variable type
+	ITypePolicy* StorageType<Void>::operator()()
+	{
+		//Should be returning the none type.
+		return nullptr;
+	}
+	AbstractTypePolicy* ValueType<Void>::operator()(Void&)
+	{
+		return nullptr;
+	}
 
-	//At a later point a single function and probably handle all of these.
 
 
+	ITypePolicy* StorageType<Number>::operator()()
+	{
+		ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, CoreOffset::Number);
 
-	template <>
-	struct StorageType<Void>
+		//Should already be specialized, so just sending it.
+		return policy->FetchTypePolicy(nullptr);
+	}
+
+	AbstractTypePolicy* ValueType<Number>::operator()(Number& it)
 	{
 
-		ITypePolicy* operator()()
-		{
-			//Should be returning the none type.
-			return nullptr;
-		}
-	};
+		ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, it.GetOffset());
 
-	template <>
-	struct ValueType<Void>
+
+		//Should already be specialized, so just sending it.
+		return policy->FetchTypePolicy(nullptr);
+	}
+
+
+
+	ITypePolicy* StorageType<String>::operator()()
 	{
+		ITypePolicy* policy = IdentityManager::GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
 
-		AbstractTypePolicy* operator()(Void&)
-		{
-			return nullptr;
-		}
-	};
+		//Should already be specialized, so just sending it.
+		return policy;
+	}
 
-
-
-	template <>
-	struct StorageType<Number>
+	AbstractTypePolicy* ValueType<String>::operator()(String& it)
 	{
+		return StorageType<String>{}()->GetTypePolicy(nullptr);
+	}
 
-		ITypePolicy* operator()()
-		{
-			ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, CoreOffset::Number);
 
-			//Should already be specialized, so just sending it.
-			return policy->GetTypePolicy(nullptr);
-		}
-	};
+	//The currently unused ones
 
-	template <>
-	struct ValueType<Number>
+
+
+	ITypePolicy* StorageType<Delegate>::operator()()
 	{
-
-		AbstractTypePolicy* operator()(Number& it)
-		{
-
-			ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, it.GetOffset());
-
-
-			//Should already be specialized, so just sending it.
-			return policy ? policy->GetTypePolicy(nullptr) : nullptr;
-		}
-	};
-
-
-
-	template <>
-	struct StorageType<String>
+		return nullptr;
+	}
+	AbstractTypePolicy* ValueType<Delegate>::operator()(Delegate& it)
 	{
+		return nullptr;
+	}
 
-		ITypePolicy* operator()()
-		{
-			ITypePolicy* policy = IdentityManager::GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
 
-			//Should already be specialized, so just sending it.
-			return policy;
-		}
-	};
 
-	template <>
-	struct ValueType<String>
+	ITypePolicy* StorageType<ExternalHandle>::operator()()
 	{
+		return nullptr;
+	}
 
-		AbstractTypePolicy* operator()(String& it)
-		{
-			return StorageType<String>{}()->GetTypePolicy(nullptr);
-		}
-	};
-
-
-	//The currently unused once
-
-	template <>
-	struct StorageType<Delegate>
+	AbstractTypePolicy* ValueType<ExternalHandle>::operator()(ExternalHandle& it)
 	{
-
-		ITypePolicy* operator()()
-		{
-			return nullptr;
-		}
-	};
-
-	template <>
-	struct ValueType<Delegate>
-	{
-
-		AbstractTypePolicy* operator()(Delegate& it)
-		{
-			return nullptr;
-		}
-	};
-
-
-	///Need to handle the regular versions too.
-
-	template <>
-	struct StorageType<ExternalHandle>
-	{
-
-		ITypePolicy* operator()()
-		{
-			return nullptr;
-		}
-	};
-
-	template <>
-	struct ValueType<ExternalHandle>
-	{
-
-		AbstractTypePolicy* operator()(ExternalHandle& it)
-		{
-			return nullptr;
-		}
-	};
+		return nullptr;
+	}
 
 
 	///
 
-	template <>
-	struct StorageType<FunctionHandle>
+	ITypePolicy* StorageType<FunctionHandle>::operator()()
 	{
+		return nullptr;
+	}
 
-		ITypePolicy* operator()()
-		{
-			return nullptr;
-		}
-	};
-
-	template <>
-	struct ValueType<FunctionHandle>
+	AbstractTypePolicy* ValueType<FunctionHandle>::operator()(FunctionHandle& it)
 	{
-
-		AbstractTypePolicy* operator()(FunctionHandle& it)
-		{
-			return nullptr;
-		}
-	};
+		return nullptr;
+	}
 
 
 
-	///
 
-	template <>
-	struct StorageType<Array>
+	ITypePolicy* StorageType<Array>::operator()()
 	{
+		return nullptr;
+	}
 
-		ITypePolicy* operator()()
-		{
-			return nullptr;
-		}
-	};
 
-	template <>
-	struct ValueType<Array>
+
+	AbstractTypePolicy* ValueType<Array>::operator()(Array& it)
 	{
-
-		AbstractTypePolicy* operator()(Array& it)
-		{
-			return nullptr;
-		}
-	};
+		return nullptr;
+	}
 
 
 
-	template <>
-	struct StorageType<Variable>//
+
+	ITypePolicy* StorageType<Variable>::operator()()
 	{
-		//This wouldn simply return the object type, as a 
-		ITypePolicy* operator()()
-		{
-			return nullptr;
-		}
-	};
+		return nullptr;
+	}
 
-	template <>
-	struct ValueType<Variable>// : single_type
+	AbstractTypePolicy* ValueType<Variable>::operator()(const Variable& it)
 	{
-		//this should visit its data, but this doesn't have permission. Likely best to test the implementation 
-		// inside fo the thing.
-		AbstractTypePolicy* operator()(const Variable& it)
-		{
-			return nullptr;
-		}
-	};
+		return nullptr;
+	}
+
+
+
 
 	//This is so temporary I hate that I'm doing it like this.
 	AbstractTypePolicy* Variable::_CheckVariableType()
 	{
 
 		AbstractTypePolicy* result = std::visit([&](auto&& lhs) {
-			return GetVariableType(lhs);
-			}, _data);
+			return GetValueType(lhs);
+			}, _value);
 
 		return result;
 	}
+
+	
+
 
 
 	void test()
@@ -376,7 +301,7 @@ namespace LEX
 
 
 
-	class Formula :public ICallableUnit, public RoutineBase
+	class Formula : public ICallableUnit, public RoutineBase
 	{
 		//This does not derive from functions, due to not wishing to be included into any place like those.
 		// Formulas as such are validated differently
