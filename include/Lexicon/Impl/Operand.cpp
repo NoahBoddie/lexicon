@@ -18,6 +18,26 @@ namespace LEX
 		return GetVariable(runtime);
 	}
 
+	RuntimeVariable& Operand::AsVariable(Runtime* runtime)
+	{
+		switch (type)
+		{
+		case OperandType::Register:
+			return runtime->GetRegister(Get<Register>());
+
+		case OperandType::Argument:
+			return runtime->GetArgument(Get<Index>());
+
+		case OperandType::Index:
+			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
+			return runtime->GetVariable(Get<Index>());
+			
+		}
+
+		report::runtime::fatal("Operand Cannot return AsVariable. No reference type detected. {} ", (uint8_t)type);
+		throw nullptr;//Error.
+	}
+
 
 	RuntimeVariable Operand::GetVariable(Runtime* runtime)
 	{
@@ -28,18 +48,24 @@ namespace LEX
 		// So this needs to be able to filter out when something has broken down. Or perhaps it states that the follo
 
 
-
 		switch (type)
 		{
 		case OperandType::Register:
-			return runtime->GetRegister(Get<Register>()).AsRef();
+			//logger::critical("uno");
+			//return runtime->GetRegister(Get<Register>()).AsRef();
+			__fallthrough;
 
 		case OperandType::Argument:
-			return runtime->GetArgument(Get<Index>()).AsRef();
+			//logger::critical("dos");
+			//return runtime->GetArgument(Get<Index>()).AsRef();
+			__fallthrough;
 
 		case OperandType::Index:
+			//logger::critical("tres {}", Get<Index>());
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
-			return runtime->GetVariable(Get<Index>()).AsRef();
+			//return runtime->GetVariable(Get<Index>()).AsRef();
+
+			return AsVariable(runtime).AsRef();
 
 		case OperandType::Variable:
 			//-1 should mean the default target.
@@ -74,6 +100,38 @@ namespace LEX
 	}
 
 
+	RuntimeVariable& Operand::ObtainAsVariable(Runtime* runtime)
+	{
+		//For the ones that it's relevant to do so, it confirms that the variable truly exists. If not, it instantiates it.
+		// <!>not valid on all operands. Cannot resolve unexpected operand types.
+		RuntimeVariable* run_var = nullptr;
+
+
+		RuntimeVariable& result = AsVariable(runtime);
+
+		switch (type)
+		{
+		case OperandType::Register:
+			run_var = std::addressof(runtime->GetRegister(Get<Register>()));
+			break;
+
+		case OperandType::Index:
+			run_var = std::addressof(runtime->GetVariable(Get<Index>()));
+			break;
+
+		case OperandType::Argument:
+			run_var = std::addressof(runtime->GetArgument(Get<Index>()));
+			break;
+
+		}
+
+		if (result.IsRefNull() == true) {
+			result = Variable{};
+		}
+
+		return result;
+	}
+
 	RuntimeVariable Operand::ObtainVariable(Runtime* runtime)
 	{
 		//For the ones that it's relevant to do so, it confirms that the variable truly exists. If not, it instantiates it.
@@ -102,6 +160,8 @@ namespace LEX
 
 		return GetVariable(runtime);
 	}
+
+	
 
 
 }

@@ -33,11 +33,11 @@ namespace LEX
 		bool Get(T& out)
 		{
 			if constexpr (Type == OperandType::None) {
-				return false;
-			}
-			else {
 				out = reinterpret_cast<T&>(raw);
 				return true;
+			}
+			else {
+				return false;
 
 			}
 
@@ -106,6 +106,7 @@ namespace LEX
 		template <>
 		bool Get<OperandType::Type, ITypePolicy*>(ITypePolicy*& out)
 		{
+			logger::info("It shit");
 			out = type;
 			return true;
 		}

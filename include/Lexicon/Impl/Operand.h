@@ -31,13 +31,12 @@ namespace LEX
 				{
 					T result{};
 					//Error message should probably be different here.
-					if (data().Get<Type>(result) == true) {
-						return result;
-					}
-					else {
+					if (data().Get<Type>(result) == false) {	
 						report::runtime::fatal("Failure to get Target, OperandType {}", (uint8_t)Type);
-						throw nullptr;
 					}
+
+					return result;
+
 				}
 				else 
 				{
@@ -52,6 +51,7 @@ namespace LEX
 			return {};
 		}
 
+		//Somehow, Operand::Get doesn't seem to crash when getting the wrong underlying type.
 		template <typename T>
 		T Get()
 		{
@@ -75,10 +75,15 @@ namespace LEX
 
 		Variable CopyVariable(Runtime* runtime);
 
+
+		RuntimeVariable& AsVariable(Runtime* runtime);
+
+
 		RuntimeVariable GetVariable(Runtime* runtime);
 
 
 		RuntimeVariable ObtainVariable(Runtime* runtime);
+		RuntimeVariable& ObtainAsVariable(Runtime* runtime);
 
 
 		constexpr Operand() = default;
