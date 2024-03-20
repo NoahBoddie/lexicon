@@ -28,6 +28,7 @@ namespace LEX
 			return _type;
 		}
 
+
 		ITypePolicy* _type = nullptr;
 		size_t _index = max_value<size_t>;
 	};

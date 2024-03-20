@@ -330,7 +330,8 @@ namespace LEX
 	{
 	private:
 		//for report issue, I would actually like to make use of an explicit specialization function probably.
-
+		//TODO: I wish to make a level of error called Failure, which is basically supposed to just jump out of a current cycle, rather than end the whole process.
+		// This is preferable to the current way of handling compiler errors that won't continue catching all the errors.
 
 		template <IssueType Type, IssueLevel Level, typename... Ts>//requires(!std::same_as<std::source_location, Ts> && ...)
 		struct _log_base

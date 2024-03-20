@@ -53,6 +53,7 @@ namespace LEX
 			if (index() == 0)
 			{
 				RuntimeVariable left = a_lhs.GetVariable(process);
+
 				RuntimeVariable right = a_rhs.GetVariable(process);
 
 				//do stuff that makes this operator.

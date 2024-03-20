@@ -42,6 +42,7 @@ namespace LEX
 
 		Solution() = default;
 
+
 		Solution(ITypePolicy* a_policy, OperandType a_type, Target a_target) :  Operand{ a_target, a_type }
 		{
 			policy = a_policy;

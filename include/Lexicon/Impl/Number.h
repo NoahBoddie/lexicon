@@ -167,7 +167,7 @@ namespace LEX
         return value;
     }
 
-
+    //TODO: Make number smaller by packing the settings into the variant.
     struct Number
     {
 
