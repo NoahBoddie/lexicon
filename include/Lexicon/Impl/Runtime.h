@@ -182,9 +182,17 @@ namespace LEX
 			case StackPointer::Variable:
 				//"Allocates" the variable stack, clearing whatever value was there last
 				// Only works in forward
-				for (auto i = _vsp; i < _vsp + step; i++) {
+				//for (auto i = _vsp + step; i >= _vsp; i--) {
+				//	if (auto& var = _varStack[i]; var.IsVoid() == false)
+				//		//var->Clear();
+				//		var.Clear();//Clears the runtime var instead of the value it targets
+				//}
+				//return _vsp += step;
+				
+				for (auto i = _vsp; i >= _vsp + step; i++) {
 					if (auto& var = _varStack[i]; var.IsVoid() == false)
-						var->Clear();
+						//var->Clear();
+						var.Clear();//Clears the runtime var instead of the value it targets
 				}
 				return _vsp += step;
 
@@ -192,8 +200,15 @@ namespace LEX
 				//"Deallocates" the argument stack only when the pointer is pushed down
 				// Only works in backward
 				//*Also, this looks like it will not work.
+				
+				//for (auto i = _asp; i >= _asp + step; i--) {
+				//	//_argStack[i]->Clear();
+				//	_argStack[i].Clear();
+				//}
+				//return _asp += step;
 				for (auto i = _asp + step; i < _asp; i++) {
-					_argStack[i]->Clear();
+					//_argStack[i]->Clear();
+					_argStack[i].Clear();
 				}
 				return _asp += step;
 
@@ -329,6 +344,7 @@ namespace LEX
 				while (_flags.Get(RuntimeFlag::RetBit) == false)
 				{
 					RGL_LOG(trace, "in loop {}", _rsp);
+
 					if (_rsp >= _limit) {
 						report::runtime::fatal("Runtime Stack Pointer equals or exceeds op size ({}/{}), terminating program.", _rsp, _limit);
 					}
@@ -338,6 +354,7 @@ namespace LEX
 					
 					_data[_rsp].Execute(this);
 					
+
 					if (_psp > _vsp) {
 						report::runtime::fatal("Param Stack Pointer greater than Var Stack Pointer ({}/{}), terminating program.", _psp, _vsp);
 					}
