@@ -5,6 +5,9 @@
 namespace LEX::Impl
 {
 
+	//TODO: Slated for deletion
+
+
 	//This is basically the idea.
 	Operand CompileExpression(Record& ast, Script* script, SyntaxType type)
 	{

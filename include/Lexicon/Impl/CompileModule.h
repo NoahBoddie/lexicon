@@ -2,6 +2,8 @@
 
 #include "Lexicon/Impl/Operand.h"
 
+//TODO: Slated for deletion. Take name.
+
 namespace LEX::Impl
 {
 	struct Compiler;
