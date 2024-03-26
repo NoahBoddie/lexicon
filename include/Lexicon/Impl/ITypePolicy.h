@@ -4,6 +4,8 @@
 #include "Interface.h"
 #include "TypeID.h"
 
+
+
 namespace LEX
 {
 	struct TypeID;
@@ -90,6 +92,10 @@ namespace LEX
 
 		virtual TypeID GetTypeID() const = 0;
 
+		TypeID FetchTypeID() const
+		{
+			return this ? GetTypeID() : TypeID{ 0 };
+		}
 
 		bool IsRelated(const ITypePolicy* rhs) const
 		{

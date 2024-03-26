@@ -206,15 +206,24 @@ namespace LEX
 
 		ReturnType _return{};
 
+		std::string name();
+
 		void _CheckExit()
 		{
+
 			if (IsHeader() == true) {
-				//TODO: If it's top level, it needs to check it's return status.
+
+				if (!_return && process->GetReturnType()->FetchTypeID() != -1)
+					report::compile::fatal("Explicit return expected. {}", name());
+
 				return;
 			}
 
 			switch (_type)
 			{
+			case ScopeType::Header:
+				break;
+
 			case ScopeType::Required:
 				if (_return)
 					parent->_ConfirmExit();
@@ -251,6 +260,12 @@ namespace LEX
 		}
 
 		void _ConfirmExit()
+		{
+			_return = ReturnType::Immutable;
+		}
+
+
+		void FlagReturn()
 		{
 			_return = ReturnType::Immutable;
 		}

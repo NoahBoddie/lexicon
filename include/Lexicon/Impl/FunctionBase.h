@@ -25,8 +25,7 @@ namespace LEX
 
 
 		//I haven't worked on setting up 
-		BasicQualifier GetBasicFlags() const override { return BasicQualifier::None; }
-		RuntimeQualifier GetRuntimeFlags() const override { return RuntimeQualifier::None; }
+		Qualifier GetQualifiers() const override { return Qualifier::None; }
 
 
 

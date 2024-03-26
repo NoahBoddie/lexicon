@@ -142,7 +142,7 @@ namespace LEX
 
 
 			_current = old;
-
+			
 
 			auto end = operations.end();
 
@@ -166,7 +166,7 @@ namespace LEX
 			PopTargetObject();
 			
 			operations.shrink_to_fit();
-
+		
 			//Dead header scope should validate the returns, making sure that it actually has one.
 		}
 

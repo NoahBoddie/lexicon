@@ -11,8 +11,8 @@ namespace LEX
 	{
 		Solution result{ GetTypePolicy(), OperandType::Index, GetFieldIndex() };
 
-		result.basicFlags = GetBasicFlags();
-		result.runtimeFlags = GetRuntimeFlags();
+		result.flags = GetQualifiers();
+
 
 		return result;
 	}

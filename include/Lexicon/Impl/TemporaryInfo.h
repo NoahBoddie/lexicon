@@ -11,14 +11,11 @@ namespace LEX
 		//I don't think I need this, may merge into local info.
 		TemporaryInfo(size_t i) : _index{ i } {}
 
-		BasicQualifier GetBasicFlags() const override
-		{
-			return GetData<Settings>().basic;
-		}
 
-		RuntimeQualifier GetRuntimeFlags() const override
+
+		virtual Qualifier GetQualifiers() const override 
 		{
-			return GetData<Settings>().runtime;
+			return GetData<Settings>().flags;
 		}
 
 	protected:

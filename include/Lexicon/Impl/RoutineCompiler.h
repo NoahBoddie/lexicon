@@ -276,6 +276,7 @@ namespace LEX
 
 		//<!>So FunctionData is an element, formulas are not elements
 
+		//Fell like it should hold the target element.
 		FunctionData* _targetFunc = nullptr;
 		Environment* _environment = nullptr;
 		//ICallableUnit* routine = nullptr;

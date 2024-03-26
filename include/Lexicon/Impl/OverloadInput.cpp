@@ -8,15 +8,11 @@
 namespace LEX
 {
 
-	BasicQualifier OverloadInput::GetBasicFlags() const
+	Qualifier OverloadInput::GetQualifiers() const
 	{
-		return object ? object->target->basicFlags : BasicQualifier::None;
+		return object ? object->target->flags : Qualifier::None;
 	}
 
-	RuntimeQualifier OverloadInput::GetRuntimeFlags() const
-	{
-		return object ? object->target->runtimeFlags : RuntimeQualifier::None;
-	}
 
 	ITypePolicy* OverloadInput::GetTarget()
 	{

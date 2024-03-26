@@ -11,8 +11,7 @@ namespace LEX
 	public:
 		struct Settings
 		{
-			BasicQualifier basic;
-			RuntimeQualifier runtime;
+			Qualifier flags{};
 		};
 
 

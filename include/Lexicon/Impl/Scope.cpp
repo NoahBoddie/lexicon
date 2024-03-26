@@ -47,4 +47,10 @@ namespace LEX
 
 		return result;
 	}
+
+
+	std::string Scope::name()
+	{
+		return process->_targetFunc->_name;
+	}
 }

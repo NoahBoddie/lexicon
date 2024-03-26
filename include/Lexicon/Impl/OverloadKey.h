@@ -1,16 +1,30 @@
 #pragma once
 
-#include "BasicQualifier.h"
-#include "RuntimeQualifier.h"
+//#include "BasicQualifier.h"
+//#include "RuntimeQualifier.h"
 
 #include "ParamInput.h"
 #include "GenericInput.h"
 
+//Seperate.
+#include "QualifiedType.h"
 
 namespace LEX
 {
 	struct ITypePolicy;
 	struct OverloadClause;
+
+
+	struct _DefInput : public QualifiedType
+	{
+		std::string name;
+
+		_DefInput()
+		{
+
+		}
+	};
+
 
 
 	struct OverloadKey
@@ -29,9 +43,7 @@ namespace LEX
 		// Within input, it stores a target object, so no issues getting the flags there.
 		// within a function policy, it's pretty easy to just make them on the spot.
 
-		virtual BasicQualifier GetBasicFlags() const = 0;
-
-		virtual RuntimeQualifier GetRuntimeFlags() const = 0;
+		virtual Qualifier GetQualifiers() const = 0;
 
 
 
@@ -48,34 +60,63 @@ namespace LEX
 
 
 
-		bool IsVolatility(BasicQualifier v) const
+		bool IsVolatility(Qualifier v) const
 		{
-			return FilterEquals<BasicQualifier::Volatility_>(GetBasicFlags(), v);
+			return FilterEquals<Qualifier::Volatility_>(GetQualifiers(), v);
 		}
 
 		bool IsConst() const
 		{
-			return IsVolatility(BasicQualifier::Const);
+			return IsVolatility(Qualifier::Const);
 		}
 
 		bool IsModable() const
 		{
-			return IsVolatility(BasicQualifier::Modable);
+			return IsVolatility(Qualifier::Modable);
 		}
 
 
 		bool IsMutable() const
 		{
-			return IsVolatility(BasicQualifier::Mutable);
+			return IsVolatility(Qualifier::Mutable);
 		}
 
-		BasicQualifier GetVolatility() const
+		Qualifier GetVolatility() const
 		{
-			return GetBasicFlags() & std::to_underlying(BasicQualifier::Volatility_);
+			return GetQualifiers() & std::to_underlying(Qualifier::Volatility_);
 		}
 
 
 
+
+
+		//Maybe make an enum so I can use one function for all.
+		virtual std::vector<QualifiedType> _GetInput(size_t group)
+		{
+			//this should only get the primary input, and exclude 
+			return {};
+		}
+		
+		virtual std::vector<_DefInput> _GetOptInput(size_t group)
+		{
+			return {};
+		}
+
+		size_t _NumOfParamGroups() const
+		{
+			return 0;
+		}
+
+		size_t _NumOfOptGroups() const
+		{
+			return 0;
+		}
+
+		size_t _NumOfEntries() const
+		{
+			return 0;
+		}
 	};
+
 
 }

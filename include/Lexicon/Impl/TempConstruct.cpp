@@ -1220,7 +1220,7 @@ namespace LEX
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
 			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
-			if (header.Matches(true, BasicQualifier::Const) == false) {
+			if (header.Matches(true, Qualifier::Const | Qualifier::Runtime) == false) {
 				report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
 
@@ -1264,6 +1264,9 @@ namespace LEX
 
 		void ReturnProcess(RoutineCompiler* compiler, Record& target)
 		{
+			ITypePolicy* return_policy = compiler->GetReturnType();
+
+
 			if (target.size() != 0)
 			{
 				logger::info("BEFORE");
@@ -1277,7 +1280,9 @@ namespace LEX
 
 				//left broken because I just realized even non-abstract types are going to have to worry about
 				// inheritence too.
-				ITypePolicy* return_policy = compiler->GetReturnType();
+			
+
+
 				//Basically, if one doesn't exist, and they aren't both just void.
 				//TODO: Actually use void for this, at no point should null be used here. Such would be a statement.
 				if (!return_policy && return_policy != result.policy) {
@@ -1308,9 +1313,13 @@ namespace LEX
 
 
 			}
+			else if (return_policy)
+			{
+				report::compile::critical("Expecting return expression");
+			}
 			
 
-
+			compiler->GetScope()->FlagReturn();
 
 			//Operation ret_op{ InstructionType::Return };
 

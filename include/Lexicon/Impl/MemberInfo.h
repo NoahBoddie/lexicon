@@ -17,6 +17,17 @@ namespace LEX
 			bool isRuntimeMember = false;
 		};
 
+		virtual Qualifier GetQualifiers() const override
+		{
+			auto setting = GetData<Settings>();
+
+			if (!setting.isRuntimeMember)
+				setting.flags = setting.flags & ~Qualifier::Runtime;
+			
+			return GetData<Settings>().flags;
+		}
+
+		/*
 		virtual BasicQualifier GetBasicFlags() const
 		{
 			return GetData<Settings>().basic;
@@ -29,6 +40,7 @@ namespace LEX
 
 			return RuntimeQualifier::None;
 		}
+		//*/
 	protected:
 		AccessModifier _access = AccessModifier::Private;
 

@@ -35,11 +35,10 @@ namespace LEX
 			return _name;
 		}
 
-		OverloadClause* GetClause() { return this; }
+		OverloadClause* GetClause() override { return this; }
 
 		//With no generic shit going on, this completely lacks the ability to be used.
-		BasicQualifier GetBasicFlags() const override { return BasicQualifier::None; }
-		RuntimeQualifier GetRuntimeFlags() const override { return RuntimeQualifier::None; }
+		Qualifier GetQualifiers() const override { return Qualifier::None; }
 
 
 		std::vector<ITypePolicy*> GetGenericInput() override { return {}; }

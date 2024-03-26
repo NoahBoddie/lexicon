@@ -1,7 +1,7 @@
 #pragma once
 
-#include "BasicQualifier.h"
-#include "RuntimeQualifier.h"
+//#include "BasicQualifier.h"
+//#include "RuntimeQualifier.h"
 #include "DeclareSpecifier.h"
 
 //*src
@@ -210,10 +210,9 @@ namespace LEX
 		return result;
 	}
 	
-	inline std::pair<BasicQualifier, RuntimeQualifier> GetQualifiersFromStrings(Record& node)
+	inline Qualifier GetQualifiersFromStrings(Record& node)
 	{
-		BasicQualifier basic{};
-		RuntimeQualifier runtime{};
+		Qualifier flags{};
 
 		for (auto& entry : node.GetChildren())
 		{
@@ -222,21 +221,21 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case "mutable"_h:
-				basic |= BasicQualifier::Mutable;
+				flags |= Qualifier::Mutable;
 				break;
 
 			case "const"_h:
-				basic |= BasicQualifier::Const;
+				flags |= Qualifier::Const;
 				break;
 
 			case "ref"_h:
-				runtime |= RuntimeQualifier::Refr;
+				flags |= Qualifier::Refr;
 				break;
 
 			}
 		}
 
-		return { basic, runtime };
+		return flags;
 	}
 
 	inline DeclareSpecifier GetSpecifiersFromStrings(Record& node)
@@ -324,8 +323,7 @@ namespace LEX
 
 			auto qualifier = GetQualifiersFromStrings(type_qual);
 
-			basic = qualifier.first;
-			runtime = qualifier.second;
+			flags = qualifier;
 
 			policy = GetPolicyFromSpecifiers(type_spec, env);
 
@@ -342,8 +340,8 @@ namespace LEX
 		bool _filterByte = false;//This is used as a flag for filtering when policy is expected to be null but it isn't.
 	public:
 		//bool filtered = false;
-		BasicQualifier basic{};
-		RuntimeQualifier runtime{};
+		Qualifier flags{};
+
 		//StoreSpecifier _3;//Declare Specs ARE store specs.
 		DeclareSpecifier declare{};
 		
@@ -354,11 +352,11 @@ namespace LEX
 		operator bool() const
 		{
 			//compare the rest of this shit. This is a struct, you should be able to do whatever the fuck you want to do, BUT, be careful.
-			return basic || runtime || declare || policy || _filterByte;
+			return flags || declare || policy || _filterByte;
 		}
 
 		//Make some combination functions for these.
-		DeclareHeader Filter(bool type, BasicQualifier base = BasicQualifier::All, RuntimeQualifier run = RuntimeQualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		DeclareHeader Filter(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
 		{
 			//static_assert(false, "This filter is not correct, it's supposed to remove stuff, and move it into a different header. this just moves the left overs into the new one.");
 
@@ -369,18 +367,17 @@ namespace LEX
 			else//If not expecting a policy
 				filter._filterByte = policy ? true : false;
 
-			filter.basic = base & basic;
-			filter.runtime = run & runtime;
+			filter.flags = flags & qual;
 			filter.declare = decl & declare;
 
 			return filter;
 		}
 
 
-		bool Matches(bool type, BasicQualifier base = BasicQualifier::All, RuntimeQualifier run = RuntimeQualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		bool Matches(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
 		{
 			return true;
-			return !Filter(type, base, run, decl);
+			return !Filter(type, qual, decl);
 		}
 
 

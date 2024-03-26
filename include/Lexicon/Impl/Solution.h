@@ -6,8 +6,10 @@
 #include "Operand.h"
 
 
-#include "BasicQualifier.h"
-#include "RuntimeQualifier.h"
+//#include "BasicQualifier.h"
+//#include "RuntimeQualifier.h"
+#include "Qualifier.h"
+
 #include "ParamInput.h"
 
 
@@ -32,7 +34,7 @@ namespace LEX
 
 		bool IsReadOnly() const
 		{
-			return type == OperandType::Literal || !FilterEquals<BasicQualifier::Volatility_>(basicFlags, BasicQualifier::Modable);
+			return type == OperandType::Literal || !FilterEquals<Qualifier::Volatility_>(flags, Qualifier::Modable);
 		}
 
 		bool IsReference() const

@@ -3,7 +3,7 @@
 
 namespace LEX
 {
-	ENUM(BasicQualifier, uint8_t)
+	ENUM(BasicQualifier_, uint8_t)
 	{
 		None = 0,
 		
@@ -13,6 +13,6 @@ namespace LEX
 		Const			= 0b11 << 0,
 		
 
-		All = max_value<std::underlying_type_t<BasicQualifier>>,
+		All = max_value<std::underlying_type_t<BasicQualifier_>>,
 	};
 }

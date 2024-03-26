@@ -59,7 +59,7 @@ namespace LEX
 
         DeclareHeader header{ *head_rec, environment };
 
-        if (header.Matches(true, BasicQualifier::Const) == false) {
+        if (header.Matches(true, Qualifier::Const) == false) {
             report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
         }
 
@@ -104,7 +104,7 @@ namespace LEX
             DeclareHeader header{ *node_head, environment };
 
             //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
-            if (header.Matches(true, BasicQualifier::Const, RuntimeQualifier::All, DeclareSpecifier::Const) == false) {
+            if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
                 report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 

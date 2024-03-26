@@ -1,9 +1,9 @@
 #pragma once
 
-#include "BasicQualifier.h"
-#include "RuntimeQualifier.h"
+//#include "BasicQualifier.h"
+//#include "RuntimeQualifier.h"
 
-
+#include "Qualifier.h"
 
 namespace LEX
 {
@@ -32,10 +32,11 @@ namespace LEX
 
 	struct ParamInput
 	{
-		ITypePolicy* policy{};
+		//To be replaced by qualified type
 
-		RuntimeQualifier runtimeFlags{};
-		BasicQualifier basicFlags{};
+		ITypePolicy* policy{};
+		Qualifier flags{};
+		
 
 
 		ParamInput() = default;
@@ -45,6 +46,7 @@ namespace LEX
 
 	struct DefaultParamInput : public ParamInput
 	{
+		//To be renamed DefaultInput.
 		std::string name;
 	};
 

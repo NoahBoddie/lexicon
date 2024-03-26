@@ -8,7 +8,7 @@ namespace LEX
 	struct Overload
 	{
 		using _Self = Overload;
-		static constexpr size_t incompatible = max_value<size_t>;
+		static constexpr size_t incompatible = -1;
 		static constexpr size_t match = 0;
 
 		enum ResultEnum
@@ -25,9 +25,10 @@ namespace LEX
 			hash = h;
 		}
 
-		void Unmatch()
+		Overload& Unmatch()
 		{
 			par = incompatible;
+			return *this;
 		}
 
 		bool IsCompatible() const
@@ -65,6 +66,16 @@ namespace LEX
 			return IsCompatible();
 		}
 
+		
+
+		static Overload Failure(int = 0)
+		{
+			//TODO: Vary the types of failure by using the hash so I can tell what kind of failure it is, similar to that of  NaN.
+			//To do this, I can make the hash alternatively carry a code to an error within itself.
+
+			return Overload{}.Unmatch();
+		}
+
 		constexpr ResultEnum Compare(_Self rhs) const
 		{
 			if (hash == rhs.hash)
@@ -79,6 +90,7 @@ namespace LEX
 			return ResultEnum::Ambiguous;
 		}
 
+		
 
 		//For easy manipulation, I'd like it to be that you can increment this with numbers. No negatives, 
 		// no decreasing
@@ -89,7 +101,4 @@ namespace LEX
 
 
 	};
-
-
-
 }

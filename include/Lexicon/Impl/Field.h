@@ -1,8 +1,10 @@
 #pragma once 
 
 #include "AccessModifier.h"
-#include "BasicQualifier.h"
-#include "RuntimeQualifier.h"
+//#include "BasicQualifier.h"
+//#include "RuntimeQualifier.h"
+
+#include "Qualifier.h"
 
 namespace LEX
 {
@@ -34,10 +36,8 @@ namespace LEX
 		//TODO: Make Field::AsSolution virtual
 		Solution AsSolution();
 
-		//move lower
-		virtual BasicQualifier GetBasicFlags() const = 0;
 
-		virtual RuntimeQualifier GetRuntimeFlags() const = 0;
+		virtual Qualifier GetQualifiers() const = 0;
 
 
 		bool IsLocal() const { return GetFieldType() == FieldType::Local; }

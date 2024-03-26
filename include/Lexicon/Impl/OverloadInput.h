@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include "BasicQualifier.h"
-#include "RuntimeQualifier.h"
+//#include "BasicQualifier.h"
+//#include "RuntimeQualifier.h"
 
 #include "OverloadKey.h"
 
@@ -26,9 +26,7 @@ namespace LEX
 
 		//TODO: Give OverloadInput a fucking constructor, please and thank you
 
-		BasicQualifier GetBasicFlags() const override;
-
-		RuntimeQualifier GetRuntimeFlags() const override;
+		Qualifier GetQualifiers() const override;
 
 
 		virtual std::vector<ITypePolicy*> GetGenericInput() override
