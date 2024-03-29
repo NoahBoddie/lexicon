@@ -15,14 +15,13 @@ namespace LEX
 	struct OverloadClause;
 
 
-	struct _DefInput : public QualifiedType
+	using RequiredArg = QualifiedType;
+
+
+	struct OptionalArg : public RequiredArg
 	{
 		std::string name;
 
-		_DefInput()
-		{
-
-		}
 	};
 
 
@@ -47,7 +46,7 @@ namespace LEX
 
 
 
-
+		//I have no idea how I'd actually use generics quite yet, so I'll prefer to not use them.
 		virtual std::vector<ITypePolicy*> GetGenericInput() = 0;
 		virtual std::vector<DefaultGenericInput> GetDefaultGenericInput() = 0;
 
@@ -97,7 +96,7 @@ namespace LEX
 			return {};
 		}
 		
-		virtual std::vector<_DefInput> _GetOptInput(size_t group)
+		virtual std::vector<OptionalArg> _GetOptInput(size_t group)
 		{
 			return {};
 		}
@@ -116,6 +115,20 @@ namespace LEX
 		{
 			return 0;
 		}
+
+		//These are the only I'll need.
+		virtual std::vector<RequiredArg> __GetRequired(size_t offset)
+		{
+
+		}
+
+
+		virtual std::vector<OptionalArg> __GetOptional(size_t offset)
+		{
+
+		}
+
+
 	};
 
 

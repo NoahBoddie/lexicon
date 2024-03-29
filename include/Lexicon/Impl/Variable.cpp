@@ -8,7 +8,7 @@ namespace LEX
     {
         Conversion convert;
 
-        AbstractTypePolicy* from = GetPolicy();
+        AbstractTypePolicy* from = Policy();
 
         bool success = from && from->IsConvertibleTo(to, convert, ConversionType::Explicit);
         

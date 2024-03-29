@@ -12,10 +12,11 @@
 
 #include "ParamInput.h"
 
+#include "QualifiedType.h"
 
 namespace LEX
 {
-	struct Solution : public Operand, public ParamInput
+	struct Solution : public Operand, public QualifiedType
 	{
 
 

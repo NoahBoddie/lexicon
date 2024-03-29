@@ -3,6 +3,8 @@
 
 #include "LocalInfo.h"
 
+
+
 namespace LEX
 {
 
@@ -18,6 +20,13 @@ namespace LEX
 		ParameterInfo(ITypePolicy* t, size_t i, std::string n) : LocalInfo{t, i}
 		{
 			name = n;
+		}
+
+		ParameterInfo(QualifiedType t, size_t i, std::string n) : LocalInfo{ t, i }
+		{
+			name = n;
+
+			DataAs<Settings>().flags = t.flags;
 		}
 	};
 }

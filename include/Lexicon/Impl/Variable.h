@@ -308,7 +308,7 @@ namespace LEX
         Variable(const Variable& rhs)
         {
             _value = rhs._value;
-            SetPolicy(rhs.GetPolicy());
+            SetPolicy(rhs.Policy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
         }
@@ -340,7 +340,7 @@ namespace LEX
         Variable& operator=(const Variable& rhs)
         {
             _value = rhs._value;
-            SetPolicy(rhs.GetPolicy());
+            SetPolicy(rhs.Policy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
             return *this;
@@ -350,7 +350,7 @@ namespace LEX
         Variable& operator=(const Variable&& rhs) noexcept
         {
             _value = rhs._value;
-            SetPolicy(rhs.GetPolicy());
+            SetPolicy(rhs.Policy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
             return *this;
@@ -456,7 +456,7 @@ namespace LEX
        
         VariableComponent _value{ Void::value() };
 
-        AbstractTypePolicy* GetPolicy() const
+        AbstractTypePolicy* Policy() const
         {
             return _type;
         }
@@ -623,7 +623,7 @@ namespace LEX
 
             Conversion out;
 
-            if (GetPolicy()->IsConvertibleTo(policy, out) == false){
+            if (Policy()->IsConvertibleTo(policy, out) == false){
                 Clear();
             }
             else if (out) {

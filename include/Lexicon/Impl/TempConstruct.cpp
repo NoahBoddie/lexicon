@@ -377,7 +377,7 @@ namespace LEX
 
 			result = policy->GetDefault();
 
-			logger::critical("type is in result? {}, is void {}", !!result->GetPolicy(), result->IsVoid());
+			logger::critical("type is in result? {}, is void {}", !!result->Policy(), result->IsVoid());
 		}
 
 
@@ -1018,7 +1018,7 @@ namespace LEX
 			result = LiteralManager::ObtainLiteral(target);
 			
 			
-			Solution sol{ result->GetPolicy(), OperandType::Literal, result };
+			Solution sol{ result->Policy(), OperandType::Literal, result };
 			RGL_LOG(trace, "literal obtained, typeid: {}", (uint32_t)sol.policy->GetTypeID());
 			return sol;
 		}
@@ -1033,7 +1033,7 @@ namespace LEX
 			}
 
 			//XTOR
-			//Solution result{ var->GetTypePolicy(), OperandType::Index, var->GetFieldIndex() };
+			//Solution result{ var->GetType(), OperandType::Index, var->GetFieldIndex() };
 			Solution result = var->AsSolution();
 	
 			
@@ -1224,23 +1224,9 @@ namespace LEX
 				report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
 
-			ITypePolicy* policy = header.policy;
 
 
-
-			//Record* type_name = target.FindChild("type");
-			
-			//if (!type_name){
-			//	report::compile::critical("Couldn't find type");
-			//}
-
-			//ITypePolicy* policy = compiler->GetEnvironment()->TEMPSearchType(type_name->GetFront().GetTag());
-
-			if (!policy){
-				report::compile::critical("Couldn't find type name.");
-			}
-
-			VariableInfo* var = compiler->GetScope()->CreateVariable(target.GetTag(), policy);	
+			VariableInfo* var = compiler->GetScope()->CreateVariable(target.GetTag(), header);	
 			size_t var_index = var->_index;
 			if (Record* definition = target.FindChild("def"); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);

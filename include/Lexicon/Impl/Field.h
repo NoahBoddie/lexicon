@@ -5,12 +5,15 @@
 //#include "RuntimeQualifier.h"
 
 #include "Qualifier.h"
+#include "QualifiedType.h"
 
 namespace LEX
 {
 	//Include questions for qualifiers
 	struct ITypePolicy;
 	struct Solution;
+	struct QualifiedType;
+
 
 	enum struct FieldType
 	{
@@ -39,6 +42,7 @@ namespace LEX
 
 		virtual Qualifier GetQualifiers() const = 0;
 
+		QualifiedType GetQualifiedType() const;
 
 		bool IsLocal() const { return GetFieldType() == FieldType::Local; }
 	};

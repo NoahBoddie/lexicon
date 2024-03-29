@@ -262,7 +262,7 @@ namespace LEX
 		return decl;
 	}
 
-	struct DeclareHeader
+	struct DeclareHeader : public QualifiedType
 	{
 		DeclareHeader() = default;
 		//DeclareHeader(ITypePolicy* policy, BasicQualifier b, RuntimeQualifier r, DeclareSpecifier d){}
@@ -340,12 +340,15 @@ namespace LEX
 		bool _filterByte = false;//This is used as a flag for filtering when policy is expected to be null but it isn't.
 	public:
 		//bool filtered = false;
-		Qualifier flags{};
+		
+		//QualifiedType type{};
+		
+		//Qualifier flags{};
 
 		//StoreSpecifier _3;//Declare Specs ARE store specs.
 		DeclareSpecifier declare{};
 		
-		ITypePolicy* policy = nullptr;
+		//ITypePolicy* policy = nullptr;
 		
 		
 		

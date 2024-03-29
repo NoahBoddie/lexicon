@@ -4,6 +4,7 @@
 //#include "RuntimeQualifier.h"
 
 #include "Qualifier.h"
+#include "QualifiedType.h"
 
 namespace LEX
 {
@@ -29,7 +30,6 @@ namespace LEX
 		return filtered == std::to_underlying(check);
 	}
 
-
 	struct ParamInput
 	{
 		//To be replaced by qualified type
@@ -50,4 +50,9 @@ namespace LEX
 		std::string name;
 	};
 
+	//This is to be what default input is, but I'm mulling it over.
+	struct __ParamInput : public QualifiedType
+	{
+		std::string name;
+	};
 }

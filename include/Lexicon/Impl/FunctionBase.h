@@ -18,7 +18,7 @@ namespace LEX
 
 		//This and generic don't care which it is, but concrete policy will, so it's virtual to report that possibility
 		// The same may be done for parameter. We shall see.
-		virtual void SetReturnType(ITypePolicy* policy);
+		virtual void SetReturnType(QualifiedType type);
 
 		OverloadClause* GetClause() { return this; }
 

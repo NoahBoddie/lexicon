@@ -65,11 +65,11 @@ namespace LEX
 
         //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 
-        ITypePolicy* policy = header.policy;
+        QualifiedType type = header;
 
         //GENERIC_SPACE
 
-        SetReturnType(policy);
+        SetReturnType(type);
 
 
         //STATIC_CHECK
@@ -108,7 +108,7 @@ namespace LEX
                 report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 
-            ITypePolicy* policy = header.policy;
+            QualifiedType type = header;
 
             //auto& tag = node.FindChild("type")->GetFront().GetTag();
 
@@ -119,8 +119,8 @@ namespace LEX
             //}
 
             //GENERIC_SPACE
-
-            auto& param = parameters.emplace_back(policy, method + i++, node.GetTag());
+            
+            auto& param = parameters.emplace_back(type, method + i++, node.GetTag());
 
             assert(param.GetTypePolicy());
         }
@@ -128,8 +128,8 @@ namespace LEX
         _routine = RoutineCompiler::Compile(target, this, GetEnvironment());
     }
 
-    void FunctionBase::SetReturnType(ITypePolicy* policy)
+    void FunctionBase::SetReturnType(QualifiedType type)
     {
-        _returnType = policy;
+        _returnType = type;
     }
 }

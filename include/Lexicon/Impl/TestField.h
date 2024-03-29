@@ -695,6 +695,12 @@ namespace LEX
 			return 1;
 		}
 
+		int foo(const TypeA1&)
+		{
+			return 1;
+		}
+
+
 
 		int foo(TypeB2&)
 		{
@@ -717,10 +723,10 @@ namespace LEX
 
 		void Test()
 		{
-			TypeA a;
+			const TypeA a;
 			TypeB b;
 			TypeC c;
-
+			//foo(a);
 			//First: arg1 par 3, arg2 par 3 (or actual 5 if we consider multiple inherit)
 			//Second call: arg1 par 7, arg2 par 4
 

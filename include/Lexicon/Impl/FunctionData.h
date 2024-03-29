@@ -5,6 +5,8 @@
 #include "ParameterInfo.h"
 //Should have parameterinfos?
 
+#include "QualifiedType.h"
+
 namespace LEX
 {
 	struct ITypePolicy;
@@ -41,11 +43,12 @@ namespace LEX
 
 		
 		
-		ITypePolicy* _returnType = nullptr;
-		//Variable _defaultReturn;//I still sorta need this if the function failes, so maybe move it down.
+		QualifiedType _returnType = nullptr;
+	
 
 		
 		//Without a target type, this is a static function.
+		//Target type remains implicit
 		ITypePolicy* _targetType = nullptr;
 
 
@@ -103,12 +106,12 @@ namespace LEX
 		}
 
 		//Needs to be moved into ITypePolicy/AbstractTypePolicy.
-		ITypePolicy* GetReturnType()
+		QualifiedType GetReturnType() const
 		{
 			return _returnType;
 		}
 
-		ITypePolicy* GetTargetType()
+		ITypePolicy* GetTargetType() const
 		{
 			return _targetType;
 		}

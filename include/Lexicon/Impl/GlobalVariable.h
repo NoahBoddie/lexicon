@@ -32,9 +32,9 @@ namespace LEX
 			return max_value<size_t>;
 		}
 
-		virtual ITypePolicy* GetTypePolicy() const 
+		ITypePolicy* GetTypePolicy() const override
 		{ 
-			return GetPolicy(); 
+			return Policy(); 
 		}
 
 		Qualifier GetQualifiers() const override

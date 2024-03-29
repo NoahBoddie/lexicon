@@ -185,7 +185,7 @@ void LexTesting(std::string formula)
             
             float testB = __float64();
 
-            return;
+            return this + test + testB;
         };
 
     )"s;
@@ -235,7 +235,7 @@ void LexTesting(std::string formula)
     }
 
     ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
-
+    
     if (function)
     {
         //std::vector<Variable> args
@@ -291,7 +291,7 @@ void LexTesting(std::string formula)
     
     LEX::FunctionData test_data{};
 
-    test_data._returnType = number_type;
+    test_data._returnType = QualifiedType{ number_type };
     std::vector<LEX::ParameterInfo> parameters
     {
         LEX::ParameterInfo{number_type, 0, "scrundal"},
@@ -457,36 +457,6 @@ int main(int argc, char** argv) {
             logger::info("Test success, string: {}, info: {}", test->var, test->GetInfo() == info.get());
         }
     });
-    
-    /*
-    try {
-        std::getline(std::cin >> std::ws, formula);
-
-        LexTesting(formula);
-
-        auto info = NewObjectType<TestObject>("TEST");
-
-        Object* obj = info->BuildObject();
-
-        if (auto test = dynamic_cast<TestObject*>(obj); test)
-        {
-            logger::info("Test success, string: {}, info: {}", test->var, test->GetInfo() == info.get());
-        }
-
-
-    }
-    catch (...) {
-        logger::critical("critical error occured.");
-        std::system("pause");
-        std::exception_ptr p = std::current_exception();
-        
-        
-        std::rethrow_exception(p);
-    }
-    //*/
-
-	//std::string out;
-	//std::cin >> out;
     
     std::system("pause");
 	return 0;

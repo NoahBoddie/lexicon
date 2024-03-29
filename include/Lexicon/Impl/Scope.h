@@ -120,9 +120,11 @@ namespace LEX
 		}
 
 
-		VariableInfo* CreateVariable(std::string name, ITypePolicy* policy)
+		VariableInfo* CreateVariable(std::string name, QualifiedType type)
 		{
 			//Should consider not using a pointer due to invalidation. Instead, maybe give a copy.
+
+			assert(type.policy);
 
 			bool header = IsHeader();
 
@@ -134,12 +136,12 @@ namespace LEX
 				report::compile::critical("Variable name already taken");
 			}
 
-			auto index = !header ? process->ModVarCount(policy) : process->ModParamCount(policy);
+			auto index = !header ? process->ModVarCount(type.policy) : process->ModParamCount(type.policy);
 
 			
 			RGL_LOG(debug, "Attempting to create {} at index {}", name, index);
 
-			VariableInfo& result = vars[name] = VariableInfo{ policy, index };
+			VariableInfo& result = vars[name] = VariableInfo{ type.policy, index };
 			
 			//This is only temporarily valid.
 			return &result;
