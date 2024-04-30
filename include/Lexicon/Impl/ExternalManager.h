@@ -48,7 +48,7 @@ namespace LEX
 			std::lock_guard<std::mutex> guard{ lock };
 
 
-			auto base_id = IdentityManager::ObtainID(script_dir, range);
+			//auto base_id = IdentityManager::ObtainID(script_dir, range);
 
 			//After this, it should try to find the base type by name. Then assign these as a name. Or does the above do this?
 
