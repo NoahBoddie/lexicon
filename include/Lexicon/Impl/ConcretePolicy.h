@@ -42,6 +42,9 @@ namespace LEX
 
 		Variable GetDefault() override
 		{
+			if (policy)
+				return policy->CreateObject(GetTypeID());
+
 			return _default;
 		}
 
@@ -52,47 +55,7 @@ namespace LEX
 		}
 	public:
 
-		void LoadFromRecord(Record& ast) override
-		{
-			_name = ast.GetTag();
-
-			Record* settings = ast.FindChild("settings");
-
-			if (!settings) {
-				report::compile::critical("setting not found in type policy record");
-			}
-
-			switch (Hash(settings->GetChild(0).GetTag()))
-			{
-			case "class"_h:			_dataType = DataType::Class; break;
-			case "struct"_h:		_dataType = DataType::Struct; break;
-			case "interface"_h:		_dataType = DataType::Interface; break;
-			default:				report::compile::critical("improper data type found."); break;
-			}
-
-			//Do something with generic. It's useless right now
-
-
-			constexpr auto k_external = "interface";
-
-			Record& unique_type = settings->GetChild(2);
-			
-			switch (Hash(unique_type.GetTag()))
-			{
-				//case "data"_h://Not allowed yet
-				//case "external"://Not implemented well yet
-
-			case "intrinsic"_h:
-				if (_dataType == DataType::Interface) {
-					report::compile::critical("interfaces cannot be intrinsic/external");
-				}
-				break;
-
-			default:
-				report::compile::critical("PLACEHOLDER don't know how to handle unique type."); break;
-			}
-
-		}
+		void LoadFromRecord(Record& ast) override;
 
 
 		void CompileExpression(Record& ast) override
