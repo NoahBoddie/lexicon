@@ -4,8 +4,8 @@
 #include "Number.h"
 #include "AbstractTypePolicy.h"
 //#include "AbstractFunction.h"
-#include "ExternalHandle.h"
-
+//#include "ExternalHandle.h"
+#include "Object.h"
 #include "Array.h"
 #include "Delegate.h"
 #include "FunctionHandle.h"
@@ -54,7 +54,7 @@ namespace LEX
         String,
         Array,
         FunctionHandle,
-        ExternalHandle,
+        Object,
         Delegate
         >;
     
@@ -172,7 +172,7 @@ namespace LEX
         variant_index<VariableValue, String>(),
         variant_index<VariableValue, FunctionHandle>(),
         variant_index<VariableValue, Delegate>(),
-        variant_index<VariableValue, ExternalHandle>()
+        variant_index<VariableValue, Object>()
     };
 
     struct DataHelper
@@ -577,12 +577,12 @@ namespace LEX
 
 
         Number AsNumber() { return std::get<Number>(_value); }
-        Integer AsInteger() { return 0; }
-        String AsString() { return ""; }
-        ExternalHandle AsExternal() { return nullptr; }
-        Delegate AsDelegate() { return {}; }
-        FunctionHandle AsFunction() { return {}; }
-        Array AsArray() { return {}; }
+        Integer AsInteger() { throw nullptr; }
+        String AsString() { return std::get<String>(_value);; }
+        Object AsObject() { return std::get<Object>(_value);; }
+        Delegate AsDelegate() {throw nullptr; }
+        FunctionHandle AsFunction() { throw nullptr; }
+        Array AsArray() { throw nullptr; }
 
 
 
@@ -603,7 +603,7 @@ namespace LEX
             case BasicType::String:     _value = ""; break;
             //case BasicType::Number:     _value = (Number)0; break;
             case BasicType::Array:      _value = Array{}; break;
-            case BasicType::Object:     _value = ExternalHandle(nullptr); break;
+            case BasicType::Object:     _value = Object{}; break;
             case BasicType::Delegate:   _value = Delegate{}; break;
             case BasicType::Function:   _value = FunctionHandle{}; break;
 
@@ -696,6 +696,9 @@ namespace LEX
     {
         //TODO: Constraint to make_variable should be has assign variable and get storage type. For now, I'll only target it to do what the constructor did previously.
         //TODO: Later, needs to implement assign variable, which creates the initial variable to send.
+
+        //NOTE: I'd actually like the names to be create/make. The idea would be that make variable turns the object into a variable, and create (what this will be named)
+        // turns it into a responsible one.
 
         VariableComponent temp{ other };
 
