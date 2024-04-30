@@ -37,6 +37,20 @@ namespace LEX
 		}
 
 
+		_Self& operator+= (const _Self& rhs)
+		{
+			
+			if (IsCompatible() == true) {
+			
+				hash += rhs.hash;//TODO: This handling of overload::hash is just place holder, as I can't be bothered rn and inheritance doesn't exist.
+				par += rhs.par;
+				
+			}
+
+			return *this;
+		}
+
+
 		_Self& operator+= (size_t rhs)
 		{
 			if (IsCompatible() == true) {
@@ -73,6 +87,7 @@ namespace LEX
 			//TODO: Vary the types of failure by using the hash so I can tell what kind of failure it is, similar to that of  NaN.
 			//To do this, I can make the hash alternatively carry a code to an error within itself.
 
+			//For each failure and where it came from, there will be a list presented if no overload matches, telling all why each overload failed.
 			return Overload{}.Unmatch();
 		}
 

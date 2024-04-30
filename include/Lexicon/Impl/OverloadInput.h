@@ -29,26 +29,31 @@ namespace LEX
 		Qualifier GetQualifiers() const override;
 
 
-		virtual std::vector<ITypePolicy*> GetGenericInput() override
-		{
-			return {};//return genericInput;
-		}
-		virtual std::vector<DefaultGenericInput> GetDefaultGenericInput() override
-		{
-			return {};
-		}
-
 		ITypePolicy* GetTarget() override;
 
-		virtual std::vector<ParamInput> GetParamInput() override
-		{
-			return  std::vector<ParamInput>{ paramInput.begin(), paramInput.end() };
-		}
 
-		virtual std::vector<DefaultParamInput> GetDefaultParamInput() override
-		{
+
+
+
+
+		std::pair<size_t, size_t> GetNumOfInputs() const override { return { paramInput.size(), 0}; }
+
+		std::pair<size_t, size_t> GetNumOfInputGroups() const override { return {1, 0}; }
+
+
+
+		std::vector<RequiredArg> GetRequiredInput(size_t offset) const override 
+		{ 
+			if (!offset) {
+				return std::vector<RequiredArg>{ paramInput.begin(), paramInput.end() };
+			}
+
 			return {};
 		}
+
+		std::vector<OptionalArg> GetOptionalInput(size_t offset) const override { return {}; }
+
+
 
 		//private://it SHOULD be private but I'm lazy and didn't make a constructor
 

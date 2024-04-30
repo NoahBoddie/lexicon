@@ -47,11 +47,8 @@ namespace LEX
 
 
 		//I have no idea how I'd actually use generics quite yet, so I'll prefer to not use them.
-		virtual std::vector<ITypePolicy*> GetGenericInput() = 0;
-		virtual std::vector<DefaultGenericInput> GetDefaultGenericInput() = 0;
-
-		virtual std::vector<ParamInput> GetParamInput() = 0;
-		virtual std::vector<DefaultParamInput> GetDefaultParamInput() = 0;
+		//virtual std::vector<ITypePolicy*> GetGenericInput() = 0;
+		//virtual std::vector<DefaultGenericInput> GetDefaultGenericInput() = 0;
 
 		virtual OverloadClause* AsClause() { return nullptr; }
 
@@ -61,7 +58,7 @@ namespace LEX
 
 		bool IsVolatility(Qualifier v) const
 		{
-			return FilterEquals<Qualifier::Volatility_>(GetQualifiers(), v);
+			return FilterEquals<Qualifier::Constness_>(GetQualifiers(), v);
 		}
 
 		bool IsConst() const
@@ -82,51 +79,47 @@ namespace LEX
 
 		Qualifier GetVolatility() const
 		{
-			return GetQualifiers() & std::to_underlying(Qualifier::Volatility_);
+			return GetQualifiers() & std::to_underlying(Qualifier::Constness_);
 		}
 
 
 
 
+		//I get why I need all of these, but seriously, compress this shit dog.
 
-		//Maybe make an enum so I can use one function for all.
-		virtual std::vector<QualifiedType> _GetInput(size_t group)
-		{
-			//this should only get the primary input, and exclude 
-			return {};
-		}
+		//virtual size_t GetReqInputGroupSize() const = 0;
+
+		//virtual size_t GetOptInputGroupSize() const = 0;
+
+		//virtual size_t GetReqInputSize() const = 0;
+
+		//virtual size_t GetOptInputSize() const = 0;
 		
-		virtual std::vector<OptionalArg> _GetOptInput(size_t group)
+		//Ok so sorry to do this, but all of these can go back to being arguments. Because the only time they'll be used is as arguments.
+
+		virtual std::pair<size_t, size_t> GetNumOfInputs() const = 0;
+
+		virtual std::pair<size_t, size_t> GetNumOfInputGroups() const = 0;
+
+		virtual std::vector<RequiredArg> GetRequiredInput(size_t offset) const = 0;
+
+
+		virtual std::vector<OptionalArg> GetOptionalInput(size_t offset) const = 0;
+
+
+
+		size_t GetInputSize() const
 		{
-			return {};
+			auto entries = GetNumOfInputs();
+
+			return entries.first + entries.second;
 		}
-
-		size_t _NumOfParamGroups() const
-		{
-			return 0;
-		}
-
-		size_t _NumOfOptGroups() const
-		{
-			return 0;
-		}
-
-		size_t _NumOfEntries() const
-		{
-			return 0;
-		}
-
-		//These are the only I'll need.
-		virtual std::vector<RequiredArg> __GetRequired(size_t offset)
-		{
-
-		}
+		//Param/Template
+		//Required/Optional
+		//All of these are inputs.
+		//params and args are inputs, generic params and args are templates. This is just to resolve the names so I know what's what.
 
 
-		virtual std::vector<OptionalArg> __GetOptional(size_t offset)
-		{
-
-		}
 
 
 	};
