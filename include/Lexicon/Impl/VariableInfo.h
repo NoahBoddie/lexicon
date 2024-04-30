@@ -11,9 +11,9 @@ namespace LEX
 		VariableInfo() = default;
 
 		//no qualifiers for now.
-		VariableInfo(ITypePolicy* t, size_t i) : _index{ i }, _type{ t }
+		VariableInfo(ITypePolicy* t, size_t i, Qualifier q) : _index{ i }, _type{ t }
 		{
-
+			DataAs<Settings>().flags = q;
 		}
 		
 		size_t GetFieldIndex() const override
