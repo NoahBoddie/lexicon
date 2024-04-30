@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Interface.h"
+#include "ISpecial.h"
 
 namespace LEX
 {
 	struct AbstractFunction;
 	struct IGenericArgument;
 
-	struct IFunction : public Interface
+	struct IFunction : public ISpecial
 	{
 
 		virtual bool IsConversion() const { return false; }

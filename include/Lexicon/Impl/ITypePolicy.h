@@ -1,10 +1,11 @@
 #pragma once
 
 #include "IGenericArgument.h"
-#include "Interface.h"
+#include "ISpecial.h"
 #include "TypeID.h"
 
 
+#include "DataType.h"
 
 namespace LEX
 {
@@ -14,7 +15,7 @@ namespace LEX
 	struct IFunction;
 	struct AbstractTypePolicy;
 	class RuntimeVariable;
-
+	enum struct DataType : uint8_t;
 
 	//Using this will allow manual conversions to other types that ordinarily cannot convert, even without a explicitly declared conversion.
 	//using Conversion = std::function<RuntimeVariable(RuntimeVariable)>;
@@ -42,6 +43,21 @@ namespace LEX
 		}
 	};
 
+	enum struct ConvertResult
+	{
+		Success,
+		Constness
+	};
+
+
+	enum struct ConversionFlag
+	{
+		None = 0 << 0,
+		Explicit = 1 << 0,
+		Initialize = 1 << 1,
+	};
+
+
 
 	enum struct ConversionType
 	{
@@ -50,7 +66,7 @@ namespace LEX
 	};
 
 
-	struct ITypePolicy : public Interface
+	struct ITypePolicy : public ISpecial
 	{
 		constexpr static uint32_t NonGenericIndex = full_value<uint32_t>;
 
@@ -80,7 +96,7 @@ namespace LEX
 		// get a partially specialized function.
 		//I may still go with interface because I don't think I want something where I derive a specializaton from TypePolicy, it'd be a waste of space, literal repeat.
 		// I KNOW, instead, I could make an implementation policy
-		//TODO:Make second interface for "AbstractTypePolicy" which GetTypePolicy returns, and what stores all the type policy info.
+		//TODO:Make second interface for "AbstractTypePolicy" which GetType returns, and what stores all the type policy info.
 		virtual AbstractTypePolicy* GetTypePolicy(IGenericArgument* args) = 0;
 
 		AbstractTypePolicy* FetchTypePolicy(IGenericArgument* args)
@@ -92,8 +108,19 @@ namespace LEX
 
 		virtual TypeID GetTypeID() const = 0;
 
+		virtual DataType GetDataType() const = 0;
+
+
+		DataType FetchDataType() const
+		{
+			return this ? GetDataType() : DataType::Invalid;
+		}
+
+
+
 		TypeID FetchTypeID() const
 		{
+			logger::info("is this ? {}", !!this);
 			return this ? GetTypeID() : TypeID{ 0 };
 		}
 
@@ -119,7 +146,7 @@ namespace LEX
 			//TODO: this is going to be hidden once specialized, so rename this and make the main version a pivot
 			return IsConvertibleTo(rhs, &out, type);
 		}
-
+		//Make some safe functions for these.
 
 		
 		
