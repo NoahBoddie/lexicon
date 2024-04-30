@@ -2,7 +2,7 @@
 
 #include "Expression.h"
 #include "Environment.h"
-#include "DeclareHeader.h"
+#include "Declaration.h"
 #include "RoutineCompiler.h"
 namespace LEX
 {
@@ -57,7 +57,7 @@ namespace LEX
             report::compile::fatal("No record named header.");
         //LINK_AFTER
 
-        DeclareHeader header{ *head_rec, environment };
+        Declaration header{ *head_rec, environment };
 
         if (header.Matches(true, Qualifier::Const) == false) {
             report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
@@ -101,7 +101,7 @@ namespace LEX
             if (!node_head)
                 report::compile::fatal("No record named header.");
 
-            DeclareHeader header{ *node_head, environment };
+            Declaration header{ *node_head, environment };
 
             //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
             if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
