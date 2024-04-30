@@ -41,14 +41,25 @@ namespace LEX
 		Qualifier GetQualifiers() const override { return Qualifier::None; }
 
 
-		std::vector<ITypePolicy*> GetGenericInput() override { return {}; }
-		std::vector<DefaultGenericInput> GetDefaultGenericInput() override { return {}; }
-
 		ITypePolicy* GetTarget() override { return nullptr; }
 
-		std::vector<ParamInput> GetParamInput() override { return  {}; }
+		DataType GetDataType() const override { return _dataType; }
 
-		std::vector<DefaultParamInput> GetDefaultParamInput() override { return {}; }
+
+		std::pair<size_t, size_t> GetNumOfInputs() const override { return {}; }
+
+		std::pair<size_t, size_t> GetNumOfInputGroups() const override { return {}; }
+
+
+		std::vector<RequiredArg> GetRequiredInput(size_t offset) const override { return {}; }
+
+		std::vector<OptionalArg> GetOptionalInput(size_t offset) const override { return {}; }
+
+		Overload __TN_Matching(QualifiedType& type, size_t& index, size_t offset) override
+		{
+			//success basically.
+			return {};
+		}
 		//~
 
 
