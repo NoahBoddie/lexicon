@@ -35,7 +35,7 @@ namespace LEX
 
 		bool IsReadOnly() const
 		{
-			return type == OperandType::Literal || !FilterEquals<Qualifier::Volatility_>(flags, Qualifier::Modable);
+			return type == OperandType::Literal || !FilterEquals<Qualifier::Constness_>(flags, Qualifier::Modable);
 		}
 
 		bool IsReference() const

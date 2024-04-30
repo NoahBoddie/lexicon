@@ -28,7 +28,7 @@ namespace LEX
 			Number::Settings settings{};
 
 			std::string search_name;
-
+			
 			//For now this only really registers for numbers.
 
 			for (auto& entry : node.GetChildren())
@@ -135,7 +135,7 @@ namespace LEX
 				break;
 
 			case "ref"_h:
-				flags |= Qualifier::Refr;
+				flags |= Qualifier::Reference_;
 				break;
 
 			}
