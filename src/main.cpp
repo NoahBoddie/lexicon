@@ -57,8 +57,9 @@ static void PrintAST(Record& tree, std::string indent = "")
 
 void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data)
 {
-    logger::info("target {}, arg size {} of {} ({})?", target->AsNumber(), args.size(), ((ConcreteFunction*)data.srcFunc)->_name, ((ConcreteFunction*)data.srcFunc)->parameters.size());
-    result = 4000;
+    std::string tar = target->AsString();
+    logger::info("string \"{}\", size {}; arg size {} of {} ({})?", tar, tar.size(), args.size(), ((ConcreteFunction*)data.srcFunc)->_name, ((ConcreteFunction*)data.srcFunc)->parameters.size());
+    result = tar.size();
 }
 
 
@@ -160,10 +161,20 @@ void LexTesting(std::string formula)
 
     std::string crash2 = R"(
         struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
+        struct __string8 intrinsic STRING::0;
+        
+        class Array external ARRAY;
+
 
         void otherTest()
         {
         };
+
+        float size(this string)
+        {
+            //defined elsewhere.
+            return 0;
+        }
 
         float TestCall(this float, float a, float b)
         {
@@ -180,12 +191,20 @@ void LexTesting(std::string formula)
             //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
             
 
+            Array const _array = Array();
+            //Array _array2 = _array;
+            __string8 test_string = "THIS";
             float test = tellinal.TestCall(othername, shootfol) + tellinal + peacefal + scrundal + this;
             this = 0;
-            
+
             float testB = __float64();
 
-            return this + test + testB;
+            const float testConst = 5;
+
+            testConst = testB;
+
+            return this + test + testB + test_string.size();
+            //Old answer was 93.
         };
 
     )"s;
@@ -210,9 +229,9 @@ void LexTesting(std::string formula)
     
     Script* script = Component::Create<Script>(ast);
 
-    if (0)
+    if (1)
     {
-        auto funcs = script->FindFunctions("TestCall");
+        auto funcs = script->FindFunctions("size");
 
         if (funcs.size() != 0)
         {
@@ -287,7 +306,7 @@ void LexTesting(std::string formula)
     //*/
     constexpr auto offset = LEX::Number::Settings::GetOffset(LEX::NumeralType::Floating);
 
-    LEX::ITypePolicy* number_type = LEX::IdentityManager::GetTypeByID(offset + 1);
+    LEX::ITypePolicy* number_type = LEX::IdentityManager::instance->GetTypeByID(offset + 1);
     
     LEX::FunctionData test_data{};
 
@@ -379,11 +398,6 @@ void Funckle(std::initializer_list<int> test)
     TestAgain();
 }
 
-struct TestObject : public Object
-{
-    std::string var = "string";
-};
-
 
 
 void SafeInvoke(std::function<void()> func)
@@ -413,6 +427,7 @@ void SafeInvoke(std::function<void()> func)
 
 
 int main(int argc, char** argv) {
+    
 #ifdef _DEBUG
     //Need a way to only have this happen when holding down a key
     if (GetKeyState(VK_RCONTROL) & 0x800) {
@@ -428,6 +443,8 @@ int main(int argc, char** argv) {
         } while (!IsDebuggerPresent() && input != IDCANCEL);
     }
 #endif
+    Initializer::Execute();
+ 
 
 
     Funckle({ 1, 2, 4, 5 });
@@ -447,15 +464,6 @@ int main(int argc, char** argv) {
         std::getline(std::cin >> std::ws, formula);
 
         LexTesting(formula);
-
-        auto info = NewObjectType<TestObject>("TEST");
-
-        Object* obj = info->BuildObject();
-
-        if (auto test = dynamic_cast<TestObject*>(obj); test)
-        {
-            logger::info("Test success, string: {}, info: {}", test->var, test->GetInfo() == info.get());
-        }
     });
     
     std::system("pause");
