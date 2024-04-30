@@ -1,5 +1,7 @@
 #pragma once
 
+//TODO: This is in a some what dire need of a redesign I personally believe.
+
 
 //The name doesn't make as much sense because interfaces are called objects but this works for all types..
 
@@ -15,8 +17,6 @@ namespace LEX
 
 	namespace detail
 	{
-		struct not_implemented {};
-		
 		
 		//move example
 		struct example {};
@@ -229,7 +229,7 @@ namespace LEX
 
 	class Number;
 	struct Delegate;
-	struct ExternalHandle;
+	struct Object;
 	struct FunctionHandle;
 	struct Array;
 	class Variable;
@@ -299,21 +299,19 @@ namespace LEX
 		AbstractTypePolicy* operator()(Delegate& it);
 	};
 
-
-	///Need to handle the regular versions too.
-
+	
 	template <>
-	struct StorageType<ExternalHandle>
+	struct StorageType<Object>
 	{
 
 		ITypePolicy* operator()();
 	};
 
 	template <>
-	struct ValueType<ExternalHandle>
+	struct ValueType<Object>
 	{
 
-		AbstractTypePolicy* operator()(ExternalHandle& it);
+		AbstractTypePolicy* operator()(Object& it);
 	};
 
 
@@ -382,7 +380,10 @@ namespace LEX
 		ValueType<TestType>{}(v);
 	}
 
+	//TODO: Issue with all variable type things, they use The actual policy, and not the id itself. The wrapper function should handle the fine details of that.
 
+
+	//
 
 #pragma endregion
 }
