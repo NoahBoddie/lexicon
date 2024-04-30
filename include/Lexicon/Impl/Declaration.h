@@ -3,128 +3,26 @@
 //#include "BasicQualifier.h"
 //#include "RuntimeQualifier.h"
 #include "DeclareSpecifier.h"
+#include "HeaderSettings.h"
+
 
 //*src
 #include "Environment.h"
 #include "Number.h"
 #include "IdentityManager.h"
+
+
 namespace LEX
 {
 	struct ITypePolicy;
 
 
 
-	enum KeywordType
-	{
-		None,
-		DeclSpec,
-		TypeQual,
-		TypeSpec,
-	};
-
-
-
-
-	struct HeaderSetting
-	{
-		KeywordType type = KeywordType::None;
-		uint8_t comp = 0xFF;
-
-		HeaderSetting() = default;
-		HeaderSetting(KeywordType t, uint8_t c = 0xFF)
-		{
-			type = t;
-			comp = c;
-		}
-
-
-
-		operator bool() const
-		{
-			return type != KeywordType::None;
-		}
-	};
-	struct HeaderEntry : public HeaderSetting
-	{
-		std::string name;
-	};
-
-
-	inline static HeaderSetting Exclusive(KeywordType t)
-	{
-		return HeaderSetting(t, 0x0);
-	}
-
-	inline static std::unordered_map<std::string_view, HeaderSetting> headerMap
-	{
-		{ "typename", Exclusive(KeywordType::TypeSpec) },
-		{"signed", KeywordType::TypeSpec},
-		{"unsigned", KeywordType::TypeSpec},
-		{"short", KeywordType::TypeSpec},
-		{"long", KeywordType::TypeSpec},
-		{"bool", KeywordType::TypeSpec},
-		{"string", KeywordType::TypeSpec},
-		{"int", KeywordType::TypeSpec},
-		{"float", KeywordType::TypeSpec},
-		{"double", KeywordType::TypeSpec},
-		{"float", KeywordType::TypeSpec},
-		{"void", KeywordType::TypeSpec},
-
-		{"readonly~", KeywordType::DeclSpec},
-		{"static", KeywordType::DeclSpec},
-		{"const~", KeywordType::DeclSpec},
-		{"mutable~", KeywordType::DeclSpec},
-
-
-		{"ref", KeywordType::TypeQual},
-		{"const", KeywordType::TypeQual},
-		{"mutable", KeywordType::TypeQual},
-	};
-
-	inline HeaderEntry GetHeaderEntry(std::string name = "", bool post = false)
-	{
-		if (name.empty() == true) {
-			name = "typename";
-		}
-		else if (post) {//This idea does not work.
-			name += "~";
-		}
-
-		//TODO: Reimplement this, I'm too lazy and tired to do it now.		
-		HeaderSetting setting = headerMap[name];
-
-		if (!setting)
-			return {};
-
-		HeaderEntry entry;
-
-		entry.name = name;
-		entry.comp = setting.comp;
-		entry.type = setting.type;
-
-		return entry;
-	}
-
-
-
-	/*
-	The idea is that there are 3 types of settings, restricted exclusive, and NA.
-
-	NA is tab, other than it's categoric requirements it has none. Then there is restrictive which disallows other restrictives.
-	Then there is exclusive which disallows everything else.
-
-	Then there's the tag of the keyword, which if isn't "" states that all other things in the same category have to be within that.
-
-	For example things solely able to be used on integer would be integer, while things that could be used on both floats and integers would be????
-	I don't think this auto shit works.
-	Wait, what I can do is use a flag integer on 2 different header settings, and if you or on them, and it equals zero (and both weren't already zero) they're incompatible.
-	//*/
-
 	//TODO: I'd like to have GetPolicyFromSpecifiers dealt with via strings, and/or able to be dealt with via a record.
 	inline ITypePolicy* GetPolicyFromSpecifiers(Record& node, Environment* env)
 	{
 		ITypePolicy* result = nullptr;
-
+		
 		if (node.size() != 0)
 		{
 			Number::Settings settings{};
@@ -167,25 +65,32 @@ namespace LEX
 					//Double is going to have to use other things.
 				case "double"_h:
 				case "float"_h://Right now, float IS double.
+
 					settings.type = NumeralType::Floating;
-					settings.size = Size::QWord;
-					settings.sign = Signage::Signed;
-					settings.limit = Limit::Infinite;
+					if (settings.size == Size::Invalid)
+						settings.size = Size::QWord;
+					if (settings.sign == Signage::Invalid)
+						settings.sign = Signage::Signed;
+					if (settings.limit == Limit::Invalid)
+						settings.limit = Limit::Infinite;
 					break;
 
 				case "float_"_h:
 					settings.type = NumeralType::Floating;
-					settings.size = Size::DWord;
-					settings.sign = Signage::Signed;
-					settings.limit = Limit::Infinite;
+					if (settings.size == Size::Invalid)
+						settings.size = Size::DWord;
+					if (settings.sign == Signage::Invalid)
+						settings.sign = Signage::Signed;
+					if (settings.limit == Limit::Invalid)
+						settings.limit = Limit::Infinite;
+
 					break;
-				
+
 				case "void"_h:
-					return IdentityManager::GetTypeByID(0);
+					return IdentityManager::instance->GetTypeByID(0);
 
 				case "string"_h:
-					//fall.
-					__fallthrough;
+					return IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
 				default://typename
 					search_name = name; break;
@@ -204,12 +109,13 @@ namespace LEX
 
 				auto offset = settings.GetOffset();
 				logger::critical(" faf???");
-				result = LEX::IdentityManager::GetTypeByID(offset + 1);
+				//result = LEX::IdentityManager::GetTypeByID(offset + 1);
+				result = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", offset);
 			}
 		}
 		return result;
 	}
-	
+
 	inline Qualifier GetQualifiersFromStrings(Record& node)
 	{
 		Qualifier flags{};
@@ -251,10 +157,10 @@ namespace LEX
 			case "readonly"_h:
 				decl |= DeclareSpecifier::Readonly;
 			case "static"_h:
-				decl |= DeclareSpecifier ::Static;
+				decl |= DeclareSpecifier::Static;
 			case "const"_h:
 				decl |= DeclareSpecifier::Const;
-			//case "mutable~"_h://I don't think I actually intend to have mutables of this.
+				//case "mutable~"_h://I don't think I actually intend to have mutables of this.
 
 			}
 		}
@@ -262,11 +168,13 @@ namespace LEX
 		return decl;
 	}
 
-	struct DeclareHeader : public QualifiedType
+	struct Declaration : public QualifiedType
 	{
-		DeclareHeader() = default;
-		//DeclareHeader(ITypePolicy* policy, BasicQualifier b, RuntimeQualifier r, DeclareSpecifier d){}
-		DeclareHeader(Record& header, Environment* env)
+		//Declaration(ITypePolicy* policy, BasicQualifier b, RuntimeQualifier r, DeclareSpecifier d){}
+	public:
+		Declaration() = default;
+
+		Declaration(Record& header, Environment* env)
 		{
 			if (header.GetTag() != "<header>") {
 				report::fault::fatal("header not found.");
@@ -274,60 +182,61 @@ namespace LEX
 
 
 			//std::array<Record&, 3> header_nodes{ *header.FindChild("type_qual") , *header.FindChild("type_spec"), *header.FindChild("decl_spec") };
-
 			Record& type_qual = *header.FindChild("type_qual");
-			Record& type_spec = *header.FindChild("type_spec");
 			Record& decl_spec = *header.FindChild("decl_spec");
+			Record& type_spec = *header.FindChild("type_spec");
 
 			//So here's the concept, if you see 2 restricteds in the same place, they aren't compatible. This simplifies this sort of thing.
 			// rest
 			//SyntaxType::Restricted;
 
 
+			HeaderFlag flags{};
+			HeaderFlag excludes{};
+
+			KeywordType type = KeywordType::TypeQual;
+
 			//Need some fucking rules about this.
 			for (auto& node : header.GetChildren())
 			{
-				std::vector<HeaderEntry> entries{ node.size() };
 
 				for (auto& child : node.GetChildren())
 				{
-					bool post = child.SYNTAX().type == SyntaxType::Declare;
+					//std::string name = child.SYNTAX().type == SyntaxType::Declare ? 
+					std::string name = child.SYNTAX().type == SyntaxType::Field ? "typename" : child.GetTag();
 
-					std::string name = child.SYNTAX().type == SyntaxType::Typename ? "" : child.GetTag();
+					//bool post = child.SYNTAX().type == SyntaxType::Declare;
 
-					HeaderEntry entry = GetHeaderEntry(name, post);
+					HeaderEntry entry;
 
-					if (!entry) {
-						report::compile::critical("Cannot create entry from header node.");
+
+					auto it = headerGuide[type].find(name);
+
+					if (headerGuide[type].end() == it) {
+						report::fault::critical("cannot find setting flags for keyword {}", name);
 					}
 
-					for (auto& a_entry : entries)
-					{
-						auto comp = a_entry.comp & entry.comp;
+					entry = it->second;
 
-						if (!comp) {
-							//Not compatible.
-							report::compile::critical("Not compatible");
-						}
 
-						if (entry.name == a_entry.name) {
-							//duplicate setting.
-							report::compile::critical("Duplicate setting.");
-						}
-					}
+					if (entry.includeFlags & excludes != HeaderFlag::None)
+						return;
 
-					entries.push_back(entry);
+					if (entry.includeFlags & flags != HeaderFlag::None)
+						return;
 
+					flags |= entry.includeFlags;
+					excludes |= entry.excludeFlags;
 				}
+
+				type = static_cast<decltype(type)>(type + 1);
 			}
 
-			auto qualifier = GetQualifiersFromStrings(type_qual);
-
-			flags = qualifier;
-
+			this->flags = GetQualifiersFromStrings(type_qual);
 			policy = GetPolicyFromSpecifiers(type_spec, env);
-
 			declare = GetSpecifiersFromStrings(decl_spec);
+
+
 		}
 
 
@@ -340,18 +249,18 @@ namespace LEX
 		bool _filterByte = false;//This is used as a flag for filtering when policy is expected to be null but it isn't.
 	public:
 		//bool filtered = false;
-		
+
 		//QualifiedType type{};
-		
+
 		//Qualifier flags{};
 
 		//StoreSpecifier _3;//Declare Specs ARE store specs.
 		DeclareSpecifier declare{};
-		
+
 		//ITypePolicy* policy = nullptr;
-		
-		
-		
+
+
+
 		operator bool() const
 		{
 			//compare the rest of this shit. This is a struct, you should be able to do whatever the fuck you want to do, BUT, be careful.
@@ -359,11 +268,11 @@ namespace LEX
 		}
 
 		//Make some combination functions for these.
-		DeclareHeader Filter(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		Declaration Filter(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
 		{
 			//static_assert(false, "This filter is not correct, it's supposed to remove stuff, and move it into a different header. this just moves the left overs into the new one.");
 
-			DeclareHeader filter{};
+			Declaration filter{};
 
 			if (type)//If expecting a policy, 
 				filter.policy = policy ? nullptr : policy;
