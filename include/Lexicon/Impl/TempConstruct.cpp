@@ -25,25 +25,10 @@
 
 #include "OverloadInput.h"
 
-#include "DeclareHeader.h"
+#include "Declaration.h"
 
 
 #include "VoidPolicy.h"
-
-struct Initializer
-{
-	using def = void(*)();
-
-	template <std::convertible_to<def> T>
-	Initializer(T func)
-	{
-		if (func)
-			func();
-	}
-};
-inline static int test = 0;
-
-#define INITIALIZE() inline static Initializer CONCAT(__init_,__COUNTER__) = []() -> void
 
 namespace LEX
 {
@@ -1215,7 +1200,7 @@ namespace LEX
 			if (!head_rec)
 				report::compile::fatal("No record named header.");
 			
-			DeclareHeader header{ *head_rec, compiler->GetEnvironment()};
+			Declaration header{ *head_rec, compiler->GetEnvironment()};
 
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
@@ -1224,12 +1209,22 @@ namespace LEX
 				report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
 
-
+			if (header.flags & Qualifier::Const)
+				logger::info("{} is const", target.GetTag());
 
 			VariableInfo* var = compiler->GetScope()->CreateVariable(target.GetTag(), header);	
+
 			size_t var_index = var->_index;
 			if (Record* definition = target.FindChild("def"); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
+
+
+				//-QUAL_CONV
+				Conversion* out = nullptr;//Not used for now because there are no conversions like this.
+				if (header.IsConvertToQualified(result) == false) {
+					report::compile::fatal("Cannot initialize.");
+				}
+
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
 				//compiler->GetOperationList().emplace_back(InstructType::Forward, Operand{ var_index, OperandType::Index }, result);
 				compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ var_index, OperandType::Index }, result));
@@ -1390,24 +1385,31 @@ namespace LEX
 
 
 
-			IdentityManager::_voidPolicy = new VoidPolicy{};
+			
 
 			//IDENTITY MANAGER TEST
-			IdentityManager::GenerateID("NUMBER", Number::Settings::length);
+			IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length);
+			IdentityManager::instance->GenerateID("STRING", 0);
 			
 
 			constexpr auto offset = Number::Settings::GetOffset(NumeralType::Floating);
 
 			//RGL_LOG(info, "numset lng:{} v off:{}", Number::Settings::length, offset);
 
+			//TODO: This type of instantiation should be reserved squarely for intrinsic types like numbers, strings etc.
+			// Other than that, no type should be created knowing what it is already.
+
 			static ConcretePolicy* float64 = new ConcretePolicy{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
+			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
 
 
 			float64->EmplaceDefault(static_cast<double>(0));
 		
+			string8->EmplaceDefault("");
+
 
 			
-			RGL_LOG(info, "{} float64?", (uint32_t)IdentityManager::GetTypeByID(offset + 1)->GetTypeID());
+			RGL_LOG(info, "{} float64?", (uint32_t)IdentityManager::instance->GetTypeByID(offset + 1)->GetTypeID());
 			//Read some shit here.
 		};
 
