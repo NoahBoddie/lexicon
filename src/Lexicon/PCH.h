@@ -256,3 +256,226 @@ namespace LEX
 }
 
 inline int __init = 0;
+
+
+//Move to RGL ig
+struct Initializer
+{
+    using def = void(*)();
+
+    inline static std::vector<def> executeList;
+
+    static void Execute()
+    {
+        //Should be run when there's nothing more to initialize.
+        if (executeList.empty() == true)
+            return;
+
+        for (auto func : executeList) {
+            func();
+        }
+
+        executeList.clear();
+    }
+
+
+    template <std::convertible_to<def> T>
+    Initializer(T func)
+    {
+        if (func)
+            //func();
+            executeList.push_back(func);
+    }
+};
+inline static int test = 0;
+//Initializes something on the spot.
+#define INITIALIZE() inline static Initializer CONCAT(__init_,__COUNTER__) = []() -> void
+//Revised to need to be executed at a particular time. This prevents issues with it going off too early.
+
+//SEND TO RGL PLZ
+
+#pragma region RGL_SPACE
+
+#define REQ_CONSTRAINT(mc_type, mc_size, mc_cmp, mc_phrase) static_assert(sizeof(mc_type) mc_cmp mc_size, STRINGIZE(sizeof mc_type mc_phrase mc_size.))
+
+#define REQUIRED_SIZE(mc_type, mc_size) REQ_CONSTRAINT(mc_type, mc_size, ==, is not)
+#define REQ_LESS_SIZE(mc_type, mc_size) REQ_CONSTRAINT(mc_type, mc_size, <, is not less than)
+#define REQ_OR_LESS_SIZE(mc_type, mc_size) REQ_CONSTRAINT(mc_type, mc_size, <=, is greater than)
+
+
+//Can instantiate should have template versions so it will basically handle construction in however it's best handled.
+// It only cares about basic instantiation, not quite if it's abstract or not.
+#define CAN_INSTANTIATE(mc_type) void CONCAT(__INSTANT_TEST__,__COUNTER__)() { mc_type a_test{}; }
+
+namespace RGL
+{
+    
+    template<typename Test, template<typename...> class Ref>
+    struct is_specialization : std::false_type {};
+
+    template<template<typename...> class Ref, typename... Args>
+    struct is_specialization<Ref<Args...>, Ref> : std::true_type {};
+
+    template<typename Test, template<typename...> class Ref>
+    concept specialization_of = is_specialization<Test, Ref>::value;
+
+
+
+    template <typename T>
+    using remove_ref_const = std::remove_reference_t<std::remove_const_t<T>>;
+
+}
+
+namespace LEX::detail
+{
+    struct not_implemented {};
+}
+
+
+inline HMODULE GetCurrentModule()
+{
+    //Make this static in that it stores teh result it gets the first time so it never needs to search it again.
+    // NB: XP+ solution!
+    static HMODULE hModule = NULL;
+
+    if (hModule == NULL) {
+        GetModuleHandleEx(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+            (LPCTSTR)GetCurrentModule,
+            &hModule);
+    }
+
+    return hModule;
+}
+
+
+
+template <typename T>
+T ReturnDefaultOrFailure()
+{
+	if constexpr (std::is_same_v<T, void>) {
+		return;
+	}
+	else if constexpr (std::is_reference_v<T>) {
+		//TODO: Please change this to not just throw some random ass nullptr.
+		throw nullptr;
+	}
+	else {
+		return {};
+	}
+}
+
+template<typename T, typename... Args>
+std::invoke_result_t<T, Args...> ExternCall(LPCSTR module_name, LPCSTR func_name, Args&&... args)
+{
+	using _Ret = std::invoke_result_t<T, Args...>;
+
+    using _Func = T*;//_Ret(*)(Args...);
+
+
+	static _Func func = nullptr;
+
+    if (!func)
+    {
+        HINSTANCE API = GetModuleHandle(module_name);
+
+        if (API == nullptr) {
+            static bool once = false;
+
+            if (!once) {
+                RGL_LOG(debug, "Extern Call failed. Module {} not found.", module_name);
+                once = true;
+            }
+
+            return ReturnDefaultOrFailure<_Ret>();
+        }
+
+        func = (_Func)GetProcAddress(API, func_name);
+
+
+        if (func) {
+            static bool once = false;
+
+            if (!once) {
+                RGL_LOG(debug, "Found {} in {}.", func_name, module_name);
+                once = true;
+            }
+        }
+        else {
+            static bool once = false;
+
+            if (!once) {
+                RGL_LOG(critical, "Extern call failed. Function {} not found in {}.", func_name, module_name);
+                once = true;
+            }
+
+            return ReturnDefaultOrFailure<_Ret>();
+        }
+    }
+
+	return func(std::forward<Args>(args)...);
+
+}
+
+template <auto T, typename... Args> requires(std::is_function_v<std::remove_pointer_t<decltype(T)>>)
+std::invoke_result_t<decltype(T), Args...> ExternCall(LPCSTR module_name, LPCSTR func_name, Args&&... args)
+{
+	return ExternCall<decltype(T), Args...>(module_name, func_name, std::forward<Args>(args)...);
+}
+
+
+
+
+
+
+//I need to undeclare these macros when I get the chance.
+//OBJECT_POLICY
+
+#define LEX_SOURCE 1
+
+//Makes virtual functions final outside of the lexicon source executable
+#ifdef LEX_SOURCE
+//Makes virtual functions final outside of the lexicon source executable. Currently is inactive.
+#define API_FINAL
+#else
+//Makes virtual functions final outside of the lexicon source executable. Currently is active.
+#define API_FINAL final 
+#endif
+
+
+
+
+#ifdef LEX_SOURCE
+#define OBJECT_POLICY ObjectPolicyImpl
+#define FRWD_DECL_OBJECT_POLICY class OBJECT_POLICY
+#else
+#define OBJECT_POLICY ObjectPolicy
+#define FRWD_DECL_OBJECT_POLICY struct OBJECT_POLICY
+#endif // LEX_SOURCE
+
+
+
+//Internal macro
+#ifdef LEX_SOURCE
+#define INTERNAL public
+#define INTERNAL_(mc_access) mc_access
+#define INTERNAL_PROTECTED INTERNAL_(protected)
+#define INTERNAL_PUBLIC INTERNAL_(public)
+
+#define INTERNAL_DEFAULT default
+
+#else
+#define INTERNAL private
+#define INTERNAL_(mc_access) private
+#define INTERNAL_PROTECTED private
+#define INTERNAL_PUBLIC private
+
+#define INTERNAL_DEFAULT delete
+
+#endif // LEX_SOURCE
+
+
+
+
+
+#pragma endregion
