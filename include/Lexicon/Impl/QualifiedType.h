@@ -8,6 +8,7 @@
 
 //*src
 #include "ITypePolicy.h"
+
 namespace LEX
 {
 	struct ITypePolicy;
@@ -58,9 +59,40 @@ namespace LEX
 			return policy;
 		}
 		
+		bool IsConvertToQualified(QualifiedType& other, Conversion* out = nullptr, bool is_expl = false) const
+		{
 
+			//auto comp = flags & other.flags;
+
+			
+			auto l_comp = flags & Qualifier::Const;
+			auto r_comp = other.flags & Qualifier::Const;
+
+			if (l_comp != r_comp){
+				
+				//this  first bit makes no sense, if the left side is const anything can still go into it (as long as we are initializing).
+				if (1 != 1) {
+					if (l_comp == Qualifier::Const)
+					{
+						//If left is const, it must be a class type.
+						if (IsDataTypeRef(policy->FetchDataType()) == false)
+							return false;
+					}
+				}
+				//This doesn't seem to work, but it will be hit by a forcible transfer issue.
+				if (r_comp == Qualifier::Const)
+				{
+					//If right is const, it must be a value.
+					if (IsDataTypeVal(other.policy->FetchDataType()) == false)
+						return false;
+				}
+			}
+
+			//Simple for now.
+			return policy->IsConvertibleTo(other.policy, out, is_expl ? ConversionType::Implicit : ConversionType::Implicit);
+		}
 		
-		bool IsConversionQualified(QualifiedType&& other, Conversion* out = nullptr, bool is_expl = false) const
+		bool IsConvertToQualified(QualifiedType&& other, Conversion* out = nullptr, bool is_expl = false) const
 		{
 			//This is the over version of can convert. Accounts for qualifiers and such. Speaking of,
 			// such a thing needs to be able to use the search functions too should it not?
@@ -68,7 +100,7 @@ namespace LEX
 			//Actually, I'm realizing a last thing.
 
 
-			return false;
+			return IsConvertToQualified(other, out, is_expl);
 		}
 	};
 }
