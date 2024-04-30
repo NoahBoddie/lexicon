@@ -46,7 +46,7 @@ namespace LEX
 
 		//Rules of obtaining
 		//Intrinsic, no creation, just pull a policy. Doesn't matter what else it is.
-		//Interface-Creates type policy from specific string and integer. Link error if not found.
+		//ISpecial-Creates type policy from specific string and integer. Link error if not found.
 		//Data, Creates TypePolicy plain, claiming the next free space.
 		//Generic, a different TypePolicy has to be used, but otherwise it's fine.
 
@@ -55,7 +55,7 @@ namespace LEX
 		bool is_generic = settings.FindChild("generic")->size();
 
 
-		using PolicyCtor = PolicyBase * (std::string, TypeOffset);
+		using PolicyCtor = PolicyBase*(std::string, TypeOffset);
 
 		//using ConcretePolicy = ConcretePolicy;
 		using GenericPolicy = ConcretePolicy;
@@ -76,7 +76,7 @@ namespace LEX
 				PolicyBase* result = nullptr;
 
 				if (lookup)
-					result = IdentityManager::GetTypeByOffset(name, offset);
+					result = IdentityManager::instance->GetBaseByOffset(name, offset);
 				else
 					result = is_generic ? new GenericPolicy{ name, offset } : new ConcretePolicy{ name, offset };
 
@@ -93,7 +93,7 @@ namespace LEX
 			//Look up
 			lookup = true;
 			__fallthrough;
-		case "interface"_h:
+		case "external"_h:
 		{
 			//Handle error, I can't fucking be bothered.
 			Record& category = qualifier.GetFront();
