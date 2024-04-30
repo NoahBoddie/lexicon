@@ -9,6 +9,8 @@ namespace LEX
 	using RunValue = std::variant<Void, Variable, std::reference_wrapper<Variable>>;
 
 	
+
+	
 	enum struct RuntimeVarType
 	{
 		Void,
@@ -259,7 +261,7 @@ namespace LEX
 			switch (index())
 			{
 			default:
-				report::runtime::fatal("RuntimeVariable is undefined."); break;
+				report::runtime::fatal("RuntimeVariable is undefined."); throw nullptr;
 
 			case 1:
 				return std::get<Variable>(*this);
