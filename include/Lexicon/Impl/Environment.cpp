@@ -184,8 +184,12 @@ namespace LEX
 				}
 				else if (size)
 				{
-					//IFunction is not a field
-					return functions[0];
+					//TODO: This is as
+
+					FunctionBase* test = functions[0]->Get();
+
+					if (test && !test->MatchKey(&key).par)
+						return functions[0];
 				}
 
 			}
