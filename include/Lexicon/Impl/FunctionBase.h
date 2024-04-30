@@ -31,11 +31,43 @@ namespace LEX
 
 		ITypePolicy* GetTarget() override { return GetTargetType(); }
 
-		std::vector<ParamInput> GetParamInput() override 
-		{ 
-			return  std::vector<ParamInput>{ parameters.begin(), parameters.end() }; 
+
+	
+		//static_assert(false, "These are without definition. Fix this shit please.");
+		std::pair<size_t, size_t> GetNumOfInputs() const override { return {parameters.size(), 0}; }
+
+		std::pair<size_t, size_t> GetNumOfInputGroups() const override { return {1, 0}; }
+
+
+		std::vector<RequiredArg> GetRequiredInput(size_t offset) const override { 
+			std::vector<RequiredArg> result{ parameters.size() };
+
+			std::transform(parameters.begin(), parameters.end(), result.begin(), [&](const ParameterInfo& it) {return it.GetQualifiedType(); });
+
+			logger::critical("delete me: size {}", result.size());
+			return result;
 		}
 
+		std::vector<OptionalArg> GetOptionalInput(size_t offset) const override { return {}; }
+
+
+		Overload __TN_Matching(QualifiedType& from, size_t& index, size_t offset) override
+		{
+			Overload result;
+
+			if (offset)
+				return Overload::Failure();
+
+			if (parameters.size() <= index)
+				return Overload::Failure();
+
+			QualifiedType to = parameters[index].GetQualifiedType();
+
+			if (from.IsConvertToQualified(to) == false)
+				return Overload::Failure();
+
+			return result;
+		}
 		//~
 
 	public:

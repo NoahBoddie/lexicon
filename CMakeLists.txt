@@ -66,7 +66,32 @@ include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/ExternalHandle.h"
  "include/Lexicon/Impl/ExternalManager.h"
  "include/Lexicon/Impl/ExternalInterface.h"
- "include/Lexicon/Impl/VariableType.h" "include/Lexicon/Impl/Default.h" "include/Lexicon/Impl/TargetObject.h" "include/Lexicon/Impl/Overload.h" "include/Lexicon/Impl/ParamInput.h" "include/Lexicon/Impl/GenericInput.h" "include/Lexicon/Impl/OverloadKey.h" "include/Lexicon/Impl/OverloadClause.h" "include/Lexicon/Impl/OverloadInput.h" "include/Lexicon/Impl/SearchPredicate.h" "include/Lexicon/Impl/DeclareHeader.h" "include/Lexicon/Impl/DeclareSpecifier.h" "include/Lexicon/Impl/VoidPolicy.h" "include/Lexicon/Impl/QualifiedType.h" "include/Lexicon/Impl/Qualifier.h")
+ "include/Lexicon/Impl/VariableType.h" 
+ "include/Lexicon/Impl/Default.h" 
+ "include/Lexicon/Impl/TargetObject.h" 
+ "include/Lexicon/Impl/Overload.h" 
+ "include/Lexicon/Impl/ParamInput.h" 
+ "include/Lexicon/Impl/GenericInput.h"
+ "include/Lexicon/Impl/OverloadKey.h" 
+ "include/Lexicon/Impl/OverloadClause.h"
+ "include/Lexicon/Impl/OverloadInput.h" 
+ "include/Lexicon/Impl/SearchPredicate.h"  
+ "include/Lexicon/Impl/DeclareSpecifier.h" 
+ "include/Lexicon/Impl/VoidPolicy.h" 
+ "include/Lexicon/Impl/QualifiedType.h" 
+ "include/Lexicon/Impl/Qualifier.h" 
+ "include/Lexicon/Impl/Object.h" 
+ "include/Lexicon/Impl/ObjectPolicyHandle.h"
+ "include/Lexicon/Impl/ObjectPolicy.h" 
+ "include/Lexicon/Impl/ObjectPolicyManager.h" 
+ "include/Lexicon/Impl/ObjectInfo.h" 
+ "include/Lexicon/Impl/ObjectPoolData.h" 
+ "include/Lexicon/Impl/Declaration.h" 
+ "include/Lexicon/Impl/HeaderSettings.h" 
+ "include/Lexicon/Impl/Interface.h" 
+ "include/Lexicon/Impl/InterfaceManager.h" 
+ "include/Lexicon/Impl/InterfaceSingleton.h"
+ "include/Lexicon/Impl/Versioning.h" "include/Lexicon/Impl/InterfaceManagerImpl.h" "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h")
 
 set(sources
 #src/main.cpp
@@ -82,7 +107,7 @@ src/Lexicon/Component.cpp
 include/Lexicon/Impl/LiteralManager.cpp
  "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
  
- "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp" "include/Lexicon/Impl/FunctionBase.cpp" "include/Lexicon/Impl/ConcreteFunction.cpp" "include/Lexicon/Impl/ICallableUnit.cpp" "include/Lexicon/Impl/Scope.cpp" "include/Lexicon/Impl/OverloadInput.cpp" "include/Lexicon/Impl/ParamInput.cpp" "include/Lexicon/Impl/Variable.cpp" "include/Lexicon/Impl/VariableType.cpp" "include/Lexicon/Impl/Field.cpp" "include/Lexicon/Impl/VariableInfo.cpp")
+ "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp" "include/Lexicon/Impl/FunctionBase.cpp" "include/Lexicon/Impl/ConcreteFunction.cpp" "include/Lexicon/Impl/ICallableUnit.cpp" "include/Lexicon/Impl/Scope.cpp" "include/Lexicon/Impl/OverloadInput.cpp" "include/Lexicon/Impl/ParamInput.cpp" "include/Lexicon/Impl/Variable.cpp" "include/Lexicon/Impl/VariableType.cpp" "include/Lexicon/Impl/Field.cpp" "include/Lexicon/Impl/VariableInfo.cpp" "include/Lexicon/Impl/ObjectPolicyHandle.cpp" "include/Lexicon/Impl/ConcretePolicy.cpp" "include/Lexicon/Impl/InterfaceManager.cpp" "include/Lexicon/Impl/ObjectPolicy.cpp"  "include/Lexicon/Impl/ObjectPolicyManager.cpp")
 
 source_group(
 	TREE
