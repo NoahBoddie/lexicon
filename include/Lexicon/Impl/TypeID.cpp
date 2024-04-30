@@ -12,13 +12,13 @@ namespace LEX
 		TypeID TypeID::CreateTrival(uint16_t code)
 		{
 			//Makes a Trival
-			return IdentityManager::GetIDFromOffset("Trival", code);
+			return CreateID(0);//IdentityManager::GetIDFromOffset("Trival", code);
 
 		}
 
 		TypeOffset TypeID::GetOffset() const
 		{
-			return IdentityManager::GetOffsetFromID(*this);
+			return CreateID(0);//return IdentityManager::GetOffsetFromID(*this);
 		}
 
 

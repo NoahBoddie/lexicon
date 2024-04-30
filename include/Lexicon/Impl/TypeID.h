@@ -22,7 +22,8 @@ namespace LEX
 		uint32_t _value = invalidValue;
 	public:
 		
-		constexpr static uint32_t invalidValue = max_value<uint32_t>;
+		constexpr static uint32_t invalidValue = -1;
+		constexpr static uint32_t invalid = -1;
 		
 		
 		constexpr TypeID() = default;
@@ -49,9 +50,19 @@ namespace LEX
 		TypeOffset GetOffset() const;
 
 
+
 		constexpr operator uint32_t()
 		{
 			return _value;
+		}
+
+
+
+
+
+		bool IsValid() const
+		{
+			return _value == invalid;
 		}
 
 		bool IsTrival() const
