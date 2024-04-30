@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lexicon/Impl/Parser.h"
+#include "HeaderSettings.h"
 
 namespace LEX::Impl
 {
@@ -312,20 +313,23 @@ namespace LEX::Impl
 	};
 
 
-	enum KeywordType
-	{
-		None,
-		DeclSpec,
-		TypeQual,
-		TypeSpec,
-	};
-
 
 	struct HeaderParser : public ParseSingleton<HeaderParser>
 	{
-		
+		/*
+		enum KeywordType
+		{
+			None,
+			DeclSpec,
+			TypeQual,
+			TypeSpec,
+		};
+		//*/
+
 		bool IsTypeName(std::string& name)
 		{
+			return IsTypename(name);
+
 			switch (Hash(name))
 			{
 			case "bool"_h:
@@ -342,6 +346,8 @@ namespace LEX::Impl
 
 		KeywordType IsViableKeyword(std::string& name, bool post = false) const
 		{
+			return GetKeywordType(name, post);
+
 			switch (Hash(name))
 			{
 			case "readonly"_h:
@@ -378,7 +384,7 @@ namespace LEX::Impl
 
 		bool CanContinue(RecordData peek, bool allow_identifier = true) const
 		{
-			if (peek.TOKEN().type == TokenType::Keyword && IsViableKeyword(peek.GetTag()) != None)
+			if (peek.TOKEN().type == TokenType::Keyword && IsKeyword(peek.GetTag()) != false)
 				return true;
 
 			return allow_identifier && peek.TOKEN().type == TokenType::Identifier;
@@ -653,7 +659,7 @@ namespace LEX::Impl
 			case TokenType::String: {
 				//Clears the quotations.
 				ClipString(tag, 1, 1);
-				return parser->CreateExpression(next, SyntaxType::Number);
+				return parser->CreateExpression(next, SyntaxType::String);
 			}
 
 			default:
@@ -715,7 +721,7 @@ namespace LEX::Impl
 
 			bool requires_body = true;
 
-			if (RecordData peek = parser->peek(); peek.SYNTAX().type == TokenType::Keyword)
+			if (RecordData peek = parser->peek(); peek.TOKEN().type == TokenType::Keyword)
 			{
 				Record attach = Parser::CreateExpression(peek, SyntaxType::Header);
 
@@ -728,7 +734,7 @@ namespace LEX::Impl
 					break;
 
 				case "intrinsic"_h:		//Intrinsic needs to push back a category name, and index.
-				case "interface"_h:		//interface needs to push back category name and index.
+				case "external"_h:		//external needs to push back category name and index.
 					requires_body = false;
 					attach.PushBackChild(HandleInterfaceIndex(parser));
 					break;
