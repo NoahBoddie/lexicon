@@ -106,7 +106,6 @@ namespace LEX
 		template <>
 		bool Get<OperandType::Type, ITypePolicy*>(ITypePolicy*& out)
 		{
-			logger::info("It shit");
 			out = type;
 			return true;
 		}

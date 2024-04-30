@@ -10,6 +10,9 @@ namespace LEX
 	struct FunctionInfo : public MemberInfo
 	{
 
+		//TODO: This needs to be able to handle overloads some how, via abstract functions maybe?
+
+
 		struct Settings : public MemberInfo::Settings
 		{
 			bool isVirtual = false;
