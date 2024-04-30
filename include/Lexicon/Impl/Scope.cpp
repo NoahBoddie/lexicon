@@ -6,7 +6,7 @@
 
 #include "OverloadInput.h"
 
-#include "DeclareHeader.h"
+#include "Declaration.h"
 namespace LEX
 {
 

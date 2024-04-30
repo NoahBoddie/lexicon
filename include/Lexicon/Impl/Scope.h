@@ -111,7 +111,7 @@ namespace LEX
 
 				RGL_LOG(debug, "Scope creating {} at index {}, policy {}", name, index, !!policy);
 
-				vars[name] = VariableInfo{ policy, index };
+				vars[name] = VariableInfo{ policy, index, Qualifier::None };
 
 				result[i] = index;
 			}
@@ -141,8 +141,9 @@ namespace LEX
 			
 			RGL_LOG(debug, "Attempting to create {} at index {}", name, index);
 
-			VariableInfo& result = vars[name] = VariableInfo{ type.policy, index };
+			VariableInfo& result = vars[name] = VariableInfo{ type.policy, index, type.flags };
 			
+
 			//This is only temporarily valid.
 			return &result;
 		}
