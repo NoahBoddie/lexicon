@@ -1,5 +1,8 @@
 #pragma once
 
+
+
+
 //#include "Object.h"
 //#include "ObjectID.h"
 //#include "ObjectIDMapper.h"
@@ -66,6 +69,30 @@
 
 
 
+
+#include "Object.h"
+#include "ObjectData.h"
+#include "ObjectInfo.h"
+#include "ObjectPolicy.h"
+#include "ObjectPolicyHandle.h"
+#include "ObjectPolicyManager.h"
+
+
+#include "ObjectPoolData.h"
+
+
+
+
+
+#include "Interface.h"
+#include "InterfaceManager.h"
+#include "InterfaceManagerImpl.h"//At this point object will load first, and this shit hasn't even instantiated yet. So it ends up bugging.
+#include "InterfaceSingleton.h"
+#include "Versioning.h"
+
+#include "DeclareSpecifier.h"
+
+
 namespace std
 {
 	template <class _Elem, class _Alloc>
@@ -79,7 +106,6 @@ namespace std
 
 //This is to be my method of hashing.
 inline std::hash<std::vector<uint64_t>> hasher;
-
 
 namespace LEX
 {
@@ -172,7 +198,7 @@ namespace LEX
 
 	ITypePolicy* StorageType<Number>::operator()()
 	{
-		ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, CoreOffset::Number);
+		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, CoreOffset::Number);
 
 		//Should already be specialized, so just sending it.
 		return policy->FetchTypePolicy(nullptr);
@@ -181,7 +207,7 @@ namespace LEX
 	AbstractTypePolicy* ValueType<Number>::operator()(Number& it)
 	{
 
-		ITypePolicy* policy = IdentityManager::GetTypeByOffset(NUMBER_SET_NAME, it.GetOffset());
+		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, it.GetOffset());
 
 
 		//Should already be specialized, so just sending it.
@@ -192,7 +218,7 @@ namespace LEX
 
 	ITypePolicy* StorageType<String>::operator()()
 	{
-		ITypePolicy* policy = IdentityManager::GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
+		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
 
 		//Should already be specialized, so just sending it.
 		return policy;
@@ -219,12 +245,12 @@ namespace LEX
 
 
 
-	ITypePolicy* StorageType<ExternalHandle>::operator()()
+	ITypePolicy* StorageType<Object>::operator()()
 	{
 		return nullptr;
 	}
 
-	AbstractTypePolicy* ValueType<ExternalHandle>::operator()(ExternalHandle& it)
+	AbstractTypePolicy* ValueType<Object>::operator()(Object& it)
 	{
 		return nullptr;
 	}
@@ -456,7 +482,7 @@ namespace LEX
 		Signage     sign{};
 		Limit       limit{ Limit::Overflow };
 
-		IdentityManager::GenerateID("NUMBER", Number::Settings::length);
+		IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length);
 
 		ConcretePolicy* primary_policy = new ConcretePolicy{ "NUMBER", 0 };
 
@@ -742,350 +768,1561 @@ namespace LEX
 
 
 
-	/*
-	class Signature : public OverloadClause
+
+
+	struct Array_
 	{
-		//Signature is a very temporary thing, at later point, most of this information will be viewable loose
-		// with the function
+		int8_t size = 0;
+		std::vector<Variable> stuff;
 
-		template <typename T1, typename T2>
-		using _OrderedMap = std::vector <std::pair<T1, T2>>;
-
-		enum Usage
+		Array_()
 		{
-			Required,	//Theres no possible deduction
-			Optional,	//It comes with a default value
-			Implied		//It's use isn't default, but is deducible from a
-		};
-
-		struct GenericReq
-		{
-			ITypePolicy*	policy = nullptr;
-			Usage			usage = Required;
-		};
-
-		std::vector<GenericReq>				genericInput;//This can be handled through the genericpolicie
-		std::vector<Solution>					parameterInput;//This is handled in full via the parameter stuff
-		_OrderedMap<std::string, Solution>		defaultInput;//This can be handled the same as the above.
-
-
-
-	};
-	//*/
-
-
-
-
-
-
-	
-
-	struct Object;
-
-	template <typename T>
-	//using pointer = std::unique_ptr<T>;
-	using pointer = T*;
-
-	//In the future, object builds have the same requirements as a regular native function. Actually, maybe not the best idea. Have different functions handle that.
-	using ObjectBuilder = pointer<Object>(*)();
-
-
-
-	struct ObjectInfo
-	{
-		const std::type_info* type;//This is made with create, to denote source.
-		HMODULE program;
-
-
-
-		ObjectBuilder ctor;
-
-
-		//All ideas from the claimed id to  the end of the offset are a part of the registered type.
-		// So think of from form all the way
-		TypeIndex index;
-		TypeOffset offset;
-
-
-		pointer<Object> BuildObject();
-	};
-
-	struct Object
-	{
-		friend ObjectInfo;
-
-		virtual ~Object() = default;
-		ObjectInfo* GetInfo()
-		{
-			return _info;
+			logger::info("Creating Array");
 		}
-		
-	private:
-		ObjectInfo* _info;
 
-
+		~Array_()
+		{
+			logger::info("Deleting Array");
+		}
 	};
-	pointer<Object> ObjectInfo::BuildObject()
+
+	template <>
+	struct LEX::ObjectInfo<Array_> : public QualifiedObjectInfo<Array_>
 	{
-		pointer<Object> obj = ctor();
+		using Typer = int;
 
-		obj->_info = this;
+		bool IsPooled(ObjectData&) override
+		{
+			return true;
+		}
 
-		return obj;
+		TypeOffset GetTypeOffset(ObjectData&) override
+		{
+			return 0;
+		}
+	};
+
+
+	template <>
+	decltype(auto) ToObject<std::vector<int>>(std::vector<int>& obj)
+	{
+		logger::info("hitting");
+		Array_ result{};
+
+		//const std::vector<void*> test;
+
+		//void* other = test[1];
+
+
+		std::transform(obj.begin(), obj.end(), std::back_inserter(result.stuff), [&](auto it) {return it; });
+
+		result.size = obj.size();
+		return result;
 	}
 
 
 
-	HMODULE GetCurrentModule()
-	{ // NB: XP+ solution!
-		HMODULE hModule = NULL;
-		GetModuleHandleEx(
-			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-			(LPCTSTR)GetCurrentModule,
-			&hModule);
+	namespace Inner
+	{
+	
+	}
 
-		return hModule;
+	
+	INITIALIZE()
+	{
+		RegisterObjectType<Array_>("ARRAY");
+		
+		return;
+		{
+			Object _array1 = GetObjectPolicy<Array_>()->CreateObject(0);
+			Object _array2 = GetObjectPolicy<Array_>()->CreateObject(0);
+
+			_array1 = _array2;
+		}
+		{
+			Object _array1 = GetObjectPolicy<Array_>()->CreateObject(0);
+			Object _array2 = GetObjectPolicy<Array_>()->CreateObject(0);
+
+			_array1 = _array2;
+		}
+
+
+		return;
+		// To walk through functionality, how would this work ?
+		std::vector<int> vars{ 1, 2, 3, 4, 5, 6, 7 };
+
+		//auto* var_ptr = &vars;
+
+		//Object test_array = MakeObject(var_ptr);
+
+
+		Object _array = MakeObject(vars);
+		bool policy = _array.policy;
+		//_array.data.fastValue
+		//logger::critical("Object check: {} , {} (+info {})", reinterpret_cast<Array_*>(_array.data.ptrVal)->size, policy, policy ? !!_array.policy->base : false);
+		logger::critical("Object check: {} , {} (+info {})", _array.get<Array_>().size, policy, policy ? !!_array.policy->base : false);
+
+
+		std::string str;
+
+		//Object str_obj = MakeObject(str);
+
+
+
+
+
+		//for (auto& variable : reinterpret_cast<Array_*>(_array.data.ptrVal)->stuff)
+		for (auto& variable : _array.get<Array_>().stuff)
+		{
+			logger::critical("var: {}", variable.AsNumber());
+		}
+
+
+
+		//Array_ new_array = *reinterpret_cast<Array_*>(_array.data.ptrVal);
+		Array_ new_array = _array.get<Array_>();
+
+		for (auto& variable : new_array.stuff)
+		{
+			logger::critical(" new var: {}", variable.AsNumber());
+		}
+
+
+		//logger::critical("GenericBuilt check: {} ", reinterpret_cast<Array_*>(GenericDataBuilder<Array_>().ptrVal)->size);
+		logger::critical("GenericBuilt check: {} ", GenericDataBuilder<Array_>().get<Array_>().size);
+
+		//return;
+		//static_assert(false, "The object pooling system isn't doing so hot. Confirm that it's not stupid busted later.");
+
+		Object first = MakeObject(vars);
+
+		logger::info("index {}", first.data.idxVal);
+		Object second = first;
+
+		first = second;
+
+		second.Destroy();
+
+
+		first = second;
+		logger::info("end of test");
+	};
+
+
+	
+	namespace Fields
+	{
+		using Specifier = DeclareSpecifier;
+
+		enum struct FieldType
+		{
+			Invalid,
+			Local,
+			Parameter,
+			Variable,
+			Function,//Doesn't differentiate between method or function
+		};
+
+		//Both global data and a FunctionData need a bare bones version that sits without things that would be included in the field.
+		// Kinda hard to do, given that one of these things comes with the qualified type.
+
+		//Noting, that it seems almost as if the qualified data does not actually seem to get used when it comes down to membered fields.
+		// Like, that sort of information would be stored no where for the function.
+
+		struct GlobalData
+		{
+			std::string _name;
+
+			ICallableUnit* _init = nullptr;//This is the default for a given global. Call to reset value. But, do note, this should be a formula, not a callable unit.
+			Variable value{};//This is the current value of the global. Should be assigned a type and that type should not change.
+		};
+
+		namespace OLD
+		{
+
+			struct Field
+			{
+			public:
+				~Field() = default;
+
+				//These last 2 are sorta not really important. TypePolicy is however.
+				virtual FieldType GetFieldType() const = 0;// { return FieldType::Invalid; }
+
+				virtual size_t GetFieldIndex() const { return max_value<size_t>; }
+
+				virtual ITypePolicy* GetTypePolicy() const { return nullptr; }
+
+				//TODO: Make Field::AsSolution virtual
+				Solution AsSolution();
+
+
+				virtual Qualifier GetQualifiers() const = 0;
+
+				QualifiedType GetQualifiedType() const;
+
+				bool IsLocal() const { return GetFieldType() == FieldType::Local; }
+			};
+
+
+			struct FunctionInfo : public MemberInfo
+			{
+
+				//TODO: This needs to be able to handle overloads some how, via abstract functions maybe?
+
+
+				struct Settings : public MemberInfo::Settings
+				{
+					bool isVirtual = false;
+				};
+
+				using FunctionType = FunctionBase;//
+
+
+				union {
+					FunctionType* function = nullptr;
+					MemberPointer method;//prefered, works with the other.
+				};
+
+				bool IsVirtual() const
+				{
+					return GetData<Settings>().isVirtual;
+				}
+
+				FunctionType* Get()
+				{
+					if (IsVirtual() == false)
+						return function;
+
+					return nullptr;
+				}
+
+				FieldType GetFieldType() const override { return FieldType::Function; }
+
+
+				FunctionInfo() = default;
+			};
+
+
+			struct InfoBase : public Field
+			{
+			public:
+				struct Settings
+				{
+					Qualifier flags{};
+				};
+
+
+
+				InfoBase() = default;
+
+				std::string name{};
+
+				//Instead, you can just store basic qualfiers here. Percieve them any way you'd like.
+				// it's upto the derived.
+				size_t _data{};
+
+
+
+				//Mainly used for members and function variables. But since I've yet to see anything that remotely 
+				// outside these 2 uses, I think this suits just fine.
+				size_t index = max_value<size_t>;
+
+			protected:
+
+
+
+				template <typename T> requires (sizeof(T) <= 0x8)
+					T& DataAs()
+				{
+					return reinterpret_cast<T&>(_data);
+				}
+
+				template <typename T> requires (sizeof(T) <= 0x8)
+					const T& DataAs() const
+				{
+					return reinterpret_cast<const T&>(_data);
+				}
+
+				template <typename T> requires (sizeof(T) <= 0x8)
+					T GetData() const
+				{
+					return DataAs<T>();
+				}
+
+			public:
+
+
+				size_t GetFieldIndex() const override
+				{
+					return max_value<size_t>;
+				}
+
+
+				virtual operator bool() const
+				{
+					//Should this be and?
+					return name != "" || _data;
+				}
+			};
+
+
+
+
+			class MemberInfo : public InfoBase
+			{
+			public:
+				MemberInfo() = default;
+
+				MemberInfo(size_t i) {}
+
+
+				struct Settings : public InfoBase::Settings
+				{
+					bool isRuntimeMember = false;
+				};
+
+				virtual Qualifier GetQualifiers() const override
+				{
+					auto setting = GetData<Settings>();
+
+					if (!setting.isRuntimeMember)
+						setting.flags = setting.flags & ~Qualifier::Runtime;
+
+					return GetData<Settings>().flags;
+				}
+
+				/*
+				virtual BasicQualifier GetBasicFlags() const
+				{
+					return GetData<Settings>().basic;
+				}
+
+				virtual RuntimeQualifier GetRuntimeFlags() const
+				{
+					if (auto setting = GetData<Settings>(); setting.isRuntimeMember)
+						return setting.runtime;
+
+					return RuntimeQualifier::None;
+				}
+				//*/
+			protected:
+				AccessModifier _access = AccessModifier::Private;
+
+			};
+
+
+
+			class LocalInfo : public TemporaryInfo
+			{
+			public:
+				LocalInfo(ITypePolicy* t, size_t i) : TemporaryInfo{ i }, _type{ t }
+				{
+
+				}
+
+				FieldType GetFieldType() const override { return FieldType::Local; }
+
+				ITypePolicy* GetTypePolicy() const override { return _type; }
+
+			protected:
+				ITypePolicy* _type = nullptr;
+
+
+
+				operator bool() const override
+				{
+					//Should this be and?
+					return _type || __super::operator bool();
+				}
+			};
+
+
+			//Delete
+			class TemporaryInfo : public InfoBase
+			{
+			public:
+				//I don't think I need this, may merge into local info.
+				TemporaryInfo(size_t i) : _index{ i } {}
+
+
+
+				virtual Qualifier GetQualifiers() const override
+				{
+					return GetData<Settings>().flags;
+				}
+
+			protected:
+				size_t _index = max_value<size_t>;
+
+			};
+
+			class ParameterInfo : public LocalInfo
+			{
+				struct Settings : public LocalInfo::Settings
+				{
+					bool isDefault = false;
+				};
+
+
+			public:
+				ParameterInfo(ITypePolicy* t, size_t i, std::string n) : LocalInfo{ t, i }
+				{
+					name = n;
+				}
+
+				ParameterInfo(QualifiedType t, size_t i, std::string n) : LocalInfo{ t, i }
+				{
+					name = n;
+
+					DataAs<Settings>().flags = t.flags;
+				}
+			};
+
+
+			//Needs?
+			struct VariableInfo : public MemberInfo
+			{
+				VariableInfo() = default;
+
+				//no qualifiers for now.
+				VariableInfo(ITypePolicy* t, size_t i, Qualifier q) : _index{ i }, _type{ t }
+				{
+					DataAs<Settings>().flags = q;
+				}
+
+				size_t GetFieldIndex() const override
+				{
+					return _index;
+				}
+
+				FieldType GetFieldType() const override { return FieldType::Variable; }
+
+				ITypePolicy* GetTypePolicy() const override
+				{
+					return _type;
+				}
+
+
+				ITypePolicy* _type = nullptr;
+				size_t _index = max_value<size_t>;
+			};
+
+
+		}
+
+
+		struct Field
+		{
+			//The interface for fields
+			virtual ~Field() = default;
+
+			virtual String GetFieldName() const = 0;
+			
+			virtual FieldType GetFieldType() const = 0;
+
+			virtual uint32_t GetFieldIndex() const = 0;
+
+
+			virtual Qualifier GetQualifiers() const = 0;
+
+			virtual Specifier GetSpecifiers() const = 0;
+
+			virtual ITypePolicy* GetType() const = 0;
+
+
+		};
+		
+
+
+		struct InfoBase : public Field
+		{
+			//The abstract class for infos. Holds all the data for it.
+
+			Qualifier qualifiers;
+			
+			DeclareSpecifier specifiers;
+
+			//Access modifiers and 
+
+
+			//bool isVirtual = 0;
+			//bool isIsRuntimeMember = 0;//This is actually used to tell if it should purge runtime stuff from members. I easily could do that.
+			
+
+			//All versions will need this at some point, so I'll do this here.
+			uint32_t _index = -1;
+
+			uint32_t GetFieldIndex() const override
+			{
+				return _index;
+			}
+			
+
+			virtual operator bool() const 
+			{
+				//This was supposed to do something, no idea what it was.
+				return true;
+			}
+		};
+
+
+
+
+
+
+		class LocalInfo : public InfoBase
+		{
+		public:
+			//LocalInfo(ITypePolicy* t, size_t i) : TemporaryInfo{ i }, _type{ t }
+			//{
+			//}
+
+			FieldType GetFieldType() const override { return FieldType::Local; }
+
+			ITypePolicy* GetType() const override { return _type; }
+
+			Qualifier GetQualifiers() const override { return qualifiers; }
+			Specifier GetSpecifiers() const override { return specifiers; }
+
+			std::string GetFieldName() const override { return _name; }
+
+
+		protected:
+			std::string _name;
+			
+			ITypePolicy* _type = nullptr;
+
+
+
+			operator bool() const override
+			{
+				//Should this be and?
+				return _type || __super::operator bool();
+			}
+		};
+
+
+		class ParameterInfo : public LocalInfo
+		{
+		public:
+			//ParameterInfo(ITypePolicy* t, size_t i, std::string n) : LocalInfo{ t, i }
+			//{
+			//	name = n;
+			//}
+			//ParameterInfo(QualifiedType t, size_t i, std::string n) : LocalInfo{ t, i }
+			//{
+			//	name = n;
+			//	DataAs<Settings>().flags = t.flags;
+			//}
+
+
+			FieldType GetFieldType() const override { return FieldType::Parameter; }
+
+			//Should contain information like default info etc.
+		};
+
+
+		struct MemberInfo :public InfoBase
+		{
+			//This pivot is still going to need to exist for all the reasons that you'd imagine something like this would need. They sorta need to play proxy to the
+			// specializations of both functions and for variables, so first this will need overloads, and each of those will need their respective specialization.
+
+
+			bool IsStatic() const
+			{
+				return specifiers & Specifier::Static;
+			}
+		};
+
+
+		struct FunctionInfo : public MemberInfo//Needs to be able to use overloads, so these can possibly be a bit bigger.
+		{
+			using FunctionType = FunctionBase;//
+
+
+			union {
+				std::array<size_t, 2> _raw{0 , 0};
+
+
+				FunctionType* function;
+				
+				struct
+				{
+					MemberPointer method;//prefered, works with the other.
+					FunctionData* signature;
+				};
+			};
+
+			bool IsVirtual() const
+			{
+				return specifiers & Specifier::Virtual;
+			}
+
+			FunctionType* Get() const
+			{
+				if (IsVirtual() == false)
+					return function;
+
+				return nullptr;
+			}
+
+			FieldType GetFieldType() const override { return FieldType::Function; }
+
+			//For now, this is true, there is no way to handle a function's type.
+			ITypePolicy* GetType() const override { return nullptr; }
+
+			Qualifier GetQualifiers() const override { return qualifiers; }
+			Specifier GetSpecifiers() const override { return specifiers; }
+
+			std::string GetFieldName() const override { return Get()->GetName(); }
+
+
+			
+		};
+
+		struct VariableInfo : public MemberInfo
+		{
+			//no qualifiers for now.
+			//VariableInfo(ITypePolicy* t, size_t i, Qualifier q) : _index{ i }, _type{ t }
+			//{
+			//	DataAs<Settings>().flags = q;
+			//}
+
+
+			FieldType GetFieldType() const override { return FieldType::Variable; }
+			
+			ITypePolicy* GetType() const override { return nullptr; }
+
+			Qualifier GetQualifiers() const override { return qualifiers; }
+			Specifier GetSpecifiers() const override { return specifiers; }
+
+			std::string GetFieldName() const override { return Get()->GetName(); }
+
+
+			union {
+				std::array<size_t, 2> _raw{ 0 , 0 };
+
+				//This would be a GlobalBase, rather than a global.
+				Global* variable;
+
+				struct
+				{
+					MemberPointer method;//prefered, works with the other.
+					GlobalData* signature;
+				};
+			};
+
+			Global* Get() const
+			{
+				if (IsStatic() == true)
+					return variable;
+
+				return nullptr;
+			}
+		};
+
+
+		
+		struct QualifiedField : public Field
+		{
+			enum struct Constness : uint8_t
+			{
+				kNone,
+				kConst,
+				kReadonly,
+			};
+
+			enum struct RefrType : uint8_t
+			{
+				kNone,
+				kLeft,
+				kRight,
+			};
+
+			//The qualified type could be anything qualifiable, but type seems to be the most likely to pull (well solution, but solutions are type qualified).
+			QualifiedField(InfoBase* field, QualifiedType type)
+			{
+				//By this point, it's expected that the calling has already emplaced it's rules on what this is.
+
+
+				auto qualifiers = field->GetQualifiers();
+
+				switch (type.flags & Qualifier::Constness_)
+				{
+				case Qualifier::Const:
+					//If the field is mutable or readonly, it cannot be made into const.
+				if (FilterEquals<Qualifier::Constness_>(qualifiers, Qualifier::Modable) == false)
+					_constLevel = Constness::kConst; break;
+
+				case Qualifier::Readonly:
+					_constLevel = Constness::kReadonly; break;
+				}
+
+				//If the field has a reference type, that is uses instead.
+				if (!!(qualifiers & Qualifier::Reference_))
+				{
+					switch (type.flags & Qualifier::Reference_)
+					{
+					case Qualifier::RefL:
+						_refLevel = RefrType::kLeft; break;
+
+					case Qualifier::RefR:
+						_refLevel = RefrType::kRight; break;
+					}
+				}
+				
+			}
+
+			InfoBase* _target = nullptr;
+
+			Constness _constLevel = Constness::kNone;
+			
+			//Thi
+			RefrType _refLevel = RefrType::kNone;
+			
+
+
+			uint32_t GetFieldIndex() const override
+			{
+				return _target->GetFieldIndex();
+			}
+
+			FieldType GetFieldType() const override
+			{
+				return _target->GetFieldType();
+			}
+
+			ITypePolicy* GetType() const override
+			{
+				return _target->GetType();
+			}
+
+			Qualifier GetRawQualifiers() const
+			{
+				return _target->GetQualifiers();
+			}
+
+			Qualifier GetQualifiers() const override
+			{
+				auto result = GetRawQualifiers();
+				
+
+				if (_constLevel != Constness::kNone)
+				{
+					result &= ~Qualifier::Constness_;
+
+					switch (_constLevel)
+					{
+					case Constness::kConst:
+						result |= Qualifier::Const; break;
+
+					case Constness::kReadonly:
+						result |= Qualifier::Readonly; break;
+					}
+
+				}
+
+
+				if (_refLevel != RefrType::kNone)
+				{
+					result &= ~Qualifier::Reference_;
+
+					switch (_refLevel)
+					{
+					case RefrType::kLeft:
+						result |= Qualifier::RefL; break;
+
+					case RefrType::kRight:
+						result |= Qualifier::RefR; break;
+					}
+
+				}
+
+
+				return result;
+			}
+			Specifier GetSpecifiers() const override
+			{
+				return _target->GetSpecifiers();
+			}
+
+			std::string GetFieldName() const override
+			{
+				return _target->GetFieldName();
+			}
+
+			operator Field* () const
+			{
+				return _target;
+			}
+
+			operator bool() const
+			{
+				return _target;
+			}
+		};
+
+
+
+		enum struct ScopeType : uint8_t
+		{
+			Required,		//It's a given that the parent scope will have to run the following when encountered
+			Conditional,	//The parent scope may not run the contents of this scope when encountered
+			Depedent,		//Whether the parent scope runs the contents of this scope are dependent on another scope.
+			Header,			//The header scope, the only things that go here would be parameters and such. Cannot have a parent.
+
+			
+			//Header is the default scope,
+			//Required is any scope that will be encountered (say {..})
+			//Condition is stuff like ifs and while loops.
+			//Dependent means it's reliant on a conditional to trigger. 
+			// I'm considering something like trivial, say if something's set within an if statement.
+		};
+
+
+		struct Scope
+		{
+		private:
+			enum ReturnType : uint8_t
+			{
+				None,		//There is no guarenteed return
+				Nested,		//There is a return, through different scopes.
+				Immutable	//There is a non conditional return interpreted. Cannot be overwritten.
+			};
+		public:
+
+			//The generic object that handles the concept of a scope.
+
+			~Scope()
+			{
+				//When the scope of the function using scope decays, it will set its parent scope back to being the main scope, as well as
+				// adding a decrement value to the variable count.
+
+
+				//There's just one problem. You see, it's that pesky fucking loose operation stack you see.  No way to add to it from destruction.
+
+				//Okay, what if I do a best of both worlds. The return for operations are within the compiler, and are submitted to a buffer? Doesn't work for similar reasons.
+
+				//Here's what I can do. There's a wrapper to the compile function calls, similar to try module and such
+
+
+
+				_CheckExit();
+
+
+				//if (!parent)//if it's top level, that instead decides if it even removes anything.
+				if (IsTopLevel() == false)
+					process->ModVarCount(-vars.size());
+
+				process->currentScope = parent;
+
+
+
+				//If stuff like out is to be used, I'll need
+
+
+				//TODO: If I can, I'd like some optimization that collapses all variable increments
+				// ^ perhaps such optimizations can be made here in post, with the ability to insert instructions at a certain position.
+				// all I would need is the index of where this scope started, then once this ends I'd submit all the instructions
+				// for creating them en masse, and each instruction to load the type policy onto the variable
+			}
+
+
+			[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s) :process{ static_cast<RoutineCompiler*>(compiler) }, _type{ s }
+			{
+				//When created, it will set itself as the main scope, and record the old scope.
+
+				//This needs to handle the return type so it can get a proper compiling error for not returning when required.
+
+				parent = process->currentScope;
+				process->currentScope = this;
+
+				if (parent && s == ScopeType::Header) {
+					report::compile::fatal("invalid header scope with parent detected.");
+				}
+			}
+
+
+
+			LocalInfo* CreateVariable(std::string name, QualifiedType type)
+			{
+				//Should consider not using a pointer due to invalidation. Instead, maybe give a copy.
+
+				assert(type.policy);
+
+				bool header = IsHeader();
+
+				//auto result = variables.size();
+
+				//variables.push_back(name);
+
+				if (auto& var = vars[name]; var) {
+					report::compile::critical("Variable name already taken");
+				}
+
+				auto index = !header ? process->ModVarCount(type.policy) : process->ModParamCount(type.policy);
+
+
+				RGL_LOG(debug, "Attempting to create {} at index {}", name, index);
+
+				LocalInfo& result = vars[name] = LocalInfo{ type.policy, index, type.flags };
+
+
+				//This is only temporarily valid.
+				return &result;
+			}
+
+			//LocalInfo* GetLocalVariable(std::string& name)
+			//VariableInfo* GetGlobalVariable(std::string& name);
+
+			QualifiedField SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
+
+			//I will abet this for now, but it dies some day
+			QualifiedField SearchField(std::string name, FieldPredicate pred = nullptr);
+
+
+			ITypePolicy* SearchType(std::string name);
+
+			//If this is the scope that the routine uses to hold its top level data returns true.
+			bool IsRoutine() const { return !parent; }
+
+			bool IsHeader() const { return _type == ScopeType::Header && !parent; }
+
+			bool IsTopLevel() const { return IsHeader() || (parent ? parent->_type == ScopeType::Header : false); }
+
+
+			//As variables get declared, this list will grow in size.
+			// Variable might need to be an object. If it is, I think mixing it with compiled operand maybe useful. Whatever this is, it would need qualifiers.
+			// qualifiers that don't really exist at a later point, and just direct the compiler on how to handle things.
+			//std::vector<std::string> variables{};
+
+			std::map<std::string, LocalInfo> vars;
+
+			//For use with stuff like in, out, and ref
+			std::vector<Field*> assignments;
+
+
+			//If scope has no parent, it will address the function data stored on the compiler, making it the chief scope.
+			Scope* parent = nullptr;
+
+			RoutineCompiler* process = nullptr;//Will turn statement compiler into a routinecompiler.
+
+
+			const ScopeType _type;
+
+
+
+			ReturnType _return{};
+
+			std::string name();
+
+			void _CheckExit()
+			{
+
+				if (IsHeader() == true) {
+
+					if (!_return && process->GetReturnType()->FetchTypeID() != -1)
+						report::compile::fatal("Explicit return expected. {}", name());
+
+					return;
+				}
+
+				switch (_type)
+				{
+				case ScopeType::Header:
+					break;
+
+				case ScopeType::Required:
+					if (_return)
+						parent->_ConfirmExit();
+
+					break;
+
+				case ScopeType::Conditional:
+					if (_return)
+						parent->_FlagExit();
+					else
+						parent->_UnflagExit();
+
+					break;
+
+				case ScopeType::Depedent:
+					if (!_return)
+						parent->_UnflagExit();
+
+					break;
+				}
+			}
+
+			void _FlagExit()
+			{
+
+				if (_return != Immutable)
+					_return = ReturnType::Nested;
+			}
+
+			void _UnflagExit()
+			{
+				if (_return != Immutable)
+					_return = ReturnType::None;
+			}
+
+			void _ConfirmExit()
+			{
+				_return = ReturnType::Immutable;
+			}
+
+
+			void FlagReturn()
+			{
+				_return = ReturnType::Immutable;
+			}
+
+			//Flag for a return call within this scope. But it means different things for the routine's scope than it does for something like an
+			// if scope. So I gotta work that out.
+
+
+
+			//Make sure to remove copy assignment stuff. Doesn't need it. Shouldn't leave its initial function
+
+		};
+
+
+
+		QualifiedField Scope::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
+		{
+			//Move to the compiler maybe?
+			auto end = vars.end();
+
+			if (auto it = vars.find(name); it != end) {
+				return &it->second;
+			}
+			else if (parent) {
+				return parent->SearchField(name, key, pred);
+			}
+			else if (auto field = process->GetEnvironment()->SearchField(name, key, pred); field) {
+				return field;
+
+
+			}
+
+			return nullptr;
+		}
+
+		QualifiedField Scope::SearchField(std::string name, FieldPredicate pred)
+		{
+			OverloadInput input;
+
+			return SearchField(name, input, pred);
+		}
+
+		ITypePolicy* Scope::SearchType(std::string name)
+		{
+			//I'm too fucking lazy to make it work normally, so this is what we're gonna deal with til I do.
+
+			Record dummy{ "dummy", 0, Record{name} };
+
+			auto result = GetPolicyFromSpecifiers(dummy, process->GetEnvironment());
+
+			return result;
+		}
+
+
+		std::string Scope::name()
+		{
+			return process->_targetFunc->_name;
+		}
+
+
+		void TestInstantiate()
+		{
+			VariableInfo{};
+			FunctionInfo{};
+			LocalInfo{};
+			ParameterInfo{};
+			FunctionInfo{};
+		}
 	}
 
 
-	void NewProject()
+
+
+	namespace ObjectWorksheet
 	{
+		namespace NewString
+		{
+
+			void Accept(const char8_t*)
+			{
+
+			}
+
+
+			constexpr wchar_t t = '™';
+
+			void test()
+			{
+				const wchar_t* test_v = L"thge";
+
+
+				//std::strdup(test_v);
+				//wcsdup
+				//Need more than this.
+				/*
+				char *_strdup(
+				   const char *strSource
+				);
+				wchar_t *_wcsdup(
+				   const wchar_t *strSource
+				);
+				unsigned char *_mbsdup(
+				   const unsigned char *strSource
+				);
+				//*/
+
+				//Accept(test_v);
+				std::basic_string<wchar_t> wide_str;
+				std::basic_string<char8_t> smol_str;
+
+
+				constexpr auto testrr = sizeof(decltype(wide_str)::value_type) > sizeof(decltype(smol_str)::value_type);
+
+				using BiggerType = std::conditional_t<testrr, decltype(wide_str), decltype(smol_str) >;
+				//wide_str;
+			   //BiggerType comp_str = BiggerType{ smol_str };
+
+
+
+			   //bool testComp = wide_str == smol_str;
+
+			}
+			//Not needed anymore.
+			enum struct CharType : uint8_t
+			{
+				Byte,
+				Word,
+				DWord,
+			};
+
+
+			static_assert(std::is_unsigned_v<wchar_t>, "test failure");
+			static_assert(alignof(wchar_t) == alignof(char16_t), "test failure");
+
+			template <typename C>
+			struct ptr//this is place holder.
+			{
+				const C* loc = nullptr;
+			};
+
+			namespace rgl
+			{
+				template< class T >
+				concept character =
+					std::is_same_v<char, T> ||
+					std::is_same_v<char8_t, T> ||
+					std::is_same_v<char16_t, T> ||
+					std::is_same_v<char32_t, T> ||
+					std::is_same_v<wchar_t, T> ||
+					std::is_same_v<signed char, T> ||
+					std::is_same_v<unsigned char, T>;
+
+
+				//Here's the concept, I think I'm going to turn char, unsigned char, signed char, and wchar_t
+				// into whatever char they're matched as. I'll make a custom type trait for this sort of thing.
+				// it should match between files, but it means the basic string type will depend on your compiler.
+				// But I mean, it always has
+
+				//Correction, signed char remains.
+			}
+
+
+			template <rgl::character C>
+			struct true_char
+			{
+				using type = C;
+			};
+
+			template <>
+			struct true_char<unsigned char>
+			{
+				using type = char8_t;
+			};
+
+			template <>
+			struct true_char<wchar_t>
+			{
+				using type = std::conditional_t<alignof(wchar_t) == alignof(char16_t), char16_t, char32_t>;
+			};
+
+			template <>
+			struct true_char<char>
+			{
+				using type = std::conditional_t<std::is_unsigned_v<char>, char8_t, signed char>;
+			};
+
+
+
+
+
+			static void Imagine()
+			{
+				//std::use_facet<std::ctype<char
+			}
+
+
+			//do is spec of varient.
+			template <specialization_of<std::variant> T>
+			static constexpr auto free_space = 8 - sizeof(std::_Variant_index_t<std::variant_size_v<T>>);
+
+			//These are the 4 types I'm keeping track of. Anything else will merely get turned into this.
+			//signed char
+			//char8_t
+			//char16_t
+			//char32_t
+
+
+
+
+			using CharTypes = std::variant
+				<
+				ptr<signed char>,
+				ptr<char8_t>,
+				ptr<char16_t>,
+				ptr<char32_t>
+				>;
+
+			//static_assert(std::is_same_v<char, signed char>);
+			struct StringData
+			{
+				uint32_t size = 0;
+			};
+			REQ_OR_LESS_SIZE(StringData, free_space<CharTypes>);
+
+
+			struct StringHelper
+			{
+				static constexpr auto offset = sizeof(CharTypes) - sizeof(StringData);
+
+			protected:
+				StringData& GetData()
+				{
+					auto a_this = (uintptr_t)this;
+
+					return *reinterpret_cast<StringData*>(a_this + offset);
+				}
+
+				const StringData& GetData() const
+				{
+					auto a_this = (uintptr_t)this;
+
+					return *reinterpret_cast<StringData*>(a_this + offset);
+				}
+
+				uint32_t& size()
+				{
+					return GetData().size;
+				}
+
+			public:
+
+
+
+				uint32_t size() const
+				{
+					return GetData().size;
+				}
+
+
+				StringHelper()
+				{
+					size() = 0;
+				}
+
+				StringHelper(const RunDataHelper& other)
+				{
+					size() = 0;
+
+				}
+
+
+				StringHelper(RunDataHelper&& other)
+				{
+					size() = 0;
+				}
+
+
+				StringHelper& operator=(const RunDataHelper& other)
+				{
+					size() = 0;
+					return *this;
+				}
+
+
+
+				StringHelper& operator=(RunDataHelper&& other)
+				{
+					size() = 0;
+					return *this;
+				}
+			};
+
+
+
+			template <rgl::character _Elem>
+			struct CharHandle
+			{
+				using value_type = _Elem;
+
+				//value_type
+
+			};
+
+
+
+			struct String
+			{
+				//This sort of thing will help converting one set to another. For now, I don't really need this sort of thing, and miss matches will be
+				// rejected outright.
+				//#include <codecvt>
+				//std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+				//std::string narrow = converter.to_bytes(wide_utf16_source_string);
+				//std::wstring wide = converter.from_bytes(narrow_utf8_source_string);
+
+				//Unlike with arrays and such, strings will be treated as completely seperate types. This also helps not encounter any issues with generic implementations later.
+
+
+
+				//I could get away with using a variant for this.
+				void* ptr = nullptr;
+				uint32_t size = 0;
+				CharType type = CharType::Byte;
+
+
+				bool operator==(const String& other)
+				{
+					if (type != other.type)
+						return false;
+
+					if (size != other.size)
+						return false;
+
+
+				}
+
+				bool operator==(String&& other)
+				{
+					return operator==(other);
+				}
+
+
+				template <rgl::character Char>
+				String(const Char* str)
+				{
+
+				}
+
+				template <rgl::character Char>
+				String(std::basic_string<Char> str)
+				{
+
+				}
+
+			};
+			REQUIRED_SIZE(String, 0x10);
+		}
+
+		class ClassStruct
+		{
+		
+			AbstractTypePolicy* type = nullptr;
+
+		private:
+			union
+			{
+				uintptr_t			_raw = 0;
+				Variable*			memberList;
+				RuntimeVariable*	runtimeList;
+			};
+			
+			size_t size = 0;
+
+			//I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
+			// switch what type it's percieved as.
+
+			//This might make it a pain however.
+
+
+
+			
+		};
+		
 
 	}
 	
-	//Shit should probably use some const
-	std::unique_ptr<ObjectInfo> NewObjectType(const std::type_info& type, std::string_view category, TypeOffset range, ObjectBuilder builder, HMODULE source)
+
+
+
+	namespace SingletonWorksheet
 	{
-		IdentityManager::GenerateID(category, range);
-
-		std::unique_ptr<ObjectInfo> info = std::make_unique<ObjectInfo>();
-
-		info->type = &type;
-		info->index = IdentityManager::GetIndexFromName(category);
-		info->program = source;
-		info->offset = 0;
-		info->ctor = builder;
-
-		return info;
-	}
-
-	template <std::derived_from<Object> T>
-	std::unique_ptr<ObjectInfo> NewObjectType(std::string_view category, TypeOffset range = 0)
-	{
-		const std::type_info& type = typeid(T);
+		template <typename T>
+		struct Singleton
+		{
 
 
-		HMODULE source = GetCurrentModule();
-		
-		//This should probably go in an non-template function to reduce the amount of times something like this is created.
-		ObjectBuilder builder = []() -> pointer<Object> {
-			return { new T() };
+			T* operator*()
+			{
+				//If the return of GetSingleton is a pointer give pointer.
+				// if the result is a reference, turn reference into a pointer.
+
+				decltype(auto) singleton = T::GetSingleton();
+
+				using _Res = decltype(singleton);
+
+				if constexpr (std::is_reference_v<_Res>)
+				{
+					return &singleton;
+				}
+				else// if constexpr (std::is_pointer_v<_Res>)//I'd like it if it doesn't return either you can't use this. Concept for that probs.
+				{
+					return singleton;
+				}
+
+			}
+
+			const T& operator*() const
+			{
+
+			}
 		};
 
-		return NewObjectType(type, category, range, builder, source);
+		template <typename T>
+		Singleton<T> singleton = Singleton<T>{};
 	}
-
-}
-
-
-namespace Banishment
-{
-	/*
 
 	namespace
 	{
-		//I think I'll actually be putting the external interface IN external. Nah, that would increase size. But 
-		// It should contain a type alias to it's current interface type as convience.
-
-		struct External;
-
-		using ExternalCtor = External * (*)();
-
-		namespace detail
+		struct TestInterface : public Interface, InterfaceSingleton<TestInterface>
 		{
-			struct ExternalInterface
+			uintptr_t Version() const override
 			{
-				virtual ~ExternalInterface() = default;
+				return 0;
+			}
 
-				enum struct Version
-				{
-					V1,
+			virtual void Printshit()
+			{
+				logger::critical("I'm printing stuff");
+			}
+		};
 
-					Current = V1
-				};
-
-				enum struct Update
-				{
-					Invalid,//Query is invalid
-					Match,//Update versions match
-					Library,//Library is out of date
-					Engine//Engine is out of date
-
-				};
-
-			};
-		}
-
-		namespace Version1
+		INITIALIZE()
 		{
-			//This answers questions
-			struct ExternalInterface : public detail::ExternalInterface
-			{
+			TestInterface* singleton = nullptr;
+			if (auto result = InterfaceManager::RequestInterface(singleton, 0); result != Update::Match) {
+				logger::info("failure {}", (int)result); return;
+			}
 
-				//Largely, this doesn't need to be changed between implementations, as someone should always be
-				// using Current, and whatever version they're on will sort it out.
-				virtual Version GetVersion() final { return Version::Current; }
-
-				//For all functions within the external interface, I could possibly make it so there are rules on
-				// operating on new interfaces and such. This may allow one to use newer plugins with older engines.
-				// however, this is likely, a bad idea.
+			singleton->Printshit();
 
 
-				//The Non-virtual Functions
+			TestInterface::instance->Printshit();
 
-				//This call will use the version given from the 
-				Update CheckUpdate()
-				{
-					//Likely will rename, this function also might be moved to a more static environment.
-					if (!this)
-						return Update::Invalid;
 
-					auto version = GetVersion();
 
-					if (version == Version::Current)
-						return Update::Match;
-					else if ((int)version < (int)Version::Current)
-						return Update::Library;
+			ObjectPolicyManager* singleton2 = nullptr;
+			if (auto result = InterfaceManager::RequestInterface(singleton2, 0); result != Update::Match) {
+				logger::info("failure 2 {}", (int)result); return;
+			}
+			logger::info("obj_policy ver {}", singleton2->Version());
 
-					else
-						return Update::Engine;
+		};
+	}
+	
+	int* const test_ptr = nullptr;
 
-				}
-			};
-		}
+	struct TestOp
+	{
+		inline static std::string _;
 
-		using ExternalInterface = Version1::ExternalInterface;
+	};
 
+
+	void testRef(int&)
+	{ 
+		int const  t[5]{};
+
+		//int& t = t[1];
+
+		const int i{};
+		//i = 1;
+	}
+
+	void testPtr()
+	{
+		testRef(*test_ptr);
+	}
+
+
+
+
+
+	void foo1(int& i)
+	{
 
 	}
 
-	struct ExternalInterfaceImpl : public LEX::ExternalInterface
+
+	int& foo2(int& i)
 	{
-		//Basically never needs to occur
-		//ExternalInterface::Version GetVersion() override { return ExternalInterface::Version::Current; }
+		return i;
+	}
+
+	int& foo()
+	{
+		int i = 0;
+
+		return foo2(i);
+	}
 
 
-		//This contains the original type_info and module the object came from.
-		Origin _origin{};
-
-		//To all things that will submit and try to request an object that's submitted, this is what will handle
-		// different interpretations of that object. (Such as being in a different namespace, a different version
-		// or biggest of all, SKSE's TESForm vs RE::TESForm
-		//May delegate this to the object manager.
-		std::vector<std::string_view> _sourceNames;
-
-		//Unsure if this would even be needed, but it would make the looking up a bit faster.
-		//This should be as large as id offset.
-		//^//std::vector<ITypePolicy*> _typeRange;
-
-		//This function carried from another project is a constructor that allows an object to be able to
-		// create new versions of itself, or allow one to request a new object merely by knowing its type even
-		// if the object didn't come from that very project.
-		ExternalCtor _ctor;
+	struct StructA;
 
 
-		//All ideas from the claimed id to  the end of the offset are a part of the registered type.
-		// So think of from form all the way
-		uint32_t claimedID;
-		uint32_t idOffset;
+	struct StructB
+	{
+		StructB() = default;
+
+		StructB(StructA&) {}
+
+
 
 	};
 
-
-	struct External {
-		virtual ~External() = default;
-
-		//This is the core function of the object type. In it's implementation,
-		virtual void Invoke(std::string_view func_name, Variable& ret, ArgContainer<Variable>& args)
+	struct StructA
+	{
+		operator StructB()
 		{
-			//The above should be const.
-
-			//Extra point should go toward notifying one that this literaly is unimplemented.
-			// A specific function should be the thing that does this btw.
-			"No implementation of [Put type name here]::Invoke exists. ";
-			throw nullptr;
-
-		}
-
-		virtual constexpr const std::type_info& GetTypeInfo() const
-		{
-			return typeid(*this);
-		}
-
-		virtual constexpr std::string_view GetName()
-		{
-			//This cannot work properly for the const version. So I may make 2 versions
-
-			//Returns the top level name of this polymorphic type. Can be changed to get the current name
-			// in order to have a central version be the registered type.
-			return typeid(*this).name();
-		}
-
-		//Need to make sure they're of the same type.
-		virtual External& operator=(const External& a_rhs) = 0;
-
-		virtual std::strong_ordering operator<=>(const External& a_rhs) = 0;
-
-
-
-
-		template <typename Self>
-		constexpr std::string_view GetCurrentName(this Self&& self)
-		{
-			//The name of the type this was called at, regardless of what it inherits.
-			return typeid(Self).name();
-		}
-
-		template <std::derived_from<External> Self>
-		constexpr Self& MatchType(this Self&& self, const External& a_rhs)
-		{
-			//Also maybe use that type name implementation if you can. Just so different versions don't get caught on each other.
-
-			if (_registry != a_rhs._registry)
-			{
-				//Types were not matched. Reporting failure.
-				//Complete and utter failure.
-			}
-
-			return static_cast<Self&>(a_rhs);
+			return StructB{};
 		}
 
 
-		External()
-		{
-
-			_registry = ExternalManager::GetInterface(std::string{ GetName() });
-
-			//I'mma do this differently else where. Rather, I want to return an API result.
-			if (!_registry) {
-				"Object Type is unregistered or malformed. Confirm registration before use.";
-				throw nullptr;
-			}
-		}
-
-		//Basically, the object's job is to find the type.
-		virtual AbstractTypePolicy* GetType() = 0;
-
-
-
-		//This would be a virtual function that is required to be implemented by the derived class.
-		//virtual TypeCode TypeCodeOf() = 0;
-
-		ExternalInterface* _registry = nullptr;
 	};
+	
+	void control()
+	{
+		StructA a;
+		//StructB b = a;
+		const int u = 0;
 
-	//*/
+		const int y = 0;
+
+		//u = y;
+
+		int& i = foo();
+	}
+
+
 }
+
 
 
 namespace fmt
@@ -1117,683 +2354,3 @@ namespace fmt
 		logger::info("{} test", num);
 	}
 }
-
-
-
-
-//TODO: Most if not all todos past this point are invalid
-
-
-
-//This shouldn't be deleted, has some valuable things within.
-/*
-namespace TestField__Types
-{
-
-	//Just a note about parsing now, I think I want to move away from toml, for a bit, but have an area specifically for toml, like once it's done, it's done.
-	//I additionally want some stuff that can signify special roles, like
-
-	//#use DEBUG
-	//or
-	//#use CASE SENSETIVE
-	//Another one,
-	//#use return <Type>, this will set the default type for functions in the project. So making something just 
-	// function(){} in someting like AVG will automatically be a float. In other projects that are more about doing, it will likely be void.
-	//#use this <Type> could be another idea, setting the default call from function, which is normally determined via other methods.
-
-	//Lastly, a thing that I could do, is have certain sections of code only loaded if another file is detected
-
-
-	struct Void {};
-
-	//Just a fucking example
-	using ObjectVar = std::variant<Void, void*, int*, char*>;
-
-	//TODO:struct is called Construct
-	struct Struct;
-
-
-	//This is generally the type of setup I'm looking to have.
-#define TYPES_MACRO void*
-#define HEAD_TYPES_MACRO 1
-	//This might not work though, because here's something possibly stupid. What if someone has 2 different APIs like ToolUI set up, 
-	// and actor value generator both.
-	using TruerObjectVar = std::variant<
-		Void,
-		TYPES_MACRO,
-		Struct			//No matter where this index is, the outputted region should always be 7F if regular, and FF ir array.
-	>;
-
-
-	//I think it would possibly be for the best that the variant is exposed as something that can be mallible as a template, but the hard cast type when working
-	// in it from this side. 
-	//The idea would be to allow me to have the API version of API to apply different types (which you'd juse like AVG::Object or TUI::Object).
-
-	//I can probably do something like this, and have which one makes it as the "defacto" type macro. So it will check if it's own source is enabled
-	// and if not, it doesn't set a "core". Most importantly, if no LEX source is used, it's not relevant.
-
-	//So something like this
-
-	template <class... Ts>
-	using APIObject = int;
-
-
-	//This goes in lexicon, given it's  macros and the idea of types macro is made there first (designed to be overwritten or perhaps pushed)
-#define TYPES() Void, TYPES_MACRO, Struct
-#define HEAD_TYPES() Void, HEAD_TYPES_MACRO, Struct
-	//This goes in XXX
-#define TYPES_MACRO std::string, int, void*, float
-	//This too goes in XXX, which looks for it's own source value.
-#ifndef IS_XXX_SOURCE
-	//HEAD_TYPES is what the actual LEX::Object class uses to populate it's values.
-#define HEAD_TYPES_MACRO TYPES_MACRO
-#endif
-
-	namespace XXX
-	{
-
-		//Using this version of object is vastly different than using the actual version of object. What this version will do is send you
-		// an index and a void pointer. The point being that depending on what API version you're requesting from type you're requesting from will cause it to be different.
-		// additionally, to tell the difference between which API is supposed to be gotten, I think it would possibly be best to seperate uses of the API source by
-		// templates or something. Because only one API use wins, and getting and storing the location of them all might be a pain.
-		//So make it so
-		using Object = APIObject<TYPES()>;
-	}
-
-
-	//The more and more I see this, the more I think it might be prudent to make lexicon redistributables. These redistributables would store the main "OBJECT"
-	// and a lot of the virtual machine related behaviour.
-	//Then the individual plugins can have their own implementations of Object
-
-	//Alright, so that idea is fucking insane, instead, include the API inside of a namespace. DO NOT USE RE namespace, that shit will fuck some stuff up,
-	// but other than that, this will allow us to include the same API twice. As long as you gate it with a namespace. The large part is, don't use the API directly
-	// I'll need to convey that.
-
-	//Also, important note. No pragma once, so I can include it in the namespace. To take up some less space, I can make some common API headers
-	// that contain my ABIContainer and such.
-
-	//If someone to use it directly, should make something for that.
-	
-#undef TYPES_MACRO
-
-
-
-	
-
-
-
-
-
-
-	//A specialization like this is required when
-	// LookingUp an object to which a lookup can be invalid
-	// when getting the LEX::ObjectID of a given object
-	//
-	template<uint8_t N> struct speck
-	{
-		virtual LEX::ObjectID GetType(ObjectVar& object)
-		{
-			return {};
-		}
-	};
-
-
-
-
-	template<> struct speck<0> {
-		//Speck zero is invalid
-
-		virtual LEX::ObjectID GetType(ObjectVar& object)
-		{
-			//Report that there's no valid specialization of the type here.
-			return {};
-		}
-	};
-
-	//needs a class above it.
-	//Also, may make a macro for this, just so all the classes conform properly.
-	//Main reason for the macro, is it would be nice to just use the type to get the number. I guess all this is fine. For now.
-	template<> struct speck<1>
-	{
-		//using DefinedClass = T;
-
-		//Should return only the 7 bits that matter.
-		LEX::ObjectID operator()(ObjectVar& object)
-		{
-			return GetType(object);
-		}
-
-		LEX::ObjectID GetType(ObjectVar& object)
-		{
-			//Report that there's no valid specialization of the type here.
-			return {};
-		}
-	};
-S
-	template <uint8_t I>
-	struct speck_user : public speck<I>
-	{
-		//Should return only the 7 bits that matter.
-		static LEX::ObjectID TESTType(ObjectVar& object)
-		{
-			speck<I> speck;
-
-			return speck(object);
-
-			return GetType(object);
-		}
-	};
-	
-
-
-
-	namespace RE
-	{
-		using TESForm = int;
-	}
-
-
-
-	template <int I, int Max>
-	LEX::ObjectID _GetType(ObjectVar& obj, uint8_t index)
-	{
-		if (index != I)
-		{
-
-			if constexpr (I != Max)
-				return _GetType<I + 1, Max>(obj, index);
-
-			return LEX::ObjectID::Invalid();
-		}
-
-		using ClassType = speck<I>;
-
-		speck<uint8_t(I)> speck;
-
-		return speck.GetType(object);
-	}
-
-	LEX::ObjectID _GetType(ObjectVar obj)
-	{
-		uint8_t index = obj.index();
-
-		if (!index)
-			return LEX::ObjectID::Invalid();
-
-		if (index == structIndex)
-		{
-			//Get obj as a struct
-			//Get prototype
-			//Get Type ID
-			return LEX::ObjectID::Invalid();
-		}
-
-		
-		//Depending on what the index is, I can give it certain starting points. Kinda shortens the searching I guess.
-
-		if (index < 128)
-			return _GetType<0, 127>(obj, index);
-		else
-			return _GetType<128, 255>(obj, index);
-	}
-
-	//So the idea with object type ids
-
-	//Having conversion functions might be interesting.
-	// Like say for forms and strings. Explicitly used when 
-
-	
-	
-}
-//*/
-
-//This is the old version, I'm gonna just be playing it off the guide for now.
-/*
-namespace LEX
-{
-	//The toml handler will have a function map, that handles different types.
-	//Of it, it handles 2 sorts things on 2 different inputs. The name, or the member called
-	// type.
-
-	//It can probably store string hashes, as nothing about this needs to be stored specifically.
-	// 
-
-	
-
-
-
-	enum struct ParseQueryResult
-	{
-		No,
-		Yes,
-		Cancel
-	};
-
-
-	struct DataCollection
-	{
-		RecordDataIterator& it;
-		RecordDataIterator begin;
-		RecordDataIterator last;
-		RecordDataIterator end;
-
-
-		DataCollection(RecordDataIterator& a_it, RecordDataIterator a_end) :
-			it(a_it),
-			begin(a_it),
-			end(a_end)
-		{}
-
-		DataCollection(RecordDataIterator& a_it, RecordDataIterator a_begin, RecordDataIterator a_last,  RecordDataIterator a_end) :
-			it(a_it),
-			begin(a_begin),
-			last(a_last),
-			end(a_end)
-		{}
-	};
-
-
-
-	struct Parser;
-
-	//TODO:Extend functionality of this a bit, I'd like this to keep record of the syntax's that parse this.
-	// For example what if an '=' is detected where arguments go? Syntax should be able to beget syntax, but it should know where
-	// such things came from.
-	using ParseVisitor = ParseQueryResult(*)(Parser*, Record*, DataCollection);
-
-	ENUM(ParseType)
-	{
-		Keyword,
-		Syntax,
-		Error,
-		Total
-	};
-
-	struct Syntax
-	{
-		struct Sort
-		{
-			constexpr bool operator()(const Syntax& lhs, const Syntax& rhs) const
-			{
-				if (lhs.type != rhs.type)
-					return lhs.type < rhs.type;
-
-				return lhs.GetPriority() < rhs.GetPriority();
-			}
-
-		};
-
-		ParseVisitor _func;
-
-		std::string_view category;
-
-		bool invert = false;//If invert it will only work if the choice category is not within.
-		
-		//Invert should be the sign bit. Make getting priority a function.
-		int16_t _priority = 0;
-
-		int16_t GetPriority() const
-		{
-			constexpr int16_t sign_bit = ~(1 << 15);
-			return _priority & sign_bit;
-		}
-
-		bool IsInverted() const
-		{
-			return _priority & (1 << 15);
-		}
-
-		ParseType type = ParseType::Syntax;
-
-		//ParseQueryResult operator()(Parser* parser, Record* record, DataCollection collection)
-		//{
-		//	_func(parser, record, collection);
-		//}
-	};
-
-	
-
-	//Entries are sorted by type, and if equal, by priority
-	//TODO: Rename Syntax. The operator handler is the actual syntax. This is just the tokenizer?
-	std::set<Syntax, Syntax::Sort> syntaxList;
-	
-
-	//Known 
-
-
-
-	struct Parser
-	{
-		//virtual ~Parser() = default;//Required why?
-
-		//Note, for memory, adding a character at the front might be a good idea to differentiate.
-		std::list<std::string> memory;
-		
-		//If the context of a syntax is not found within the context of the parser, it will not be evaluated to run.
-		// A possible setting would be the inversion of this.
-		std::multiset<std::string_view> context;
-		//Expandable context might be a good idea. Like to say, we are in a function right now. And have it seperate so it doesn't clash or something.
-		//std::multiset<std::string_view> expandingContext;
-		Record* _target;
-
-
-		//TODO: Make data collection struct a function instead of a parameter. Not all types will need the set up. After, just have gets for each one. Status: Easy
-		// Additionally, it can be something within collection that does it, lastly, collection can be a template class.
-
-		RecordDataIterator it;	//The current iterator
-		RecordDataIterator last;//The iterator parsed at the start of the last process
-		RecordDataIterator begin;//Where it's started
-		RecordDataIterator end;	//Where it will no longer be valid.
-
-		const Syntax* lastSyntax = nullptr;
-
-		Record& GetTarget()
-		{
-			return *_target;
-		}
-
-
-		//The might replace crew
-		bool SyntaxMatch(const Syntax* syntax)
-		{
-			if (!syntax)
-				return false;
-
-			auto end = context.end();
-
-			return std::find(context.begin(), end, syntax->category) != end;
-		}
-		bool SyntaxMatch(const Syntax& syntax)
-		{
-			return SyntaxMatch(&syntax);
-		}
-
-		void SyntaxHandle()
-		{
-			//Above this, needs to be a parsing function of it's own.
-			for (auto& syntax : syntaxList)
-			{
-				if (SyntaxMatch(syntax) == false) {
-					continue;
-				}
-				//TODO: Address, should the collection for syntax(? Or Tokenizer?) be able to push the actual parsing iterator?
-				DataCollection collection{ it, begin, last, end };
-
-				auto result = syntax._func(this, _target, collection);
-
-				//Check validity?
-
-				switch (result)
-				{
-				case ParseQueryResult::Yes://It did meet requirements. No more parsing.
-					lastSyntax = &syntax;
-					return;
-				case ParseQueryResult::No://Means didn't match requirements.
-					continue;
-				case ParseQueryResult::Cancel://It met requirements but an error occured. Going to error parsing.
-					//TODO: Make parsing error from cancel bail to the error section instead.
-					throw ParsingError("Replace");
-				}
-			}
-		}
-
-		void HandleData(Record& tar, std::list<std::string> l_mem, std::multiset<std::string_view> txt)
-		{
-			//I'm just gonna manually visit for now. I sorta wish that I could do this in some other way.
-			//TODO: suggestion, maybe I should use the actual visitor.
-
-			//I want something to deal with this parser
-			//{ DataType::Invalid, OperatorType::Invalid };
-			//_lhs.second = OperatorType::Invalid;
-			while (it != end) {
-				auto old_it = it;
-
-				SyntaxHandle();
-
-				last = old_it;
-
-				//If it didn't move, that's kinda an issue. Should this then throw?
-				if (old_it == it) it++;
-			}
-
-		}
-
-		template<class... Ts>requires(RGL::AllTrue<std::convertible_to<Ts, std::string_view>...>::value && sizeof...(Ts) > 0)
-		static void Handle(Record& tar, Ts... txts)
-		{
-
-			Parser parser{};
-
-			parser.HandleData(tar, {}, std::multiset<std::string_view>{txts...});
-			
-		}
-
-		template<class... Ts>requires(RGL::AllTrue<std::convertible_to<Ts, std::string_view>...>::value && sizeof...(Ts) > 0)
-		static void Handle(Record& tar, std::list<std::string>& l_mem, Ts... txts)
-		{
-			Parser parser{};
-
-			parser.HandleData(tar, l_mem, std::multiset<std::string_view>{txts...});
-
-			l_mem = parser.memory;
-		}
-
-
-	};
-
-
-	
-
-
-	//Now, I need to figure out if I want to visit all the syntax objects, how would I exactly go about doing such a thing?
-
-
-	constexpr std::string_view routine_regex = "(?<Minus>- )|(?<Object><:.+(?=:>)..)|(?<Digits>[\\d\\.]+)|(?<Quotes>'[^']+.)|(?<Identifiers>(\\w|::)+)|(?<Symbols>[^\\w\\d\\s'\\.]([^\\w\\d\\s'\\.:]){0,})";
-	constexpr std::string_view seq_routine_regex = "(?<Header>^[\\w;]{0,}\\s{0,}(?=;).)|(?<Minus>- )|(?<Object><:.+(?=:>)..)|(?<Digits>[\\d\\.]+)|(?<Quotes>'[^']+.)|(?<Identifiers>(\\w|::)+)|(?<Symbols>[^\\w\\d\\s'\\.]([^\\w\\d\\s'\\.:]){0,})";
-	//May need revisions due to the ; possibly being caught first.
-	constexpr std::string_view property_regex = "(?<Tooltip>;.+)|(?<DefValue>(?<=:)\\s{0,}\\K.[^;\n]+)|(?<Type>\\w+\\s{0,}:)|(?<RawValue>(\\d|'|<:)[^\\/\\/\\n]+)|(?<Identifier>\\w+)";
-
-	namespace
-	{
-		using namespace RGL;
-
-		void pure_test()
-		{
-
-			std::string func = "GetActorValue('SingleWielding', Damage | Permanent) - GetActorValue('SingleWielding', Damage | Permanent)";
-			//std::string func = "label_1; GetActorValue(::ending = 'SingleWielding', ActorValue::Damage | ActorValue::Permanent); return result";
-
-			RGL::Record function("Commons");
-			function.CreateData("GetWieldingWeight");
-			//I think I'll use hex for the code, just in case it grows that much in size. Keeps the space usage down.
-			Record& code_record = function.CreateChild("@code0000");
-
-			code_record.CreateData(func, routine_regex);
-			//code_record.CreateData(func, seq_routine_regex);//This is what would be used if it was an array instead of a string.
-
-			Record& params_required = function.CreateChild("params_required");
-
-			////Would that this had parameters, this is what it would do.
-			////This data represents the number of regular parameters
-			//params_required.CreateData("1");
-			//params_required.CreateChild("param1OrWhateverTheNameIs").CreateData("", property_regex);
-			//Record& params_default = function.CreateChild("params_default");
-			////This data represents the number of default parameters
-			//params_default.CreateData("1");
-			//params_default.CreateChild("param2OrWhateverTheNameIs").CreateData("", property_regex);
-
-		}
-	}
-
-
-	//Should the goal be to produce a record, or produce a thing?
-	// For now, nothing.
-	
-	void HandleRecord_Routine(std::string name, const FileNode& node)
-	{
-		//TODO: Todos for the toml handling function below. Status: Undetermined
-		// I think I would prefer it if the file was made before we get to the file node personally.
-		
-		//First things this should do, make sure the object name can go somewhere, make sure it's not reserved, then make sure that that
-		// the object is actually a table, and we are a go.
-		auto& table = *node.as_table();
-		
-
-		Record& routine = FileManager::EmplaceFileRecord("TempSpot", name);
-		//Right here in data, the first object will be the scope name of the record.
-
-
-		std::string formula_code = table["formula"].value_or("0");
-
-		std::list <std::string> memory{};
-
-		auto param_view = table["params"];
-
-		
-		if (auto p_test = param_view.as_array(); p_test)
-		{
-			Record& req_params = routine.CreateChild("parameters_required");
-				
-			//If def params exist, that's where things must go, and if they don't that's a parsing error.
-			Record* def_params = nullptr;
-
-			auto& param_array = *p_test;
-				
-
-			for (auto& entry : param_array)
-			{
-				//Right here is the place for that handle multiple entries deally, BUT, this is not where it will be handling that properly.
-				if (entry.is_string() == false) {
-					throw ParsingError("parameters only accept string types.");
-				}
-
-				std::string str = entry.value_or("");
-
-				//May create a static function to do this, might get messy.
-				Record parameter{ str, property_regex.data() };
-
-				
-
-				//Visit right here.
-				Parser::Handle(parameter, memory, "Function");
-
-				if (parameter.FindData("\\w+:") != nullptr)
-				{
-					if (!def_params)
-						def_params = &routine.CreateChild("parameters_default");
-
-					def_params->PushBackChild(parameter);
-				}
-				else
-				{
-					if (!def_params)
-						req_params.PushBackChild(parameter);
-					else
-						//ROMBUR: Needs to submit to error names.
-						throw ParsingError("non-default declared after default params in... something");
-				}
-			}
-
-		}
-
-		if (table["default"])
-		{
-			//This does different things based on what type this is, so I'm gonna put this to the side. For now.
-			//formula->defaultValue = table["default"].value_or(0);
-		}
-			
-		//Code is stored in a record called code_body. This can range from having only one entry. The group record will hold the needed
-		// data to tell whether it's a single line or sequence, with such data being held in it's tag as a boolean.
-
-		//TODO: Parser needs to force the differences between native and non-native code.
-		if (auto code = table["formula"]; code)
-		{
-			Record& body = routine.CreateChild("code_body");
-			
-			std::function list_handle = [&](toml::array list)
-			{
-				body.CreateData("+");
-				
-				std::vector<std::string> code_list{ list.size() };
-
-				std::transform(list.begin(), list.end(), code_list.begin(),
-					[](toml::node& entry) 
-					{ 
-						if (entry.is_string() == false)
-							throw ParsingError("Code body within array must only use toml strings.");
-						//Could do this another way?
-						return entry.as_string()->get();
-					}
-				);
-
-				body.CreateChildren("code_", code_list, seq_routine_regex.data());
-					
-				//body.GetChildFirst()->GetTag() = "code_entry";
-				body.GetChildBack()->GetTag() = "code_return";//Only return needs to be named like this.
-
-				//visit children right here.
-				//Keeping in case.
-				//for (auto& entry : list)
-				//{
-				//	//Right here is the place for that handle multiple entries deally, BUT, this is not where it will be handling that properly.
-				//	if (entry.is_string() == false) {
-				//		throw ParsingError("Code body within array must only use toml strings.");
-				//	}
-				//	//Need a function to do this specically.
-				//		
-				//	body.PushBackChild(Record{ entry.value_or(""), seq_routine_regex.data() });
-				//}
-			};
-
-			std::function string_handle = [&](std::string str)
-			{
-				body.CreateData("-");
-				//Name doesn't matter here.
-				body.CreateChildWithData("", str, seq_routine_regex.data());
-			};
-
-			HandleNodeView("No name currently", code,
-				list_handle,
-				string_handle
-			);
-			//Why this is like this, I have no idea. I
-			auto test = [&](Record* visitee, RecordIterator& iterator, RecordIterator end)
-			{
-				//It's notable that right here, this is where something would use memory
-				Parser::Handle(*iterator, memory, "Function");
-			};
-
-			std::function func = test;
-			GenericVisitor c_body_visitor{ func, nullptr };
-
-			body.VisitChildren(&c_body_visitor);
-		}
-			
-		//auto* flag_array = table["flags"].as_array();
-		//if (flag_array)
-		//{
-		//	auto result = std::find_if(flag_array->cbegin(), flag_array->cend(), [](auto& it) {return it.value_or("") == "native"; });
-		//	if (flag_array->end() == result)
-		//		formula = CreateFormula(parameters);
-		//}
-
-
-		//End of the record.
-
-		//At this point, the toml has been processed, now what needs to happen is the creation of an object that can handle a record.
-		//This type needs to be able to be given a record, and construct itself from the data given. So for example.
-
-		//auto routine = new Coroutine();
-		//routine->HandleRecords(routine);
-
-		//And then that would be the end of it.
-
-
-		
-	}
-}
-//*/
-
-//Disabled for now.
-//#undef TOKEN
-//#undef SYNTAX
