@@ -26,14 +26,14 @@ namespace LEX::Impl
 			"-", 
 			"*", 
 			"/", 
-			"%", 
+			"%",
+			"?",
 			"=", 
-			"&", 
-			"|", 
 			"<", 
 			">",
 			"!", 
-			"||", 
+			"|",
+			"||",
 			"&", 
 			"&&", 
 			".", 
@@ -60,6 +60,7 @@ namespace LEX::Impl
 
 		inline static std::vector<std::string> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::" };//?
 		
+		//This shoult be handled externally I think, or should be able to be added to.
 		inline static std::vector<std::string> _keyCodes
 		{ 
 			"if", 
@@ -87,6 +88,7 @@ namespace LEX::Impl
 			"mutable",
 			"void",
 			"ref",
+			"maybe",
 		};
 
 		inline static std::string _compRegex;
