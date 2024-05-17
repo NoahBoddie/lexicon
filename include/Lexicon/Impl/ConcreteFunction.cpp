@@ -11,7 +11,7 @@ namespace LEX
 		Runtime* runtime = nullptr;
 		Variable* target = nullptr;
 
-		if (args.size() != parameters.size() + IsMethod())
+		if (args.size() != parameters.size())
 			report::apply::fatal("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
 
 		size_t size = parameters.size();
@@ -22,13 +22,13 @@ namespace LEX
 			break;
 			int j = i + IsMethod();
 
-			AbstractTypePolicy* expected = parameters[i].GetTypePolicy()->FetchTypePolicy(runtime);
+			AbstractTypePolicy* expected = parameters[i].GetType()->FetchTypePolicy(runtime);
 			if (!expected)
 				throw nullptr;
 			RuntimeVariable check = args[j]->Convert(expected);
 
 			if (check.IsVoid() == true)
-				report::apply::fatal("cannot convert argument into parameter {}, {} vs {}", parameters[i].name, i, j);
+				report::apply::fatal("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
 
 			args[i] = check;
 		}

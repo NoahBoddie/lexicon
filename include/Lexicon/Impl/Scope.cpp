@@ -10,27 +10,35 @@
 namespace LEX
 {
 
-	Field* Scope::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
+	QualifiedField Scope::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
 	{
 		//Move to the compiler maybe?
 		auto end = vars.end();
 
 		if (auto it = vars.find(name); it != end) {
-			return &it->second;
+			return it->second;
 		}
 		else if (parent) {
 			return parent->SearchField(name, key, pred);
 		}
-		else if (auto field = process->GetEnvironment()->SearchField(name, key, pred); field) {
-			return field;
+
+		else {
+			if (ParameterInfo* field = process->_targetFunc->FindParameter(name); field) {
+				return field;
+			}
 
 
+			if (auto field = process->GetEnvironment()->SearchField(name, key, pred); field) {
+				return field;
+			}
 		}
+			
+			
 
 		return nullptr;
 	}
 
-	Field* Scope::SearchField(std::string name, FieldPredicate pred)
+	QualifiedField Scope::SearchField(std::string name, FieldPredicate pred)
 	{
 		OverloadInput input;
 

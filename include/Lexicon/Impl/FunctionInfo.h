@@ -7,31 +7,30 @@
 namespace LEX
 {
 
-	struct FunctionInfo : public MemberInfo
+	struct FunctionInfo : public MemberInfo//Needs to be able to use overloads, so these can possibly be a bit bigger.
 	{
-
-		//TODO: This needs to be able to handle overloads some how, via abstract functions maybe?
-
-
-		struct Settings : public MemberInfo::Settings
-		{
-			bool isVirtual = false;
-		};
-
 		using FunctionType = FunctionBase;//
 
 
 		union {
-			FunctionType* function = nullptr;
-			MemberPointer method;//prefered, works with the other.
+			std::array<size_t, 2> _raw{ 0 , 0 };
+
+
+			FunctionType* function;
+
+			struct
+			{
+				MemberPointer method;//prefered, works with the other.
+				FunctionData* signature;
+			};
 		};
 
 		bool IsVirtual() const
 		{
-			return GetData<Settings>().isVirtual;
+			return specifiers & Specifier::Virtual;
 		}
 
-		FunctionType* Get()
+		FunctionType* Get() const
 		{
 			if (IsVirtual() == false)
 				return function;
@@ -41,8 +40,21 @@ namespace LEX
 
 		FieldType GetFieldType() const override { return FieldType::Function; }
 
+		//For now, this is true, there is no way to handle a function's type.
+		ITypePolicy* GetType() const override { return nullptr; }
 
-		FunctionInfo() = default;
+
+		Qualifier GetQualifiers() const override { return Qualifier::Const; }	//Functions do not have qualifiers.
+		Specifier GetSpecifiers() const override { return specifiers; }
+
+		std::string GetFieldName() const override { return Get()->GetName(); }
+
+		operator bool() const override
+		{
+			return _raw[0] || _raw[1];
+		}
+
+
 	};
 
 }

@@ -91,10 +91,14 @@ namespace LEX
             else {
                 logger::debug("I, {}, have type {}", _name, (uint64_t)_targetType);
             }
+
+            //Qualifiers like const are put here depending on if the function is const. 
+            // We don't have those post declarations yet.
+            auto& param = parameters.emplace_back(QualifiedType{ type }, "<this>", 0);
         }
 
 
-        for (size_t i = 0; auto & node : target.FindChild("params")->GetChildren())
+        for (int64_t i = 0; auto & node : target.FindChild("params")->GetChildren())
         {
             Record* node_head = node.FindChild("<header>");
 
@@ -120,9 +124,10 @@ namespace LEX
 
             //GENERIC_SPACE
             
-            auto& param = parameters.emplace_back(type, method + i++, node.GetTag());
+            //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
+            auto& param = parameters.emplace_back(type, node.GetTag(), static_cast<uint32_t>(parameters.size()));
 
-            assert(param.GetTypePolicy());
+            assert(param.GetType());
         }
 
         _routine = RoutineCompiler::Compile(target, this, GetEnvironment());

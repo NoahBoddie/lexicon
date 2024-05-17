@@ -24,6 +24,13 @@ namespace LEX
 		//This is the very most basic function. There should be additional conveniences
 		//virtual void Invoke(RuntimeVariable& ret, std::vector<RuntimeVariable> args) = 0;
 
+		//TODO: I would like to split  ICallableUnit's Call and Invoke more finely.
+		// RawCall- basically no fluff. This is what we use internally, others cant use it because it lacks varification.
+		// Call- This is the normal call that people would use. This has to kinda be virtual cause I want it to be the thing that
+		//  throws application errors when need be.
+		// Largely, this basically means one is fit for internal and external stuff (the non-fancy one stil handles external calls so it should be careful on that)
+		//  and one that's made to handle external calls only, which handles things such as conversions
+
 
 		virtual RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def) = 0;
 

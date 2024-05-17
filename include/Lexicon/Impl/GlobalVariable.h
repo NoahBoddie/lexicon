@@ -10,8 +10,8 @@ namespace LEX
 
 	struct Global :
 		public SecondaryElement,
-		public IVariable,
-		public Field//Might be more here, dunno.
+		public IVariable
+		//public Field//Might be more here, dunno.
 	{
 		std::string name;
 
@@ -26,7 +26,7 @@ namespace LEX
 			//I'll come back to this, but globals will have a wrapper like functinos do. Dunno right now.
 			return FieldType::Invalid;
 		}
-
+		/*
 		virtual size_t GetFieldIndex() const
 		{
 			return max_value<size_t>;
@@ -41,13 +41,13 @@ namespace LEX
 		{
 			return {};
 		}
-
+		//*/
 
 		std::string GetName() override
 		{
 			return name;
 		}
-
+		
 		//Move this below please.
 		std::strong_ordering operator<=>(const Global& a_rhs) const
 		{

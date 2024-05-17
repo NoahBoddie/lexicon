@@ -1,31 +1,43 @@
 #pragma once
 
-#include "TemporaryInfo.h"
+#include "InfoBase.h"
 
 namespace LEX
 {
-	class LocalInfo : public TemporaryInfo
+
+	class LocalInfo : public InfoBase
 	{
 	public:
-		LocalInfo(ITypePolicy* t, size_t i) : TemporaryInfo{ i }, _type{ t }
-		{
+		constexpr LocalInfo() noexcept = default;
 
+		LocalInfo(QualifiedType t, uint32_t i) : 
+			InfoBase {t.flags, Specifier::None, i},
+			_type {t.policy}
+		{
 		}
 
 		FieldType GetFieldType() const override { return FieldType::Local; }
 
-		ITypePolicy* GetTypePolicy() const override { return _type; }
+		ITypePolicy* GetType() const override { return _type; }
 
-	protected:
-		ITypePolicy* _type = nullptr;
+		Qualifier GetQualifiers() const override { return qualifiers; }
+		Specifier GetSpecifiers() const override { return specifiers; }
+
+		std::string GetFieldName() const override { return std::format("<local var {}>", _index); }
 
 
 
 		operator bool() const override
 		{
 			//Should this be and?
-			return _type || __super::operator bool();
+			return _type;
 		}
-	};
 
+	protected:
+		
+		ITypePolicy* _type = nullptr;
+
+
+
+	};
 }

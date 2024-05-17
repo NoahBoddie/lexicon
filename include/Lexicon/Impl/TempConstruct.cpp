@@ -1010,7 +1010,8 @@ namespace LEX
 
 		Solution FieldProcess(ExpressionCompiler* compiler, Record& target)
 		{
-			VariableInfo* var = compiler->GetScope()->GetVariable(target.GetTag());
+			//Currently, this cannot be handled
+			QualifiedField var = compiler->GetScope()->SearchField(target.GetTag());
 			
 			if (!var) {
 				report::compile::critical("Cannot find variable '{}'.", target.GetTag());
@@ -1019,7 +1020,7 @@ namespace LEX
 
 			//XTOR
 			//Solution result{ var->GetType(), OperandType::Index, var->GetFieldIndex() };
-			Solution result = var->AsSolution();
+			Solution result = var.AsSolution();
 	
 			
 			
@@ -1127,7 +1128,7 @@ namespace LEX
 				report::compile::critical("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 			}
 
-			if (func->GetTargetType() != nullptr) {
+			if (func->GetTarget() != nullptr) {
 				//Increase the allocation size to include the "this" argument.
 				alloc_size++;
 			}
@@ -1212,9 +1213,9 @@ namespace LEX
 			if (header.flags & Qualifier::Const)
 				logger::info("{} is const", target.GetTag());
 
-			VariableInfo* var = compiler->GetScope()->CreateVariable(target.GetTag(), header);	
+			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);	
 
-			size_t var_index = var->_index;
+			size_t loc_index = loc->_index;
 			if (Record* definition = target.FindChild("def"); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
 
@@ -1227,7 +1228,7 @@ namespace LEX
 
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
 				//compiler->GetOperationList().emplace_back(InstructType::Forward, Operand{ var_index, OperandType::Index }, result);
-				compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ var_index, OperandType::Index }, result));
+				compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
 			}
 
 			

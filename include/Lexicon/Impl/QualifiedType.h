@@ -23,6 +23,7 @@ namespace LEX
 		QualifiedType(std::nullptr_t) {}
 
 		explicit QualifiedType(ITypePolicy* p) : policy{ p } {}
+		QualifiedType(ITypePolicy* p, Qualifier q) : policy{ p }, flags{ q } {}
 
 
 	//private://Temporary to sus out where policy is expected from solutions and declarations.
@@ -58,7 +59,7 @@ namespace LEX
 		{
 			return policy;
 		}
-		
+		//TODO: IsCovertToQualfied needs to hold an ITypePolicy to see if it has permission to this conversion. How I'd do that, is kinda hard.
 		bool IsConvertToQualified(QualifiedType& other, Conversion* out = nullptr, bool is_expl = false) const
 		{
 

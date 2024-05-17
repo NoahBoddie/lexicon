@@ -193,15 +193,17 @@ void LexTesting(std::string formula)
 
             Array const _array = Array();
             //Array _array2 = _array;
-            __string8 test_string = "THIS";
-            float test = tellinal.TestCall(othername, shootfol) + tellinal + peacefal + scrundal + this;
+            __string8 test_string = "THISSTR";
+            //Calling TestCall twice like this makes it crash
+            //float test = tellinal.TestCall(othername, shootfol).TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
+            float test = tellinal.TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
             this = 0;
 
             float testB = __float64();
 
             const float testConst = 5;
 
-            testConst = testB;
+            //testConst = testB;
 
             return this + test + testB + test_string.size();
             //Old answer was 93.
@@ -306,18 +308,19 @@ void LexTesting(std::string formula)
     //*/
     constexpr auto offset = LEX::Number::Settings::GetOffset(LEX::NumeralType::Floating);
 
-    LEX::ITypePolicy* number_type = LEX::IdentityManager::instance->GetTypeByID(offset + 1);
+    QualifiedType number_type = QualifiedType{ LEX::IdentityManager::instance->GetTypeByID(offset + 1) };
     
     LEX::FunctionData test_data{};
 
-    test_data._returnType = QualifiedType{ number_type };
+
+    test_data._returnType = number_type;
     std::vector<LEX::ParameterInfo> parameters
     {
-        LEX::ParameterInfo{number_type, 0, "scrundal"},
-        LEX::ParameterInfo{number_type, 1, "peacefal"},
-        LEX::ParameterInfo{number_type, 2, "tellinal"},
-        LEX::ParameterInfo{number_type, 3, "shootfol"},
-        LEX::ParameterInfo{number_type, 4, "othername"}
+        LEX::ParameterInfo{number_type, "scrundal", 0},
+        LEX::ParameterInfo{number_type, "peacefal", 1},
+        LEX::ParameterInfo{number_type, "tellinal", 2},
+        LEX::ParameterInfo{number_type, "shootfol", 3},
+        LEX::ParameterInfo{number_type, "othername", 4}
     };
     //test_data.parameters = parameters;
 

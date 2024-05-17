@@ -145,7 +145,7 @@ namespace LEX
 			auto input_sizes = GetNumOfInputs();
 
 			if (key->GetNumOfInputs().first < input_sizes.first) {
-				logger::critical("Big ol failure, too few arguments for overload");
+				logger::critical("Big ol failure, too few arguments for overload ");
 				return Overload::Failure();
 			}
 

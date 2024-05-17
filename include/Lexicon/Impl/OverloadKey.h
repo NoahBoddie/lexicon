@@ -46,6 +46,14 @@ namespace LEX
 
 
 
+		QualifiedType GetQualifiedType()
+		{
+			return { GetTarget(), GetQualifiers() };
+		}
+
+
+
+
 		//I have no idea how I'd actually use generics quite yet, so I'll prefer to not use them.
 		//virtual std::vector<ITypePolicy*> GetGenericInput() = 0;
 		//virtual std::vector<DefaultGenericInput> GetDefaultGenericInput() = 0;

@@ -4,46 +4,16 @@
 
 namespace LEX
 {
-	class MemberInfo : public InfoBase
+	struct MemberInfo :public InfoBase
 	{
-	public:
-		MemberInfo() = default;
-
-		MemberInfo(size_t i) {}
+		//This pivot is still going to need to exist for all the reasons that you'd imagine something like this would need. They sorta need to play proxy to the
+		// specializations of both functions and for variables, so first this will need overloads, and each of those will need their respective specialization.
 
 
-		struct Settings : public InfoBase::Settings
+		bool IsStatic() const
 		{
-			bool isRuntimeMember = false;
-		};
-
-		virtual Qualifier GetQualifiers() const override
-		{
-			auto setting = GetData<Settings>();
-
-			if (!setting.isRuntimeMember)
-				setting.flags = setting.flags & ~Qualifier::Runtime;
-			
-			return GetData<Settings>().flags;
+			return specifiers & Specifier::Static;
 		}
-
-		/*
-		virtual BasicQualifier GetBasicFlags() const
-		{
-			return GetData<Settings>().basic;
-		}
-
-		virtual RuntimeQualifier GetRuntimeFlags() const
-		{
-			if (auto setting = GetData<Settings>(); setting.isRuntimeMember)
-				return setting.runtime;
-
-			return RuntimeQualifier::None;
-		}
-		//*/
-	protected:
-		AccessModifier _access = AccessModifier::Private;
-
 	};
 
 }

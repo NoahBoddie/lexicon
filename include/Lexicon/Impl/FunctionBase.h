@@ -16,6 +16,9 @@ namespace LEX
 
 		void OnAttach() override;
 
+
+	public://This public wasn't here before. I wish to understand why it needs to be here now.
+
 		//This and generic don't care which it is, but concrete policy will, so it's virtual to report that possibility
 		// The same may be done for parameter. We shall see.
 		virtual void SetReturnType(QualifiedType type);
@@ -34,15 +37,19 @@ namespace LEX
 
 	
 		//static_assert(false, "These are without definition. Fix this shit please.");
-		std::pair<size_t, size_t> GetNumOfInputs() const override { return {parameters.size(), 0}; }
+		std::pair<size_t, size_t> GetNumOfInputs() const override 
+		{
+
+			return { GetParamCount(), 0};
+		}
 
 		std::pair<size_t, size_t> GetNumOfInputGroups() const override { return {1, 0}; }
 
 
 		std::vector<RequiredArg> GetRequiredInput(size_t offset) const override { 
-			std::vector<RequiredArg> result{ parameters.size() };
+			std::vector<RequiredArg> result{ GetParamCount() };
 
-			std::transform(parameters.begin(), parameters.end(), result.begin(), [&](const ParameterInfo& it) {return it.GetQualifiedType(); });
+			std::transform(_ParamBegin(), _ParamEnd(), result.begin(), [&](const ParameterInfo& it) {return it.GetQualifiedType(); });
 
 			logger::critical("delete me: size {}", result.size());
 			return result;

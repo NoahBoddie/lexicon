@@ -16,7 +16,7 @@ namespace LEX
 
 	ITypePolicy* OverloadInput::GetTarget()
 	{
-		return object->target->policy;
+		return object && object->target ? object->target->policy : nullptr;
 	}
 
 }

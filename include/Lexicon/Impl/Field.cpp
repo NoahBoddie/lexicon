@@ -8,7 +8,7 @@ namespace LEX
 	{
 		QualifiedType result{};
 
-		result.policy = GetTypePolicy();
+		result.policy = GetType();
 
 		result.flags = GetQualifiers();
 
@@ -18,7 +18,7 @@ namespace LEX
 
 	Solution Field::AsSolution()
 	{
-		Solution result{ GetTypePolicy(), OperandType::Index, GetFieldIndex() };
+		Solution result{ GetType(), OperandType::Index, (size_t)GetFieldIndex() };
 
 		result.flags = GetQualifiers();
 

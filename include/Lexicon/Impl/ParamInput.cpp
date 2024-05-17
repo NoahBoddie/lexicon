@@ -8,7 +8,7 @@
 namespace LEX
 {
 		ParamInput::ParamInput(LocalInfo info) : 
-			policy{info.GetTypePolicy() },
+			policy{info.GetType() },
 			flags{ info.GetQualifiers() }
 		{}
 

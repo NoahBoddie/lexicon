@@ -73,12 +73,12 @@ namespace LEX
 		{
 			auto& param = params[i];
 
-			names[i] = param.name;
+			names[i] = param.GetFieldName();
 
-			policies[i] = param.GetTypePolicy();
+			policies[i] = param.GetType();
 		}
 		
-		a_scope.CreateVariables(names, policies);
+		//a_scope.CreateVariables(names, policies);
 
 
 		_current = old;
@@ -118,31 +118,37 @@ namespace LEX
 				method = true;
 			}
 			
+			if (1 != 1)
+			{//I think this is the stuff I can cut out.
+				std::vector<std::string> names{ size + method };
+				std::vector<ITypePolicy*> policies{ size + method };
 
-			std::vector<std::string> names{ size + method };
-			std::vector<ITypePolicy*> policies{ size + method };
+				if (method) {
+					names[0] = "<this>";
+					policies[0] = solution.policy;
+				}
 
-			if (method) {
-				names[0] = "<this>";
-				policies[0] = solution.policy;
+				for (int i = 0; i < size; i++) {
+					auto& param = params[i];
+					names[i + method] = param.GetFieldName();
+					policies[i + method] = param.GetType();
+				}
+
+				auto old = _current;
+				_current = &operations;
+
+
+				//logger::debug("Parameter Size: {}", size + method);
+				//a_scope.CreateVariables(names, policies);
+
+
+				_current = old;
+
 			}
-
-			for (int i = 0; i < size; i++){
-				auto& param = params[i];
-				names[i + method] = param.name;
-				policies[i + method] = param.GetTypePolicy();
+			else
+			{
+				varCount[0] = varCount[1] = _targetFunc->GetParamAllocSize();
 			}
-
-			auto old = _current;
-			_current = &operations;
-
-
-			logger::debug("Parameter Size: {}", size + method);
-			a_scope.CreateVariables(names, policies);
-
-
-			_current = old;
-			
 
 			auto end = operations.end();
 

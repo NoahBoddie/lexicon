@@ -91,7 +91,7 @@ include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/Interface.h" 
  "include/Lexicon/Impl/InterfaceManager.h" 
  "include/Lexicon/Impl/InterfaceSingleton.h"
- "include/Lexicon/Impl/Versioning.h" "include/Lexicon/Impl/InterfaceManagerImpl.h" "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h")
+ "include/Lexicon/Impl/Versioning.h" "include/Lexicon/Impl/InterfaceManagerImpl.h" "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h" "include/Lexicon/Impl/QualifiedField.h" "include/Lexicon/Impl/GlobalData.h")
 
 set(sources
 #src/main.cpp

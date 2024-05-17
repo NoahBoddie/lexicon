@@ -258,6 +258,10 @@ namespace LEX
 inline int __init = 0;
 
 
+
+
+//SEND TO RGL PLZ
+
 //Move to RGL ig
 struct Initializer
 {
@@ -291,9 +295,7 @@ inline static int test = 0;
 //Initializes something on the spot.
 #define INITIALIZE() inline static Initializer CONCAT(__init_,__COUNTER__) = []() -> void
 //Revised to need to be executed at a particular time. This prevents issues with it going off too early.
-
-//SEND TO RGL PLZ
-
+//Revise this in a manner that it doesn't have to have a semi-colon at the end. maybe forward declare a function rather than a lambda.
 #pragma region RGL_SPACE
 
 #define REQ_CONSTRAINT(mc_type, mc_size, mc_cmp, mc_phrase) static_assert(sizeof(mc_type) mc_cmp mc_size, STRINGIZE(sizeof mc_type mc_phrase mc_size.))

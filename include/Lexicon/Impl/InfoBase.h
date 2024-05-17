@@ -8,64 +8,37 @@ namespace LEX
 
 	struct InfoBase : public Field
 	{
-	public:
-		struct Settings
-		{
-			Qualifier flags{};
-		};
+		//The abstract class for infos. Holds all the data for it.
 
-
-
-		InfoBase() = default;
-
-		std::string name{};
-
-		//Instead, you can just store basic qualfiers here. Percieve them any way you'd like.
-		// it's upto the derived.
-		size_t _data{};
-
-
-
-		//Mainly used for members and function variables. But since I've yet to see anything that remotely 
-		// outside these 2 uses, I think this suits just fine.
-		size_t index = max_value<size_t>;
-
-	protected:
 		
 
+		constexpr InfoBase(Qualifier q = Qualifier::None, Specifier s = Specifier::None, uint32_t i = -1) noexcept : 
+			qualifiers{ q },
+			specifiers{ s },
+			_index{ i }
+		{}
 
-		template <typename T> requires (sizeof(T) <= 0x8)
-			T& DataAs()
+		Qualifier qualifiers;
+
+		DeclareSpecifier specifiers;
+
+		//Access modifiers and 
+
+
+		//bool isVirtual = 0;
+		//bool isIsRuntimeMember = 0;//This is actually used to tell if it should purge runtime stuff from members. I easily could do that.
+
+
+		//All versions will need this at some point, so I'll do this here.
+		uint32_t _index = -1;
+
+		uint32_t GetFieldIndex() const override
 		{
-			return reinterpret_cast<T&>(_data);
+			return _index;
 		}
 
-		template <typename T> requires (sizeof(T) <= 0x8)
-			const T& DataAs() const
-		{
-			return reinterpret_cast<const T&>(_data);
-		}
 
-		template <typename T> requires (sizeof(T) <= 0x8)
-		T GetData() const
-		{
-			return DataAs<T>();
-		}
-
-	public:
-		
-
-		size_t GetFieldIndex() const override
-		{
-			return max_value<size_t>;
-		}
-
-
-		virtual operator bool() const
-		{
-			//Should this be and?
-			return name != "" || _data;
-		}
+		virtual operator bool() const = 0;
 	};
 
 }

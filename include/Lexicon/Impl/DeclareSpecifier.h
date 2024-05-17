@@ -23,4 +23,6 @@ namespace LEX
 
 		All = max_value<std::underlying_type_t<DeclareSpecifier>>,
 	};
+
+	using Specifier = DeclareSpecifier;
 }

@@ -40,7 +40,7 @@ namespace LEX
 	class CompilerMemory;
 	
 
-
+	struct QualifiedField;
 
 
 	enum struct SearchResult
@@ -232,13 +232,13 @@ namespace LEX
 		//TODO: SEVERE: Read below, big important.
 		//If I can, I'd like to put this in element some how. I can have calls of GetIncluded target explicitly
 		// the script that the given thing is in. For some, that'd be itself. For classes and functions, elsewhere.
-		Field* SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
+		QualifiedField SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
 		
 
 		ITypePolicy* SearchType(std::string name, OverloadKey& key, TypePredicate pred = nullptr);
 
 
-		Field* TEMPSearchField(std::string name);
+		QualifiedField TEMPSearchField(std::string name);
 
 		//These are temp functions that will exist until I can sort out how better to use the above
 		ITypePolicy* TEMPSearchType(std::string name);
@@ -258,9 +258,14 @@ namespace LEX
 
 		void SetParent(Element* par) override;
 
+	protected:
+		//Actually not going to use this.
+		//virtual QualifiedField QualifyField(InfoBase* field);
 
-		protected: //Some might be private, will address later.
-			Element* _parent = nullptr;//can be project or script/class
+
+
+	protected: //Some might be private, will address later.
+		Element* _parent = nullptr;//can be project or script/class
 
 		//private:
 			//>-------------------------
@@ -273,7 +278,10 @@ namespace LEX
 			//This is for environment
 			std::map<String, TypeContainer> typeMap;
 			std::vector<Global*> variables;//should be global variables
-
+			
+			//The idea here is the virtual methods go here. But within a type.
+			//Should be a more map like structure though.
+			//std::vector<IFunction*> methods;
 
 	};
 

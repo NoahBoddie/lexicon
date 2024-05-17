@@ -25,6 +25,8 @@
 
 #include "OverloadInput.h"
 
+#include "QualifiedField.h"
+
 namespace LEX
 {
 
@@ -152,11 +154,11 @@ namespace LEX
 		}
 
 
-		Field* Environment::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
+		QualifiedField Environment::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
 		{
 			std::vector<Environment*> query;
 
-
+			QualifiedType type = key.GetQualifiedType();
 
 
 			//Submitting includes also includes self. If self does not exist, it will cease to continue.
@@ -180,7 +182,8 @@ namespace LEX
 				}
 				else if (global)
 				{
-					return global;
+					//return global;
+					return nullptr;
 				}
 				else if (size)
 				{
@@ -189,7 +192,7 @@ namespace LEX
 					FunctionBase* test = functions[0]->Get();
 
 					if (test && !test->MatchKey(&key).par)
-						return functions[0];
+						return QualifiedField{ functions[0], type };
 				}
 
 			}
@@ -242,7 +245,7 @@ namespace LEX
 		}
 
 
-		Field* Environment::TEMPSearchField(std::string name)
+		QualifiedField Environment::TEMPSearchField(std::string name)
 		{
 			OverloadInput input;
 
