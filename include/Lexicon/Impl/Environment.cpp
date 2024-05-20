@@ -153,12 +153,77 @@ namespace LEX
 
 		}
 
+		bool CheckOverload(OverloadKey& input, std::vector<OverloadClause*> clauses, Overload& ret)
+		{
+			Overload out;
+
+			Overload* last = nullptr;
+
+
+			for (auto clause : clauses)
+			{
+				OverloadFlag flags = OverloadFlag::None;
+
+				Overload overload = input.Match(clause, nullptr, last, flags);
+
+				if (flags & OverloadFlag::Failure) {
+					logger::info("Failure"); 
+					continue;
+				}
+
+
+
+				if (flags & OverloadFlag::Ambiguous) {
+					logger::info("Ambiguous");
+					last = nullptr;
+					break;
+				}
+
+				if (0) {
+					bool _continue = false;
+					bool _break = false;
+
+
+					cycle_switch(flags)
+					{
+					case OverloadFlag::Failure:
+						logger::info("Failure");
+						_continue = true;
+						continue;
+
+					case OverloadFlag::Ambiguous:
+						logger::info("Ambiguous");
+						_break = true;
+						break;
+
+					}
+
+					if (_continue)
+						continue;
+
+					if (_break)
+						break;
+
+				}
+
+
+				out = std::move(overload);
+
+				last = &out;
+			}
+
+			if (last)
+				ret = *last;
+
+			return last;
+		}
+
 
 		QualifiedField Environment::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
 		{
 			std::vector<Environment*> query;
 
-			QualifiedType type = key.GetQualifiedType();
+			//QualifiedType type = key.GetQualifiedType();
 
 
 			//Submitting includes also includes self. If self does not exist, it will cease to continue.
@@ -189,10 +254,16 @@ namespace LEX
 				{
 					//TODO: This is as
 
+					//Within field searches the look for a function will be handled very differently.
+
 					FunctionBase* test = functions[0]->Get();
 
-					if (test && !test->MatchKey(&key).par)
-						return QualifiedField{ functions[0], type };
+					Overload overload;//TODO: This is required for user conversions and for implementation ones. Address this.
+
+					if (test && CheckOverload(key, { test }, overload) == true) {
+						
+						return QualifiedField{ functions[0], overload.target };//Is a qualified field like this right?
+					}
 				}
 
 			}
@@ -203,6 +274,36 @@ namespace LEX
 
 			return nullptr;
 		}
+
+
+		Overload Environment::SearchFunction(std::string name, OverloadKey& key, FieldPredicate pred)
+		{
+			//I want to work on this before I use it. Namely I want function because what if there's a function call operator you know?
+			// This works for now, but I'll adapt it later.
+
+			//Likely, this will simply be for callable thing. Operators like that will have to wait though.
+
+			std::vector<Environment*> query;
+
+			query.insert_range(query.end(), GetRecursiveIncluded());
+
+			for (auto env : query)
+			{
+				std::vector<Field*> result;
+
+				std::vector<FunctionInfo*> functions = env->FindFunctions(name);
+
+				FunctionBase* test = functions[0]->Get();
+
+				Overload overload;//TODO: This is required for user conversions and for implementation ones. Address this.
+
+				if (test && CheckOverload(key, { test }, overload) == true)
+					return overload;
+			}
+			
+			return {};
+		}
+
 
 
 		ITypePolicy* Environment::SearchType(std::string name, OverloadKey& key, TypePredicate pred)

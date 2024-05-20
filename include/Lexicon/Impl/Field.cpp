@@ -8,11 +8,21 @@ namespace LEX
 	{
 		QualifiedType result{};
 
+		
 		result.policy = GetType();
 
 		result.flags = GetQualifiers();
 
 		return result;
+	}
+
+
+	QualifiedType Field::FetchQualifiedType() const
+	{
+		if (!this)
+			return {};
+
+		return GetQualifiedType();
 	}
 
 

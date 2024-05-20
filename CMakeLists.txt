@@ -91,7 +91,8 @@ include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/Interface.h" 
  "include/Lexicon/Impl/InterfaceManager.h" 
  "include/Lexicon/Impl/InterfaceSingleton.h"
- "include/Lexicon/Impl/Versioning.h" "include/Lexicon/Impl/InterfaceManagerImpl.h" "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h" "include/Lexicon/Impl/QualifiedField.h" "include/Lexicon/Impl/GlobalData.h")
+ "include/Lexicon/Impl/HierarchyData.h"
+ "include/Lexicon/Impl/Versioning.h" "include/Lexicon/Impl/InterfaceManagerImpl.h" "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h" "include/Lexicon/Impl/QualifiedField.h" "include/Lexicon/Impl/GlobalData.h" "include/Lexicon/Impl/Conversion.h" "include/Lexicon/Impl/OverloadEntry.h" "include/Lexicon/Impl/OverloadSection.h" "include/Lexicon/Impl/OverloadFlag.h" "include/Lexicon/Impl/InheritData.h")
 
 set(sources
 #src/main.cpp
@@ -107,7 +108,7 @@ src/Lexicon/Component.cpp
 include/Lexicon/Impl/LiteralManager.cpp
  "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
  
- "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp" "include/Lexicon/Impl/FunctionBase.cpp" "include/Lexicon/Impl/ConcreteFunction.cpp" "include/Lexicon/Impl/ICallableUnit.cpp" "include/Lexicon/Impl/Scope.cpp" "include/Lexicon/Impl/OverloadInput.cpp" "include/Lexicon/Impl/ParamInput.cpp" "include/Lexicon/Impl/Variable.cpp" "include/Lexicon/Impl/VariableType.cpp" "include/Lexicon/Impl/Field.cpp" "include/Lexicon/Impl/VariableInfo.cpp" "include/Lexicon/Impl/ObjectPolicyHandle.cpp" "include/Lexicon/Impl/ConcretePolicy.cpp" "include/Lexicon/Impl/InterfaceManager.cpp" "include/Lexicon/Impl/ObjectPolicy.cpp"  "include/Lexicon/Impl/ObjectPolicyManager.cpp")
+ "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp" "include/Lexicon/Impl/FunctionBase.cpp" "include/Lexicon/Impl/ConcreteFunction.cpp" "include/Lexicon/Impl/ICallableUnit.cpp" "include/Lexicon/Impl/Scope.cpp" "include/Lexicon/Impl/OverloadInput.cpp" "include/Lexicon/Impl/ParamInput.cpp" "include/Lexicon/Impl/Variable.cpp" "include/Lexicon/Impl/VariableType.cpp" "include/Lexicon/Impl/Field.cpp" "include/Lexicon/Impl/VariableInfo.cpp" "include/Lexicon/Impl/ObjectPolicyHandle.cpp" "include/Lexicon/Impl/ConcretePolicy.cpp" "include/Lexicon/Impl/InterfaceManager.cpp" "include/Lexicon/Impl/ObjectPolicy.cpp"  "include/Lexicon/Impl/ObjectPolicyManager.cpp" "include/Lexicon/Impl/QualifiedType.cpp")
 
 source_group(
 	TREE

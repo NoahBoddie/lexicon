@@ -30,7 +30,19 @@ namespace LEX
 		//  throws application errors when need be.
 		// Largely, this basically means one is fit for internal and external stuff (the non-fancy one stil handles external calls so it should be careful on that)
 		//  and one that's made to handle external calls only, which handles things such as conversions
+		//names, call, invoke, execute. Execute is the raw version. Invoke is  the external version. Call is the fancy version just like before.
+	INTERNAL:
+		//This function does not check what is submitted to it, nor does it do conversions.
+		//RuntimeVariable _Execute(RuntimeVariable a_this, std::vector<RuntimeVariable>&& args, RuntimeVariable* def);
 
+
+		//This function will do conversions to apply if need be.
+		//Variable _Invoke(Variable a_this, std::vector<Variable>&& args, Variable* def);
+
+
+		//template <typename T>
+		//T Call(std::vector<Variable>& args, Variable* def) { return {}; }
+	public:
 
 		virtual RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def) = 0;
 

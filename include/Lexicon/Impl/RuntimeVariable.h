@@ -40,6 +40,7 @@ namespace LEX
 			None	= 0,
 			Init	= 1 << 0,
 			Refr	= 1 << 1,
+			Free	= 1 << 2,	//A given runtime variable has freed its index but retains a pointer.
 		};
 
 
@@ -232,10 +233,10 @@ namespace LEX
 
 		void _CheckAssign(RuntimeVariable& other)
 		{
-			if (IsRefNull() == true)
+			if (IsEmpty() == true)
 				return;
 
-			if (other.IsRefNull() == true)
+			if (other.IsEmpty() == true)
 				report::runtime::error("Assigning undefined to a non-undefined?");
 
 			Ref().CheckAssign(GetValueType(*other));
@@ -258,10 +259,10 @@ namespace LEX
 
 		Variable& Ref()
 		{
-			switch (index())
+			get_switch (index())
 			{
 			default:
-				report::runtime::fatal("RuntimeVariable is undefined."); throw nullptr;
+				report::runtime::fatal("RuntimeVariable is undefined. (val = {})", switch_value); throw nullptr;
 
 			case 1:
 				return std::get<Variable>(*this);
@@ -317,12 +318,17 @@ namespace LEX
 
 		void Clear()
 		{
+			if (index() == 0)
+				return;
+
 			*this = Void{};
 		}
 
+
+
 		Variable* operator->()
 		{
-			if (IsRefNull() == true)
+			if (IsEmpty() == true)
 				report::runtime::fatal("RuntimeVariable is undefined, cannot be accessed.");
 
 			return &Ref();
@@ -331,7 +337,7 @@ namespace LEX
 
 		Variable& operator*()
 		{
-			if (IsRefNull() == true)
+			if (IsEmpty() == true)
 				report::runtime::fatal("RuntimeVariable is undefined, cannot be accessed.");
 
 			return Ref();
@@ -340,7 +346,19 @@ namespace LEX
 		//Used to use is void, but this checks if the ref is void too.
 		bool IsVoid() { return !index() || Ref().IsVoid(); }
 
-		bool IsRefNull() { return !index(); }
+		bool IsEmpty() { return !index(); }
+
+
+		bool IsValue() const
+		{
+			return index() == 1;
+		}
+
+
+		bool IsReference() const
+		{
+			return index() == 2;
+		}
 
 		operator Variable()
 		{

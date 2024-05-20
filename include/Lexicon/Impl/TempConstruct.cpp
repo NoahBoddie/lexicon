@@ -114,7 +114,7 @@ namespace LEX
 
 		//Directives-These will have to be moved
 
-		static void Call(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void Call(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
 			//This is old and I forget how it's done.
 
@@ -134,27 +134,17 @@ namespace LEX
 
 			logger::critical("Tar after call {}", runtime->GetVariable(3).index());
 
-			/*
-			Coroutine* routine = a_lhs.As<Coroutine*>();
+			//I may actually just include the decrement in here myself.
 
-			size_t arg_size = a_rhs.As<size_t>();
-
-			auto end = process->argStack.end();
-			auto it = end - arg_size;
-
-			//std::vector<Variable> args{ arg_size };
-			std::vector<Variable> args{ it, end };
-			//How this will work perhaps at a later point
-
-
-			//This should be included later
-			Variable target = process->tarStack[process->tarIndex];
-
-			--process->tarIndex;
-			process->argIndex -= arg_size;
-
-			result = routine->Run(target, args);
-			//*/
+			if (count) {//Only needs to do this if it had arguments. Handles reference snags basically.
+				auto& arg_var = runtime->GetArgument(runtime->GetStackPointer(StackPointer::Argument) - count);
+				
+				if (arg_var.IsReference() == true)//Ideally, all call stuff is a reference. Im just checking 
+					arg_var.Clear();
+				
+				
+				//Personally, I would actually like to bake the decrement into the call, as there's never a situation where you wouldn't want it.
+			}
 		}
 
 		//void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
@@ -530,7 +520,7 @@ namespace LEX
 		};
 
 
-		OperatorType GetOperatorType(Record& target)
+		OperatorType GetOperatorType_Old(Record& target)
 		{
 			bool binary = target.SYNTAX().type == SyntaxType::Binary;
 
@@ -637,7 +627,7 @@ namespace LEX
 
 
 
-		InstructType GetOperatorype(Record& target)
+		InstructType GetOperatorType(Record& target)
 		{
 			bool binary = target.SYNTAX().type == SyntaxType::Binary;
 
@@ -823,8 +813,8 @@ namespace LEX
 				//Should be an expression compiler but I'm pretending that it's a routine compiler.
 				Register prefered = compiler->GetPrefered();
 
-				//OperatorType op = GetOperatorType(target);
-				//InstructType op = GetOperatorype(target);
+				//OperatorType op = GetOperatorType_Old(target);
+				//InstructType op = GetOperatorType(target);
 
 				//if (op == OperatorType::Invalid) {
 				if (op == InstructType::Invalid) {
@@ -975,7 +965,7 @@ namespace LEX
 		//RecordProcessors
 		Solution OperatorProcess(ExpressionCompiler* compiler, Record& target)
 		{
-			InstructType op = GetOperatorype(target);
+			InstructType op = GetOperatorType(target);
 
 			switch (op)
 			{
@@ -1128,7 +1118,7 @@ namespace LEX
 				report::compile::critical("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 			}
 
-			if (func->GetTarget() != nullptr) {
+			if (func->GetTargetType() != nullptr) {
 				//Increase the allocation size to include the "this" argument.
 				alloc_size++;
 			}
@@ -1222,8 +1212,8 @@ namespace LEX
 
 				//-QUAL_CONV
 				Conversion* out = nullptr;//Not used for now because there are no conversions like this.
-				if (header.IsConvertToQualified(result) == false) {
-					report::compile::fatal("Cannot initialize.");
+				if (auto convert = result.IsConvertToQualified(header, nullptr); convert <= ConvertResult::Failure) {
+					report::compile::fatal("Cannot initialize. Error {}", (int)convert);
 				}
 
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
@@ -1277,7 +1267,7 @@ namespace LEX
 				assert(result.policy);
 				report::compile::debug("result {:X}", (uint64_t)result.policy);
 
-				if (result.policy->IsConvertibleTo(return_policy) == false)
+				if (result.policy->IsConvertibleTo(return_policy, nullptr) <= convertFailure)
 				{
 					report::compile::critical("Expression not convertible to return type.");
 				}
@@ -1400,12 +1390,18 @@ namespace LEX
 			//TODO: This type of instantiation should be reserved squarely for intrinsic types like numbers, strings etc.
 			// Other than that, no type should be created knowing what it is already.
 
+			static ConcretePolicy* NUMBER = new ConcretePolicy{ "NUMBER", 0 };
+
+
 			static ConcretePolicy* float64 = new ConcretePolicy{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
 			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
 
 
 			float64->EmplaceDefault(static_cast<double>(0));
 		
+			float64->SetDerivesTo(NUMBER);
+			float64->PrintInheritance();
+
 			string8->EmplaceDefault("");
 
 

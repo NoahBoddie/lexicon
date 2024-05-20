@@ -253,6 +253,7 @@ namespace LEX
 	using namespace RGL_INCLUDE_NAMESPACE;
 
     using String = std::string;
+    using _String = std::string;
 }
 
 inline int __init = 0;
@@ -308,6 +309,8 @@ inline static int test = 0;
 //Can instantiate should have template versions so it will basically handle construction in however it's best handled.
 // It only cares about basic instantiation, not quite if it's abstract or not.
 #define CAN_INSTANTIATE(mc_type) void CONCAT(__INSTANT_TEST__,__COUNTER__)() { mc_type a_test{}; }
+
+#define UNCONST(mc_expression) const_cast<std::remove_const_t<decltype(mc_expression)>>(mc_expression)
 
 namespace RGL
 {

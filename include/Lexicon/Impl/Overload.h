@@ -1,119 +1,146 @@
 #pragma once
 
+#include "QualifiedType.h"
+#include "OverloadEntry.h"
+
 namespace LEX
 {
-	
 
+	struct OverloadClause;
+
+	enum struct OverloadPreference
+	{
+		Current		= -1,
+		Ambiguous	=  0,
+		Previous	=  1,
+
+	};
 
 	struct Overload
 	{
-		using _Self = Overload;
-		static constexpr size_t incompatible = -1;
-		static constexpr size_t match = 0;
+		//This is now a container that shows the given options for an overload.
 
-		enum ResultEnum
+		OverloadClause* clause;
+
+		QualifiedType target;//
+
+		//These align perfectly with arguments given.
+		// This has to be loaded with a properly sorted default by this point.
+		// Defaults have to go here because 
+		std::vector<OverloadEntry> given;
+
+
+		std::unordered_map<std::string, OverloadEntry> defaults;
+
+
+		//TODO: the safe compares of Overload are not yet completely resolved. The main issue being it doesn't account for conversions.
+		// to expand on the above, detecting a conversion is grounds for prefering one over the other, then it depends which conversion has the value closer to zero.
+		// conversions don't really happen right now so it's a big ol fuck it. But this WILL be important.
+
+		static int _ConvertComp(OverloadEntry& tar, OverloadEntry& entry, QualifiedType& arg)
 		{
-			Self,		//Self par is closer to zero
-			Other,		//Other par is closer to zero
-			Ambiguous,	//Ambiguious overload with other, by hash or par
+			//These should remove const conversions and stuff like that
+			//
+			bool prev_pure = tar.convertType < ConvertResult::Transformative;
+			bool curr_pure = entry.convertType < ConvertResult::Transformative;
 
-		};
-
-
-		void Hash(size_t h)
-		{
-			hash = h;
+			if (!prev_pure && curr_pure)
+				return -1;
+			else if (prev_pure && !curr_pure)
+				return 1;
+			else if (!prev_pure && !curr_pure)
+				return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+			else
+				return (entry.convertType <=> tar.convertType)._Value;
 		}
 
-		Overload& Unmatch()
+		int SafeCompare(QualifiedType& other, QualifiedType& arg)
 		{
-			par = incompatible;
-			return *this;
+			//This version is for types.
+
+
+			if (!this)
+				return -1;
+
+			if (target && !other)
+				return 1;
+			else if (!target && other)
+				return -1;
+			else if (!target && !other)//Is convert qualified is not desired here.
+				return 0;
+
+			//No conversions exist, so direct is good.
+
+			return arg.CompareType(target, other);
+
+			return 0;
+
+			//Qualified conversions have already played out by this point.
+			//if (target.IsConvertToQualified(other, scope) > ConvertResult::Failure)
+			//	return -1;
+			//else if (other.IsConvertToQualified(target, scope) > ConvertResult::Failure)
+			//	return 1;
+
+			return 0;
 		}
 
-		bool IsCompatible() const
-		{
-			return par != incompatible;
-		}
 
-
-		_Self& operator+= (const _Self& rhs)
+		int SafeCompare(std::string name, OverloadEntry& entry, QualifiedType& arg)
 		{
+			if (!this) {
+				return -1;
+			}
+
+			auto it = defaults.find(name);
+
+			if (defaults.end() == it) {
+				return -1;
+			}
+
+			//auto& tar = it->second;
+
 			
-			if (IsCompatible() == true) {
-			
-				hash += rhs.hash;//TODO: This handling of overload::hash is just place holder, as I can't be bothered rn and inheritance doesn't exist.
-				par += rhs.par;
-				
-			}
-
-			return *this;
-		}
-
-
-		_Self& operator+= (size_t rhs)
-		{
-			if (IsCompatible() == true) {
-				par += rhs;
-			}
-
-			return *this;
-		}
-
-		_Self& operator= (size_t rhs)
-		{
-			if (IsCompatible() == true) {
-				par = rhs;
-			}
-
-			return *this;
-		}
-
-		operator size_t() const
-		{
-			return par;
-		}
-
-
-		operator bool() const
-		{
-			return IsCompatible();
-		}
-
+			return _ConvertComp(it->second, entry, arg);
 		
-
-		static Overload Failure(int = 0)
-		{
-			//TODO: Vary the types of failure by using the hash so I can tell what kind of failure it is, similar to that of  NaN.
-			//To do this, I can make the hash alternatively carry a code to an error within itself.
-
-			//For each failure and where it came from, there will be a list presented if no overload matches, telling all why each overload failed.
-			return Overload{}.Unmatch();
 		}
 
-		constexpr ResultEnum Compare(_Self rhs) const
+		int SafeCompare(size_t i, OverloadEntry& entry, QualifiedType& arg)
 		{
-			if (hash == rhs.hash)
-			{
-				if (par < rhs.par)
-					return ResultEnum::Self;
+			if (!this)
+				return -1;
 
-				if (par > rhs.par)
-					return ResultEnum::Other;
-			}
+			if (i >= given.size())
+				return -1;
 
-			return ResultEnum::Ambiguous;
+			auto& tar = given[i];
+
+			//I don't think I should be assuming a lack of type. here that's an explicit error
+			if (tar.type && !entry.type)
+				return 1;
+			else if (!tar.type && entry.type)
+				return -1;
+			else if (!tar.type && !entry.type)
+				return 0;
+
+			return _ConvertComp(tar, entry, arg);
+
+
+			return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+
+			return 0;
+
+			//Currently there is no actually way to compare. it is or it isn't Implement properly in the merger.
+
+			//auto left = tar.type.IsConvertToQualified(entry.type, arg);
+			//auto right = entry.type.IsConvertToQualified(tar.type, arg);
+
+			//if (left == true)
+			//	return -1;
+			//else if (right == true)
+			//	return 1;
+
+			return 0;
 		}
-
-		
-
-		//For easy manipulation, I'd like it to be that you can increment this with numbers. No negatives, 
-		// no decreasing
-
-		size_t hash = 0;
-		size_t par = 0;
-
-
-
 	};
+
 }

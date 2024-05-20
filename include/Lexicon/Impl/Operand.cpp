@@ -125,7 +125,7 @@ namespace LEX
 
 		}
 
-		if (result.IsRefNull() == true) {
+		if (result.IsEmpty() == true) {
 			result = Variable{};
 		}
 
@@ -154,8 +154,10 @@ namespace LEX
 
 		}
 
-		if (run_var && run_var->IsVoid() == true) {
-			*run_var = Variable{};
+		if (run_var && run_var->IsEmpty() == true) {
+			RuntimeVariable& set = *run_var;
+			
+			set = Variable{};
 		}
 
 		return GetVariable(runtime);

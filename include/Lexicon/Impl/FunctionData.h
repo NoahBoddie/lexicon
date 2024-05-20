@@ -58,7 +58,8 @@ namespace LEX
 		//std::vector<DeclaredParam> reqParams;
 		//std::vector<DefinedParam> defParams;
 		
-
+		//TODO: I would like to represent "this" as a unique pointer to a ParamInfo
+		std::unique_ptr<ParameterInfo> __thisInfo;
 		std::vector<ParameterInfo> parameters;
 
 		size_t defaultIndex = (size_t)-1;//max_value<size_t>;//basically whenever the defaults start.

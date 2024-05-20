@@ -228,12 +228,17 @@ namespace LEX
 
 		//NOTE:the search for functions has to have a boolean to say if it explicitly is using a type target or not.
 
+		//TODO: Split SearchField and SearchFunction. Functions will need to return the overload, while Fields don't really need overloads.
+		// You however can search for a function by using a field.
+
 
 		//TODO: SEVERE: Read below, big important.
 		//If I can, I'd like to put this in element some how. I can have calls of GetIncluded target explicitly
 		// the script that the given thing is in. For some, that'd be itself. For classes and functions, elsewhere.
 		QualifiedField SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
 		
+		Overload SearchFunction(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
+
 
 		ITypePolicy* SearchType(std::string name, OverloadKey& key, TypePredicate pred = nullptr);
 

@@ -160,6 +160,7 @@ void LexTesting(std::string formula)
 #pragma endregion
 
     std::string crash2 = R"(
+        struct Number intrinsic NUMBER::0;
         struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
         struct __string8 intrinsic STRING::0;
         
@@ -190,13 +191,15 @@ void LexTesting(std::string formula)
             //Nope, it's just broken right now.
             //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
             
+            //This shit's itself for some reason.
+            Number testValue = 12;
 
             Array const _array = Array();
             //Array _array2 = _array;
             __string8 test_string = "THISSTR";
             //Calling TestCall twice like this makes it crash
-            //float test = tellinal.TestCall(othername, shootfol).TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
-            float test = tellinal.TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
+            float test = tellinal.TestCall(othername, shootfol).TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
+            //float test = tellinal.TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
             this = 0;
 
             float testB = __float64();

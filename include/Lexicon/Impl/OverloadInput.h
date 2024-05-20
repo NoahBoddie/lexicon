@@ -5,62 +5,184 @@
 //#include "RuntimeQualifier.h"
 
 #include "OverloadKey.h"
-
 #include "Solution.h"
 
+//*src
+#include "Overload.h"
+#include "OverloadClause.h"
+#include "TargetObject.h"
 namespace LEX
 {
 	struct ITypePolicy;
 	struct TargetObject;
 
-	//The stand alone class. I have this because 
 	class OverloadInput : public OverloadKey
 	{
 	public:
-		//This isn't quite right, the they should share something that tells you if they're const or not.
-		// Some way to get these sort of basic/runtime flags
 
-		//Simple way would probably be to have a function do it like Field.
-		// Within input, it stores a target object, so no issues getting the flags there.
-		// within a function policy, it's pretty easy to just make them on the spot.
+		//Make these 2 a single function.
+		Overload MatchFailure(OverloadFlag& flag, Overload* prev = nullptr)
+		{
+			logger::critical("Force failure");
 
-		//TODO: Give OverloadInput a fucking constructor, please and thank you
-
-		Qualifier GetQualifiers() const override;
-
-
-		ITypePolicy* GetTarget() override;
-
-
-
-
-
-
-		std::pair<size_t, size_t> GetNumOfInputs() const override { return { paramInput.size(), 0}; }
-
-		std::pair<size_t, size_t> GetNumOfInputGroups() const override { return {1, 0}; }
-
-
-
-		std::vector<RequiredArg> GetRequiredInput(size_t offset) const override 
-		{ 
-			if (!offset) {
-				return std::vector<RequiredArg>{ paramInput.begin(), paramInput.end() };
-			}
+			//This should only be used when it's an ambiguous match I think.
+			flag |= OverloadFlag::Failure;
+			//This feels very unnecessary and possibly unused.
+			if (prev)
+				return *prev;
 
 			return {};
 		}
 
-		std::vector<OptionalArg> GetOptionalInput(size_t offset) const override { return {}; }
+		Overload MatchAmbiguous(OverloadFlag& flag)
+		{
+			logger::critical("Force ambiguous");
+
+			//This should only be used when it's an ambiguous match I think.
+			flag |= OverloadFlag::Ambiguous;
+
+			return {};
+		}
+
+
+		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
+		virtual Overload Match(OverloadClause* clause, ITypePolicy* scope, Overload* prev, OverloadFlag& a_flag) override
+		{
+
+			if (defaultInput.empty() == false) {
+				a_flag |= OverloadFlag::UsesDefault;
+			}
+
+
+			if (clause->PreEvaluate(paramInput.size(), defaultInput.size(), a_flag) == false) {
+				logger::info("pre-eval fail");
+				return MatchFailure(a_flag);
+			}
+
+
+			//I want to phase out of function. Maybe combine it with prev in some way.
+
+			//Make a copy as to not completely mutate this.
+			OverloadFlag flag = a_flag;
+
+
+			Overload overload;
+
+			QualifiedType type;
+
+			if (object && object->target)
+				type = *object->target;
+
+
+			OverloadEntry tar = clause->EvaluateEntry2(type, scope, -1, -1, flag);
+
+
+			if (flag & OverloadFlag::Failure)
+				return MatchFailure(a_flag, prev);
+
+
+			//Also a thought, [this] is a parameter too. Granted a hidden one.
+
+			overload.target = tar.type;
+			overload.clause = clause;
+
+			constexpr auto offset_placeholder = 0;
+
+			int winner = 0;
+
+			for (int i = 0; i < paramInput.size(); i++)
+			{
+				QualifiedType input = paramInput[i];
+
+				OverloadEntry entry = clause->EvaluateEntry2(input, scope, offset_placeholder, i, flag);
+
+				if (flag & OverloadFlag::Failure)
+					return MatchFailure(a_flag, prev);
 
 
 
-		//private://it SHOULD be private but I'm lazy and didn't make a constructor
+				//entry.funcs = conversion;
+				//entry.type = input;
+				//entry.index = index;
+
+				//Compare should this input-> prev vs entry
+				auto new_winner = prev->SafeCompare(i, entry, input);
+
+				if (!winner)
+					winner = new_winner;
+				else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
+				{// shit isn't valid anymore.
+					return MatchAmbiguous(a_flag);
+				}
+
+
+				overload.given.push_back(entry);
+			}
+
+			auto it = defaultInput.begin();
+
+			for (int i = 0; it != defaultInput.end(); i++, it++)
+			{
+				QualifiedType input = it->second;
+
+				OverloadEntry entry = clause->EvaluateDefault2(input, scope, it->first, flag);
+
+				if (flag & OverloadFlag::Failure)
+					return MatchFailure(a_flag, prev);
+
+
+				//entry.funcs = conversion;
+				//entry.type = input->second;
+				//entry.index = index;
+
+
+				auto new_winner = prev->SafeCompare(it->first, entry, input);
+
+				if (!winner)
+					winner = new_winner;
+				else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
+				{// shit isn't valid anymore.
+					return MatchAmbiguous(a_flag);
+				}
+
+
+				overload.defaults[it->first] = entry;
+			}
+
+
+			if (!winner){
+				winner = prev->SafeCompare(-1, tar, type);
+			}
+
+
+
+			if (winner > 0) {
+				logger::info("right winner");
+				//This is just failure tbh, doing so means I don't need to use move or set the pointer.
+				return *prev;
+			}
+			else if (winner < 0) {
+				logger::info("left winner");
+				return overload;
+			}
+			else {
+				logger::info("no winner {}" , prev != nullptr);
+				return MatchAmbiguous(a_flag);
+			}
+
+		}
+
+
+
+
 
 		TargetObject* object = nullptr;
 		//std::vector<ITypePolicy*>			genericInput;
+		
+		//On reflection, this doesn't expressly need to be a solution, just a qualified type. This can help with syntax that
+		// parses which overload to use by showing which function is being used.
 		std::vector<Solution>				paramInput;
-		//std::map<std::string, Solution>		defaultInput;//rename
+		std::map<std::string, Solution>		defaultInput;//rename
 	};
 
 }

@@ -1662,11 +1662,13 @@ namespace LEX
 		}
 	}
 
-
-	namespace OverloadRework
+	/*
+	namespace Inheritance
 	{
-		enum struct ConvertResult 
-		{ 
+
+
+		enum struct ConvertResult
+		{
 
 			QualError4 = -7,
 			QualError3 = -6,
@@ -1694,10 +1696,10 @@ namespace LEX
 				union
 				{
 					uint64_t		raw = 0;
-					IFunction*		userDefined;
-					ICallableUnit*	implDefined;
+					IFunction* userDefined;
+					ICallableUnit* implDefined;
 				};
-				
+
 				//When a user defined conversion can be converted this is what is used.
 				ICallableUnit* userToImpl = nullptr;
 
@@ -1715,12 +1717,11 @@ namespace LEX
 			}
 		};
 
-		struct OverloadEntry
-		{
-			//I'd care about the padding and stuff here but its so small I do not care.
 
-			QualifiedType type;//Only qualified because the going to place isn't important for 
-			Conversion convert;
+		struct OverloadCode
+		{
+			//Overload needs a place where it gets it's data for things like hashes, distance, and whether it's initialized or not.
+			// this is what the finalize in entry would be doing.
 
 
 
@@ -1730,8 +1731,23 @@ namespace LEX
 
 			bool initialized = false;//If not initialized
 
+		};
+
+		struct OverloadEntry : public OverloadCode
+		{
+			//I'd care about the padding and stuff here but its so small I do not care.
+
+			FakeType* type;
+
+			Conversion convert;
+
+			OverloadCode code;
 
 			size_t index;
+
+
+			OverloadEntry FinalizeOld(FakeType* other);
+			bool Finalize(OverloadEntry& other);
 		};
 
 
@@ -1744,19 +1760,19 @@ namespace LEX
 			Default,
 		};
 
-		ENUM(OverloadFlag)
+		ENUM(OverloadFlag, uint8_t)
 		{
 			None,
-			ReqFilled = 1 << 0,		//Once required gets filled, this gets ticked so that the overload doesn't use the improper overload.
-			UsesDefault = 1 << 1,	//If it uses 
-			UsesOptional = 1<< 2,	//Manually defining an optional will result in no optionals being able to be implicitly used.
-			NoConvert = 1 << 3,		//If no conversions are used in one, converting ones are no longer valid.
+				ReqFilled = 1 << 0,		//Once required gets filled, this gets ticked so that the overload doesn't use the improper overload.
+				UsesDefault = 1 << 1,	//If it uses 
+				UsesOptional = 1 << 2,	//Manually defining an optional will result in no optionals being able to be implicitly used.
+				NoConvert = 1 << 3,		//If no conversions are used in one, converting ones are no longer valid.
 
 
-			FinalEntry = 1 << 5,	//Used if this is the final entry, allowing the clause to declare there's more required.
-		
-			Failure = 1 << 6,
-			Ambiguous = 1 << 7,
+				FinalEntry = 1 << 5,	//Used if this is the final entry, allowing the clause to declare there's more required.
+
+				Failure = 1 << 6,
+				Ambiguous = 1 << 7,
 		};
 
 		struct OverloadClause;
@@ -1799,7 +1815,7 @@ namespace LEX
 					return -1;
 				else if (other.IsConvertToQualified(target) == true)
 					return 1;
-				
+
 				return 0;
 			}
 
@@ -1837,7 +1853,7 @@ namespace LEX
 				bool left = tar.type.IsConvertToQualified(entry.type);
 				bool right = entry.type.IsConvertToQualified(tar.type);
 
-				if (left  == true)
+				if (left == true)
 					return -1;
 				else if (right == true)
 					return 1;
@@ -1849,14 +1865,15 @@ namespace LEX
 		struct OverloadKey
 		{//The argument side of the overload.
 
+			//True name: TryMatch
 			virtual Overload Match(OverloadClause*, Overload* prev, OverloadFlag& flag) = 0;
-			
-			
+
+
 		};
 
 		struct OverloadClause : public OverloadKey
 		{//The parameter side of the overload.
-			
+
 
 			virtual Overload Match(OverloadClause*, Overload* prev, OverloadFlag& flag)
 			{
@@ -1866,19 +1883,21 @@ namespace LEX
 
 
 
-			//A preeval might be good. Just something to say Thing expects 8 groups,
+			//TrueName: CanMatch
 			virtual bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag) = 0;
-			
+
 			//Fuck it, these return non-booleans and use something else to denote their failures.
 
-			//I'm thinking of having an extra parameter to show if I mean generic args or not.
+			//TrueNames MatchSuggestedEntry and MatchDefaultEntry
 			virtual OverloadEntry EvaluateEntry2(QualifiedType, size_t offset, size_t index, OverloadFlag& flags) = 0;
 			virtual OverloadEntry EvaluateDefault2(QualifiedType, std::string name, OverloadFlag& flags) = 0;
-
+			//^ I'm thinking of having an extra parameter to show if I mean generic args or not.
 
 
 			//This should only be called on the winnning one.
 			//This should actually accept the Overload comparison object, as that can represent optional parameter pack values as well.
+
+			//True name: ResolveEntries
 			virtual std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, OverloadFlag& flags) = 0;
 			//After this is used, it should be resized.
 
@@ -1896,7 +1915,7 @@ namespace LEX
 
 			//virtual Void EvaluateDefault(std::vector)
 		};
-		
+
 		//The flow.
 		//OverloadKey::Match, if yes back of the line. If not, toss results.
 		//-Keep going until no more clauses are available.
@@ -1909,7 +1928,7 @@ namespace LEX
 
 			std::string name;
 
-			ParameterInfo thisInfo{ nullptr, "", (uint32_t)-1};
+			ParameterInfo thisInfo{ nullptr, "", (uint32_t)-1 };
 			std::vector<ParameterInfo> params;
 			//A preeval might be good. Just something to say Thing expects 8 groups,
 
@@ -1938,7 +1957,7 @@ namespace LEX
 			OverloadEntry EvaluateEntry2(QualifiedType type, size_t offset, size_t index, OverloadFlag& flags) override
 			{
 				OverloadEntry result;
-				
+
 				//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
 				if (index != -1 && index >= params.size())
 				{
@@ -1948,9 +1967,9 @@ namespace LEX
 				}
 
 				ParameterInfo* subject = index == -1 ? &thisInfo : &params[index];
-				
+
 				QualifiedType sub_type = subject->GetQualifiedType();
-				
+
 				if (type)
 				{
 					LEX::Conversion* out = nullptr;//Is entries if it's not the thing. Currently, not setting this up.
@@ -1971,9 +1990,9 @@ namespace LEX
 					result.convert.type = ConvertResult::Ineligible;
 					result.index = -1;
 				}
-			
+
 				return result;
-				
+
 			}
 			OverloadEntry EvaluateDefault2(QualifiedType type, std::string name, OverloadFlag& flags) override
 			{
@@ -2005,11 +2024,12 @@ namespace LEX
 		class OverloadInput : public OverloadKey
 		{
 		public:
-			
+
+			//Make these 2 a single function.
 			Overload MatchFailure(OverloadFlag& flag, Overload* prev = nullptr)
 			{
 				logger::critical("Force failure");
-				
+
 				//This should only be used when it's an ambiguous match I think.
 				flag |= OverloadFlag::Failure;
 				//This feels very unnecessary and possibly unused.
@@ -2086,19 +2106,19 @@ namespace LEX
 					if (flag & OverloadFlag::Failure)
 						return MatchFailure(a_flag, prev);
 
-					
+
 
 					//entry.funcs = conversion;
 					//entry.type = input;
 					//entry.index = index;
-					
+
 					//Compare should this input-> prev vs entry
-					
+
 					auto new_winner = prev->SafeCompare(i, entry, input);
 
 					if (!winner)
 						winner = new_winner;
-					else if(winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
+					else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
 					{// shit isn't valid anymore.
 						return MatchAmbiguous(a_flag);
 					}
@@ -2153,7 +2173,7 @@ namespace LEX
 			}
 
 
-		 
+
 
 
 			TargetObject* object = nullptr;
@@ -2162,7 +2182,7 @@ namespace LEX
 			std::map<std::string, Solution>		defaultInput;//rename
 		};
 
-
+		//Super important function, this sorts through a list OverloadClauses. Can likely put in overload key.
 		INITIALIZE()
 		{
 			ConcretePolicy type1{};
@@ -2188,7 +2208,7 @@ namespace LEX
 
 			{
 				func1.name = "Func1";
-			
+
 				func1.params.emplace_back(QualifiedType{ &type1 }, "var_1", 0);
 				func1.params.emplace_back(QualifiedType{ &type2 }, "var_2", 1);
 				func1.params.emplace_back(QualifiedType{ &type3 }, "var_3", 2);
@@ -2214,6 +2234,7 @@ namespace LEX
 
 			std::vector<FakeFunction*> clauses{ &func1, &func2, &func3 };
 
+			//Expand upon this and place it within search, please and thank you.
 			FakeFunction* final_func = nullptr;
 			Overload out;
 
@@ -2224,25 +2245,26 @@ namespace LEX
 				OverloadFlag flags = OverloadFlag::None;
 
 				Overload overload = input.Match(clause, last, flags);
-				
-				bool _continue = false;
-				bool _break = false;
 
 				if (flags & OverloadFlag::Failure) {
 					logger::info("Failure"); continue;
 				}
-					
 
 
-				if (flags & OverloadFlag::Ambiguous){
+
+				if (flags & OverloadFlag::Ambiguous) {
 					logger::info("Ambiguous");
 					last = nullptr;
 					break;
 				}
 
-				if (0)
-				cycle_switch (flags)
-				{
+				if (0) {
+					bool _continue = false;
+					bool _break = false;
+
+
+					cycle_switch(flags)
+					{
 					case OverloadFlag::Failure:
 						logger::info("Failure");
 						_continue = true;
@@ -2253,15 +2275,17 @@ namespace LEX
 						_break = true;
 						break;
 
+					}
+
+					if (_continue)
+						continue;
+
+					if (_break)
+						break;
+
 				}
 
-				if (_continue)
-					continue;
 
-				if (_break)
-					break;
-
-				
 				out = std::move(overload);
 
 				last = &out;
@@ -2277,32 +2301,28 @@ namespace LEX
 		};
 
 
-	}
 
-	namespace Inheritance
-	{
+
+		//Fix
+		//OverloadClause
+
+		//Do
+		//HierarchyData
+		//InheritData
+
+		//Merge fake function and it's contemporary,
+		//merk fake type and it's contemporary.
 		struct FakeType;
 
-		struct NewOverload
-		{
-			size_t par;
-			size_t exactHash;
-			size_t convertHash;
-		};
-
 		struct InheritData
-		{
-			static constexpr size_t virtual_distance = -1;
-			
-			//The hash is a value
-
+		{	
 			//The hash is a value that represents memory wise, where said object can be considered within memory.
 			std::array<uint32_t, 2> hash{};
 
 
 			//Distance is -1 if virtually inherited
 			uint32_t distance = 0;
-			FakeType* type = nullptr;//AbstractTypePolicy* type;
+			FakeType* type = nullptr;//ITypePolicy* type;
 
 			uint32_t _id = 0;
 			
@@ -2312,7 +2332,7 @@ namespace LEX
 			uint32_t memberIndex = 0;
 
 			Access access;//
-
+			//I think I'll store internal access outside of this.
 			
 			bool isGeneric = false;//This differs if the id is an instance id or a type id.
 			bool virtInherited = false;
@@ -2369,22 +2389,6 @@ namespace LEX
 		};
 
 
-		struct OverloadEntry
-		{
-			FakeType* type;
-
-			std::array<uint32_t, 2> hash{};
-
-			uint32_t distance = 0;
-
-			bool initialized = false;//If not initialized
-
-			//Right here include how the conversion is being carried out. With that, I can 
-
-			OverloadEntry FinalizeOld(FakeType* other);
-			bool Finalize(OverloadEntry& other);
-		};
-
 
 		struct HierarchyData
 		{
@@ -2413,26 +2417,6 @@ namespace LEX
 		};
 
 
-
-		enum struct ConvertResult
-		{
-			QualError4				= -7,
-			QualError3				= -6,
-			QualError2				= -5,
-			QualError1				= -4,
-			Inaccessible			= -3,
-			Ineligible				= -2,
-			IllegalIntern			= -1,
-			Exact					=  0,
-			TypeDefined,
-			ImplDefined,
-			UserDefined,
-			UserToImplDefined,
-
-			
-
-			Failure = -1,//Anything under or equal to failure doesn't need it's value recorded for anything, it's just a conversion error code.
-		};
 
 		struct FakeType : public HierarchyData
 		{
@@ -2757,7 +2741,7 @@ namespace LEX
 				}
 			}
 
-
+			//This should be moved to qualified type, and the main thing of desire here should be the overload code.
 			int CompareType(OverloadEntry left, OverloadEntry right)
 			{
 				if (!left.initialized && !right.initialized)
@@ -3090,45 +3074,8 @@ namespace LEX
 
 
 		};
-
-		struct ParData
-		{
-		//private://I don't quite know how I'll assign these. So they'll be open for a bit.
-			union
-			{
-				uint64_t raw = 0;
-				
-				struct
-				{
-					//Important part of par data, if this type here is 0, then regardless of hash it wins.
-					uint32_t type;
-					//I'd like to break this down into finer pieces.
-					// Namely, figuring out which order I'd like refs and constants to go, and other qualifiers.
-					uint32_t qual;
-				};
-			};
-
-		public:
-
-			bool IsUserConversion() const
-			{
-				//If conversion is detected, and the other isn't a conversion, the non-conversion wins.
-				//If conversion is detected, and the other is too, it comes down to the par + hash.
-				return type & (1 << 31);
-			}
-
-
-			operator uint64_t() const
-			{
-				return raw;
-			}
-
-			
-
-		};
-
-
 	}
+	//*/
 }
 
 

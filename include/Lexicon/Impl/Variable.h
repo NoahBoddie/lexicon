@@ -206,13 +206,23 @@ namespace LEX
             HelpClear();
         }
 
-        //Implicitly deletes copy assignment. So no use.
-        //DataHelper(DataHelper&& other){HelpClear();}
+        
+        DataHelper(DataHelper&& other)
+        {
+            HelpClear();
+        }
 
         DataHelper(const DataHelper& other)
         {
             HelpClear();
         }
+
+
+        DataHelper& operator=(const DataHelper& other) = default;
+
+
+
+        DataHelper& operator=(DataHelper&& other) = default;
     };
 
     //Make a copy of the copy constructors
@@ -238,11 +248,6 @@ namespace LEX
             default:                                    return BasicType::Total;
             }
         }
-
-
-
-
-
     };
     static_assert(sizeof(VariableComponent) == sizeof(VariableValue), "Size of Variable Component and Value must be equal for data helper to work.");
 
@@ -304,7 +309,7 @@ namespace LEX
             SetPolicy(_CheckVariableType());//REFUTE
             _SetDefined(true);
         }
-
+        //Variable(const Variable& rhs) = default;
         Variable(const Variable& rhs)
         {
             _value = rhs._value;
@@ -313,6 +318,9 @@ namespace LEX
             _SetChanged(rhs.IsChanged());
         }
         //*/
+
+        Variable(Variable&& rhs) = default;
+
 
         template <Assignable<VariableComponent> T>
         Variable(T&& other, AbstractTypePolicy* policy)
@@ -336,7 +344,7 @@ namespace LEX
 
 
 
-
+        //Variable& operator=(const Variable& rhs) = default;
         Variable& operator=(const Variable& rhs)
         {
             _value = rhs._value;
@@ -346,10 +354,10 @@ namespace LEX
             return *this;
         }
 
-        //Pretty sure this is implicitly more important than the other.
-        Variable& operator=(const Variable&& rhs) noexcept
+        //Variable& operator=(Variable&& rhs) noexcept = default;
+        Variable& operator=(Variable&& rhs) noexcept
         {
-            _value = rhs._value;
+            _value = std::move(rhs._value);
             SetPolicy(rhs.Policy());
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
@@ -623,7 +631,7 @@ namespace LEX
 
             Conversion out;
 
-            if (Policy()->IsConvertibleTo(policy, out) == false){
+            if (auto result = Policy()->IsConvertibleTo(policy, policy, out); result <= ConvertResult::Failure) {
                 Clear();
             }
             else if (out) {

@@ -241,6 +241,7 @@ namespace LEX
 
 		size_t SetStackPointer(StackPointer type, uint64_t index)
 		{
+			//TODO: Rename SetStackPointer to ModStackPointer
 			//These might all need validation, just to make sure an issue doesn't occur.
 			switch (type)
 			{

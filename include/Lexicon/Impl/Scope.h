@@ -53,6 +53,10 @@ namespace LEX
 
 			//Here's what I can do. There's a wrapper to the compile function calls, similar to try module and such
 
+			//If current exception is happening fuck this shit, the entire thing is ending.
+			if (IsTopLevel() && std::current_exception() != nullptr)
+				return;
+
 
 			_CheckExit();
 

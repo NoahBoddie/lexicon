@@ -27,54 +27,92 @@ namespace LEX
 
 
 
-		//I haven't worked on setting up 
-		Qualifier GetQualifiers() const override { return Qualifier::None; }
-
-
-
-		ITypePolicy* GetTarget() override { return GetTargetType(); }
-
-
-	
-		//static_assert(false, "These are without definition. Fix this shit please.");
-		std::pair<size_t, size_t> GetNumOfInputs() const override 
+		bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag flag) override
 		{
+			if (flag & OverloadFlag::UsesDefault)
+			{
+				logger::info("uses defaults");
+				return false;
+			}
 
-			return { GetParamCount(), 0};
+			if (optional)
+			{
+				logger::info("uses optionals");
+				return false;
+			}
+
+			if (parameters.size() - HasTarget() != suggested) {
+				logger::info("uses param diff {} vs {}", parameters.size() - HasTarget(), suggested);
+				return false;
+			}
+			return true;
 		}
 
-		std::pair<size_t, size_t> GetNumOfInputGroups() const override { return {1, 0}; }
 
+		//Fuck it, these return non-booleans and use something else to denote their failures.
 
-		std::vector<RequiredArg> GetRequiredInput(size_t offset) const override { 
-			std::vector<RequiredArg> result{ GetParamCount() };
-
-			std::transform(_ParamBegin(), _ParamEnd(), result.begin(), [&](const ParameterInfo& it) {return it.GetQualifiedType(); });
-
-			logger::critical("delete me: size {}", result.size());
-			return result;
-		}
-
-		std::vector<OptionalArg> GetOptionalInput(size_t offset) const override { return {}; }
-
-
-		Overload __TN_Matching(QualifiedType& from, size_t& index, size_t offset) override
+		OverloadEntry EvaluateEntry2(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
-			Overload result;
+			OverloadEntry result;
 
-			if (offset)
-				return Overload::Failure();
+			//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
+			if (index != -1 && index >= parameters.size())
+			{
+				logger::critical("Failure to evaluate");
+				flags |= OverloadFlag::Failure;
+				return {};
+			}
 
-			if (parameters.size() <= index)
-				return Overload::Failure();
 
-			QualifiedType to = parameters[index].GetQualifiedType();
+			//I'd maybe like to rework this VariableInfo to work like this.
+			//ParameterInfo* subject = index == -1 ? &thisInfo : &parameters[index];
+			ParameterInfo* subject = index != -1 ? 
+				&parameters[index + HasTarget()] : HasTarget() ? 
+				&parameters[0] : nullptr;
 
-			if (from.IsConvertToQualified(to) == false)
-				return Overload::Failure();
+			QualifiedType sub_type = subject->FetchQualifiedType();
+
+			if (type)
+			{
+				LEX::Conversion* out = nullptr;//Is entries if it's not the thing. Currently, not setting this up.
+				//TODO: This returns the wrong value rn.
+				
+				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, out);
+				
+				result.convertType = convertType;
+
+				if (convertType == ConvertResult::Failure)
+				{					
+					flags |= OverloadFlag::Failure;
+					return result;
+				}
+
+
+				result.convertType = ConvertResult::TypeDefined;
+				result.index = subject->GetFieldIndex();
+				result.type = sub_type;
+			}
+			else
+			{
+				result.convertType = ConvertResult::Ineligible;
+				result.index = -1;
+			}
 
 			return result;
+
 		}
+		OverloadEntry EvaluateDefault2(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
+		{
+			flags |= OverloadFlag::Failure;
+			return { };
+		}
+
+		std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
+		{
+			return {};
+		}
+
+
 		//~
 
 	public:
