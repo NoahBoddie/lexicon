@@ -14,11 +14,5 @@ namespace LEX
 		}
 	}
 
-	//TODO: temp. delete
-	RuntimeVariable AbstractTypePolicy::ConvertTo(RuntimeVariable var, AbstractTypePolicy* to)
-	{
-		//TODO: Define convert to.
-		return {};
-	}
 
 }

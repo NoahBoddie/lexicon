@@ -95,6 +95,10 @@ namespace LEX
             //Qualifiers like const are put here depending on if the function is const. 
             // We don't have those post declarations yet.
             auto& param = parameters.emplace_back(QualifiedType{ type }, "<this>", 0);
+
+
+            //Include things like whether this is
+            __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ type }, "<this>", 0);
         }
 
 
