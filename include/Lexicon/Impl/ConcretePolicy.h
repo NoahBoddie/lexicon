@@ -58,8 +58,9 @@ namespace LEX
 		void LoadFromRecord(Record& ast) override;
 
 
-		void CompileExpression(Record& ast) override
+		void CompileExpression_DEPRECATED(Record& ast)
 		{
+			//Keeping this because I may have need of it in the future.
 			for (auto& node : ast.GetChildren())
 			{
 				switch (ast.SYNTAX().type)
@@ -86,6 +87,11 @@ namespace LEX
 			//tba
 			//This expects a type of
 		}
+
+
+		LinkResult OnLink(LinkFlag flags) override;
+
+        LinkFlag GetLinkFlags() override;
 
 
 		//Technically, should be in abstract, but abstract actually is supposed to handle this so shrug.

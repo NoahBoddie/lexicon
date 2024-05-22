@@ -41,7 +41,7 @@ namespace LEX
 		OverloadClause* GetClause() override { return this; }
 
 
-		bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag flag) override
+		bool PreEvaluate(QualifiedType, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
 			return false;
 		}
@@ -539,7 +539,9 @@ namespace LEX
 		PolicyBase(std::string_view name, TypeOffset offset);
 
 
-
+		protected: 
+			bool _linkExternal = false;
+			bool _inheritanceHandled = false;
 
 	};
 }

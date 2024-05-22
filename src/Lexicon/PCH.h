@@ -294,7 +294,17 @@ struct Initializer
 };
 inline static int test = 0;
 //Initializes something on the spot.
-#define INITIALIZE() inline static Initializer CONCAT(__init_,__COUNTER__) = []() -> void
+#define INITIALIZE__COUNTED(mc_counter) inline static void CONCAT(__init_func_,mc_counter)();\
+inline static Initializer CONCAT(__init_var_,mc_counter) = CONCAT(__init_func_,mc_counter);\
+void CONCAT(__init_func_,mc_counter)()
+
+#define INITIALIZE(...) __VA_OPT__(/)##__VA_OPT__(*) __VA_ARGS__ __VA_OPT__(*)##__VA_OPT__(/) \
+INITIALIZE__COUNTED(__COUNTER__)
+
+
+//inline static Initializer CONCAT(__init_,__LINE__) = []() -> void
+
+
 //Revised to need to be executed at a particular time. This prevents issues with it going off too early.
 //Revise this in a manner that it doesn't have to have a semi-colon at the end. maybe forward declare a function rather than a lambda.
 #pragma region RGL_SPACE

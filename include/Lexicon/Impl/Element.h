@@ -15,7 +15,7 @@ namespace LEX
 
 		//GenericSig is like the below, and carries the ISpecializable or something like that? The idea is you can set 2 classes apart by the differences
 		// in their generic parameters (note, the very default counts as a child of any). So the resolution should be handled similarly to the below.
-		using GenericSig = int;
+		//using GenericSig = int;
 
 		//Signature is the thing that is used to handle functions being ambiguious but different in their parameters
 		// 2 signatures are counted as equals if they are the same, the parameters of one can qualify as the parameters of another
@@ -24,7 +24,7 @@ namespace LEX
 		//Also remember function signatures are generic and one is created each time a function with a different arg count is created.
 
 		//Also note, I'd very much so rather use a set for this.
-		using Signature = int;
+		//using Signature = int;
 		//FuncSig
 	}
 

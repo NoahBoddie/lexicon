@@ -173,9 +173,6 @@ namespace LEX
 
 	public:
 
-		//Move this down.
-		virtual void CompileExpression(Record& expression) = 0;
-
 
 		//>------------------------------------------------------------------------------------------------------------
 		//AddVariable- doesn't need to be exposed in environment, no variable info could be added here.

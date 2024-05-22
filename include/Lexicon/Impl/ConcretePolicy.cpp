@@ -44,9 +44,9 @@ namespace LEX
 		//Do something with generic. It's useless right now
 
 
-		constexpr auto k_external = "interface";
-
 		Record& obj_type = settings->GetChild(2);
+
+		//I actually will allow interfaces to be external. It prevents them from being instantiable though.
 
 		switch (Hash(obj_type.GetTag()))
 		{
@@ -54,6 +54,7 @@ namespace LEX
 		case "external"_h:
 		{
 			//Should clash with intrinsic.
+			_linkExternal = true;
 
 			if (obj_type.size() == 0) {
 				report::compile::critical("external type requires some type.");
@@ -80,9 +81,9 @@ namespace LEX
 			break;
 
 		case "intrinsic"_h:
-			if (_dataType == DataType::Interface) {
-				report::compile::critical("interfaces cannot be intrinsic/external");
-			}
+			//if (_dataType == DataType::Interface) {
+			//	report::compile::critical("interfaces cannot be intrinsic/external");
+			//}
 			break;
 
 		default:
@@ -91,4 +92,65 @@ namespace LEX
 
 	}
 
+
+
+    LinkResult ConcretePolicy::OnLink(LinkFlag flags)
+    {
+        Record& ast = *GetSyntaxTree();
+		
+		switch (flags)
+		{
+		case LinkFlag::Declaration:
+		{
+			//Handling inheritance here
+			break;
+		}
+
+
+		case LinkFlag::External:
+		{
+
+			Record& obj_type = ast.FindChild("settings")->GetChild(2);
+
+			if (obj_type.size() == 0) {
+				report::compile::critical("external type requires some type.");
+			}
+			else if (obj_type.GetTag() != "external") {
+
+			}
+			Record& cat_name = obj_type.GetFront();
+
+			category = cat_name.GetTag();
+
+			//category name is completely optional.
+			offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
+
+			logger::info("searching {}, our location {}", category, offset);
+
+			//this shouldn't be done yet, but I really just want to send this shit.
+			policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
+
+
+			break;
+		}
+
+		default:
+			return LinkResult::Failure;
+		}
+
+
+        return LinkResult::Success;
+    }
+
+    LinkFlag ConcretePolicy::GetLinkFlags()
+    {
+		return LinkFlag::None;
+		
+		//Needs to handle linking once when declaration happens 
+		auto result = LinkFlag::Declaration;
+
+		if (_linkExternal)
+			result |= LinkFlag::External;
+		return  result;
+    }
 }

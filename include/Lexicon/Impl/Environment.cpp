@@ -252,7 +252,7 @@ namespace LEX
 				}
 				else if (size)
 				{
-					//TODO: This is as
+					//TODO: This is ass
 
 					//Within field searches the look for a function will be handled very differently.
 

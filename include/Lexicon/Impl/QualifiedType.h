@@ -61,6 +61,9 @@ namespace LEX
 		{
 			return policy;
 		}
+
+		auto operator <=>(const QualifiedType&) const = default;
+
 		//TODO: IsCovertToQualfied needs to hold an ITypePolicy to see if it has permission to this conversion. How I'd do that, is kinda hard.
 		ConvertResult IsConvertToQualified(QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const
 		{

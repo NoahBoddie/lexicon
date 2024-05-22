@@ -54,7 +54,7 @@ namespace LEX
 			}
 
 
-			if (clause->PreEvaluate(paramInput.size(), defaultInput.size(), a_flag) == false) {
+			if (clause->PreEvaluate(nullptr, paramInput.size(), defaultInput.size(), a_flag) == false) {
 				logger::info("pre-eval fail");
 				return MatchFailure(a_flag);
 			}

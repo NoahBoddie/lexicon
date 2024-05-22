@@ -178,7 +178,7 @@ namespace LEX
 
 	
 	template <detail::ret_impl T>
-	ITypePolicy* GetStorageType(detail::custom_decay<T>& arg)
+	ITypePolicy* GetStorageType()
 	{
 		using _T = detail::custom_decay<T>;
 
@@ -190,7 +190,7 @@ namespace LEX
 		}
 		else
 		{
-			return StorageType<_T>{}(arg);
+			return StorageType<_T>{}();
 		}
 
 	}
@@ -212,7 +212,7 @@ namespace LEX
 		else
 		{
 			if (auto policy = GetValueType<_T>(arg); !policy)//or if the policy is the policy of none
-				return GetStorageType<_T>(arg);
+				return GetStorageType<_T>();
 		}
 
 	}

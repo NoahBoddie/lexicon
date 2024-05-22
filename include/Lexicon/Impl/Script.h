@@ -66,7 +66,7 @@ namespace LEX
 
 		//SetName will resume having no use here.
 
-		void CompileExpression(Record& target) override;
+		void CompileExpression(Record& target);
 
 
 

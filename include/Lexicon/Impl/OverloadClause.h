@@ -64,7 +64,8 @@ namespace LEX
 
 
 		//TrueName: CanMatch
-		virtual bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag) = 0;
+		//QualifiedType should only be used if it is available.
+		virtual bool PreEvaluate(QualifiedType, size_t suggested, size_t optional, OverloadFlag) = 0;
 
 		//Fuck it, these return non-booleans and use something else to denote their failures.
 

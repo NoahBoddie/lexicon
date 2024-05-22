@@ -62,6 +62,10 @@ void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variab
     result = tar.size();
 }
 
+double GetActorValue_backend(double a_this, double othername, double shootfol, double tellinal, double peacefal, double scrundal)
+{
+    return 0;
+}
 
 void LexTesting(std::string formula)
 {
@@ -262,6 +266,23 @@ void LexTesting(std::string formula)
     
     if (function)
     {
+        //Testing the proceedure
+        {
+            Signature sign = RegisterProcedure(GetActorValue_backend);
+
+            OverloadFlag flag = OverloadFlag::None;
+
+            auto overload = sign.Match(function, nullptr, nullptr, flag);
+
+            if (flag & OverloadFlag::Failure)
+                logger::info("FAILED TO MATCH");
+            else
+                logger::info("SUCCESS TO MATCH");
+
+            std::system("pause");
+
+        }
+
         //std::vector<Variable> args
         //{
         //    LEX::Number{1.0},

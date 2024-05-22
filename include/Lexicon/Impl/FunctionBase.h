@@ -15,7 +15,10 @@ namespace LEX
 		void LoadFromRecord(Record& target) override;
 
 		void OnAttach() override;
+		
+		virtual LinkResult OnLink(LinkFlag flags) override;
 
+		virtual LinkFlag GetLinkFlags() override;
 
 	public://This public wasn't here before. I wish to understand why it needs to be here now.
 
@@ -23,12 +26,17 @@ namespace LEX
 		// The same may be done for parameter. We shall see.
 		virtual void SetReturnType(QualifiedType type);
 
-		OverloadClause* GetClause() { return this; }
+		OverloadClause* GetClause() override { return this; }
 
 
 
-		bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag flag) override
+		bool PreEvaluate(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
+			if (type) {
+				if (type != _returnType)
+					return false;
+			}
+
 			if (flag & OverloadFlag::UsesDefault)
 			{
 				logger::info("uses defaults");
@@ -88,7 +96,7 @@ namespace LEX
 				}
 
 
-				result.convertType = ConvertResult::TypeDefined;
+				//result.convertType = ConvertResult::TypeDefined;
 				result.index = subject->GetFieldIndex();
 				result.type = sub_type;
 			}

@@ -92,6 +92,8 @@
 
 #include "DeclareSpecifier.h"
 
+#include "OverloadInput.h"
+
 
 namespace std
 {
@@ -198,7 +200,7 @@ namespace LEX
 
 	ITypePolicy* StorageType<Number>::operator()()
 	{
-		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, CoreOffset::Number);
+		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, 0);
 
 		//Should already be specialized, so just sending it.
 		return policy->FetchTypePolicy(nullptr);
@@ -1575,1507 +1577,258 @@ namespace LEX
 		};
 	}
 	
-	namespace Trash
+	
+#define COMMENTING /*fafafa*/
+
+	struct Signature : public OverloadKey
 	{
+		//The match for this should be aimed to be as very little in terms of ambiguity as possible.
+		//Thus, the stated project, script, and of course, the path.
+		//The path for generics will probably simply be controlled by the amount of generic parameters it has, rather than the entires.
+		// So no generic, no generic notation. Is generic, has generic notation. If it's the only one you can
 
-		int* const test_ptr = nullptr;
 
-		struct TestOp
+
+		//Make these 2 a single function.
+		Overload MatchFailure(OverloadFlag& flag)
 		{
-			inline static std::string _;
+			logger::critical("Force failure");
 
-		};
-
-
-		void testRef(int&)
-		{
-			int const  t[5]{};
-
-			//int& t = t[1];
-
-			const int i{};
-			//i = 1;
+			
+			flag |= OverloadFlag::Failure;
+			
+			return {};
 		}
 
-		void testPtr()
+		Overload MatchAmbiguous(OverloadFlag& flag)
 		{
-			testRef(*test_ptr);
-		}
+			logger::critical("Force ambiguous");
 
+			
+			flag |= OverloadFlag::Ambiguous;
 
-
-
-
-		void foo1(int& i)
-		{
-
+			return {};
 		}
 
 
-		int& foo2(int& i)
+		//Please note, this kind of match is what a clause should be doing.
+
+		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
+		Overload Match(OverloadClause* clause, ITypePolicy*, Overload*, OverloadFlag& a_flag) override
 		{
-			return i;
-		}
-
-		int& foo()
-		{
-			int i = 0;
-
-			return foo2(i);
-		}
+			a_flag |= OverloadFlag::AllAccess;
 
 
-		struct StructA;
-
-
-		struct StructB
-		{
-			StructB() = default;
-
-			StructB(StructA&) {}
-
-
-
-		};
-
-		struct StructA
-		{
-			operator StructB()
-			{
-				return StructB{};
+			if (clause->PreEvaluate(result, parameters.size(), 0, a_flag) == false) {
+				return MatchFailure(a_flag);
 			}
 
 
-		};
+			//I want to phase out of function. Maybe combine it with prev in some way.
 
-		void control()
-		{
-			StructA a;
-			//StructB b = a;
-			const int u = 0;
-
-			const int y = 0;
-
-			//u = y;
-
-			int& i = foo();
-		}
-	}
-
-	/*
-	namespace Inheritance
-	{
+			//Make a copy as to not completely mutate this.
+			OverloadFlag flag = a_flag;
 
 
-		enum struct ConvertResult
-		{
-
-			QualError4 = -7,
-			QualError3 = -6,
-			QualError2 = -5,
-			QualError1 = -4,
-			Inaccessible = -3,
-			Ineligible = -2,
-			IllegalIntern = -1,
-			//Might rearrange these to be greater
-			Exact = 0,
-			TypeDefined,
-			ImplDefined,
-			UserDefined,
-			UserToImplDefined,
+			Overload overload;
 
 
+			OverloadEntry tar = clause->EvaluateEntry2(target, nullptr, -1, -1, flag);
 
-			Failure = -1,//Anything under or equal to failure doesn't need it's value recorded for anything, it's just a conversion error code.
-		};
 
-		struct Conversion
-		{
-			struct
+			if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
+				return MatchFailure(a_flag);
+
+			overload.target = tar.type;
+			overload.clause = clause;
+
+			constexpr auto offset_placeholder = 0;
+
+			int winner = 0;
+
+			for (int i = 0; i < parameters.size(); i++)
 			{
-				union
-				{
-					uint64_t		raw = 0;
-					IFunction* userDefined;
-					ICallableUnit* implDefined;
-				};
+				QualifiedType input = parameters[i];
 
-				//When a user defined conversion can be converted this is what is used.
-				ICallableUnit* userToImpl = nullptr;
+				OverloadEntry entry = clause->EvaluateEntry2(input, nullptr, offset_placeholder, i, flag);
 
-			};
-
-			ConvertResult type = ConvertResult::Ineligible;
-
-			//Merge convert results with this shit btw.
-
-			//This should tell how you jumped from one value to the next. Approx 3 pointers long.
-
-			operator bool() const
-			{
-				return raw;
-			}
-		};
-
-
-		struct OverloadCode
-		{
-			//Overload needs a place where it gets it's data for things like hashes, distance, and whether it's initialized or not.
-			// this is what the finalize in entry would be doing.
-
-
-
-			std::array<uint32_t, 2> hash{};
-
-			uint32_t distance = 0;
-
-			bool initialized = false;//If not initialized
-
-		};
-
-		struct OverloadEntry : public OverloadCode
-		{
-			//I'd care about the padding and stuff here but its so small I do not care.
-
-			FakeType* type;
-
-			Conversion convert;
-
-			OverloadCode code;
-
-			size_t index;
-
-
-			OverloadEntry FinalizeOld(FakeType* other);
-			bool Finalize(OverloadEntry& other);
-		};
-
-
-		enum struct OverloadSection
-		{
-			//Exact order might change
-			Required,
-			Suggested,
-			Optional,
-			Default,
-		};
-
-		ENUM(OverloadFlag, uint8_t)
-		{
-			None,
-				ReqFilled = 1 << 0,		//Once required gets filled, this gets ticked so that the overload doesn't use the improper overload.
-				UsesDefault = 1 << 1,	//If it uses 
-				UsesOptional = 1 << 2,	//Manually defining an optional will result in no optionals being able to be implicitly used.
-				NoConvert = 1 << 3,		//If no conversions are used in one, converting ones are no longer valid.
-
-
-				FinalEntry = 1 << 5,	//Used if this is the final entry, allowing the clause to declare there's more required.
-
-				Failure = 1 << 6,
-				Ambiguous = 1 << 7,
-		};
-
-		struct OverloadClause;
-
-		struct Overload
-		{
-			//This is now a container that shows the given options for an overload.
-
-			OverloadClause* clause;
-
-			QualifiedType target;//
-
-			//These align perfectly with arguments given.
-			// This has to be loaded with a properly sorted default by this point.
-			// Defaults have to go here because 
-			std::vector<OverloadEntry> given;
-
-
-			std::unordered_map<std::string, OverloadEntry> defaults;
-
-
-			//TODO: These should be 3 way comparisons, stemming from the arg type to both parameters.
-			//Remember that this function should be handled by something such as qualified type rather than OverloadEntry.
-
-			int SafeCompare(QualifiedType& other, QualifiedType& arg)
-			{
-				//This version is abandoned now
-
-
-				if (!this)
-					return -1;
-
-				if (target && !other)
-					return -1;
-				else if (!target && other)
-					return -1;
-				else if (!target && !other)
-					return 0;
-				if (target.IsConvertToQualified(other) == true)
-					return -1;
-				else if (other.IsConvertToQualified(target) == true)
-					return 1;
-
-				return 0;
-			}
-
-
-			int SafeCompare(std::string name, OverloadEntry& entry, QualifiedType& arg)
-			{
-				if (!this)
-					return -1;
-
-				return 0;
-			}
-
-			int SafeCompare(size_t i, OverloadEntry& entry, QualifiedType& arg)
-			{
-				if (!this)
-					return -1;
-
-				if (i >= given.size())
-					return 1;
-
-				auto& tar = given[i];
-
-
-				if (tar.type && !entry.type)
-					return -1;
-				else if (!tar.type && entry.type)
-					return -1;
-				else if (!tar.type && !entry.type)
-					return 0;
-
-				return 0;
-
-				//Currently there is no actually way to compare. it is or it isn't Implement properly in the merger.
-
-				bool left = tar.type.IsConvertToQualified(entry.type);
-				bool right = entry.type.IsConvertToQualified(tar.type);
-
-				if (left == true)
-					return -1;
-				else if (right == true)
-					return 1;
-
-				return 0;
-			}
-		};
-
-		struct OverloadKey
-		{//The argument side of the overload.
-
-			//True name: TryMatch
-			virtual Overload Match(OverloadClause*, Overload* prev, OverloadFlag& flag) = 0;
-
-
-		};
-
-		struct OverloadClause : public OverloadKey
-		{//The parameter side of the overload.
-
-
-			virtual Overload Match(OverloadClause*, Overload* prev, OverloadFlag& flag)
-			{
-				flag |= OverloadFlag::Ambiguous;
-				return {};
-			}
-
-
-
-			//TrueName: CanMatch
-			virtual bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag) = 0;
-
-			//Fuck it, these return non-booleans and use something else to denote their failures.
-
-			//TrueNames MatchSuggestedEntry and MatchDefaultEntry
-			virtual OverloadEntry EvaluateEntry2(QualifiedType, size_t offset, size_t index, OverloadFlag& flags) = 0;
-			virtual OverloadEntry EvaluateDefault2(QualifiedType, std::string name, OverloadFlag& flags) = 0;
-			//^ I'm thinking of having an extra parameter to show if I mean generic args or not.
-
-
-			//This should only be called on the winnning one.
-			//This should actually accept the Overload comparison object, as that can represent optional parameter pack values as well.
-
-			//True name: ResolveEntries
-			virtual std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, OverloadFlag& flags) = 0;
-			//After this is used, it should be resized.
-
-
-			//This is missing the ability to process default stuff.
-
-			//Basically it needs the information to be able to edit
-			// OverloadEntry can possibly be instructions as overload stuff. The idea being that it also outputs where a given portion of data is supposed to go.
-			// To do this, I could use solutions as to not corrupt what is given.
-			//But having it like this also allows for more freedom in terms of loading into shit.
-
-
-			//Also, the place where OverloadInputs get loaded shouldn't try to move register data around. Instead, it should have vectors of instruction lists.
-			// Then, I should free each individually.
-
-			//virtual Void EvaluateDefault(std::vector)
-		};
-
-		//The flow.
-		//OverloadKey::Match, if yes back of the line. If not, toss results.
-		//-Keep going until no more clauses are available.
-		//Next, each overload is comparied to each other.
-		//<!> What if I could compare the newest entry to the previous overload at the same time?
-
-
-		struct FakeFunction : public OverloadClause
-		{//The parameter side of the overload.
-
-			std::string name;
-
-			ParameterInfo thisInfo{ nullptr, "", (uint32_t)-1 };
-			std::vector<ParameterInfo> params;
-			//A preeval might be good. Just something to say Thing expects 8 groups,
-
-			bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag flag) override
-			{
-				if (flag & OverloadFlag::UsesDefault)
-					return false;
-
-				if (optional)
-					return false;
-
-				if (params.size() != suggested)
-					return false;
-
-				return true;
-			}
-
-			std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, OverloadFlag& flags) override
-			{
-				return {};
-			}
-
-
-			//Fuck it, these return non-booleans and use something else to denote their failures.
-
-			OverloadEntry EvaluateEntry2(QualifiedType type, size_t offset, size_t index, OverloadFlag& flags) override
-			{
-				OverloadEntry result;
-
-				//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
-				if (index != -1 && index >= params.size())
-				{
-					logger::critical("Failure to evaluate");
-					flags |= OverloadFlag::Failure;
-					return {};
-				}
-
-				ParameterInfo* subject = index == -1 ? &thisInfo : &params[index];
-
-				QualifiedType sub_type = subject->GetQualifiedType();
-
-				if (type)
-				{
-					LEX::Conversion* out = nullptr;//Is entries if it's not the thing. Currently, not setting this up.
-					//TODO: This returns the wrong value rn.
-					if (type.IsConvertToQualified(sub_type, out) == false)
-					{
-						flags |= OverloadFlag::Failure;
-						return {};
-					}
-
-
-					result.convert.type = ConvertResult::TypeDefined;
-					result.index = subject->GetFieldIndex();
-					result.type = sub_type;
-				}
-				else
-				{
-					result.convert.type = ConvertResult::Ineligible;
-					result.index = -1;
-				}
-
-				return result;
-
-			}
-			OverloadEntry EvaluateDefault2(QualifiedType type, std::string name, OverloadFlag& flags) override
-			{
-				flags |= OverloadFlag::Failure;
-				return { };
-			}
-
-
-
-
-			//This is missing the ability to process default stuff.
-
-			//Basically it needs the information to be able to edit
-			// OverloadEntry can possibly be instructions as overload stuff. The idea being that it also outputs where a given portion of data is supposed to go.
-			// To do this, I could use solutions as to not corrupt what is given.
-			//But having it like this also allows for more freedom in terms of loading into shit.
-
-
-			//Also, the place where OverloadInputs get loaded shouldn't try to move register data around. Instead, it should have vectors of instruction lists.
-			// Then, I should free each individually.
-
-			//virtual Void EvaluateDefault(std::vector)
-		};
-
-
-
-
-
-		class OverloadInput : public OverloadKey
-		{
-		public:
-
-			//Make these 2 a single function.
-			Overload MatchFailure(OverloadFlag& flag, Overload* prev = nullptr)
-			{
-				logger::critical("Force failure");
-
-				//This should only be used when it's an ambiguous match I think.
-				flag |= OverloadFlag::Failure;
-				//This feels very unnecessary and possibly unused.
-				if (prev)
-					return *prev;
-
-				return {};
-			}
-
-			Overload MatchAmbiguous(OverloadFlag& flag)
-			{
-				logger::critical("Force ambiguous");
-
-				//This should only be used when it's an ambiguous match I think.
-				flag |= OverloadFlag::Ambiguous;
-
-				return {};
-			}
-
-
-			//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
-			virtual Overload Match(OverloadClause* clause, Overload* prev, OverloadFlag& a_flag) override
-			{
-				if (clause->PreEvaluate(paramInput.size(), defaultInput.size(), a_flag) == false) {
-					logger::info("pre-eval fail");
+				if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
 					return MatchFailure(a_flag);
-				}
-
-
-				//I want to phase out of function. Maybe combine it with prev in some way.
-
-				//Make a copy as to not completely mutate this.
-				OverloadFlag flag = a_flag;
-
-				if (defaultInput.empty() == false) {
-					flag |= OverloadFlag::UsesDefault;
-				}
-
-				Overload overload;
-
-				QualifiedType type;
-
-				if (object && object->target)
-					type = *object->target;
-
-
-				OverloadEntry tar = clause->EvaluateEntry2(type, -1, -1, flag);
-
-
-				if (flag & OverloadFlag::Failure)
-					return MatchFailure(a_flag, prev);
-
-
-				auto new_winner = prev->SafeCompare(-1, tar, type);
-
-				if (0)//If other is prefered, return a failure.
-					return *prev;
-
-				//Also a thought, [this] is a parameter too. Granted a hidden one.
-
-				overload.target = tar.type;
-				overload.clause = clause;
-
-				constexpr auto offset_placeholder = 0;
-
-				int winner = 0;
-
-				for (int i = 0; i < paramInput.size(); i++)
-				{
-					QualifiedType input = paramInput[i];
-
-					OverloadEntry entry = clause->EvaluateEntry2(input, offset_placeholder, i, flag);
-
-					if (flag & OverloadFlag::Failure)
-						return MatchFailure(a_flag, prev);
 
 
 
-					//entry.funcs = conversion;
-					//entry.type = input;
-					//entry.index = index;
-
-					//Compare should this input-> prev vs entry
-
-					auto new_winner = prev->SafeCompare(i, entry, input);
-
-					if (!winner)
-						winner = new_winner;
-					else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
-					{// shit isn't valid anymore.
-						return MatchAmbiguous(a_flag);
-					}
+				//entry.funcs = conversion;
+				//entry.type = input;
+				//entry.index = index;
 
 
-					overload.given.push_back(entry);
-				}
-
-				auto it = defaultInput.begin();
-
-				for (int i = 0; it != defaultInput.end(); i++, it++)
-				{
-					QualifiedType input = it->second;
-
-					OverloadEntry entry = clause->EvaluateDefault2(input, it->first, flag);
-
-					if (flag & OverloadFlag::Failure)
-						return MatchFailure(a_flag, prev);
-
-
-					//entry.funcs = conversion;
-					//entry.type = input->second;
-					//entry.index = index;
-
-
-					auto new_winner = prev->SafeCompare(it->first, entry, input);
-
-					if (!winner)
-						winner = new_winner;
-					else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
-					{// shit isn't valid anymore.
-						return MatchAmbiguous(a_flag);
-					}
-
-
-					overload.defaults[it->first] = entry;
-				}
-
-				if (winner > 0) {
-					logger::info("right winner");
-					return *prev;
-				}
-				else if (winner < 0) {
-					logger::info("left winner");
-					return overload;
-				}
-				else {
-					logger::info("no winner");
-					return MatchAmbiguous(a_flag);
-				}
-
+				overload.given.push_back(entry);
 			}
 
+			return overload;
 
-
-
-
-			TargetObject* object = nullptr;
-			//std::vector<ITypePolicy*>			genericInput;
-			std::vector<Solution>				paramInput;
-			std::map<std::string, Solution>		defaultInput;//rename
-		};
-
-		//Super important function, this sorts through a list OverloadClauses. Can likely put in overload key.
-		INITIALIZE()
-		{
-			ConcretePolicy type1{};
-			ConcretePolicy type2{};
-			ConcretePolicy type3{};
-
-			Solution sol1{ &type1, OperandType::None, 0 };
-			Solution sol2{ &type2, OperandType::None, 0 };
-			Solution sol3{ &type3, OperandType::None, 0 };
-
-
-			OverloadInput input;
-
-			input.paramInput.push_back(sol1);
-			input.paramInput.push_back(sol1);
-			input.paramInput.push_back(sol2);
-			input.paramInput.push_back(sol3);
-			input.paramInput.push_back(sol3);
-
-			FakeFunction func1;
-			FakeFunction func2;
-			FakeFunction func3;
-
-			{
-				func1.name = "Func1";
-
-				func1.params.emplace_back(QualifiedType{ &type1 }, "var_1", 0);
-				func1.params.emplace_back(QualifiedType{ &type2 }, "var_2", 1);
-				func1.params.emplace_back(QualifiedType{ &type3 }, "var_3", 2);
-			}
-			{
-				func2.name = "Func2";
-
-				func2.params.emplace_back(QualifiedType{ &type1 }, "var_1", 0);
-				func2.params.emplace_back(QualifiedType{ &type1 }, "var_2", 1);
-				func2.params.emplace_back(QualifiedType{ &type2 }, "var_3", 2);
-				func2.params.emplace_back(QualifiedType{ &type3 }, "var_4", 3);
-				func2.params.emplace_back(QualifiedType{ &type2 }, "var_5", 4);
-			}
-			{
-				func3.name = "Func3";
-
-				func3.params.emplace_back(QualifiedType{ &type1 }, "var_1", 0);
-				func3.params.emplace_back(QualifiedType{ &type1 }, "var_2", 1);
-				func3.params.emplace_back(QualifiedType{ &type2 }, "var_3", 2);
-				func3.params.emplace_back(QualifiedType{ &type3 }, "var_4", 3);
-				func3.params.emplace_back(QualifiedType{ &type3 }, "var_5", 4);
-			}
-
-			std::vector<FakeFunction*> clauses{ &func1, &func2, &func3 };
-
-			//Expand upon this and place it within search, please and thank you.
-			FakeFunction* final_func = nullptr;
-			Overload out;
-
-			Overload* last = nullptr;
-
-			for (auto clause : clauses)
-			{
-				OverloadFlag flags = OverloadFlag::None;
-
-				Overload overload = input.Match(clause, last, flags);
-
-				if (flags & OverloadFlag::Failure) {
-					logger::info("Failure"); continue;
-				}
-
-
-
-				if (flags & OverloadFlag::Ambiguous) {
-					logger::info("Ambiguous");
-					last = nullptr;
-					break;
-				}
-
-				if (0) {
-					bool _continue = false;
-					bool _break = false;
-
-
-					cycle_switch(flags)
-					{
-					case OverloadFlag::Failure:
-						logger::info("Failure");
-						_continue = true;
-						continue;
-
-					case OverloadFlag::Ambiguous:
-						logger::info("Ambiguous");
-						_break = true;
-						break;
-
-					}
-
-					if (_continue)
-						continue;
-
-					if (_break)
-						break;
-
-				}
-
-
-				out = std::move(overload);
-
-				last = &out;
-			}
-
-			if (last && last->clause)
-				logger::info("FUNC CHOOSEN: {}", dynamic_cast<FakeFunction*>(last->clause)->name);
-			else
-				logger::info("NO FUNC CHOOSEN");
-
-
-			//The testing zone.
-		};
-
-
-
-
-		//Fix
-		//OverloadClause
-
-		//Do
-		//HierarchyData
-		//InheritData
-
-		//Merge fake function and it's contemporary,
-		//merk fake type and it's contemporary.
-		struct FakeType;
-
-		struct InheritData
-		{	
-			//The hash is a value that represents memory wise, where said object can be considered within memory.
-			std::array<uint32_t, 2> hash{};
-
-
-			//Distance is -1 if virtually inherited
-			uint32_t distance = 0;
-			FakeType* type = nullptr;//ITypePolicy* type;
-
-			uint32_t _id = 0;
-			
-			//This can possibly be unionized, with the sign bit being able to tell if one or the other.
-			uint32_t ownerIndex = 0;
-			
-			uint32_t memberIndex = 0;
-
-			Access access;//
-			//I think I'll store internal access outside of this.
-			
-			bool isGeneric = false;//This differs if the id is an instance id or a type id.
-			bool virtInherited = false;
-
-			constexpr bool operator<(const InheritData& other) const
-			{
-				if (isGeneric != other.isGeneric)
-					return !isGeneric < !other.isGeneric;
-
-				return  distance < other.distance;
-			}
-
-			//Need to figure out how to move these.
-
-			//These are deprecated, as methods
-			//uint32_t memberRange [2];//This should be where this entries stuff starts, and then where it ends. same deal with the other.
-			//uint32_t methodRange [2];
-
-			Access GetAccess() const
-			{
-				return access & ~Access::Internal;
-			}
-
-			void SetAccess(Access a_acc)
-			{
-				auto pop = access & Access::Internal;
-				a_acc &= ~Access::Internal;
-				access = a_acc;
-				access |= pop;
-			}
-
-			//I want to merge a bunch of flags into where access is. Stuff like is generic or is internal, virtual inherited all can probably be shoved in there.
-
-			void SetInternal(bool v)
-			{
-				if (v) {
-					access |= Access::Internal;
-				}
-				else {
-					access &= ~Access::Internal;
-				}
-			}
-
-			bool IsInternal() const
-			{
-				return access & Access::Internal;
-			}
-
-			bool IsVirtualInherited() const
-			{
-				return virtInherited;
-			}
-
-		};
-
-
-
-		struct HierarchyData
-		{
-			//FakeType will become a part of something called Hierarchy data. TypeBases have this, but so do Specializations of generic types.
-
-			//Id like it if in a test of ambiguity this always wins, but that might not be possible in this set up.
-			FakeType* extends = nullptr;
-			std::vector<InheritData> inheritance;
-
-			std::vector<FakeType*> members;
-
-
-			uint32_t hashRange = 0;//Range is equal to zero to this number.
-			
-			uint32_t memberCount = 0;//Should bind classes increase this value any? Nah, probably handle in post.
-			std::string name;
-
-			bool hasInternal = false;
-
-
-			HierarchyData() = default;
-
-			HierarchyData(std::string n, std::vector<FakeType*> m = {}) : name{ n }, members{ m }, memberCount{ (uint32_t)m.size() } {}
-			HierarchyData(std::string n, uint32_t num) : name{ n }, members{ num }, memberCount{ num } {}
-
-		};
-
-
-
-		struct FakeType : public HierarchyData
-		{
-			using HierarchyData::HierarchyData;
-
-
-
-			InheritData* _InheritData(InheritData& data)
-			{
-				if (data.IsInternal() == true) {
-					return nullptr;
-				}
-				
-				//Should search with an inherit data with the same type.
-				auto end = inheritance.end();
-
-				auto it = std::find_if(inheritance.begin(), end, [&](InheritData& other) {return data.type == other.type && !other.IsInternal(); });
-
-				if (it != end)
-					return &*it;
-
-				return nullptr;
-			}
-
-
-			InheritData* GetInheritData(FakeType* type)
-			{
-				//This ends up pulling intera
-
-				//Should search with an inherit data with the same type.
-
-				InheritData* result = nullptr;
-
-				//By default, it will exit automatically once when it finds something unless has internal is switched.
-				bool exit = !hasInternal;
-
-				for (InheritData& other : inheritance)
-				{
-					//Ignore internal check if something doesn't personally have an internal.
-
-					if (type != other.type)
-						continue;
-
-
-					if (other.IsInternal())
-					{
-						if (!exit){
-							if (_IsInternalParent(&other) == false){
-								continue;
-							}
-
-							//Otherwise we're exiting here
-							exit = true;
-						}
-						else {
-							//Cant allow an internal to end up here.
-							continue;
-						}
-					}
-
-					result = &other;
-
-					if (exit)
-						break;
-				}
-
-				return result;
-
-
-
-				auto end = inheritance.end();
-
-				auto it = std::find_if(inheritance.begin(), end, 
-					[&](InheritData& other) 
-					{
-						return type == other.type; 
-					});
-
-				if (it != end) {
-					InheritData* result = &*it;
-					
-					
-					return result;
-				}
-
-				return nullptr;
-			}
-
-
-			void FinalizeAndSort()
-			{
-				//std::sort(inheritance.begin(), inheritance.end(), std::less<InheritData>());return;
-
-				for (int x = 0; x < inheritance.size(); x++)
-				{
-					InheritData& left = inheritance[x];
-
-					for (int y = x + 1; y < inheritance.size(); y++)
-					{
-						InheritData& right = inheritance[y];
-
-						if (right < left) {
-
-							InheritData buffer = right;
-
-							right = std::move(left);
-							left = std::move(buffer);
-
-							//Do a check of each here, switching 
-							for (int z = x; z < inheritance.size(); z++)
-							{
-								auto& index = inheritance[z].ownerIndex;
-
-								if (index - 1 == x) {
-									index = y + 1;
-								}
-								else if (index - 1 == y) {
-									index = x + 1;
-								}
-							}
-						}
-					}
-				}
-
-				uint32_t count = members.size();
-
-				for (int x = 0; x < inheritance.size(); x++)
-				{
-					auto& entry = inheritance[x];
-					logger::info("before {} {} {}", entry.memberIndex, count, entry.type->members.size());
-
-					entry.memberIndex = count;
-					count += (uint32_t)entry.type->members.size();
-
-					logger::info("after {} {} {}", entry.memberIndex, count, entry.type->members.size());
-				}
-
-			}
-
-			std::vector<InheritData> GetInheritFrom(uint32_t hashMin, uint32_t idxInc)
-			{
-				//This should include access type, and who it's from. This way internal inheritance can be better handled.
-
-				std::vector<InheritData> result;
-
-				result.reserve(inheritance.size() + 1);
-
-				InheritData& self = result.emplace_back();
-
-				//uint32_t largestHash = hashMin;
-
-				self.type = this;
-
-				self.hash[0] = hashMin;
-				self.hash[1] = hashRange + hashMin;
-
-				self.access = Access::Public;
-
-				//self.memberIndex = members
-
-				self.distance = 1;
-			
-				//We'll want to make a copy, because we're gonna rehash it by the index.
-				for (InheritData data : inheritance)
-				{
-
-					data.hash[0] += hashMin;
-					data.hash[1] += hashMin;
-					data.ownerIndex += idxInc;
-					//I still have to check against this due to virtual inheritance.
-					//if (largestHash < data.hash[1])
-					//	largestHash = data.hash[1];
-					
-
-					switch (data.access)
-					{
-					case Access::Private:
-						data.access = Access::None; break;
-					case Access::PrivateInternal:
-						data.access = Access::NoneInternal; break;
-					}
-					
-
-					data.distance++;
-					result.push_back(data);
-				}
-
-				//self.hash[1] = largestHash;
-
-				return result;
-			}
-
-			
-			void SetDerivesTo(FakeType* other, bool intern = false, Access a_access = Access::Public)
-			{
-				//I need to carry around a set of types not allowed to be submitted for this when things need to handle their own inheritance.
-				//Basically, for every item that SetDerivesTo is used on, that's another entry that SetDerives shouldn't be used on.
-				// The nature of this means there's really no good time to be able to use set derives to, that being said, I need to handle it like a function
-				// that need only run once. And if it relies on things that haven't run once, then it needs to run it once. For now, direct line of action.
-
-				//Additionally, you cannot directly add stuff that you already have in, only when inherited from something else.
-
-				//thread lock this, and remember a change of everything that set derived is processing.
-				uint32_t idxInc = (uint32_t)inheritance.size() + 1;
-
-				std::vector<InheritData> inherits = other->GetInheritFrom(hashRange + 1, idxInc);
-
-				bool second = false;
-
-				if (intern)
-					a_access |= Access::Internal;
-
-				//Later
-				Access access = a_access & ~Access::Internal;
-
-				bool intern_ = a_access & Access::Internal;
-				
-				if (!hasInternal)
-					hasInternal = intern;
-
-
-				for (auto& data : inherits)
-				{
-					bool _second = second;
-					second = true;
-
-					if (data.GetAccess() > access){
-						data.SetAccess(access);
-					}
-					
-					if (intern_) {
-						data.SetInternal(true);
-					}
-
-
-					if (data.IsInternal() == false) {
-						if (auto* prev_data = _InheritData(data); prev_data)
-						{
-
-
-							//We'll want to pretend like it's a new object without disturbing it. Making it 0 is fine, as it needs
-							// to pull results from somewhere else to be valid and if it can't either something else is better or it's ambiguous.
-
-
-							//having these use the hash of 0 makes it valid for comparison for nothing else (if not corrected by it's comparison) other than
-							// the derived class.
-
-							prev_data->hash[0] = 0;
-							prev_data->hash[1] = 0;
-							prev_data->ownerIndex = 0;
-							prev_data->virtInherited = true;
-
-							//Inherits whichever access from here is greater.
-							if (auto data_access = data.GetAccess(); data_access > prev_data->GetAccess()) {
-								prev_data->SetAccess(data_access);
-							}
-
-							//I think the distance will actually be 2 if it's not the first.
-							prev_data->distance = 1 + _second;
-						
-							continue;
-						}
-					}
-
-
-					if (data.hash[1] > hashRange)
-						hashRange = data.hash[1];
-
-					auto old = memberCount;
-
-					data.memberIndex = old;//This is the place where this starts.
-					memberCount += (uint32_t)data.type->members.size();
-					//logger::info("add {} {} {}", old, data.memberIndex, memberCount);
-					//This doesn't get hit at times. I need to inspect why.
-								
-					inheritance.push_back(data);
-				}
-			}
-
-			OverloadEntry CreateEntry(FakeType* target)
-			{
-				auto data = !target || target == this ? nullptr : GetInheritData(target);
-
-
-				if (data)
-					return { data->type, data->hash, data->distance, !data->virtInherited };
-				else
-					return { this, {0, hashRange}, 0, true };
-			}
-
-			void PrintInheritance()
-			{
-				RGL_LOG(info, "Class: {}: Ranged: (0/{}), Members: ({}/{})", name, hashRange, memberCount, members.size());
-
-				for (auto& basis : inheritance)
-				{
-					std::string access;
-
-					switch (basis.access)
-					{
-					case Access::Public:
-						access = "public"; break;
-					case Access::Protected:
-						access = "protected"; break;
-					case Access::Private:
-						access = "private"; break;
-					case Access::None:
-						access = "no access"; break;
-
-					case Access::PublicInternal:
-						access = "public internal"; break;
-					case Access::ProtectedInternal:
-						access = "protected internal"; break;
-					case Access::PrivateInternal:
-						access = "private internal"; break;
-					case Access::NoneInternal:
-						access = "internal"; break;
-					}
-
-					logger::info("|	Name: {}, Hash: {}/{}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{})", 
-						basis.type->name, basis.hash[0], basis.hash[1], basis.distance, basis.ownerIndex, basis.IsInternal(), access, basis.memberIndex, basis.type->members.size());
-				}
-			}
-
-			//This should be moved to qualified type, and the main thing of desire here should be the overload code.
-			int CompareType(OverloadEntry left, OverloadEntry right)
-			{
-				if (!left.initialized && !right.initialized)
-				{
-					left = left.FinalizeOld(right.type);
-					right = right.FinalizeOld(left.type);
-
-					//OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
-					//OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);
-				}
-
-				logger::info("left({}/{}), right({}/{})", left.hash[0], left.hash[1], right.hash[0], right.hash[1]);
-
-
-				if (left.hash[0] <= right.hash[1] && left.hash[1] >= right.hash[0]) {
-					return left.distance - right.distance;
-				}
-				if (left.hash[0] >= right.hash[1] && left.hash[1] <= right.hash[0]) {
-					return left.distance - right.distance;
-				}
-
-				return 0;
-			}
-
-			int CompareType(FakeType* a_lhs, FakeType* a_rhs)
-			{
-				OverloadEntry left = CreateEntry(a_lhs);
-				OverloadEntry right = CreateEntry(a_rhs);
-
-				return CompareType(left, right);
-			}
-
-			bool _IsInternalParent(InheritData* intern)
-			{
-				if (!intern || intern->IsInternal() == false) 
-					return false;
-
-				bool cont = intern->ownerIndex && intern->IsInternal();
-
-				while (cont)
-				{
-					intern = &inheritance[intern->ownerIndex - 1];
-
-					cont = intern->ownerIndex && intern->IsInternal();
-				}
-
-				return intern->IsInternal() && intern->ownerIndex == 0;
-
-			}
-
-			
-			//This needs some form of conversion result.
-			ConvertResult IsConvertible(FakeType* other, FakeType* asking)
-			{
-				if (this == other) {
-					return ConvertResult::Exact;
-				}
-				
-				//First we check if the entry exists. Based on what its access is, what we do changes.
-				//Public: Conversion is allowed.
-				//Protected: asking type must other must derive from
-				//Private: asking type must have other's distance be 1.
-
-				//Internal: The trail of internals within asking must lead to an internal that has an owner index of 0. Otherwise, it is too seperated to be converted.
-				//Will need to make a collection to measure this.
-				// Actually, simplier way (though the above is still required) this and asking need to be the same. Actually this isn't right either, internal is about
-				// this, not who's asking.
-
-
-				//Whether it can convert should basically be solved here, this should never return an internal it does not own.
-				InheritData* convert_data = GetInheritData(other);
-				
-
-
-
-				//Not gonna worry about function conversions for a while.
-				if (!convert_data) {
-					//TODO: If this is internal, I might perform some saving throw with the asking type.
-					return ConvertResult::Ineligible;
-				}
-
-				//To do this saving throw, we'd need to get if asking has that inheritdata from other first (check for internal first)
-				// then, if it does, ask if asking is viewable this is convertible to asking.
-				
-
-
-				Access access = convert_data->access & ~Access::Internal;
-				//Should this ever actually be internal?
-				bool is_internal = convert_data->IsInternal();//convert_data->access & Access::Internal;
-
-				if (is_internal) {
-					logger::info("Owner should be 0 => {}", convert_data->ownerIndex);
-				}
-
-
-				switch (access)
-				{
-				//No access is given, thus conversion is not possible from here.
-				//*This has to be tested later.
-				//case Access::None:
-				//	return false;//No access between types
-
-				case Access::Public:
-					return ConvertResult::TypeDefined;//Type converted
-				}
-
-				if (!asking) {
-					return ConvertResult::Inaccessible;//No access from here
-				}
-				
-				if (asking == other){
-					return ConvertResult::TypeDefined;
-				}
-
-				//By this point, please note that internal should not even be a thought here.
-				//Being able to get someone's inheritdata that belongs to a specific class might be valuable.
-				//*Might need to recant this.
-				InheritData* access_data = asking->GetInheritData(other);
-
-
-				
-				if (!access_data || access_data->GetAccess() == Access::None){
-					return ConvertResult::Inaccessible;//No access from here
-				}
-
-				//if (access_data->GetAccess())
-				
-
-				
-				return ConvertResult::TypeDefined;//Should have access
-			}
-
-			//These should use weak ordering I think instead. Afterwords, once when the types are removed it should concern itself with the final pass.
-		};
-
-		//All this finalization seems to only matter and need to happen if both left and right are virtually inherited.
-		//Problem is using the perspective from the arg class is a no go. It has to be from itself, or from the other.
-		OverloadEntry OverloadEntry::FinalizeOld(FakeType* other)
-		{
-
-
-
-			auto other_data = other->GetInheritData(type);
-
-			if (!other_data) {
-				return type->CreateEntry(nullptr);
-			}
-			//Even if it's virtually inherited, that's ok.
-
-			return other->CreateEntry(type);
 		}
 
 
-		bool OverloadEntry::Finalize(OverloadEntry& other)
+
+		QualifiedType result;
+		QualifiedType target;
+		
+		std::vector<QualifiedType>				parameters;
+		
+	};
+	//TODO: Move to RGL
+	template <class T> struct extract_class { using type = T; };
+	template <class T> struct extract_class<T&> { using type = T; };
+	template <class T> struct extract_class<T const&> { using type = T; };
+	template <class T> struct extract_class<T&&> { using type = T; };
+	template <class T> struct extract_class<T*> { using type = T; };
+	template <class T> struct extract_class<T const*> { using type = T; };
+
+	static_assert(std::is_same_v<int const, const int>);
+
+	void TestQual(mutable int t){
+	
+		GetStorageType<std::string>();
+
+
+		const int* test = nullptr;
+
+		auto test2 = const_cast<std::remove_const_t<decltype(test)>>(test);
+	
+	}
+	
+	enum struct SignatureEnum
+	{
+		Result,
+		Target, 
+		Argument,
+	};
+
+	using INT = std::remove_const_t<const int&>;
+	template <SignatureEnum T, typename E, typename... Next>
+	bool ProcessEntry(Signature& sign)
+	{
+		//In order to handle specific reference types, or specific qualifiers, there will be a wrapper type to handle it.
+		// I'll just unpack it when the time comes. This would mostly be used for the target of a function.
+		// under these situations, it will use the suggested  qualifiers rather than the the true ones.
+
+		//If an the last entry is the callInfo, ignore it and move on. If it's callinfo but not last, do not compile.
+
+
+		if constexpr (std::is_same_v<E, Void> && T == SignatureEnum::Argument) {
+			//Do not compile actually.
+			return false;
+		}
+
+
+		//Need to save this for later.
+		//if constexpr (Tar && !std::is_reference_v<E>) {
+		//	return false;
+		//}
+
+		constexpr auto next_size = sizeof...(Next);
+
+		using _Pointless = std::remove_pointer_t<E>;
+		using _Refless = std::remove_const_t<std::remove_reference_t<E>>;
+		using _Naked = std::remove_pointer_t<_Pointless>;//Might be better to get the underlying value of the thing.
+
+		QualifiedType& entry = T == SignatureEnum::Result ?
+			sign.result : T == SignatureEnum::Target ?
+			sign.target : sign.parameters.emplace_back();
+			
+		logger::info("increase? {}", sign.parameters.size());
+		entry.policy = GetStorageType<_Refless>();
+
+		if constexpr (std::is_const_v<_Naked>){
+			entry.flags |= Qualifier::Const;
+		}
+
+		//For right now it really doesn't matter.
+		if constexpr (std::is_reference_v<E>) {
+			entry.flags |= Qualifier::RefL;
+		}
+
+
+
+		if constexpr (next_size)
 		{
-			//if (initialized)
-			//	return *this;
+			constexpr SignatureEnum Enum = T == SignatureEnum::Result ?
+				SignatureEnum::Target : T == SignatureEnum::Target ?
+				SignatureEnum::Argument : T;
 
 
-
-			auto other_data = other.type->GetInheritData(type);
-
-			if (!other_data) {
-
-			}
-			//Even if it's virtually inherited, that's ok.
-
-			*this = other.type->CreateEntry(type);
-			other = other.type->CreateEntry(nullptr);
-
+			return ProcessEntry<Enum, Next...>(sign);
+		}
+		else
+		{
 			return true;
 		}
-
-		struct PrivA{};
-
-		struct PrivB : private PrivA
-		{
-			void Test();
-
-		};
-
-
-		struct PrivC : public PrivB
-		{
-			void Test()
-			{
-				//Asking: PrivC
-				//Target: PrivB
-				//Other: PrivA
-
-				//To know if this is permitted, we must see if access of other within asking is not none.
-				PrivB* b = this;
-				//PrivA* a = this;
-			}
-
-		};
-
-		struct ImplTest2;
-
-		struct ImplTest1
-		{
-			operator ImplTest2();
-
-			operator int()
-			{
-				return 1;
-			}
-		};
-
-		struct ImplTest2
-		{
-
-			ImplTest2(int)
-			{
-
-			}
-		};
-
-		ImplTest1::operator ImplTest2()
-		{
-			return 1;
-		}
-
-		void PrivB::Test()
-		{
-			PrivC* test = nullptr;
-			PrivA* a = test;
-		}
-
-		void ImplFunc(float)
-		{
-
-		}
-
-		INITIALIZE()
-		{
-			return;
-			ImplTest1 implA;
-			ImplFunc(implA);
-
-			ImplTest2 implB = implA;
-
-			PrivB b; 
-
-			//PrivA& a = b;
-
-			FakeType MiscBase{ "MiscBase" };
-			FakeType SingBase{ "SingleBase" };
-
-
-			FakeType IBase{ "IBase" };
-			FakeType IBase2{ "IBase2" };
-			FakeType DiffBase{ "DiffBase" };
-
-			FakeType IntBase{ "IntBase" };
-			
-			FakeType ClassA{ "ClassA", 2 };// };//
-			FakeType ClassB{ "ClassB", 3 };//};//
-			FakeType Derived{ "Derived", 5 };// };//
-			FakeType Derived2{ "Derived2" };
-			FakeType Derived3{ "Derived3" };
-
-
-			IBase.SetDerivesTo(&IBase2);
-
-			DiffBase.SetDerivesTo(&IBase2);
-
-			MiscBase.SetDerivesTo(&IBase, true);
-
-
-			IntBase.SetDerivesTo(&MiscBase);
-			IntBase.SetDerivesTo(&IBase, true);
-
-			ClassA.SetDerivesTo(&IBase);
-			ClassB.SetDerivesTo(&IBase);
-
-			Derived.SetDerivesTo(&IntBase, false, Access::Private);
-			Derived.SetDerivesTo(&SingBase, true);
-			Derived.SetDerivesTo(&ClassA);
-			Derived.SetDerivesTo(&ClassB);
-
-			//Test soething like miscBase being here now.
-			//Derived2.SetDerivesTo(&ClassA);
-			Derived2.SetDerivesTo(&DiffBase);
-			Derived2.SetDerivesTo(&Derived);
-			
-			Derived3.SetDerivesTo(&SingBase);
-			Derived3.SetDerivesTo(&Derived2);
-			
-			//Derived3.FinalizeAndSort();
-
-			Derived3.PrintInheritance();
-			Derived2.PrintInheritance();
-			Derived.PrintInheritance();
-			ClassA.PrintInheritance();
-			ClassB.PrintInheritance();
-			IntBase.PrintInheritance();
-			IBase.PrintInheritance();
-			DiffBase.PrintInheritance();
-			IBase2.PrintInheritance();
-
-		
-			//These comparisions will be created by the given conversions, and at a later point will largely be the Qualified type the argument (which is the target) of CmpType
-			// So at this point, no need
-
-
-			//Within the conversions, to find your conversion to the given type, you find an entry that is internal, and allowed to be read from this zone.
-			// Then after that you walk through it's indices to see if any of them are the same as our current one.
-
-			//All in all, I need a better way to facilitate the comparison between conversions.
-
-			logger::critical("Derived3 conversion to IBase from Static: {}", Derived3.IsConvertible(&IBase, nullptr) > ConvertResult::Failure);
-			logger::critical("Derived3 conversion to IntBase from Static: {}", Derived3.IsConvertible(&IntBase, nullptr) > ConvertResult::Failure);
-			logger::critical("Derived3 conversion to IntBase from Derived: {}", Derived3.IsConvertible(&IntBase, &Derived) > ConvertResult::Failure);
-			logger::critical("Derived3 conversion to IntBase from Derived2: {}", Derived3.IsConvertible(&IntBase, &Derived2) > ConvertResult::Failure);
-			logger::critical("Derived3 conversion to IntBase from IntBase: {}", Derived3.IsConvertible(&IntBase, &IntBase) > ConvertResult::Failure);
-
-
-			logger::critical("DiffBase vs IBase from Derived2 {}", Derived2.CompareType(&DiffBase, &IBase));
-			logger::critical("Derived vs IBase from Derived2 {}", Derived2.CompareType(&Derived, &IBase));
-			logger::critical("Derived vs Derived2 from Derived2 {}", Derived2.CompareType(&Derived, &Derived2));
-			logger::critical("IBase2 vs IBase from Derived2 {}", Derived2.CompareType(&IBase2, &IBase));
-			logger::critical("SingBase vs IBase from Derived2 {}", Derived2.CompareType(&SingBase, &IBase));
-
-
-
-			logger::critical("Derived3 conversion to SingBase from Static {}", Derived3.IsConvertible(&SingBase, nullptr) > ConvertResult::Failure);
-			logger::critical("Derived2 conversion to SingBase from Static {}", Derived2.IsConvertible(&SingBase, nullptr) > ConvertResult::Failure);
-			logger::critical("Derived conversion to SingBase from Static {}", Derived.IsConvertible(&SingBase, nullptr) > ConvertResult::Failure);
-
-
-		};
 	}
-	//*/
+
+	template <>
+	struct StorageType<double>
+	{
+
+		ITypePolicy* operator()()
+		{
+			//I could just make this numeric
+			static ITypePolicy* result = nullptr;
+
+			if (!result) {
+				
+				//offset
+				constexpr auto setting = LEX::Number::Settings::CreateFromType<double>();
+				
+				result = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
+				
+				logger::info("id? {}", (int)result->FetchTypeID());
+			}
+
+			return result;
+		}
+	};
+
+	void SCRAPNAME(void(*infoke)())
+	{
+		
+	}
+	void Scrapname()
+	{
+		
+	}
+	constexpr bool is_thing = std::is_polymorphic_v < std::function<void()>>;
+
+	template <typename R, typename... Args>
+	Signature RegisterProcedure(R(*func)(Args...), std::string project = "", std::string script = "", std::string path = "")
+	{
+		//Currently, the only way to properly handle the system is by making a unique lambda each time a new template is created. But needless to say,
+		// cant do that.
+
+		//I think something I can do is that optionally a 64 bit context code can be given when making a procedure. This allows me to just simply pull what's needed.
+		// So I think that might be a proceedure thing idk. Something to make context of. But something fast. Definitely not something like what native function
+		// would have been.
+
+		//The context thing is a good idea, it can possibly sort out which overload is being set up, if someone is using it pure (which one shouldn't.
+		// Long story short it's the address to use.
+
+		Signature sign{};
+
+		//bool processed = ProcessEntry<true, R, Args...>(sign);
+		bool processed = ProcessEntry<SignatureEnum::Result, R, Args...>(sign);
+		
+		if (!processed)
+			throw nullptr;
+
+		return sign;
+	}
+
+
+	//INITIALIZE()
+	//{
+		//here I'm going to be testing the concept of turning a function into a function signature.
+	//}
+
 }
 
 
