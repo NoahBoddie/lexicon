@@ -11,6 +11,7 @@
 
 namespace LEX
 {
+	struct TypeID;
 	struct ITypePolicy;
 	struct PolicyBase;
 

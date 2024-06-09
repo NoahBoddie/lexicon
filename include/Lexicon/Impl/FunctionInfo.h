@@ -7,7 +7,7 @@
 namespace LEX
 {
 
-	struct FunctionInfo : public MemberInfo//, public OverloadClause
+	struct FunctionInfo : public MemberInfo, public OverloadClause
 	{
 		using FunctionType = FunctionBase;//
 		
@@ -41,16 +41,17 @@ namespace LEX
 		};
 
 
-		union {
-			std::array<size_t, 2> _raw{ 0 , 0 };
+		struct {
 
-
-			FunctionType* function;
+			FunctionData* signature = nullptr;
+			
 
 			struct
 			{
+				uint64_t _raw = 0;
+				FunctionType* function;
 				MemberPointer method;//prefered, works with the other.
-				FunctionData* signature;
+				
 			};
 		};
 
@@ -80,8 +81,100 @@ namespace LEX
 
 		operator bool() const override
 		{
-			return _raw[0] || _raw[1];
+			return _raw || signature;
 		}
+
+
+		bool PreEvaluate(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
+		{
+			if (type) {
+				if (type != signature->_returnType)
+					return false;
+			}
+
+			if (flag & OverloadFlag::UsesDefault)
+			{
+				logger::info("uses defaults");
+				return false;
+			}
+
+			if (optional)
+			{
+				logger::info("uses optionals");
+				return false;
+			}
+
+			if (signature->parameters.size() - signature->HasTarget() != suggested) {
+				logger::info("uses param diff {} vs {}", signature->parameters.size() - signature->HasTarget(), suggested);
+				return false;
+			}
+			return true;
+		}
+
+
+		//Fuck it, these return non-booleans and use something else to denote their failures.
+
+		OverloadEntry EvaluateEntry2(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		{
+			OverloadEntry result;
+
+			//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
+			if (index != -1 && index >= signature->parameters.size())
+			{
+				logger::critical("Failure to evaluate");
+				flags |= OverloadFlag::Failure;
+				return {};
+			}
+
+
+			//I'd maybe like to rework this VariableInfo to work like this.
+			//ParameterInfo* subject = index == -1 ? &thisInfo : &parameters[index];
+			ParameterInfo* subject = index != -1 ?
+				&signature->parameters[index + signature->HasTarget()] : signature->HasTarget() ?
+				&signature->parameters[0] : nullptr;
+
+			QualifiedType sub_type = subject->FetchQualifiedType();
+
+			if (type)
+			{
+				LEX::Conversion* out = nullptr;//Is entries if it's not the thing. Currently, not setting this up.
+				//TODO: This returns the wrong value rn.
+
+				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, out);
+
+				result.convertType = convertType;
+
+				if (convertType == ConvertResult::Failure)
+				{
+					flags |= OverloadFlag::Failure;
+					return result;
+				}
+
+
+				//result.convertType = ConvertResult::TypeDefined;
+				result.index = subject->GetFieldIndex();
+				result.type = sub_type;
+			}
+			else
+			{
+				result.convertType = ConvertResult::Ineligible;
+				result.index = -1;
+			}
+
+			return result;
+
+		}
+		OverloadEntry EvaluateDefault2(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
+		{
+			flags |= OverloadFlag::Failure;
+			return { };
+		}
+
+		std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
+		{
+			return {};
+		}
+
 
 		/*
 

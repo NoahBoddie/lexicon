@@ -8,18 +8,17 @@
 
 namespace LEX
 {
-
-
+	
 	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public OverloadClause, public PolicyData
 	{//PolicyBase Might not even use clauses directly. We shall see.
 
 
 		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like
 		// a specialization ending up in there (Seeing as they must be kept as ITypePolicy)
-
+		
 	public:
 
-
+		
 		TypeID GetTypeID() const override
 		{
 			return _id;
@@ -37,9 +36,13 @@ namespace LEX
 		{
 			return _name;
 		}
+		/*
 
+		OverloadClause* GetClause() override { return nullptr; }
+
+		/*/
+		
 		OverloadClause* GetClause() override { return this; }
-
 
 		bool PreEvaluate(QualifiedType, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
@@ -52,8 +55,6 @@ namespace LEX
 		}
 
 
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
 		OverloadEntry EvaluateEntry2(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
@@ -64,7 +65,7 @@ namespace LEX
 			flags |= OverloadFlag::Failure;
 			return {};
 		}
-
+		//*/
 		//~
 
 
@@ -540,8 +541,11 @@ namespace LEX
 
 
 		protected: 
+
+			//There are component flags for this
 			bool _linkExternal = false;
 			bool _inheritanceHandled = false;
 
 	};
+
 }

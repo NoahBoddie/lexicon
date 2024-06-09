@@ -21,6 +21,7 @@ namespace LEX
 		//Might rearrange these to be greater
 		Exact = 0,
 		TypeDefined,
+		VarDefined,//This is the conversion to implicit derives such as var, that next to everything has. Better than a conversion, but implicit in nature.
 		ImplDefined,
 		UserDefined,
 		UserToImplDefined,

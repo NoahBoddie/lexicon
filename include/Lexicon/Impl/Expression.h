@@ -24,10 +24,15 @@ namespace LEX::Impl
 
 
 		Syntax() = default;
-		Syntax(SyntaxType t) : type{ t } {}
+		Syntax(SyntaxType t, Column c = 0, Line l = 0) : 
+			type{ t },  
+			column{ c },
+			line{ l }
+		{}
 	};
 	static_assert(sizeof(Syntax) == 0x8);
 
-#define SYNTAX() GetEnum<LEX::Impl::Syntax>()
+//Short hand to get syntax from an AST. Made so it can only be used on records to prevent mistakes.
+#define SYNTAX() GetEnumFromRecord<LEX::Impl::Syntax>()
 
 }

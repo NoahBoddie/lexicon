@@ -3,58 +3,68 @@
 #include "Scope.h"
 
 #include "Environment.h"
-
 #include "OverloadInput.h"
-
 #include "Declaration.h"
+#include "PolicyBase.h"
+
+
 namespace LEX
 {
-
-	QualifiedField Scope::SearchField(std::string name, OverloadKey& key, FieldPredicate pred)
+	PolicyBase* Scope::SearchTypePath(Record& _path)
 	{
+		Record dummy{ "dummy", 0, _path };
+
+		//I'm too fucking lazy to make it work normally, so this is what we're gonna deal with til I do.
+		//PolicyBase* result = GetPolicyFromSpecifiers(_path, process->GetEnvironment());
+		PolicyBase* result = GetPolicyFromSpecifiers(dummy, process->GetEnvironment());
+
+		return result;
+
+	}
+	
+
+	//This actually probably will want to return the function info, because of something like generic functions.
+	FunctionInfo* Scope::SearchFunctionPath(Record& path, OverloadKey& input, Overload& out)
+	{
+		return process->GetEnvironment()->SearchFunctionPath(path, input, out);
+
+	}
+
+	QualifiedField Scope::SearchFieldPath(Record& _path, OverloadKey* key)
+	{
+
+
 		//Move to the compiler maybe?
-		auto end = vars.end();
+		auto& name = _path.GetTag();
 
-		if (auto it = vars.find(name); it != end) {
-			return it->second;
-		}
-		else if (parent) {
-			return parent->SearchField(name, key, pred);
-		}
+		if (_path.SYNTAX().type != SyntaxType::Unary && _path.SYNTAX().type != SyntaxType::Binary && name != "::")
+		{
 
-		else {
+			auto end = vars.end();
+
+			if (auto it = vars.find(name); it != end) {
+				return it->second;
+			}
+			else if (parent) {
+				return parent->SearchFieldPath(_path, key);
+			}
+
 			if (ParameterInfo* field = process->_targetFunc->FindParameter(name); field) {
 				return field;
 			}
-
-
-			if (auto field = process->GetEnvironment()->SearchField(name, key, pred); field) {
-				return field;
-			}
 		}
-			
-			
+
+
+		if (auto field = process->GetEnvironment()->SearchFieldPath(_path); field) {
+			return field;
+		}
+
+
+
 
 		return nullptr;
 	}
 
-	QualifiedField Scope::SearchField(std::string name, FieldPredicate pred)
-	{
-		OverloadInput input;
-
-		return SearchField(name, input, pred);
-	}
-
-	ITypePolicy* Scope::SearchType(std::string name)
-	{
-		//I'm too fucking lazy to make it work normally, so this is what we're gonna deal with til I do.
-		
-		Record dummy{ "dummy", 0, Record{name} };
-
-		auto result = GetPolicyFromSpecifiers(dummy, process->GetEnvironment());
-
-		return result;
-	}
 
 
 	std::string Scope::name()

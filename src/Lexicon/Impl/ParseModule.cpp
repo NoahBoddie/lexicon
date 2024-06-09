@@ -22,14 +22,26 @@ namespace LEX::Impl
 	}
 
 
+	
+	bool ParseModule::_QuestionModule(ParseModule* mdl, Parser* parser, Record* target, ParseFlag flag)
+	{
+		if (!mdl) {
+			parser->GetInput()->croak("something about static handle token.");
+		}
+
+		return parser->_QueryModule(target, mdl, flag);
+	}
+
 	bool ParseModule::_QueryModule(ParseModule* mdl, Parser* parser, Record& out, Record* target)
 	{
 		if (!mdl) {
 			parser->GetInput()->croak("something about static handle token.");
 		}
 
-		return parser->_TryModule(out, target, mdl);
+		return parser->_TryModule(out, target, mdl, ParseFlag::Direct);
 	}
+
+
 
 
 	Record ParseModule::_TryModule(ParseModule* mdl, Parser* parser, Record* target)
@@ -45,16 +57,21 @@ namespace LEX::Impl
 		//Try module will try to use use try module, and if it's unsuccessful, it will croak.
 		// Basically a checked ParseAtomic for specific modules.
 		if (_QueryModule(mdl, parser, result, target) == false)
-			parser->GetInput()->croak("Expected blank black blah blah blah");
+			parser->GetInput()->croak("Module failed to parse");
 
 		return result;
+	}
+
+	ParseModule* ParseModule::_GetBuiltModule(Parser* parser, const std::type_info& info)
+	{
+		return parser->GetBuiltModule(info);
 	}
 
 
 
 	uint32_t ParseModule::GetPriority() const 
 	{ 
-		return ModulePriority::None; 
+		return ModulePriority::Minimal; 
 	}
 
 

@@ -5,6 +5,9 @@
 
 #include "Lexicon/Impl/IdentityManager.h"
 #include "Lexicon/Impl/ConcretePolicy.h"
+#include "Lexicon/Impl/ConcreteFunction.h"
+
+#include "Lexicon/Impl/parse_strings.h"
 
 namespace LEX
 {
@@ -51,20 +54,18 @@ namespace LEX
 		//Generic, a different TypePolicy has to be used, but otherwise it's fine.
 
 
-		Record& genericSet = *settings.FindChild("generic");
-		bool is_generic = settings.FindChild("generic")->size();
+		Record* genericSet = settings.FindChild(parse_strings::generic);
+		bool is_generic = genericSet && genericSet->size();
 
 
 		using PolicyCtor = PolicyBase*(std::string, TypeOffset);
 
 		//using ConcretePolicy = ConcretePolicy;
 		using GenericPolicy = ConcretePolicy;
-		PolicyCtor* create_func = !genericSet.size() ? _PolicyMaker<ConcretePolicy> : _PolicyMaker<GenericPolicy>;
+		PolicyCtor* create_func = !is_generic ? _PolicyMaker<ConcretePolicy> : _PolicyMaker<GenericPolicy>;
 
 
 
-
-		Record& qualifier = ast.GetChild(0).GetChild(2);
 
 		std::string name;
 		TypeOffset offset;
@@ -87,31 +88,37 @@ namespace LEX
 		
 		PolicyBase* result;
 
-		switch (Hash(qualifier.GetTag()))
+		if (auto attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach); attach)
 		{
-		case "intrinsic"_h:
-			//Look up
-			lookup = true;
-			__fallthrough;
-		case "external"_h:
-		{
-			//Handle error, I can't fucking be bothered.
-			Record& category = qualifier.GetFront();
-			TypeOffset index = RecordToInt(category.GetFront());
-			result = LookUpOrMake(category.GetTag(), index, lookup);
-			break;
+			Record& attach_data = attach->GetFront();
+			switch (Hash(attach_data.GetTag()))
+			{
+			case "intrinsic"_h:
+				//Look up
+				lookup = true;
+				__fallthrough;
+			case "external"_h:
+			{
+				//Handle error, I can't fucking be bothered.
+				Record& category = attach_data.GetFront();
+				TypeOffset index = RecordToInt(category.GetFront());
+				result = LookUpOrMake(category.GetTag(), index, lookup);
+				logger::info("looked up {}", (int)result->FetchTypeID());
+				break;
+
+			}
+			break;//create
+
+			default:
+				report::apply::debug("Couldn't ObtainPolicy");
+				result = nullptr;
+				break;
+			}
 
 		}
-		break;//create
-		case "data"_h:
-			//create but with specification
+		else
+		{
 			result = is_generic ? new GenericPolicy{} : new ConcretePolicy{};
-			break;
-
-		default:
-			report::apply::debug("Couldn't ObtainPolicy");
-			result = nullptr;
-			break;
 		}
 
 		if (result)
@@ -217,7 +224,7 @@ namespace LEX
 				//AddFunction(function);
 
 				//function->ConstructFromRecord(node);
-				AddFunction(Component::Create<Function>(node));
+				AddFunction(Component::Create<ConcreteFunction>(node));
 				break;
 
 			}

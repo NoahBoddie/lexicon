@@ -40,5 +40,6 @@ namespace LEX::Impl
 	};
 	//static_assert(sizeof(Token) == 0x8);
 
-#define TOKEN() GetEnum<Token>()
+//Shorthand for getting a token from a token. Makes sure that it's a record data to prevent misuse.
+#define TOKEN() GetEnumFromData<Token>()
 }

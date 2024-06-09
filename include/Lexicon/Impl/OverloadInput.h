@@ -44,6 +44,12 @@ namespace LEX
 			return {};
 		}
 
+		QualifiedType GetTarget() const override
+		{
+			auto tar = object->GetCallTarget()->target;
+
+			return tar ? *tar : QualifiedType{};
+		}
 
 		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
 		virtual Overload Match(OverloadClause* clause, ITypePolicy* scope, Overload* prev, OverloadFlag& a_flag) override
@@ -177,7 +183,7 @@ namespace LEX
 
 
 		TargetObject* object = nullptr;
-		//std::vector<ITypePolicy*>			genericInput;
+		std::vector<ITypePolicy*>			genericInput;
 		
 		//On reflection, this doesn't expressly need to be a solution, just a qualified type. This can help with syntax that
 		// parses which overload to use by showing which function is being used.

@@ -50,6 +50,11 @@ namespace LEX
 			return nullptr;
 		}
 
+		Solution* GetSolution()
+		{
+			return this ? target : nullptr;
+		}
+
 		TargetObject(Solution& t, TargetObject* p, Flag f) : target{ &t }, prev{ p }, flag{ f }
 		{
 

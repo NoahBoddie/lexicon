@@ -15,106 +15,12 @@
 namespace LEX
 {
 	struct ITypePolicy;
+	struct PolicyBase;
 
-
-
+	class TempTest;
+	
 	//TODO: I'd like to have GetPolicyFromSpecifiers dealt with via strings, and/or able to be dealt with via a record.
-	inline ITypePolicy* GetPolicyFromSpecifiers(Record& node, Environment* env)
-	{
-		ITypePolicy* result = nullptr;
-		
-		if (node.size() != 0)
-		{
-			Number::Settings settings{};
-
-			std::string search_name;
-			
-			//For now this only really registers for numbers.
-
-			for (auto& entry : node.GetChildren())
-			{
-				std::string& name = entry.GetTag();
-
-				switch (Hash(name))
-				{
-				case "signed"_h:
-					settings.sign = Signage::Signed;
-					break;
-
-				case "unsigned"_h:
-					settings.sign = Signage::Unsigned;
-					break;
-
-				case "short"_h:
-					settings.size = Size::Word;
-					break;
-
-				case "long"_h:
-					settings.size = Size::QWord;
-					break;
-
-				case "int"_h:
-					settings.type = NumeralType::Integral;
-					break;
-
-				case "bool"_h:
-					settings.type = NumeralType::Integral;
-					settings.size = Size::Bit;
-					break;
-
-					//Double is going to have to use other things.
-				case "double"_h:
-				case "float"_h://Right now, float IS double.
-
-					settings.type = NumeralType::Floating;
-					if (settings.size == Size::Invalid)
-						settings.size = Size::QWord;
-					if (settings.sign == Signage::Invalid)
-						settings.sign = Signage::Signed;
-					if (settings.limit == Limit::Invalid)
-						settings.limit = Limit::Infinite;
-					break;
-
-				case "float_"_h:
-					settings.type = NumeralType::Floating;
-					if (settings.size == Size::Invalid)
-						settings.size = Size::DWord;
-					if (settings.sign == Signage::Invalid)
-						settings.sign = Signage::Signed;
-					if (settings.limit == Limit::Invalid)
-						settings.limit = Limit::Infinite;
-
-					break;
-
-				case "void"_h:
-					return IdentityManager::instance->GetTypeByID(0);
-
-				case "string"_h:
-					return IdentityManager::instance->GetTypeByOffset("STRING", 0);
-
-				default://typename
-					search_name = name; break;
-				}
-			}
-
-			if (search_name.empty() == false) {
-				logger::critical(" faf a {}", search_name);
-				result = env->TEMPSearchType(search_name);
-			}
-			else {
-				settings.limit = settings.limit == Limit::Invalid ? Limit::Overflow : settings.limit;
-				settings.size = settings.size == Size::Invalid ? Size::DWord : settings.size;
-				settings.type = settings.type == NumeralType::Invalid ? NumeralType::Integral : settings.type;
-				settings.sign = settings.sign == Signage::Invalid ? Signage::Signed : settings.sign;
-
-				auto offset = settings.GetOffset();
-				logger::critical(" faf???");
-				//result = LEX::IdentityManager::GetTypeByID(offset + 1);
-				result = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", offset);
-			}
-		}
-		return result;
-	}
+	PolicyBase* GetPolicyFromSpecifiers(Record& node, Environment* env);
 
 	inline Qualifier GetQualifiersFromStrings(Record& node)
 	{
@@ -174,70 +80,7 @@ namespace LEX
 	public:
 		Declaration() = default;
 
-		Declaration(Record& header, Environment* env)
-		{
-			if (header.GetTag() != "<header>") {
-				report::fault::fatal("header not found.");
-			}
-
-
-			//std::array<Record&, 3> header_nodes{ *header.FindChild("type_qual") , *header.FindChild("type_spec"), *header.FindChild("decl_spec") };
-			Record& type_qual = *header.FindChild("type_qual");
-			Record& decl_spec = *header.FindChild("decl_spec");
-			Record& type_spec = *header.FindChild("type_spec");
-
-			//So here's the concept, if you see 2 restricteds in the same place, they aren't compatible. This simplifies this sort of thing.
-			// rest
-			//SyntaxType::Restricted;
-
-
-			HeaderFlag flags{};
-			HeaderFlag excludes{};
-
-			KeywordType type = KeywordType::TypeQual;
-
-			//Need some fucking rules about this.
-			for (auto& node : header.GetChildren())
-			{
-
-				for (auto& child : node.GetChildren())
-				{
-					//std::string name = child.SYNTAX().type == SyntaxType::Declare ? 
-					std::string name = child.SYNTAX().type == SyntaxType::Field ? "typename" : child.GetTag();
-
-					//bool post = child.SYNTAX().type == SyntaxType::Declare;
-
-					HeaderEntry entry;
-
-
-					auto it = headerGuide[type].find(name);
-
-					if (headerGuide[type].end() == it) {
-						report::fault::critical("cannot find setting flags for keyword {}", name);
-					}
-
-					entry = it->second;
-
-
-					if (entry.includeFlags & excludes != HeaderFlag::None)
-						return;
-
-					if (entry.includeFlags & flags != HeaderFlag::None)
-						return;
-
-					flags |= entry.includeFlags;
-					excludes |= entry.excludeFlags;
-				}
-
-				type = static_cast<decltype(type)>(type + 1);
-			}
-
-			this->flags = GetQualifiersFromStrings(type_qual);
-			policy = GetPolicyFromSpecifiers(type_spec, env);
-			declare = GetSpecifiersFromStrings(decl_spec);
-
-
-		}
+		Declaration(Record& header, Environment* env);
 
 
 		//This is a declaration header. It stores declarations of functions, globals, members, methods etc.

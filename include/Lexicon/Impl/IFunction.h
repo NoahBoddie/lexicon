@@ -14,5 +14,10 @@ namespace LEX
 		virtual bool IsMethod() const { return false; }
 		virtual bool IsAbstract() const { return false; }
 		virtual AbstractFunction* GetFunction(IGenericArgument* args) = 0;
+	INTERNAL:
+	
+		virtual uint64_t GetProcedureData() const = 0;
+		virtual void SetProcedureData(uint64_t) = 0;
+
 	};
 }

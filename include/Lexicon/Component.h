@@ -280,6 +280,11 @@ namespace LEX
 			//Should it have processed everything it should remove it all.
 		}
 
+		static bool HasLinked(LinkFlag flag)
+		{
+			return flag & _linkCheckFlags;
+		}
+
 		virtual LinkResult OnLink(LinkFlag flags) { return LinkResult::Failure; }
 
 		virtual LinkFlag GetLinkFlags() { return LinkFlag::None; }
@@ -344,6 +349,9 @@ namespace LEX
 
 	private:
 		inline static std::map<Component*, LinkFlag> _linkerContainer{};
+		
+
+
 
 		//To handle link dependency is to handle linking that occurs when things are all complete. I think to that, dependency will fire when _linkCheckFlags
 		// equal LinkFlag::All. 

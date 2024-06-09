@@ -30,6 +30,10 @@
 
 #include "VoidPolicy.h"
 
+#include "CompileUtility.h"
+
+#include "parse_strings.h"
+
 namespace LEX
 {
 	struct InstructWorkShop
@@ -402,109 +406,12 @@ namespace LEX
 
 
 
-	struct CompUtil
-	{
-		//A set convenience functions.
-
-	private:
-		static Operation _Transfer(Operand& left, Operand& right, bool is_ref)
-		{
-			return Operation{ false ? InstructType::Forward : InstructType::Move, left, right };
-		}
-	public:
-
-		static Operation Transfer(Operand& left, Solution& right)
-		{
-			//The left can be an operand because it doesn't quite matter what it does, we just need to know
-			// where it's to go. That check should be handled, before hand.
-
-			bool is_ref = true;
-
-			if (right.type == OperandType::Literal) {
-				//Literals can never be passed around by ref, so by default, it has to be moved, not forwarded.
-				is_ref = false;
-			}
-			
-
-			return _Transfer(left, right, is_ref);
-		}
-
-
-		static Operation Transfer(Solution& left, Solution& right)
-		{
-			//If the left is a reference already, it's not allowed to be overriden.
-			if (left.IsReference() == true)
-				return _Transfer(left, right, false);
-
-			return Transfer(static_cast<Operand&>(left), right);
-		}
-
-
-
-		static Operation Transfer(Operand&& left, Solution& right)
-		{
-			return Transfer(static_cast<Operand&>(left), right);
-		}
-
-
-		static Operation Transfer(Solution&& left, Solution& right)
-		{
-			return Transfer(static_cast<Solution&>(left), right);
-		}
-
-
-
-
-		//Changes the solution to be where the operand is, and gives the operation that would make it where it's expected.
-		[[nodiscard]] static Operation Mutate(Solution& sol, Operand op)
-		{
-			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
-
-			//Using transfer ensures safety for literals.
-			Operation result = CompUtil::Transfer(op, sol);
-
-			//This will set what operand stores into the solution without touching the type data within
-			sol = op;
-
-
-			return result;
-		}
-
-		//Changes the solution to be where the operand is similar to mutate, but forces it to copy instead.
-		[[nodiscard]] static Operation MutateCopy(Solution& sol, Operand op)
-		{
-			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
-
-			Operation result = Operation{ InstructType::Move, op, sol };
-				
-			sol = op;
-
-			return result;
-		}
-
-
-
-		//Changes the solution to be where the operand is similar to mutate, but forces it to ref instead. A temporary function to sus out issue with member accesses.
-		[[nodiscard]] static Operation MutateRef(Solution& sol, Operand op)
-		{
-			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
-
-			Operation result = Operation{ InstructType::Forward, op, sol };
-
-			sol = op;
-
-			return result;
-		}
-
-	};
-
 
 
 	struct Scope;
 	struct FunctionData;
 
-
-
+	
 	namespace //Processes the records, these 2 are expression parsers.
 	{
 
@@ -827,8 +734,8 @@ namespace LEX
 				if (target.SYNTAX().type == SyntaxType::Binary)
 				{
 					//Which is done first should be handled by which is more complex
-					std::string str1 = "left";
-					std::string str2 = "right";
+					std::string str1 = parse_strings::lhs;
+					std::string str2 = parse_strings::rhs;
 
 					Register reg1 = Register::Left;
 					Register reg2 = Register::Right;
@@ -895,8 +802,8 @@ namespace LEX
 				// instead, all I've actually gotta do continue using the prefered register
 				Register prefered = compiler->GetPrefered();
 
-				std::string str1 = "left";
-				std::string str2 = "right";
+				std::string str1 = parse_strings::lhs;
+				std::string str2 = parse_strings::rhs;
 
 
 
@@ -921,8 +828,8 @@ namespace LEX
 			{
 				Register prefered = compiler->GetPrefered();
 
-				std::string str1 = "left";
-				std::string str2 = "right";
+				std::string str1 = parse_strings::lhs;
+				std::string str2 = parse_strings::rhs;
 
 
 				Register reg1 = Register::Left;
@@ -1001,7 +908,7 @@ namespace LEX
 		Solution FieldProcess(ExpressionCompiler* compiler, Record& target)
 		{
 			//Currently, this cannot be handled
-			QualifiedField var = compiler->GetScope()->SearchField(target.GetTag());
+			QualifiedField var = compiler->GetScope()->SearchFieldPath(target);
 			
 			if (!var) {
 				report::compile::critical("Cannot find variable '{}'.", target.GetTag());
@@ -1029,7 +936,7 @@ namespace LEX
 
 			//The argument check has to happen first.
 
-			Record* arg_record = target.FindChild("args");
+			Record* arg_record = target.FindChild(parse_strings::args);
 
 			if (!arg_record) {
 				report::compile::critical("no args record in '{}' detected.", target.GetTag());
@@ -1088,20 +995,15 @@ namespace LEX
 			input.object = self;
 			input.paramInput = args;
 
+			Overload instructions;
 
 			//Around here, you'd use the args.
-			Field* field = compiler->GetScope()->SearchField(target.GetTag(), input);
+			FunctionInfo* info = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
 
 			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
 
-			if (!field) {
-				report::compile::critical("No field for '{}' detected.", target.GetTag());
-			}
-
-			FunctionInfo* info = dynamic_cast<FunctionInfo*>(field);
-
 			if (!info) {
-				report::compile::critical("Field for '{}' not a function info.", target.GetTag());
+				report::compile::critical("'{}' is not the name of a function.", target.GetTag());
 			}
 
 			FunctionBase* func = info->Get();
@@ -1135,6 +1037,7 @@ namespace LEX
 			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
 		}
 
+
 		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, Record& target) 
 		{ 
 			
@@ -1144,7 +1047,7 @@ namespace LEX
 
 			//TODO: Should be in error if has an explicit target.
 
-			ITypePolicy* type = compiler->GetScope()->SearchType(target.GetTag());
+			ITypePolicy* type = compiler->GetScope()->SearchTypePath(target);
 		
 			if (type)
 			{
@@ -1186,7 +1089,7 @@ namespace LEX
 
 
 
-			Record* head_rec = target.FindChild("<header>");
+			Record* head_rec = target.FindChild(parse_strings::header);
 
 			if (!head_rec)
 				report::compile::fatal("No record named header.");
@@ -1206,7 +1109,7 @@ namespace LEX
 			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);	
 
 			size_t loc_index = loc->_index;
-			if (Record* definition = target.FindChild("def"); definition) {
+			if (Record* definition = target.FindChild(parse_strings::def_expression); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
 
 
@@ -1241,7 +1144,7 @@ namespace LEX
 
 			if (target.size() != 0)
 			{
-				logger::info("BEFORE");
+
 				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result);
 
 				//Right here the solutions given type should be evaluated to see if a correct type is being returned.
@@ -1333,7 +1236,7 @@ namespace LEX
 
 			generatorList[SyntaxType::Unary] = OperatorProcess;
 			generatorList[SyntaxType::Binary] = OperatorProcess;
-			generatorList[SyntaxType::Assign] = OperatorProcess;
+			
 
 			generatorList[SyntaxType::Number] = LiteralProcess;
 			generatorList[SyntaxType::Integer] = LiteralProcess;

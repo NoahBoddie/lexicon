@@ -39,7 +39,7 @@ namespace LEX
 		Basic = Qualifier::Constness_,
 		Runtime = Qualifier::Reference_,
 
-		All = -1,
+		All = (unsigned char)-1,
 
 	};
 	

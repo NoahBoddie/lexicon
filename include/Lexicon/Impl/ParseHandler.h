@@ -4,28 +4,29 @@
 
 namespace LEX::Impl
 {
-	//I might template this
+
+	using ModuleBuilder = std::unique_ptr<ParseModule>(*)();
+
+
+
 	struct ParseHandler
 	{
 	public:
-		static void AddModule(ParseModule* mdl);
+		static void AddBuilder(ModuleBuilder build);
 
 
 
-		static GENERIC_ARRAY(ParseModule*) GetModuleList();
+		static std::vector<std::unique_ptr<ParseModule>> BuildModules();
 
-		//Not sure if I actually want this
-		static ParseModule* GetModuleByName(std::string_view);
 
 	private:
 		static void _CheckSort();
 
 
 		//Not sure if I really want one list for this, maybe when requesting the depth I'll pull out only ones of a certain depth
-		inline static GENERIC_ARRAY(ParseModule*) _moduleList;
+		inline static std::vector<ModuleBuilder> _buildList;
 		inline static bool _sorted = true;
 
 	};
-
 
 }

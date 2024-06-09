@@ -9,6 +9,7 @@
 //*src
 #include "ConcreteFunction.h"
 #include "TargetObject.h"
+#include "CompileUtility.h"
 namespace LEX
 {
 
@@ -315,6 +316,8 @@ namespace LEX
 
 		Solution CompileExpression(Record& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::Explicit)
 		{
+			//Consider making this self managing like how scope does.
+
 			TargetObject target{ tar, GetTarget(), flags };
 
 			PushTargetObject(target);
@@ -338,8 +341,9 @@ namespace LEX
 			if (result.type != OperandType::Register) {
 				//TODO: this should use Mutate
 
-				GetOperationList().emplace_back(InstructType::Forward, Operand{ pref, OperandType::Register }, result);
-
+				//GetOperationList().emplace_back(InstructType::Forward, Operand{ pref, OperandType::Register }, result);
+				GetOperationList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
+				
 				//This uses the policy of the solution, but uses the register that the above uses.
 				return Solution{ result.policy, OperandType::Register, pref };
 			}
@@ -423,11 +427,12 @@ namespace LEX
 
 			_prefered = pref;
 
+
 			auto it = generatorList.find(node.SYNTAX().type);
 
 			if (generatorList.end() == it)
 			{
-				report::compile::critical("SyntaxType unaccounted for whatever whatever");
+				report::compile::critical("SyntaxType unaccounted for whatever whatever. Type: {}", ExpressionToString(node.SYNTAX().type));
 			}
 
 			if (false)//Confirm that the factory is actually made for expressions

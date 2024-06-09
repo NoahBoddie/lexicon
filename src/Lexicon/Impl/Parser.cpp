@@ -3,7 +3,7 @@
 //#include "CompileModule.h"
 namespace LEX::Impl
 {
-	Parser::Parser(TokenStream& t, ParseModule* mdl) : tokenizer{ t }
+	Parser::Parser(TokenStream& t, ParseModule* mdl) : tokenizer{ t } , _modules{ ParseHandler::BuildModules() }
 	{
 		_init.current = mdl;
 	}
@@ -31,11 +31,11 @@ namespace LEX::Impl
 	void Parser::_ExecuteModule(Record& record, Record* rec_nest, ParseModule* mdl)
 	{
 		//This version of the function should have no checks, it's expected that it should work, then any error fatal to the process.
-
+		//logger::info("C {}", peek().GetTag());
 		ProcessChain link = contextChain->InheritChain(mdl, contextChain);//(mdl, contextChain, this);
 
 		_LinkContext(link);
-
+		//logger::info("C {}", peek().GetTag());
 		record = mdl->HandleToken(this, rec_nest);
 
 
@@ -43,8 +43,22 @@ namespace LEX::Impl
 		_UnlinkContext();
 	}
 
+	bool Parser::_QueryModule(Record* rec_nest, ParseModule* mdl, ParseFlag flag)
+	{
+		//This is where the above module checks should go. Uses execute module
+		// also note, try should probably not check the current context, as it's likely the one who fired it.
+		// this allows more control where there are situations where the only ways a thing happens is if the parser is in control.
 
-	bool Parser::_TryModule(Record& out, Record* rec_nest, ParseModule* mdl, bool atomic)
+		//Mesures first if the module can handle the current situation, but then measures if the currently loaded context will allow such a thing.
+
+		bool module_check = mdl->CanHandle(this, rec_nest, flag);
+		bool context_check = module_check ? contextChain->current->ContextAllowed(mdl, contextChain) : false;
+		
+		return module_check && context_check;
+		
+	}
+
+	bool Parser::_TryModule(Record& out, Record* rec_nest, ParseModule* mdl, ParseFlag flag)
 	{
 		//This is where the above module checks should go. Uses execute module
 		// also note, try should probably not check the current context, as it's likely the one who fired it. 
@@ -52,13 +66,12 @@ namespace LEX::Impl
 
 		//Mesures first if the module can handle the current situation, but then measures if the currently loaded context will allow such a thing.
 
-		bool module_check = mdl->CanHandle(this, rec_nest, atomic);
-		bool context_check = module_check ? contextChain->current->ContextAllowed(mdl, contextChain) : false;
-		bool handle = module_check && context_check;
-		if (handle)
+		bool handle = _QueryModule(rec_nest, mdl, flag);
+		
+		//if (handle)
 		{
 			//RGL_LOG(info, "try success? {} {}", module_check, context_check);
-			logger::info("try module: {}, token: {}", mdl->GetContext(), peek().GetTag());
+			logger::info("try module: {}, token: {}: target: {}, success: {}", mdl->GetContext(), peek().GetTag(), !!rec_nest, handle);
 		}
 
 		if (handle) {
@@ -74,9 +87,8 @@ namespace LEX::Impl
 	{
 		//In truth, should access the ParseHandler
 
-		std::vector<ParseModule*> module_list = ParseHandler::GetModuleList();
 		
-		for (ParseModule* mod : module_list)
+		for (std::unique_ptr<ParseModule>& mod : _modules)
 		{
 			if (!mod)
 				continue;
@@ -85,7 +97,7 @@ namespace LEX::Impl
 				continue;
 
 			//If not atomic, and the parseModule isn't atomic
-			bool success = _TryModule(out, rec_nest, mod, atomic);
+			bool success = _TryModule(out, rec_nest, mod.get(), atomic ? ParseFlag::Atomic : ParseFlag::None);
 
 			if (success)
 				return true;
@@ -195,7 +207,7 @@ namespace LEX::Impl
 		std::vector<Record> result;
 
 		bool first = true;
-		RGL_LOG(debug, "skipping start '{}'", stop);
+		RGL_LOG(debug, "skipping start '{}'", start);
 		SkipType(TokenType::Punctuation, start);
 		while (tokenizer.eof() == false) {
 			//bool start = first;
@@ -343,10 +355,12 @@ namespace LEX::Impl
 		TokenStream tok_stream{ inp_stream };
 
 		
+		std::unique_ptr<ParseModule> new_mod;
 
-		if (!mdl)
-			mdl = ScriptParser::GetSingleton();
-
+		if (!mdl) {
+			new_mod = std::make_unique<ScriptParser>();
+			mdl = new_mod.get();
+		}
 		Parser par_stream{ tok_stream,	mdl };
 
 		try

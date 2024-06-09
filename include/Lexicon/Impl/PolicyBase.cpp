@@ -1,8 +1,12 @@
+#include "PolicyBase.h"
+
 #include "ConcretePolicy.h"
 #include "IdentityManager.h"
 
 namespace LEX
 {
+
+
 
 	PolicyBase::PolicyBase()
 	{

@@ -79,6 +79,23 @@ namespace LEX
 		//ProjectEventHandler* _eventHandler = nullptr;
 	public:
 
+		//Change name to find project.
+		static Project* GetProject(std::string name)
+		{
+			if (stricmp("shared", name.c_str()) == 0)
+				return _sharedProject;
+
+			for (auto project : _projects)
+			{
+				std::string p_name = project->GetName();
+
+				if (stricmp(p_name.c_str(), name.c_str()) == 0)
+					return project;
+			}
+
+			return nullptr;
+		}
+
 		static Project* GetSharedProject()
 		{
 			return _sharedProject;

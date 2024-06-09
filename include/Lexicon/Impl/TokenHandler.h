@@ -89,6 +89,11 @@ namespace LEX::Impl
 			"void",
 			"ref",
 			"maybe",
+			"readonly",
+			"public",
+			"private",
+			"protected",
+			"internal",
 		};
 
 		inline static std::string _compRegex;

@@ -3,6 +3,22 @@
 //src
 #include "TypeID.h"
 
+
+template <typename EnumType>
+requires(std::is_enum_v<EnumType>&& !std::is_scoped_enum_v<EnumType>) struct fmt::formatter<EnumType> : fmt::formatter<std::underlying_type_t<EnumType>>
+{
+	// Forwards the formatting by casting the enum to it's underlying type
+	auto format(const EnumType& enumValue, format_context& ctx) const
+	{
+		return fmt::formatter<std::underlying_type_t<EnumType>>::format(
+			static_cast<std::underlying_type_t<EnumType>>(enumValue), ctx);
+	}
+};
+
+
+
+
+
 namespace LEX
 {
     
@@ -67,7 +83,7 @@ namespace LEX
 
     //Determines how the number reacts to reaching its limits. Whether it hits infinity or overflows and wraps around. 
     // Integers are naturally aligned to overflow, floats don't wrap
-    ENUM(Limit, uint8_t)
+	ENUM(Limit, uint8_t)
     {
         //Limit, the smallest value must always have a value
         //I'm thinking about getting rid of limit. Overflow for integers, infinity for floats.
@@ -276,7 +292,9 @@ namespace LEX
             }
 
 
-            constexpr std::strong_ordering operator <=> (Settings rhs) const
+            constexpr std::strong_ordering operator <=> (const Settings& rhs) const = default;
+            
+            /*
             {
                 //The conversion rules follow the same rules as the code range for it's type, that it is the combined value (via OR) of all its settings.
                 // If one is a float and the other isn't it becomes the floating one.
@@ -290,6 +308,8 @@ namespace LEX
 
                 return left <=> right;
             }
+            //*/
+
 
             bool IsFloat() const { return type == NumeralType::Floating; }
             bool IsInteger() const { return type == NumeralType::Integral; }
@@ -552,6 +572,57 @@ namespace LEX
         std::variant<char, uint64_t, int64_t, double> _value;
 
 
+        template<numeric T>
+        bool As(T& out) const
+        {
+            constexpr auto query = Settings::CreateFromType<T>();
+            //Make this a bit less exact in the future.
+            
+            if (query != _setting) {
+                return false;
+            }
+
+            switch (_value.index())
+            {
+            case 1: 
+                if constexpr (std::is_integral_v<T>)
+                    out = _UInt(); 
+                break;
+            case 2: 
+                if constexpr (std::is_integral_v<T>)
+                    out = _SInt(); 
+                break;
+            case 3: 
+                if constexpr (std::is_floating_point_v<T>)
+                    out = _Float(); 
+                break;
+
+            default:
+                return false;
+            }
+            return true;
+        }
+
+        
+        double _Float() const
+        {
+            return std::get<double>(_value);
+        }
+
+        
+        uint64_t _UInt() const
+        {
+            return std::get<uint64_t>(_value);
+        }
+
+        
+        int64_t _SInt() const
+        {
+            return std::get<int64_t>(_value);
+        }
+
+
+
         //mutable const?
         Settings _setting{};
 
@@ -634,24 +705,114 @@ namespace LEX
     //*/
 
 
+    
 
 }
 
 namespace fmt
 {
-    template <>
-    struct formatter<LEX::Number>
-    {
-        template <class ParseContext>
-        constexpr auto parse(ParseContext& a_ctx)
-        {
-            return a_ctx.begin();
-        }
+    /*
+    
+    template <typename Char>
+	struct formatter<LEX::Signage, Char>
+	{
+		template <class ParseContext>
+		constexpr auto parse(ParseContext& a_ctx)
+		{
+			return a_ctx.begin();
+		}
 
-        template <class FormatContext>
-        auto format(const LEX::Number& num, FormatContext& a_ctx)
-        {
-            return fmt::format_to(a_ctx.out(), "{}", static_cast<std::string>(num));
-        }
+		template <class FormatContext>
+		auto format(const auto& num, FormatContext& a_ctx) const
+		{
+			return fmt::format_to(a_ctx.out(), "{}", (uint8_t)num);
+		}
+	};
+
+    template <typename Char>
+	struct formatter<LEX::NumeralType, Char>
+	{
+		template <class ParseContext>
+		constexpr auto parse(ParseContext& a_ctx)
+		{
+			return a_ctx.begin();
+		}
+
+		template <class FormatContext>
+		auto format(const auto& num, FormatContext& a_ctx) const
+		{
+			return fmt::format_to(a_ctx.out(), "{}", (uint8_t)num);
+		}
+	};
+
+    template <typename Char>
+	struct formatter<LEX::Size, Char>
+	{
+		template <class ParseContext>
+		constexpr auto parse(ParseContext& a_ctx)
+		{
+			return a_ctx.begin();
+		}
+
+		template <class FormatContext>
+		auto format(const auto& num, FormatContext& a_ctx) const
+		{
+			return fmt::format_to(a_ctx.out(), "{}", (uint8_t)num);
+		}
+	};
+
+    
+template <typename Char>
+struct formatter<LEX::Limit, Char>
+{ uint64_t t;
+	template <class ParseContext>
+	constexpr auto parse(ParseContext& a_ctx)
+	{
+		return a_ctx.begin();
+	}
+
+	template <class FormatContext>
+	auto format(const LEX::Limit& num, FormatContext& a_ctx) const
+	{
+		return fmt::format_to(a_ctx.out(), "{}", (uint8_t)num);
+	}
+};
+
+
+//*/
+    /*
+    template <typename Char>
+    struct formatter<LEX::Number, Char>
+    {
+	    template <class ParseContext>
+	    constexpr auto parse(ParseContext& a_ctx)
+	    {
+		    return a_ctx.begin();
+	    }
+
+	    template <class FormatContext>
+	    auto format(const LEX::Number& num, FormatContext& a_ctx) const
+	    {
+		    return fmt::format_to(a_ctx.out(), "{}", static_cast<std::string>(num));
+	    }
     };
+    //*/
+	template <>
+    struct fmt::formatter<LEX::Number>
+	{
+		template <class ParseContext>
+		constexpr auto parse(ParseContext& a_ctx)
+		{
+			return a_ctx.begin();
+		}
+
+        
+		// Forwards the formatting by casting the enum to it's underlying type
+		auto format(const LEX::Number& num, format_context& ctx) const
+		{
+			return fmt::format_to(ctx.out(), "{}", static_cast<std::string>(num));;
+		}
+	};
 }
+
+

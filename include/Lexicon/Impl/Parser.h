@@ -32,8 +32,9 @@ namespace LEX::Impl
 
 		void _ExecuteModule(Record& record, Record* rec_nest, ParseModule* mdl);
 
+		bool _QueryModule(Record* rec_nest, ParseModule* mdl, ParseFlag flag);
 
-		bool _TryModule(Record& out, Record* rec_nest, ParseModule* mdl, bool atomic = false);
+		bool _TryModule(Record& out, Record* rec_nest, ParseModule* mdl, ParseFlag flag);
 
 
 		bool _SearchModule(Record& out, Record* rec_nest, bool atomic);
@@ -153,7 +154,7 @@ namespace LEX::Impl
 
 		//Would like to seperate these from parser(steam) and move it to Parser__ (to be named Parser)
 		//Would also like to remove the expression from this, there's no reason for it to be.
-		static Record CreateExpression(std::string str, Syntax expr = SyntaxType::Header, std::vector<Record> children = {});
+		static Record CreateExpression(std::string str, Syntax expr = SyntaxType::None, std::vector<Record> children = {});
 
 		//This has no reason to be in here specifically.
 		static Record CreateExpression(RecordData data, Syntax expr, std::vector<Record> children = {});
@@ -166,11 +167,36 @@ namespace LEX::Impl
 			return CreateExpression(data, expr, { records... });
 		}
 
+		ParseModule* GetBuiltModule(const std::type_info& ref) const
+		{
+			const std::type_info* other = &ref;
+
+			for (auto& mod : _modules)
+			{
+				auto ptr = mod.get();
+
+				auto info = &typeid(*ptr);
+
+				if (info == other)
+				{
+					return ptr;
+				}
+			}
+
+			return nullptr;
+		}
+		template <std::derived_from<ParseModule> Module>
+		ParseModule* GetBuiltModule() const
+		{
+			return GetBuiltModule<Module>();
+		}
 
 
 	private:
 		TokenStream& tokenizer;
 		ProcessChain _init = CreateChain();//{ nullptr, nullptr, this };
+		std::vector<std::unique_ptr<ParseModule>> _modules;
+
 
 	public:
 		//The idea is adding to this allows things to be registered regardless of order, or skip the line.

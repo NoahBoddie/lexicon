@@ -10,6 +10,8 @@
 namespace LEX
 {
 	struct ITypePolicy;
+	struct PolicyBase;
+	struct FunctionInfo;
 
 
 	enum struct ScopeType : uint8_t
@@ -126,13 +128,15 @@ namespace LEX
 		//LocalInfo* GetLocalVariable(std::string& name)
 		//VariableInfo* GetGlobalVariable(std::string& name);
 
-		QualifiedField SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
-
-		//I will abet this for now, but it dies some day
-		QualifiedField SearchField(std::string name, FieldPredicate pred = nullptr);
 
 
-		ITypePolicy* SearchType(std::string name);
+
+		PolicyBase* SearchTypePath(Record& _path);
+
+		FunctionInfo* SearchFunctionPath(Record& path, OverloadKey& input, Overload& out);
+
+		QualifiedField SearchFieldPath(Record& _path, OverloadKey* key = nullptr);
+
 
 		//If this is the scope that the routine uses to hold its top level data returns true.
 		bool IsRoutine() const { return !parent; }
@@ -237,8 +241,6 @@ namespace LEX
 		//Make sure to remove copy assignment stuff. Doesn't need it. Shouldn't leave its initial function
 
 	};
-
-
 
 	namespace Hide
 	{

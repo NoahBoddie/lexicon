@@ -5,6 +5,8 @@ namespace LEX::Impl
 	//Still not feeling the name. maybe statement? More broad.
 	enum struct SyntaxType
 	{
+		//Things called UNHANDLE should be under total, as they should never make it to the compiler. Anything under that should be removed by compiling time.
+
 		Script,
 		Project,
 		Directive,
@@ -14,27 +16,28 @@ namespace LEX::Impl
 		Object,
 		Boolean,
 		Field,
-		Declare,			//A declaration of a thing, but undetermined what.
 		Variable, 
 		
-		//Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
+		Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
 		Scopename,//Basically is Scriptname, but static class functions might be introduced.
 		Call,
 		Function,		//Completely different than a call, this is more focused toward the declaration/definition of a function
 		Return,
-		Block,			//The declaration of a code block, a manually denoted one. Basically scopes off shit.
+		Block,			//The declaration of a code block, a manually denoted one. express for expression, state for statement
 		Typename,		//The type name of something. This encapsulates similar to how call will, but not on the same hierarchy of operators.
 		Type,
 		Format,			//A change in language format. Can be select from TOML, JSON, etc
 		//Operators
-		Assign,
+		//Assign,
 		Unary,
 		Binary,
 		Cast,	//X?		//Basically an operator I guess. Might be binary. Basically only for down casting
 		//Statements
-		If,
-		While,
-		For,//Should compile like a while statement
+		
+		Conditional,
+		If = Conditional,
+		While = Conditional,
+		For = Conditional,
 
 
 
@@ -43,16 +46,26 @@ namespace LEX::Impl
 		// So maybe not needed.
 
 		//How to parse out the intent of a type name, if an identifier is found and an identifier is next? or following an "as" statement.
-		Total,
+
+		//THE NEW SYNTAX
+
+		ProjectName,
+		
+
+		Total,//Any syntax greater or equal to this isn't able to be used within compiling functions.
+		
+		Invalid = Total,
+
+		Header,
+		Disposable,
+		Identifier,
+		Declare,
+
+		
 
 		//Aliases- Short hand that makes my job a bit easier.
-
-		TypeOverScopeName = Scopename, //I'm currently trying to figure out if I want to use typename to say explicitly search type. For now I wont.
-
-		Invalid = Total,
-		//TODO: Separate header.
-		Header = Total,//Within the context of an expression class. 
-		Tab = Total,
+		None = Total,  //No type. Purely name.
+		Declaration = Declare,  //used as a pivot between functions, variables, properties, etc, deciding which it is based on what comes next.
 	};
 	
 
@@ -130,23 +143,34 @@ namespace LEX::Impl
 				return cap ? "Type" : "Type";
 			case SyntaxType::Format:
 				return cap ? "Format" : "format";
-			case SyntaxType::Assign:
-				return cap ? "Assign" : "Assign";
+			//case SyntaxType::Assign:
+			//	return cap ? "Assign" : "Assign";
 			case SyntaxType::Unary:
 				return cap ? "Unary" : "Unary";
 			case SyntaxType::Binary:
 				return cap ? "Binary" : "Binary";
 			case SyntaxType::Cast:
 				return cap ? "Cast" : "Cast";
-			case SyntaxType::If:
-				return cap ? "If" : "If";
-			case SyntaxType::While:
-				return cap ? "While" : "While";
-			case SyntaxType::For:
-				return cap ? "For" : "For";
+			case SyntaxType::Conditional:
+				return cap ? "Conditional" : "Conditional";
+
 			case SyntaxType::Return:
 				return cap ? "Return" : "return";
 
+			case SyntaxType::Identifier:
+				return cap ? "Identifier" : "Identifier";
+				
+			case SyntaxType::Scriptname:
+				return cap ? "Scriptname" : "Scriptname";
+
+			case SyntaxType::ProjectName:
+				return cap ? "ProjectName" : "ProjectName";
+			case SyntaxType::Header:
+				return cap ? "Header" : "Header";
+
+				
+			//case SyntaxType::Declaration:
+			//	return cap ? "Declaration" : "Declaration";
 			case SyntaxType::Invalid:
 				return cap ? "Invalid" : "invalid";
 		}

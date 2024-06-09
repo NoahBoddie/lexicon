@@ -6,7 +6,6 @@
 #include "OverloadClause.h"
 namespace LEX
 {
-
 	class FunctionBase : public virtual IFunction, public SecondaryElement, public OverloadClause, public FunctionData
 	{
 		//This is a pivot for for functions, more important than anywhere else, this set up excludes formulas
@@ -28,7 +27,7 @@ namespace LEX
 
 		OverloadClause* GetClause() override { return this; }
 
-
+#pragma region Clause
 
 		bool PreEvaluate(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
@@ -120,6 +119,7 @@ namespace LEX
 			return {};
 		}
 
+#pragma endregion
 
 		//~
 
@@ -134,6 +134,30 @@ namespace LEX
 			
 			return _name;
 		}
+
+
+		virtual uint64_t GetProcedureData() const
+		{
+			return procedureData;
+		}
+
+		virtual void SetProcedureData(uint64_t data)
+		{
+			if (data == 0 || data == -1)
+				report::fault::error("Procedure data cannot be {}", static_cast<int64_t>(data));
+
+			else if (procedureData && procedureData != -1)
+				report::fault::warn("Procedure data already has value");
+
+			procedureData = data;
+		}
+
+
+	protected:
+		//If not 0, this is a procedure. This data is used by the procedure. May use to help handle if 
+		//If -1 its likely waiting for a procedure to claim it.
+		uint64_t procedureData = 0;
+
 	};
 
 

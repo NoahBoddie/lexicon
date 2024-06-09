@@ -19,6 +19,7 @@
 #define INTERFACE_FUNCTION  { logger::critical("Interface not created from lex source. Aborting."); throw nullptr;} 
 #endif
 
+//Make only one interface function and use override where it is.
 
 
 //If I can make these the same function some how, that'd be great.

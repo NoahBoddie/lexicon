@@ -21,7 +21,7 @@ namespace LEX
 
 	//Definition is the name of the struct that holds either routine data, or caller data.
 	//Or maybe it should be an enum.
-	using Procedure = void(*)(RuntimeVariable&, Variable*, std::vector<Variable*>, ProcedureData&);
+	using Procedure = void(*)(RuntimeVariable&, Variable* target, std::vector<Variable*>, ProcedureData&);
 	
 
 

@@ -4,13 +4,34 @@
 
 
 //src
+#include "Environment.h"
 #include "PolicyBase.h"
 #include "ITypePolicy.h"
 #include "VoidPolicy.h"
 namespace LEX
 {
+	//KILLME
+	/*
+std::vector<PolicyBase*> Environment::FindTypes(std::string name)
+{
+	auto end = typeMap.end();
 
-	
+	if (auto it = typeMap.find(name); end != it) {
+		return { it->second };
+	}
+	else {
+		return {};
+	}
+}
+	//*/
+
+
+	inline void test(Record& f)
+	{
+		PolicyBase* base = nullptr;
+		base->FindTypes("");
+	}
+
 	struct IdentityData
 	{
 		std::string_view name;

@@ -62,9 +62,48 @@ void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variab
     result = tar.size();
 }
 
+float TestCall_backend(float r, float a, float b)
+{
+
+    r = r + 3;//This is the bread and butter of what we want. All considered, it should be 93, but if not done right, it's 90.
+
+    return a + b + r;
+};
+
 double GetActorValue_backend(double a_this, double othername, double shootfol, double tellinal, double peacefal, double scrundal)
 {
-    return 0;
+    double result = 0;
+
+    logger::info("GetActorValue_BackEnd::Start: {} ({}, {}, {}, {}, {})", a_this, othername, shootfol, tellinal, peacefal, scrundal);
+    //int test = othername + shootfol + tellinal + peacefal + scrundal;
+            //Nope, it's just broken right now.
+            //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
+
+            //This shit's itself for some reason.
+
+
+    //Array _array2 = _array;
+    std::string test_string = "THISSTR";
+   
+    float first = TestCall_backend(tellinal, othername, shootfol);
+
+    tellinal += 3;
+    float test = TestCall_backend(first, othername, shootfol) + tellinal + peacefal + scrundal + a_this;
+    //float test = tellinal.TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
+    a_this = 0;
+
+    float testB = {};
+
+    const float testConst = 5;
+
+    //testConst = testB;
+
+    
+    result = a_this + test + testB + test_string.size();
+
+    logger::info("GetActorValue_BackEnd::End: {} ({}, {}, {}, {}, {}), result: {}", a_this, othername, shootfol, tellinal, peacefal, scrundal, result);
+
+    return result;;
 }
 
 void LexTesting(std::string formula)
@@ -218,8 +257,43 @@ void LexTesting(std::string formula)
 
     )"s;
 
+    std::string test_identifier = R"(
+        struct __float64 intrinsic NUMBER::82 : public ::::SomeProject::SomeScript::SomeType::OtherType::Number, public internal Commons::Primitive;
+
+        ::::name1::name2::more_name::final_name;
+
+        const readonly int flag;
+
+        ::name1::name2::name const readonly flag;
+
+        ::name1::name2::name const readonly flag(int name1, int name2, int name3) const
+        {
+            const Array test_again = Array();
+
+            {
+                ::name1::name2::name const readonly flag;
+                ::name1::name2::name const readonly flag2;
+
+                return flag2;
+            }
+        }
+
+        typename_here identifier = something * something_else.(some() + process * that - does / stuff + 20).inner_something;
+
+        identifer = a_thing + another_thing - a_third_thing;
+    )"s;
+    std::string this_functions = R"(
+        float size(this string)
+        {
+            //defined elsewhere.
+            return 0;
+        }
+    )"s;
+
     //Identifier, Header
-    std::string text = crash2;
+	std::string text = crash2;
+    //std::string text = test_identifier;
+    //std::string text = this_functions;
 
 
     //std::string formula = "2 * (4 + 6) / 5";
@@ -232,11 +306,14 @@ void LexTesting(std::string formula)
 
     PrintAST(ast);
     
+    logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
     
     //return;
     
     
     Script* script = Component::Create<Script>(ast);
+
+    //return;
 
     if (1)
     {
@@ -267,8 +344,9 @@ void LexTesting(std::string formula)
     if (function)
     {
         //Testing the proceedure
+        if (0)
         {
-            Signature sign = RegisterProcedure(GetActorValue_backend);
+            Signature sign = RegisterProcedure(GetActorValue_backend, function->_procedure);
 
             OverloadFlag flag = OverloadFlag::None;
 
@@ -279,7 +357,6 @@ void LexTesting(std::string formula)
             else
                 logger::info("SUCCESS TO MATCH");
 
-            std::system("pause");
 
         }
 
@@ -298,6 +375,7 @@ void LexTesting(std::string formula)
         //Variable result = function->Call(args[0], args[1], args[2], args[3], args[4]);
         
         //function->_procedure = TestProcedure;
+        //A conversion is supposed to happen here.
         Variable result = function->Call(69, 1, 2, 3, 4, 5);
 
         std::string number = static_cast<std::string>(result.AsNumber());

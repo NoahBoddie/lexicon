@@ -94,6 +94,7 @@
 
 #include "OverloadInput.h"
 
+#include "Declaration.h"
 
 namespace std
 {
@@ -972,7 +973,16 @@ namespace LEX
 	};
 
 
-//A mac
+
+#define EXTEND(mc_object) 1
+
+template <typename T>
+struct Extension
+{
+	//the idea is this is a struct that either takes a reference derives from it with no vtable and attempts to perform some new function on it.
+};
+
+
 #define TO_XVALUE(mc_expr) true ? mc_expr : static_cast<decltype(mc_expr)&&>(*(int*)0)
 
 	namespace Fields
@@ -1687,16 +1697,6 @@ namespace LEX
 
 	static_assert(std::is_same_v<int const, const int>);
 
-	void TestQual(mutable int t){
-	
-		GetStorageType<std::string>();
-
-
-		const int* test = nullptr;
-
-		auto test2 = const_cast<std::remove_const_t<decltype(test)>>(test);
-	
-	}
 	
 	enum struct SignatureEnum
 	{
@@ -1789,6 +1789,8 @@ namespace LEX
 		}
 	};
 
+#define TESTNAME CONCAT(Test,__COUNTER__)
+
 	void SCRAPNAME(void(*infoke)())
 	{
 		
@@ -1797,10 +1799,348 @@ namespace LEX
 	{
 		
 	}
+	struct Callish
+	{
+		void operator () ()
+		{
+
+		}
+	};
+
+
+	struct Scrap
+	{
+		//inline static Callish name;
+		static void name(int)
+		{
+
+		}
+		static void name()
+		{
+
+		}
+	};
+
 	constexpr bool is_thing = std::is_polymorphic_v < std::function<void()>>;
+	
+	/*
+	struct TargetEnvironment_nixed
+	{
+		enum Flag : uint8_t
+		{
+			None = 0 << 0,
+			Explicit = 1 << 0,
+		};
+
+
+		//Size isn't used to its fullest
+
+		//So issue, this actually used to use a solution, and rightfully so. Target object
+		// as itself 
+
+
+
+
+
+		Environment* target = nullptr;
+		TargetObject* prev = nullptr;
+		Flag			flag = Flag::Explicit;
+
+		//Purges the use of assigning TargetObjects. This is used when returning or when assigning for implicit
+		// constuction knowledge.
+		TargetObject* GetCallTarget()
+		{
+			if (this) {
+				return flag & Flag::Assign ? prev->GetCallTarget() : this;
+			}
+
+			return nullptr;
+		}
+
+		//Reverse of call target, this gets the target of an assignment or return. Useful for ternary statements
+		TargetObject* GetAssignTarget()
+		{
+			if (this) {
+				return flag & Flag::Assign ? this : prev->GetAssignTarget();
+			}
+
+			return nullptr;
+		}
+
+		TargetObject(Solution& t, TargetObject* p, Flag f) : target{ &t }, prev{ p }, flag{ f }
+		{
+
+		}
+
+		TargetObject(Solution& t, TargetObject* p = nullptr, bool b = false) : target{ &t }, prev{ p }, flag{ b ? Explicit : None }
+		{
+
+		}
+	};
+	//*/
+
+
+
+
+
+
+	struct TestA {
+		struct TestB {
+			struct TheTest
+			{
+				static int last;
+			};
+			TheTest GetTest()
+			{
+				return {};
+			}
+		};
+	};
+
+
+	struct _SIZE
+	{
+		int a, b, c;
+	};
+	void TESTNAME()
+	{
+		//Scrap::name::(int);
+		int n{ 1 };
+
+		_SIZE size(1, 2, 3);
+
+		//TestA::TestB::GetTest()::last;
+		Scrapname();
+		Record empty;
+		GetPolicyFromSpecifiers(empty, nullptr);
+	}
+
+	struct record_strings
+	{
+#define REC_STR(mc_name) inline static const char* mc_name
+		
+
+		REC_STR(constructor) = "ctor";
+#undef REC_STR
+	};
+	
+
+	struct Dispatcher
+	{
+		//This isn't really that important, the main use of it is to just keep track of all dispatchers. Instead though,
+		// I might make a thing where you can switch out registered external functions similar to that of changing states.
+		inline static std::vector<std::unique_ptr<Dispatcher>> _dispatchList{ 1 };
+
+		virtual void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) = 0;
+
+	protected:
+		//Omega temp shit here, needs to actually have the path and stuff here.
+		static bool Register(Dispatcher* dispatch, Procedure& dispatchee)
+		{
+			//This type can likely produce a name actually.
+
+			_dispatchList[0] = std::unique_ptr<Dispatcher>{ dispatch };
+
+			auto reciever = [](RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) -> void
+				{
+					Dispatcher* func = _dispatchList[0].get();
+
+					if (!func) {
+						//Throw exception.
+						return;
+					}
+
+					func->Dispatch(result, target, args, data);
+				};
+
+			dispatchee = reciever;
+
+			return true;
+		}
+
+
+		//static bool Register(Dispatcher* dispatch);
+	};
+	template <typename T>
+	struct Unvariable 
+	{
+		
+	};
+
+	template <>
+	struct Unvariable<double>
+	{
+		double operator()(Variable* var)
+		{
+			auto num = var->AsNumber();
+
+			double result;
+
+			if (num.As(result) == false)
+				throw nullptr;
+		
+			return result;
+		}
+	};
+
+
+
+	template <class R, class T, class... Args>
+	struct BasicDispatcher : public Dispatcher//<R(Args...)>
+	{
+		//Not especially needed anymore.
+		bool registered = false;
+
+		//A constant code that will serve as varification.
+		static constexpr uint64_t func_code = 1;
+
+		R(*_callback)(T, Args...) = nullptr;
+
+		template <class T1, size_t I = 1>
+		static inline void ValueImport(T1& tuple, std::vector<Variable*>& args)
+		{
+			if constexpr (I < std::tuple_size_v<T1>) {
+
+				using _Elem = std::tuple_element_t<I, T1>;
+
+				std::get<I>(tuple) = Unvariable<_Elem>{}(args[I - 1]);
+
+				//if constexpr (std::is_same_v<EntryType>) {
+					//The actual version will test for the parameters.
+				//}
+
+
+
+				ValueImport<T1, I + 1>(tuple, args);
+			}
+		}
+
+
+
+		void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) override
+		{
+			//Unload that shit.
+			using Arg1 = std::tuple_element_t<0, std::tuple<Args...>>;
+
+			constexpr size_t arg_size = std::tuple_size_v<std::tuple<Args...>>;
+
+			if (auto list_size = args.size(); list_size != arg_size)
+			{
+				//Shit isn't the same fucking size I'm losing my mind.
+				throw nullptr;
+			}
+
+			//typename function_traits<std::remove_pointer_t<decltype(T)>>::arguments args;
+
+			//I'll want to remove the references due to being unable to load them like this.
+			std::tuple<T, std::remove_reference_t<Args>...> tuple;
+			//static_assert(std::is_same_v<std::tuple<Target, int, int, int>,
+			//	function_traits<std::remove_pointer_t<decltype(T)>>::arguments>, "GN  NE NIP");
+
+			std::get<0>(tuple) = Unvariable<T>{}(target);
+
+
+			ValueImport(tuple, args);
+			//Here we get the return type and switch up on it.
+
+			//Confirm if the types are correct.
+
+			if constexpr (std::is_same_v<R, void>) {
+				std::apply(_callback, tuple);
+			}
+			else {
+				R to_result = std::apply(_callback, tuple);
+
+				//under more normal situations, vary this by whether it's a ref or not.
+
+				result = to_result;
+			}
+		}
+
+		BasicDispatcher(R(*func)(T, Args...), Procedure& dispatchee) : _callback{ func }
+		{
+			Register(this, dispatchee);
+
+			//static_assert(!std::is_same_v<T, void>, "Upper");
+		}
+	};
+
+
+
 
 	template <typename R, typename... Args>
-	Signature RegisterProcedure(R(*func)(Args...), std::string project = "", std::string script = "", std::string path = "")
+	Procedure MakeProcedure(R(*func)(Args...))
+	{
+	}
+
+	//Something like this needs to be an interfaceSingleton.
+	struct ProcedureLoader
+	{
+		//ProcedureLoader is an object that exists to link
+
+
+		//RegisterProcedure
+
+
+	};
+
+	int RegisterProcedureImpl2(Procedure procedure, std::string projname, std::string scriptname, std::string path)
+	{
+
+	}
+
+	int RegisterProcedureImpl(Procedure func, Procedure& to)
+	{
+		Record ret;
+		ret.TOKEN();
+		//needs to be able to report back how something failed.
+
+		//If declaration has not gone through yet, we need to wait.
+		if (Component::HasLinked(LinkFlag::Declaration) == true)
+		{
+			Project* project = ProjectManager::GetProject(projname);
+
+			Script* script = project->FindScript(scriptname);
+
+
+			//Element*
+		}
+
+		return 1;
+	}
+
+
+	template <typename R, typename... Args>
+	Signature RegisterProcedure(R(*func)(Args...), Procedure& proc)
+	{
+		//Currently, the only way to properly handle the system is by making a unique lambda each time a new template is created. But needless to say,
+		// cant do that.
+
+		//I think something I can do is that optionally a 64 bit context code can be given when making a procedure. This allows me to just simply pull what's needed.
+		// So I think that might be a proceedure thing idk. Something to make context of. But something fast. Definitely not something like what native function
+		// would have been.
+
+		//The context thing is a good idea, it can possibly sort out which overload is being set up, if someone is using it pure (which one shouldn't.
+		// Long story short it's the address to use.
+
+		Signature sign{};
+
+		//bool processed = ProcessEntry<true, R, Args...>(sign);
+		bool processed = ProcessEntry<SignatureEnum::Result, R, Args...>(sign);
+
+		if (!processed)
+			throw nullptr;
+
+		static auto dispatch = new BasicDispatcher(func, proc);
+
+
+		return sign;
+	}
+
+	//thing to get function here.
+
+	template <typename R, typename... Args>
+	Signature RegisterProcedure(R(*func)(Args...), std::string project, std::string script, std::string path)
 	{
 		//Currently, the only way to properly handle the system is by making a unique lambda each time a new template is created. But needless to say,
 		// cant do that.
@@ -1820,17 +2160,388 @@ namespace LEX
 		if (!processed)
 			throw nullptr;
 
+		static auto dispatch =  new BasicDispatcher(func, proc);
+
+
 		return sign;
 	}
 
+	
 
-	//INITIALIZE()
-	//{
-		//here I'm going to be testing the concept of turning a function into a function signature.
-	//}
+	namespace PathingTest
+	{
+		enum struct Vers
+		{
+			Script,
+			Function, 
+			Type
+		};
+
+
+		enum struct Prefer
+		{
+			None,
+			Type,
+			Script,
+			Project,
+		};
+
+		struct OverloadGenericInput : public OverloadKey
+		{
+			//This struct provides the ability to fill out a generic argument without affecting the other.
+
+
+			//The idea of the OverloadGenericInput
+
+			OverloadKey* arguments = nullptr;
+		};
+		
+
+
+		/*
+		PolicyBase* SearchTypeImpl(Environment* a_this, std::string name, OverloadKey* key)
+		{
+			//No overload key means it has is expected to have no generic, if so it has one.
+			return nullptr;
+		}
+
+
+
+
+		//All versions end up at these last 2 locations.
+		PolicyBase* SearchTypeImpl(Environment* a_this, std::string name, OverloadKey* key)
+		{
+			//No overload key means it has is expected to have no generic, if so it has one.
+			
+			if (!key)
+				return dynamic_cast<PolicyBase*>(a_this->TEMPSearchType(name));
+			else
+				return dynamic_cast<PolicyBase*>(a_this->SearchType(name, *key));
+		}
+		
+		QualifiedField SearchFieldImpl(Environment* a_this, std::string name, OverloadKey* key)
+		{
+			//No overload key means it has is expected to have no generic, if so it has one.
+			if (!key)
+			return a_this->TEMPSearchField(name);
+			else
+				return a_this->SearchField(name, *key);
+
+		}
+
+
+		FunctionBase* SearchFunctionImpl(Environment* a_this, std::string name, OverloadKey& key, Overload& out)
+		{
+			//This requires a key, none optional
+			
+			//This needs a function above it that fills generic arguments. Possibly scratch that.
+
+
+			auto funcs = a_this->FindFunctions(name);
+
+			std::vector<FunctionBase*> clauses;
+
+			//FunctionBase* test = functions[0]->Get();
+
+			std::transform(funcs.begin(), funcs.end(), clauses.begin(), [&](auto it) {return it->Get(); });
+
+			if (funcs.size() && CheckOverload(key, clauses, out) == true)
+			{
+				return dynamic_cast<FunctionBase*>(out.clause);
+			}
+
+			return nullptr;
+
+
+		}
+
+
+
+		FunctionBase* SearchFunction(Environment* a_this, std::string name, OverloadKey& key, Overload& out)
+		{
+			//This should prepare the generic arguments.
+
+			return SearchFunctionImpl(a_this, name, key, out);
+		}
+
+
+
+
+		PolicyBase* SearchType(Environment* a_this, Prefer preference, std::string_view node, std::vector<std::string_view>* g_args = nullptr) { return nullptr; }
+		PolicyBase* SearchType(Environment* a_this, Record& _path) { return nullptr; }
+
+		QualifiedField SearchField(Environment* a_this, Record& path)
+		{
+			//Should do similar shit to search environment, creating generic args along the way or something like that.
+			return SearchFieldImpl(a_this, path.GetTag(), nullptr);
+
+		}
+
+		Environment* SearchEnvironment(Environment* a_this, Record& path) {
+			//A matter of preference here is that unless it's specifically referencing something, it will try all it's options.
+
+			//So the order of checking goes from type -> script -> project
+
+			SyntaxType type = path.SYNTAX().type;
+			Prefer force;
+			bool cont = false;
+			Environment* result = nullptr;
+			Element* stuff;
+
+			//Instead, I will be getting elements and will refer to them as scopes.
+			//If element, what can it not do?
+			//Elements can getprojects so they can get scripts, projects need to become environments. At least in name. Kinda like a pivot.
+			// An I environments.
+
+
+			do
+			{//the idea is that continue is set once when scope name is found once. After that, it's put into a cycle of which it prefers.
+
+				switch (type)
+				{
+				case SyntaxType::Scriptname://This should be script name.
+					type = SyntaxType::ProjectName;
+					force = Prefer::Script; break;
+
+				case SyntaxType::Scopename:
+					cont = true;
+
+					[[fallthrough]];
+				case SyntaxType::Typename:
+					type = SyntaxType::Scriptname;
+					force = Prefer::Type; break;
+
+
+
+				case SyntaxType::ProjectName:
+					cont = false;
+					force = Prefer::Project; break;
+				default:
+					return nullptr;//invalid
+				}
+				
+				switch (force)
+				{
+				case Prefer::Script:
+				{
+					//Rule, no children.
+					result = a_this->GetProject()->FindScript(path.GetTag());
+
+					break;
+				}
+				
+				case Prefer::Type:
+				{
+					//OverloadInput input{};
+
+					OverloadKey* key = nullptr;
+
+					
+
+					result = SearchTypeImpl(a_this, path.GetTag(), key);
+
+			
+					break;
+				}
+
+				case Prefer::Project:
+				{
+					ProjectManager::GetProject(path.GetTag());
+					result = nullptr;
+					break;
+				}
+
+
+
+				}
+				
+
+				
+			} while (cont && !result);
+
+
+
+			return result;
+		}
+
+		Environment* SearchEnvironmentPath(Environment* a_this, Record*& _path)
+		{
+			//This should keep going as long as the left path is a binary. When it stops being so, it should return the last searching environment, and adjust the
+			// path reference.
+
+
+			if (_path->SYNTAX().type != SyntaxType::Binary || _path->GetTag() != "::") {
+				//If this is not the operator, we return this
+				return a_this;
+			}
+
+			//This simply needs environment.
+			Environment* new_this = SearchEnvironment(a_this, *_path->FindChild("left"));
+
+			_path = _path->FindChild("right");
+			
+
+			
+			if (_path->SYNTAX().type != SyntaxType::Binary || _path->GetTag() != "::") {
+				//This part can be made boilerplate
+				return a_this;
+			}
+			else {
+				return SearchEnvironmentPath(a_this, _path);
+			}
+
+
+		}
+
+
+
+
+
+
+		//This is in Environment.cpp, needs to be moved out.
+		bool CheckOverload(OverloadKey& input, std::vector<FunctionBase*> clauses, Overload& ret)
+		{
+			Overload out;
+
+			Overload* last = nullptr;
+
+
+			for (auto clause : clauses)
+			{
+				OverloadFlag flags = OverloadFlag::None;
+
+				Overload overload = input.Match(clause, nullptr, last, flags);
+
+				if (flags & OverloadFlag::Failure) {
+					logger::info("Failure");
+					continue;
+				}
+
+
+
+				if (flags & OverloadFlag::Ambiguous) {
+					logger::info("Ambiguous");
+					last = nullptr;
+					break;
+				}
+
+				if (0) {
+					bool _continue = false;
+					bool _break = false;
+
+
+					cycle_switch(flags)
+					{
+				case OverloadFlag::Failure:
+					logger::info("Failure");
+					_continue = true;
+					continue;
+
+				case OverloadFlag::Ambiguous:
+					logger::info("Ambiguous");
+					_break = true;
+					break;
+
+					}
+
+					if (_continue)
+						continue;
+
+					if (_break)
+						break;
+
+				}
+
+
+				out = std::move(overload);
+
+				last = &out;
+			}
+
+			if (last)
+				ret = *last;
+
+			return last;
+		}
+
+
+
+
+
+		PolicyBase* SearchTypePath(Environment* a_this, Record& _path)
+		{
+			
+
+			Record* path = &_path;
+
+			Environment* env = SearchEnvironmentPath(a_this, path);
+
+			return SearchType(env, *path);
+
+		}
+
+		//This actually probably will want to return the function info, because of something like generic functions.
+		FunctionBase* SearchFunctionPath(Environment* a_this, Record& _path, OverloadKey& input, Overload& out)
+		{
+			//While this can be a field, it will not be treated like one.
+
+			//Here, record is only for the path, not for anything else.
+
+			//out is only used when we actually need it.
+
+			//THIS is the way these functions should look.
+			if (!a_this) {
+				return nullptr;
+			}
+
+			Record* path = &_path;
+
+			if (Environment* env = SearchEnvironmentPath(a_this, path); !env) {
+				//This is mostly correct, but it should also use it's includes. Hm, that actually would be better suited in the search functions below
+				// when compiling all viable named functions/types/fields.
+				return SearchFunctionPath(env, _path, input, out);
+			}
+			else {
+				return SearchFunction(env, path->GetTag(), input, out);
+			}
+
+
+		}
+
+		QualifiedField SearchFieldPath(Environment* a_this, Record& _path)
+		{
+			//Similar to type, this doesn't quite need overloads.
+
+
+			Record* path = &_path;
+
+			Environment* env = SearchEnvironmentPath(a_this, path);
+
+
+			return SearchField(env, *path);
+		}
+
+		//On top of all this, I think I'd like something called get name from path. Kinda does what a lot of the above does, but basically goes
+		// through the motions until the entire path is mapped out.
+
+		//When it comes down to the string path versions, I actually think I'll just parse the thing.
+
+		//*/
+
+
+
+		//Changes
+		//-Project should be an environment.
+		//-Return a function info for functions instead of a function base. We have no idea which it is, so give them that instead.
+		//-Make function info a clause probably. Need to think on if I just want that to be the stand in or not.
+		//  With the function info becoming something like that, it would now need to be an IFunction would it not? What if the thing gets specialized?
+		//-These search functions have to be used from scope, and then climb their way out. So some of these should perhaps be located in an external place.
+		// of course, they'll always be focused on environment. BUT for now I don't need to worry about that.
+	}
+
+
 
 }
-
 
 
 namespace fmt
@@ -1847,7 +2558,7 @@ namespace fmt
 		}
 
 		template <class FormatContext>
-		auto format(const T& v, FormatContext& a_ctx)
+		auto format(const T& v, FormatContext& a_ctx) const
 		{
 			return static_cast<std::string>(v);
 			//auto* info = RE::ActorValueList::GetSingleton()->GetActorValue(a_actorValue);

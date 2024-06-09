@@ -228,7 +228,9 @@ namespace LEX
 					
 				body = base + "Invalid format string(\'{}\')"s + " Args(" + _CreateArgSlots(size) + ")";
 
-				result = std::vformat(body, std::make_format_args(f_error.what(), ts...));
+				auto what = f_error.what();
+
+				result = std::vformat(body, std::make_format_args(what, ts...));
 			}
 
 			body += " Args("s + _CreateArgSlots(size) + ")";
@@ -325,6 +327,7 @@ namespace LEX
 	LEVEL_CLASS(critical, IssueLevel::Critical);	\
 	LEVEL_CLASS(fatal, IssueLevel::Fatal);
 
+	//fault::critical does not crash for some fucking reason.
 
 	struct report
 	{

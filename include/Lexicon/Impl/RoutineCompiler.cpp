@@ -13,6 +13,9 @@
 #include "FunctionData.h"
 #include "ParameterInfo.h"
 
+#include "parse_strings.h"
+
+
 namespace LEX
 {
 
@@ -156,7 +159,7 @@ namespace LEX
 			{
 			case SyntaxType::Function:
 				//operations = CompileBlock(*funcRecord.FindChild("code"));
-				operations.insert_range(end, CompileBlock(*funcRecord.FindChild("code")));
+				operations.insert_range(end, CompileBlock(*funcRecord.FindChild(parse_strings::code)));
 				break;
 
 

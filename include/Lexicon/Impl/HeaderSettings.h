@@ -15,7 +15,7 @@ namespace LEX
 		None = KeywordType::Total,
 	};
 
-	ENUM(HeaderFlag, uint8_t)
+	ENUM(HeaderFlag, uint16_t)
 	{
 		None		= 0 << 0,
 		Signable	= 1 << 0,
@@ -26,8 +26,9 @@ namespace LEX
 		DeclMute	= 1 << 5,
 		Storage		= 1 << 6,
 		Primary		= 1 << 7,
-
-		All			= (uint8_t)-1,
+		Access1st	= 1 << 8,
+		Access2nd	= 1 << 9,
+		All			= (std::underlying_type_t<HeaderFlag>)-1,
 		MostlyAll	= HeaderFlag::All & ~HeaderFlag::Storage,
 	};
 
@@ -45,15 +46,21 @@ namespace LEX
 
 	INITIALIZE()
 	{
+		//TODO: Keywords should probably be made incrementally, with this contributing to the list of keywords. Just to make it easy.
+
 		headerGuide[KeywordType::TypeQual]["ref"] = { HeaderFlag::Reference, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["const"] = { HeaderFlag::Constness, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["mutable"] = { HeaderFlag::Constness, HeaderFlag::None };
-		headerGuide[KeywordType::DeclSpec]["readonly"] = { HeaderFlag::Constness, HeaderFlag::None };
+		headerGuide[KeywordType::TypeQual]["readonly"] = { HeaderFlag::Constness, HeaderFlag::None };
 
 		headerGuide[KeywordType::DeclSpec]["const"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["static"] = { HeaderFlag::Storage, HeaderFlag::None };
 		headerGuide[KeywordType::DeclSpec]["mutable"] = { HeaderFlag::DeclMute, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["readonly"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
+		headerGuide[KeywordType::DeclSpec]["public"] = { HeaderFlag::Access1st, HeaderFlag::None };
+		headerGuide[KeywordType::DeclSpec]["private"] = { HeaderFlag::Access1st, HeaderFlag::None };
+		headerGuide[KeywordType::DeclSpec]["protected"] = { HeaderFlag::Access1st, HeaderFlag::None };
+		headerGuide[KeywordType::DeclSpec]["internal"] = { HeaderFlag::Access2nd, HeaderFlag::None };
 
 		headerGuide[KeywordType::TypeSpec]["typename"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };
 		headerGuide[KeywordType::TypeSpec]["signed"] = { HeaderFlag::Signable, HeaderFlag::None };
@@ -74,7 +81,7 @@ namespace LEX
 	};
 
 
-	inline KeywordType GetKeywordType(std::string name, std::optional<bool> post)//, const HeaderEntry** out = nullptr)
+	inline KeywordType GetKeywordType(std::string& name, std::optional<bool> post, const HeaderEntry** out = nullptr)
 	{
 		//If post is selected, the expected keywords must match the post boolean.
 		KeywordType type = KeywordType::TypeQual;
@@ -83,25 +90,31 @@ namespace LEX
 			for (auto& [key, entry] : map)
 			{
 				if (key == name && (!post.has_value() || entry.postOnly == post.value())) {
-					//if (out) {
-					//	*out = &entry;
-					//}
+					if (out) {
+						*out = &entry;
+					}
 
 					return type;
 				}
 			}
-
+			
 			type = static_cast<decltype(type)>(type + 1);
 		}
 
 		return KeywordType::None;
 	}
 
-	inline bool IsKeyword(std::string name)//, const HeaderEntry** out = nullptr)
+
+	inline KeywordType GetKeywordType(std::string& name, std::optional<bool> post, const HeaderEntry*& out)
+	{
+		return GetKeywordType(name, post, &out);
+	}
+
+	inline bool IsKeyword(std::string& name, std::optional<bool> post = std::nullopt)  //, const HeaderEntry** out = nullptr)
 	{
 		//If post is selected, the expected keywords must match the post boolean.
 
-		return GetKeywordType(name, std::nullopt) != KeywordType::None;
+		return GetKeywordType(name, post) != KeywordType::None;
 	}
 
 

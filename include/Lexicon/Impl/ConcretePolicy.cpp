@@ -3,7 +3,11 @@
 #include "ConcretePolicy.h"
 
 #include "ObjectPolicyManager.h"
+#include "ConcreteFunction.h"
 
+#include "IdentityManager.h"
+
+#include "parse_strings.h"
 namespace LEX
 {
 
@@ -21,19 +25,67 @@ namespace LEX
 			return std::stoi(tag, nullptr, 10);
 		}
 	}
+	
+	ConcretePolicy::ConcretePolicy() : PolicyBase{} {}
+
+	ConcretePolicy::ConcretePolicy(uint32_t i) : PolicyBase{ i } {}
+
+	ConcretePolicy::ConcretePolicy(std::string_view name, TypeOffset offset) : PolicyBase{ name, offset } {}
+	/*
+	ConcretePolicy::ConcretePolicy()
+	{
+		IdentityManager::instance->ObtainID(this);
+	}
+
+	ConcretePolicy::ConcretePolicy(uint32_t i)
+	{
+		//SetTypeID(0); return;
+
+		IdentityManager::instance->ClaimID(this, i);
+	}
+
+	ConcretePolicy::ConcretePolicy(std::string_view name, TypeOffset offset)
+	{
+		//SetTypeID(0); return;
+		IdentityManager::instance->ClaimID(this, name, offset);
+	}
+	//*/
+
+
+
+	AbstractTypePolicy* ConcretePolicy::GetExtends()
+	{
+		//I think I could have this in 2 forms. One where you output to an array and one where you just get at a point.
+		// I kinda don't really super want this though cause I'd have to define it twice, so maybe a const vector or something?
+		// I think an out vector might be the best solution. Idk.
+
+		return _extends->GetTypePolicy(nullptr);
+	}
+
+	Variable ConcretePolicy::GetDefault()
+	{
+		if (policy)
+			return policy->CreateObject(GetTypeID());
+
+		return _default;
+	}
+	void ConcretePolicy::SetDefault(Variable& var)
+	{
+		_default = var;
+	}
 
 
 	void ConcretePolicy::LoadFromRecord(Record& ast) 
 	{
 		_name = ast.GetTag();
 
-		Record* settings = ast.FindChild("settings");
+		Record* settings = ast.FindChild(parse_strings::settings);
 
 		if (!settings) {
 			report::compile::critical("setting not found in type policy record");
 		}
 
-		switch (Hash(settings->GetChild(0).GetTag()))
+		switch (Hash(settings->FindChild(parse_strings::data_type)->GetFront().GetTag()))
 		{
 		case "class"_h:			_dataType = DataType::Class; break;//Makes a given object act like a class in assignment.
 		case "struct"_h:		_dataType = DataType::Struct; break;
@@ -44,11 +96,11 @@ namespace LEX
 		//Do something with generic. It's useless right now
 
 
-		Record& obj_type = settings->GetChild(2);
+		Record& attach = settings->FindChild(parse_strings::attach)->GetFront();
 
 		//I actually will allow interfaces to be external. It prevents them from being instantiable though.
 
-		switch (Hash(obj_type.GetTag()))
+		switch (Hash(attach.GetTag()))
 		{
 			//case "data"_h://Not allowed yet
 		case "external"_h:
@@ -56,7 +108,7 @@ namespace LEX
 			//Should clash with intrinsic.
 			_linkExternal = true;
 
-			if (obj_type.size() == 0) {
+			if (attach.size() == 0) {
 				report::compile::critical("external type requires some type.");
 			}
 
@@ -66,7 +118,7 @@ namespace LEX
 			//save this shit til after linkage.
 			//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
 
-			Record& cat_name = obj_type.GetFront();
+			Record& cat_name = attach.GetFront();
 
 			category = cat_name.GetTag();
 
@@ -90,6 +142,36 @@ namespace LEX
 			report::compile::critical("PLACEHOLDER don't know how to handle unique type."); break;
 		}
 
+	}
+
+	void ConcretePolicy::CompileExpression_DEPRECATED(Record& ast)
+	{
+		//Keeping this because I may have need of it in the future.
+		for (auto& node : ast.GetChildren())
+		{
+			switch (ast.SYNTAX().type)
+			{
+			case SyntaxType::Function:
+				AddFunction(Component::Create<ConcreteFunction>(node));
+				break;
+
+
+			case SyntaxType::Variable:
+				//This is incorrect, this is in policy.
+				AddVariable(Component::Create<Global>(node));
+				break;
+
+
+			default:
+				report::compile::critical("unexpected syntax was invalid.");
+			}
+		}
+
+
+
+
+		//tba
+		//This expects a type of
 	}
 
 
@@ -153,4 +235,7 @@ namespace LEX
 			result |= LinkFlag::External;
 		return  result;
     }
+
+
+
 }

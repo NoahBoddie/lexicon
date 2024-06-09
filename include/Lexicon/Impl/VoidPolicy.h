@@ -13,12 +13,10 @@ namespace LEX
 	{
 	public:
 
-		using ConcretePolicy::ConcretePolicy;
+		//I don't think I'd even want to do this.
+		//using ConcretePolicy::ConcretePolicy;
 
-		//Unlike any other 
-		VoidPolicy() 
-		{
-			//This does nothing basically I guess.
-		}
+		//Should do nothing.
+		VoidPolicy();
 	};
 }

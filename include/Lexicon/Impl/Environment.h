@@ -13,9 +13,17 @@
 #include "SearchPredicate.h"
 
 //*src
-#include "ConcreteFunction.h"
+//#include "ConcreteFunction.h"//For some reason concrete function will not function if not included here. Mess with the order.
+//#include "Element.h"
+//#include "IFunction.h"
+//#include "FunctionData.h"
+//#include "OverloadClause.h"
 
-#include "GlobalVariable.h"
+//#include "FunctionBase.h"
+//#include "AbstractFunction.h"
+
+
+//#include "GlobalVariable.h"
 
 
 namespace LEX
@@ -30,6 +38,7 @@ namespace LEX
 	class Global;
 
 	class PolicyBase;
+	class FunctionBase;
 
 	struct ConcretePolicy;
 	struct AbstractTypePolicy;
@@ -49,6 +58,16 @@ namespace LEX
 		Skip,
 		Force
 	};
+
+
+	enum struct Prefer
+	{
+		None,
+		Type,
+		Script,
+		Project,
+	};
+
 	
 	struct [[deprecated("replaced by OverloadInput")]] SearchParams//Deprecated, 
 	{
@@ -129,6 +148,21 @@ namespace LEX
 
 
 
+	struct IEnvironment : public Element
+	{
+		//This part of an environment can only find other things. I
+		virtual std::vector<FunctionInfo*> FindFunctions(std::string name) = 0;
+
+
+
+		//TODO: Change name to find field, and use a variableInfo for this.
+		virtual VariableInfo* FindVariable(std::string name) = 0;
+
+		virtual std::vector<PolicyBase*> FindTypes(std::string name) = 0;
+
+
+	};
+
 
 
 	struct Environment : public Element
@@ -141,31 +175,6 @@ namespace LEX
 
 
 		//TODO:Add Get AccessModifier function. Operational by default, set to public. Likely, should derive from some pivot that can be shared with global and other components.
-
-
-
-		//<!> All search functions may be a little far behind in concept, I need to sort out my thoughts on how to handle these.
-		//This is used for being able to search scripts
-		//virtual Environment* _SearchScript(bool is_shared, std::string name)
-		//{
-			//While you can search other projects too, the only viable excepted use will 
-			//return nullptr;
-		//}
-		//There might be multiple environments, not so sure about this.
-		std::set<Environment*> SearchEnvironment(Record& ast)
-		{
-			//BREAK THIS DOWN INTO PIECES. GetShared, GetScript, GetNext thing.
-
-			//Can only percieve Keyword{shared}, script name.
-			//The picked environment shouldn't need to be only one type, the type doesn't matter.
-			// it's basically a scopedenvironment or a public environment. {Scripts, Projects (maybe, via keyword only, and only shared), classes, structs}
-			// when it detects a scope that isn't a script, the loop should expect that to be the end.
-			// to do this, I could search for an evironment type like the above, and continuously  looping through each type, catching environment errors. until I get my answer
-
-			//What this doesn't do is get functions, at least not exactly.
-
-			return {};
-		}
 
 
 
@@ -203,10 +212,10 @@ namespace LEX
 
 
 
+		//TODO: Change name to find field, and use a variableInfo for this.
+		virtual VariableInfo* FindVariable(std::string name);
 
-		virtual Global* FindVariable(std::string name);
-
-		virtual std::vector<ITypePolicy*> FindTypes(std::string name);
+		virtual std::vector<PolicyBase*> FindTypes(std::string name);
 
 		//These return Environment instead of scripts because I really only need script from it. That, and it might allow me to use maybe scripts too. 
 		// and there's no need for IScript to be used.
@@ -223,32 +232,57 @@ namespace LEX
 
 
 
-		//NOTE:the search for functions has to have a boolean to say if it explicitly is using a type target or not.
-
-		//TODO: Split SearchField and SearchFunction. Functions will need to return the overload, while Fields don't really need overloads.
-		// You however can search for a function by using a field.
-
-
-		//TODO: SEVERE: Read below, big important.
-		//If I can, I'd like to put this in element some how. I can have calls of GetIncluded target explicitly
-		// the script that the given thing is in. For some, that'd be itself. For classes and functions, elsewhere.
-		QualifiedField SearchField(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
-		
-		Overload SearchFunction(std::string name, OverloadKey& key, FieldPredicate pred = nullptr);
-
-
-		ITypePolicy* SearchType(std::string name, OverloadKey& key, TypePredicate pred = nullptr);
-
-
-		QualifiedField TEMPSearchField(std::string name);
-
-		//These are temp functions that will exist until I can sort out how better to use the above
-		ITypePolicy* TEMPSearchType(std::string name);
 
 
 		//Here's the question, how do we prevent looping? I know what we do. FindFunctions only focuses on itself now. Instead, there's a function I can use to collect
 		// Includes and Imports, and I'll just compile all of their functions. These import functions are not nested. From there, I'll just have a wrapper function handle the 
 		// nested getting.
+
+
+		//This is in Environment.cpp, needs to be moved out.
+		bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
+
+
+		//All versions end up at these last 2 locations.
+		PolicyBase* SearchTypeImpl(std::string name, OverloadKey* key);
+
+
+		QualifiedField SearchFieldImpl(std::string name, OverloadKey* key);
+
+
+		FunctionInfo* SearchFunctionImpl(std::string name, OverloadKey& key, Overload& out);
+
+
+
+
+
+		FunctionInfo* SearchFunction(std::string name, OverloadKey& key, Overload& out);
+
+
+		///These functions are supposed to resolve generic ambiguity.
+		PolicyBase* SearchType(Record& path);
+
+
+		QualifiedField SearchField(Record& path);
+
+
+
+
+
+		Environment* SearchEnvironment(Record& path);
+
+
+
+
+
+		Environment* SearchEnvironmentPath(Record*& _path);
+
+
+		PolicyBase* SearchTypePath(Record& _path);
+
+		FunctionInfo* SearchFunctionPath(Record& _path, OverloadKey& input, Overload& out);
+
+		QualifiedField SearchFieldPath(Record& _path);
 
 
 
@@ -304,5 +338,7 @@ namespace LEX
 		Record* GetSyntaxTree() override;
 
 		void SetSyntaxTree(Record& rec) final override;
-	};	
+	};
+
+	static_assert(std::derived_from<Environment, Component>);
 }
