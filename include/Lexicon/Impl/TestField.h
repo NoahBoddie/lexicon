@@ -299,6 +299,99 @@ namespace LEX
 		return nullptr;
 	}
 
+	namespace
+	{
+		template<typename T, typename = void>
+		struct VariableType
+		{
+
+		};
+
+		//The new implementation of these
+
+		template <>
+		struct VariableType<Void>
+		{
+			AbstractTypePolicy* operator()(const Void*)
+			{
+				return nullptr;
+			}
+		};
+
+
+		template <>
+		struct VariableType<Number>
+		{
+			AbstractTypePolicy* operator()(const Number* it)
+			{
+				ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, !it ? 0 : it->GetOffset());
+
+				//Should already be specialized, so just sending it.
+				return policy->FetchTypePolicy(nullptr);
+			}
+		};
+
+
+		template <>
+		struct VariableType<String>
+		{
+			AbstractTypePolicy* operator()(const String*)
+			{
+				ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
+
+				//Should already be specialized, so just sending it.
+				return policy->FetchTypePolicy(nullptr);
+			}
+		};
+
+
+		template <>
+		struct VariableType<Delegate>
+		{
+			AbstractTypePolicy* operator()(const Delegate*)
+			{
+				return nullptr;
+			}
+		};
+
+
+		template <>
+		struct VariableType<Object>
+		{
+			AbstractTypePolicy* operator()(const Object*)
+			{
+				return nullptr;
+			}
+		};
+
+		template <>
+		struct VariableType<FunctionHandle>
+		{
+			AbstractTypePolicy* operator()(const FunctionHandle*)
+			{
+				return nullptr;
+			}
+		};
+
+		template <>
+		struct VariableType<Array>
+		{
+			AbstractTypePolicy* operator()(const Array*)
+			{
+				return nullptr;
+			}
+		};
+
+		template <>
+		struct VariableType<Variable>
+		{
+			AbstractTypePolicy* operator()(const Variable*)
+			{
+				return nullptr;
+			}
+		};
+	}
+
 
 
 
@@ -2839,11 +2932,9 @@ struct Extension
 		constexpr accepts_all(T&&) {}
 	};
 
-	//*
+	
 	namespace NewVariableType
 	{
-		class ITypePolicy;
-		class AbstractTypePolicy;
 
 		//tag to tell tha this is being used by a single type.
 		struct single_type {};
@@ -2857,7 +2948,7 @@ struct Extension
 			{
 				//The storage type function can be defined like this.
 				// Function must be static, have no parameters, and return ITypePolicy.
-				static ITypePolicy* GetStorageType()
+				static AbstractTypePolicy* GetStorageType()
 				{
 					return {};
 				}
@@ -2874,7 +2965,13 @@ struct Extension
 				//Additionally, both storage and value can be defined like this. This denotes that the value type does not change based on runtime 
 				// value. This will take precedence over other declared variables.
 				// It's required the function must be static and return AbstractTypePolicy.
-				static AbstractTypePolicy* GetVariableType()
+				//static AbstractTypePolicy* GetVariableType()
+				//{
+				//	return {};
+				//}
+
+				//This is also a viable declaration for variable types that have differences between static and not static
+				static AbstractTypePolicy* GetVariableType(const example*)
 				{
 					return {};
 				}
@@ -2917,14 +3014,23 @@ struct Extension
 
 
 		//These will need supplemental version
-		template<typename T> concept type_has_variable_type = requires()
+		template<typename T> concept type_has_var_type_Void = requires()
 		{
 			{ T::GetVariableType() } -> pointer_derived_from<AbstractTypePolicy*>;
 		};
 
+		template<typename T> concept type_has_var_type_Ptr = requires(const T* t)
+		{
+			{ T::GetVariableType(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+		}; 
+		
+		template<typename T> concept type_has_variable_type = type_has_var_type_Ptr<T> || type_has_var_type_Void<T>;
+
+
+
 		template<typename T> concept type_has_storage_type = requires()
 		{
-			{ T::GetStorageType() } -> pointer_derived_from<ITypePolicy*>;
+			{ T::GetStorageType() } -> pointer_derived_from<AbstractTypePolicy*>;
 		} || type_has_variable_type<T>;
 		template<typename T> concept type_has_value_type = requires(const T& t)
 		{
@@ -2936,43 +3042,6 @@ struct Extension
 
 
 
-
-		template <type_has_storage_type T>
-		void foo1()
-		{
-			
-		}
-
-		template <type_has_value_type T>
-		void foo2()
-		{
-
-		}
-
-
-		template <type_has_variable_type T>
-		void foo3()
-		{
-
-		}
-
-
-
-
-		void TESTTHEOREM()
-		{
-			constexpr bool testit = std::derived_from<AbstractTypePolicy*, ITypePolicy*>;
-
-			foo1<detail::example>();
-			foo2<detail::example>();
-			foo3<detail::example>();
-
-			//foo1<wrong_type>();
-			//foo2<wrong_type>();
-			//foo3<wrong_type>();
-
-			constexpr bool test = exper_fail<int>;
-		}
 
 
 
@@ -2986,9 +3055,9 @@ struct Extension
 			//I still don't like this a ton because you need to implement the function still
 
 		private:
-			ITypePolicy* operator()()
+			AbstractTypePolicy* operator()()
 			{
-
+				return nullptr;
 			}
 		};
 
@@ -3024,17 +3093,40 @@ struct Extension
 		//This is the implemented version of these functions. They need to pass a concept that states
 		// the function itself implements what's required.
 		
-		template<type_has_storage_type T>
-		ITypePolicy* GetStorageType()
+		
+		template<type_has_variable_type T>
+		AbstractTypePolicy* GetVariableType(const T* arg)
 		{
-			return {};
+			if constexpr (type_has_var_type_Ptr<T>){
+				return T::GetVariableType(arg);
+			}
+			else {
+				return T::GetVariableType();
+			}
+		}
+
+		template<type_has_storage_type T>
+		AbstractTypePolicy* GetStorageType()
+		{
+			
+			if constexpr (type_has_variable_type<T>) {
+				return GetVariableType<T>(nullptr);
+			}
+			else {
+				return T::GetStorageType();
+			}
 		}
 
 
 		template<type_has_value_type T>
-		AbstractTypePolicy* GetValueType(const T&)
+		AbstractTypePolicy* GetValueType(const T& arg)
 		{
-			return {};
+			if constexpr (type_has_variable_type<T>) {
+				return GetVariableType(&arg);
+			}
+			else {
+				return arg.GetValueType();
+			}
 		}
 
 		///////////////////////////////////////////////
@@ -3053,7 +3145,7 @@ struct Extension
 		};
 		template<typename T> concept store_type_implemented = requires()
 		{
-			{ StorageType<T>{}.operator()() } -> pointer_derived_from<ITypePolicy*>;
+			{ StorageType<T>{}.operator()() } -> pointer_derived_from<AbstractTypePolicy*>;
 		};
 
 		template <>
@@ -3061,7 +3153,7 @@ struct Extension
 		{
 			using T = TBDL;
 
-			ITypePolicy* operator()()
+			AbstractTypePolicy* operator()()
 			{
 				static_assert(std::is_same_v<T, T>, "Example ReturnType<TBDL> cannot be used.");
 			}
@@ -3092,14 +3184,14 @@ struct Extension
 		};
 		template<typename T> concept stor_func_impl = requires()
 		{
-			{ GetStorageType<T>() } -> std::same_as<ITypePolicy*>;
+			{ GetStorageType<T>() } -> std::same_as<AbstractTypePolicy*>;
 		};
 
 		//*
 		template <stor_func_impl T>
 		struct StorageType<T>
 		{
-			ITypePolicy* operator()()
+			AbstractTypePolicy* operator()()
 			{
 				return GetStorageType<T>();
 			}
@@ -3118,31 +3210,6 @@ struct Extension
 		//*/
 
 
-		template <value_type_implemented T>
-		void bar1()
-		{
-
-		}
-
-		template<typename T> concept bar2_constraint = requires(const T & t)
-		{
-			{ ValueType<T>{}.operator()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
-		};
-
-
-		template <store_type_implemented T>
-		void bar2()
-		{
-
-		}
-
-		void TestBar()
-		{
-			ValueType<TBDL> t;
-
-			bar1<TBDL>();
-			bar2<TBDL>();
-		}
 
 		
 		//These are spotty right now. Please redo.
@@ -3152,7 +3219,7 @@ struct Extension
 				//!std::is_same_v<StorageType<example>, StorageType<T>> && 
 				requires()
 				{
-					{ StorageType<T>{}.operator()() } -> pointer_derived_from<ITypePolicy*>;
+					{ StorageType<T>{}.operator()() } -> pointer_derived_from<AbstractTypePolicy*>;
 				};
 
 			template<typename T> concept var_impl = !std::is_base_of_v<detail::not_implemented, ValueType<T>> &&
@@ -3172,16 +3239,16 @@ struct Extension
 
 
 		template <detail::var_impl T>
-		AbstractTypePolicy* GetValueTypeImpl(detail::custom_decay<T>& arg)
+		AbstractTypePolicy* FetchValueType(detail::custom_decay<T>& arg)
 		{
 			using _T = detail::custom_decay<T>;
 
 			return ValueType<_T>{}(arg);
 		}
-
+		
 
 		template <detail::ret_impl T>
-		ITypePolicy* GetStorageTypeImpl()
+		AbstractTypePolicy* FetchStorageType()
 		{
 			using _T = detail::custom_decay<T>;
 
@@ -3199,19 +3266,19 @@ struct Extension
 
 
 		template <detail::obj_impl T>
-		ITypePolicy* GetVariableType(detail::custom_decay<T>* arg)
+		AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>* arg)
 		{
 			using _T = detail::custom_decay<T>;
 
 
-			ITypePolicy* type = nullptr;
+			AbstractTypePolicy* type = nullptr;
 
 			if (arg) {
-				type = GetValueTypeImpl<_T>(*arg);
+				type = FetchValueType<_T>(*arg);
 			}
 
 			if (!type) {
-				type = GetStorageTypeImpl<_T>();
+				type = FetchStorageType<_T>();
 			}
 
 			return type;
@@ -3220,12 +3287,12 @@ struct Extension
 
 		
 		template <detail::obj_impl T>
-		AbstractTypePolicy* GetVariableType(detail::custom_decay<T>& arg)
+		AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>& arg)
 		{
 			using _T = detail::custom_decay<T>;
 
 			 
-			return GetValueTypeImpl<_T>(arg);
+			return FetchValueType<_T>(arg);
 		}
 		
 		template <>
@@ -3236,7 +3303,7 @@ struct Extension
 			//Getting the ReturnType returns a ITypePolicy, an interface of a type, as a single C++ type could possibly
 			// be able to represent a generic imaginary object.
 
-			ITypePolicy* operator()()
+			AbstractTypePolicy* operator()()
 			{
 				return {};
 			}
@@ -3300,7 +3367,7 @@ struct Extension
 			//ITypePolicy* test = GetStorageType<int>();
 
 			int in = 1;
-			AbstractTypePolicy* test3 = GetVariableType(in);
+			AbstractTypePolicy* test3 = FetchVariableType(in);
 
 			ITypePolicy* test = GetStorageType<Example>();
 			AbstractTypePolicy* test2 = GetValueType<Example>(ex);
@@ -3315,8 +3382,14 @@ struct Extension
 			static_assert(_4, "4");
 			static_assert(_5, "5");
 			static_assert(_6, "6");
+			constexpr bool test_this = requires(const Example* example)
+			{
+				{ Example::GetVariableType(example) } -> pointer_derived_from<AbstractTypePolicy*>;
+			};
 
-			GetVariableType(ex);
+
+			GetStorageType<Example>();
+			FetchVariableType(ex);
 		}
 		
 		
@@ -3331,7 +3404,345 @@ struct Extension
 
 
 	}
-	//*/
+
+
+	namespace NewVariableType2
+	{
+
+
+		namespace detail
+		{
+			using not_implemented = ::LEX::detail::not_implemented;
+			//move example
+			struct example
+			{
+				//The storage type function can be defined like this.
+				// Function must be static, have no parameters, and return ITypePolicy.
+				static AbstractTypePolicy* GetStorageType()
+				{
+					return {};
+				}
+
+
+
+				//As the value type function can be defined like this,
+				// Requiring the function to be const and membered (virtual allowed), no parameters, and return AbstractTypePolicy.
+				AbstractTypePolicy* GetValueType() const
+				{
+					return {};
+				}
+
+				//Additionally, both storage and value can be defined like this. This denotes that the value type does not change based on runtime 
+				// value. This will take precedence over other declared variables.
+				// It's required the function must be static and return AbstractTypePolicy.
+				//static AbstractTypePolicy* GetVariableType()
+				//{
+				//	return {};
+				//}
+
+				//This is also a viable declaration for variable types that have differences between static and not static
+				static AbstractTypePolicy* GetVariableType(const example*)
+				{
+					return {};
+				}
+			};
+		}
+
+
+		template <class Derived, class Base>
+		concept pointer_derived_from = std::derived_from<std::remove_pointer_t<Derived>, std::remove_pointer_t<Base>>;
+
+
+		namespace detail
+		{
+			//These will need supplemental version
+			template<typename T> concept subject_has_var_type_Store = requires()
+			{
+				{ T::GetVariableType() } -> pointer_derived_from<AbstractTypePolicy*>;
+			};
+
+			template<typename T> concept subject_has_var_type_Value = requires(const T * t)
+			{
+				{ T::GetVariableType(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+			};
+
+			template<typename T> concept subject_has_var_type = subject_has_var_type_Value<T> || subject_has_var_type_Store<T>;
+
+		}
+		
+
+
+
+
+
+		template <typename T, typename = void>
+		struct VariableType : public detail::not_implemented
+		{
+
+			//This should never be used manually, so private so just in case it actually is used it will throw 
+			// a compiler error.
+			
+			/*
+			AbstractTypePolicy* operator()()
+			{
+				//static_assert
+				return nullptr;
+			}
+
+			AbstractTypePolicy* operator()(const T*)
+			{
+				//static_assert
+				return nullptr;
+			}
+			//*/
+		};
+
+
+
+		//This is the non implemented version of GetStorageType
+		template<typename T>
+		detail::not_implemented GetVariableType(const accepts_all, detail::not_implemented = {})
+		{
+			static_assert(std::is_same_v<T, T>, "Unimplemented version of GetValueType called.");
+			return {};
+		}
+
+		//This is the implemented version of these functions. They need to pass a concept that states
+		// the function itself implements what's required.
+
+
+		template<detail::subject_has_var_type T>
+		AbstractTypePolicy* GetVariableType(const T* arg = nullptr)
+		{
+			if constexpr (detail::subject_has_var_type_Value<T>) {
+				return T::GetVariableType(arg);
+			}
+			else {
+				return T::GetVariableType();
+			}
+		}
+
+		///////////////////////////////////////////////
+
+
+		//To be defined later, this should be a concept that declares GetStorageType and GetValueType need to have an implementation
+		// for each to be used.
+		struct TBDL {};
+
+
+		template<>
+		struct VariableType<TBDL>
+		{
+
+			AbstractTypePolicy* operator()()
+			{
+
+			}
+
+			AbstractTypePolicy* operator()(const TBDL*)
+			{
+
+			}
+		};
+
+		namespace detail
+		{
+			template<typename T> concept function_has_var_type_Value = requires(const T * t)
+			{
+				{ GetVariableType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
+			};
+			template<typename T> concept function_has_var_type_Store = requires()
+			{
+				{ GetVariableType<T>() } -> std::same_as<AbstractTypePolicy*>;
+			};
+
+			template<typename T> concept function_has_var_type = function_has_var_type_Value<T> || function_has_var_type_Store<T>;
+		}
+
+
+		template <detail::function_has_var_type T>
+		struct VariableType<T>
+		{
+			AbstractTypePolicy* operator()(const T* arg)
+			{
+				if constexpr (detail::function_has_var_type_Value<T>) {
+					return GetVariableType<T>(arg);
+				}
+				else {
+					return GetVariableType<T>();
+				}
+			}
+
+			AbstractTypePolicy* operator()()
+			{
+				return this->operator()(nullptr);
+			}
+
+		};
+		
+
+
+
+
+		//These are spotty right now. Please redo.
+		namespace detail
+		{
+			template<typename T> concept call_class_has_var_type_Store = !std::is_base_of_v<not_implemented, VariableType<T>> &&
+				//!std::is_same_v<StorageType<example>, StorageType<T>> && 
+				requires()
+			{
+				{ VariableType<T>{}.operator()() } -> pointer_derived_from<AbstractTypePolicy*>;
+			};
+
+			template<typename T> concept call_class_has_var_type_Value = !std::is_base_of_v<not_implemented, VariableType<T>>&&
+				//!std::is_same_v<ValueType<example>, ValueType<T>> && 
+				requires(const T* t)
+			{
+				{ VariableType<T>{}.operator()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+			};
+
+			
+			template<typename T> concept call_class_has_var_type = call_class_has_var_type_Store<T> || call_class_has_var_type_Value<T>;
+
+
+			template<typename T>
+			using custom_decay = T;//std::decay_t<T>;//
+		}
+
+
+
+
+		//When using a reference it will only get the value type. When getting it via pointer it may give you the storage type if null.
+		//Direct functions can be used if one so chooses.
+
+		//<!> Note, these args shouldn't be using custom T, instead that should onl be used to load the next GetValue/Storage function. 
+		// This is so that the explicit specialization doesn't use the wrong type
+
+
+
+		template <detail::call_class_has_var_type_Store T>
+		AbstractTypePolicy* FetchVariableType()
+		{
+			using Decay_T = detail::custom_decay<T>;
+
+			return VariableType<Decay_T>{}();
+
+		}
+
+		template <detail::call_class_has_var_type T>
+		AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>* arg)
+		{
+			using Decay_T = detail::custom_decay<T>;
+
+
+			AbstractTypePolicy* type = nullptr;
+
+			//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
+
+			if constexpr (detail::call_class_has_var_type_Value<T>) {
+				if (arg) {
+					return VariableType<Decay_T>{}(arg);
+				}
+			}
+
+			if constexpr (detail::call_class_has_var_type_Store<T>) {
+				if (!type) {
+					type = FetchVariableType<Decay_T>();
+				}
+			}
+			
+			return type;
+
+		}
+
+
+		template <detail::call_class_has_var_type T>
+		AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>& arg)
+		{
+			using _T = detail::custom_decay<T>;
+
+
+			return FetchVariableType<_T>(&arg);
+		}
+
+
+		template <>
+		struct VariableType<int>
+		{
+			using T = int;
+
+
+			AbstractTypePolicy* operator()()
+			{
+				return {};
+			}
+
+			AbstractTypePolicy* operator()(const T*)
+			{
+				return {};
+			}
+		};
+
+		
+		void FULLtest()
+		{
+
+			using Example = detail::example;
+
+			using namespace detail;
+
+			Example ex;
+			ValueType<Example> v;
+			StorageType<Example> s;
+
+			VariableType<Example> vex;
+			auto test_v = vex();
+
+			GetVariableType<Example>();
+
+			constexpr bool _1 = call_class_has_var_type_Store<Example>;
+			constexpr bool _2 = call_class_has_var_type_Value<Example>;
+
+			//ITypePolicy* test = GetStorageType<int>();
+
+			int in = 1;
+			AbstractTypePolicy* test3 = FetchVariableType(in);
+
+			ITypePolicy* test = FetchVariableType<Example>();
+
+			constexpr bool _3 = function_has_var_type_Store<Example>;
+			constexpr bool _4 = function_has_var_type_Value<Example>;
+			constexpr bool _5 = function_has_var_type_Store<Example>;
+			constexpr bool _6 = subject_has_var_type_Value<Example>;
+			constexpr bool _7 = function_has_var_type<Example>;
+
+			//Failure<int>();
+
+			static_assert(_3, "3");
+			static_assert(_4, "4");
+			static_assert(_5, "5");
+			static_assert(_6, "6");
+
+			constexpr bool test_this = requires(const Example * example)
+			{
+				{ Example::GetVariableType(example) } -> pointer_derived_from<AbstractTypePolicy*>;
+			};
+
+
+			FetchVariableType(ex);
+			FetchVariableType(ex);
+
+		}
+
+
+
+	}
+
+
+
+
+
+
 	//This kind of set up allows for type based specialization. I think I may actually change my mind and centralize the main thing more
 	// as types no longer have the advantage when it comes to explicit specialization.
 	template <typename T, typename = void>

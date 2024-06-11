@@ -562,7 +562,7 @@ namespace LEX
             return result;
         }
 
-        TypeOffset GetOffset()
+        TypeOffset GetOffset() const
         {
             //probably should just do the calculation but eh
             return _priority;
