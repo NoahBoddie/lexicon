@@ -414,6 +414,28 @@ namespace RGL
     template <typename _To, typename _From>
     concept variant_convertible_from = variant_convertible_to<_From, _To>;
 
+
+
+    template <class Derived, class Base>
+    concept pointer_derived_from = std::derived_from<std::remove_pointer_t<Derived>, std::remove_pointer_t<Base>>;
+
+
+    struct accepts_all
+    {
+        //This type helps resolve some ambiguity between 2 like functions by making the invalid one convert while the actual on takes a reference.
+        constexpr accepts_all() = default;
+
+        template <typename T>
+        constexpr accepts_all(T) {}
+
+
+        template <typename T>
+        constexpr accepts_all(const T&) {}
+
+        template <typename T>
+        constexpr accepts_all(T&&) {}
+    };
+
 }
 
 namespace LEX::detail

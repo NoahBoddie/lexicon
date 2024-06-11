@@ -177,6 +177,7 @@ namespace LEX
 		constexpr static TypeOffset Object = 0;//ExternalHandle
 		constexpr static TypeOffset Delegate = 0;
 	};
+
 #define NUMBER_SET_NAME "NUMBER"
 #define STRING_SET_NAME "STRING"
 #define ARRAY_SET_NAME "ARRAY"
@@ -184,213 +185,80 @@ namespace LEX
 #define OBJECT_SET_NAME "OBJECT"
 #define DELEGATE_SET_NAME "DELEGATE"
 
+	//TODO: This should be moved.
 
-	//I need to figure out why these only work if being used by 1 source, and why it won't work if that source
-	// is variable type
-	ITypePolicy* StorageType<Void>::operator()()
-	{
-		//Should be returning the none type.
-		return nullptr;
-	}
-	AbstractTypePolicy* ValueType<Void>::operator()(Void&)
+	AbstractTypePolicy* VariableType<Void>::operator()(const Void*)
 	{
 		return nullptr;
 	}
 
 
 
-	ITypePolicy* StorageType<Number>::operator()()
+	AbstractTypePolicy* VariableType<Number>::operator()(const Number* it)
 	{
-		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, 0);
-
-		//Should already be specialized, so just sending it.
-		return policy->FetchTypePolicy(nullptr);
-	}
-
-	AbstractTypePolicy* ValueType<Number>::operator()(Number& it)
-	{
-
-		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, it.GetOffset());
-
+		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, !it ? 0 : it->GetOffset());
 
 		//Should already be specialized, so just sending it.
 		return policy->FetchTypePolicy(nullptr);
 	}
 
 
-
-	ITypePolicy* StorageType<String>::operator()()
+	AbstractTypePolicy* VariableType<String>::operator()(const String*)
 	{
 		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
 
 		//Should already be specialized, so just sending it.
-		return policy;
-	}
-
-	AbstractTypePolicy* ValueType<String>::operator()(String& it)
-	{
-		return StorageType<String>{}()->GetTypePolicy(nullptr);
+		return policy->FetchTypePolicy(nullptr);
 	}
 
 
-	//The currently unused ones
-
-
-
-	ITypePolicy* StorageType<Delegate>::operator()()
-	{
-		return nullptr;
-	}
-	AbstractTypePolicy* ValueType<Delegate>::operator()(Delegate& it)
+	AbstractTypePolicy* VariableType<Delegate>::operator()(const Delegate*)
 	{
 		return nullptr;
 	}
 
 
-
-	ITypePolicy* StorageType<Object>::operator()()
+	AbstractTypePolicy* VariableType<Object>::operator()(const Object*)
 	{
 		return nullptr;
 	}
 
-	AbstractTypePolicy* ValueType<Object>::operator()(Object& it)
-	{
-		return nullptr;
-	}
-
-
-	///
-
-	ITypePolicy* StorageType<FunctionHandle>::operator()()
-	{
-		return nullptr;
-	}
-
-	AbstractTypePolicy* ValueType<FunctionHandle>::operator()(FunctionHandle& it)
+	AbstractTypePolicy* VariableType<FunctionHandle>::operator()(const FunctionHandle*)
 	{
 		return nullptr;
 	}
 
 
-
-
-	ITypePolicy* StorageType<Array>::operator()()
+	AbstractTypePolicy* VariableType<Array>::operator()(const Array*)
 	{
 		return nullptr;
 	}
 
-
-
-	AbstractTypePolicy* ValueType<Array>::operator()(Array& it)
+	AbstractTypePolicy* VariableType<Variable>::operator()(const Variable*)
 	{
 		return nullptr;
 	}
 
-
-
-
-	ITypePolicy* StorageType<Variable>::operator()()
+	AbstractTypePolicy* VariableType<double>::operator()()
 	{
-		return nullptr;
+		//I could just make this numeric
+		static AbstractTypePolicy* result = nullptr;
+
+		if (!result) {
+
+			//offset
+			constexpr auto setting = LEX::Number::Settings::CreateFromType<double>();
+
+			auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
+
+			result = buffer->FetchTypePolicy(nullptr);
+
+			logger::info("id? {}", (int)result->FetchTypeID());
+		}
+
+		return result;
 	}
 
-	AbstractTypePolicy* ValueType<Variable>::operator()(const Variable& it)
-	{
-		return nullptr;
-	}
-
-	namespace
-	{
-		template<typename T, typename = void>
-		struct VariableType
-		{
-
-		};
-
-		//The new implementation of these
-
-		template <>
-		struct VariableType<Void>
-		{
-			AbstractTypePolicy* operator()(const Void*)
-			{
-				return nullptr;
-			}
-		};
-
-
-		template <>
-		struct VariableType<Number>
-		{
-			AbstractTypePolicy* operator()(const Number* it)
-			{
-				ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, !it ? 0 : it->GetOffset());
-
-				//Should already be specialized, so just sending it.
-				return policy->FetchTypePolicy(nullptr);
-			}
-		};
-
-
-		template <>
-		struct VariableType<String>
-		{
-			AbstractTypePolicy* operator()(const String*)
-			{
-				ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
-
-				//Should already be specialized, so just sending it.
-				return policy->FetchTypePolicy(nullptr);
-			}
-		};
-
-
-		template <>
-		struct VariableType<Delegate>
-		{
-			AbstractTypePolicy* operator()(const Delegate*)
-			{
-				return nullptr;
-			}
-		};
-
-
-		template <>
-		struct VariableType<Object>
-		{
-			AbstractTypePolicy* operator()(const Object*)
-			{
-				return nullptr;
-			}
-		};
-
-		template <>
-		struct VariableType<FunctionHandle>
-		{
-			AbstractTypePolicy* operator()(const FunctionHandle*)
-			{
-				return nullptr;
-			}
-		};
-
-		template <>
-		struct VariableType<Array>
-		{
-			AbstractTypePolicy* operator()(const Array*)
-			{
-				return nullptr;
-			}
-		};
-
-		template <>
-		struct VariableType<Variable>
-		{
-			AbstractTypePolicy* operator()(const Variable*)
-			{
-				return nullptr;
-			}
-		};
-	}
 
 
 
@@ -398,9 +266,8 @@ namespace LEX
 	//This is so temporary I hate that I'm doing it like this.
 	AbstractTypePolicy* Variable::_CheckVariableType()
 	{
-
 		AbstractTypePolicy* result = std::visit([&](auto&& lhs) {
-			return GetValueType(lhs);
+			return FetchVariableType(lhs);
 			}, _value);
 
 		return result;
@@ -412,8 +279,6 @@ namespace LEX
 
 	void test()
 	{
-		StorageType<void> t;
-		ValueType<void> t2;
 
 
 	}
@@ -1831,7 +1696,7 @@ struct Extension
 			sign.target : sign.parameters.emplace_back();
 			
 		logger::info("increase? {}", sign.parameters.size());
-		entry.policy = GetStorageType<_Refless>();
+		entry.policy = FetchVariableType<_Refless>();
 
 		if constexpr (std::is_const_v<_Naked>){
 			entry.flags |= Qualifier::Const;
@@ -1858,30 +1723,7 @@ struct Extension
 			return true;
 		}
 	}
-
-	template <>
-	struct StorageType<double>
-	{
-
-		ITypePolicy* operator()()
-		{
-			//I could just make this numeric
-			static ITypePolicy* result = nullptr;
-
-			if (!result) {
-				
-				//offset
-				constexpr auto setting = LEX::Number::Settings::CreateFromType<double>();
-				
-				result = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
-				
-				logger::info("id? {}", (int)result->FetchTypeID());
-			}
-
-			return result;
-		}
-	};
-
+	
 #define TESTNAME CONCAT(Test,__COUNTER__)
 
 	void SCRAPNAME(void(*infoke)())
@@ -2915,23 +2757,7 @@ struct Extension
 		UnusableFunc<double>();
 	}
 
-
-	struct accepts_all
-	{
-		//This type helps resolve some ambiguity between 2 like functions by making the invalid one convert while the actual on takes a reference.
-		constexpr accepts_all() = default;
-
-		template <typename T>
-		constexpr accepts_all(T) {}
-
-
-		template <typename T>
-		constexpr accepts_all(const T&) {}
-
-		template <typename T>
-		constexpr accepts_all(T&&) {}
-	};
-
+	VariableType<int> t;
 	
 	namespace NewVariableType
 	{
@@ -3692,8 +3518,7 @@ struct Extension
 			using namespace detail;
 
 			Example ex;
-			ValueType<Example> v;
-			StorageType<Example> s;
+			
 
 			VariableType<Example> vex;
 			auto test_v = vex();

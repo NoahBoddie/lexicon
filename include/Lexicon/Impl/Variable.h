@@ -664,7 +664,7 @@ namespace LEX
         Variable& Assign(Variable& other)
         {
             if (_type)
-                CheckAssign(GetValueType(other));
+                CheckAssign(FetchVariableType(other));
 
             _value = other._value;
 
@@ -757,7 +757,7 @@ namespace LEX
 
         //This shouldn't need to work like this, but it's what it does for now.
         AbstractTypePolicy* policy = std::visit([](auto&& lhs) {
-            return GetValueType(lhs);
+            return FetchVariableType(lhs);
             }, temp);
 
         //AbstractTypePolicy* policy = GetValueType(other);

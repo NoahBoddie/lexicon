@@ -12,216 +12,271 @@ namespace LEX
 	class ITypePolicy;
 	class AbstractTypePolicy;
 	
-	//tag to tell tha this is being used by a single type.
-	struct single_type {};
 
 	namespace detail
 	{
-		
 		//move example
-		struct example {};
+		struct example
+		{
+			//The storage type function can be defined like this.
+			// Function must be static, have no parameters, and return ITypePolicy.
+			static AbstractTypePolicy* GetStorageType()
+			{
+				return {};
+			}
+
+
+
+			//As the value type function can be defined like this,
+			// Requiring the function to be const and membered (virtual allowed), no parameters, and return AbstractTypePolicy.
+			AbstractTypePolicy* GetValueType() const
+			{
+				return {};
+			}
+
+			//Additionally, both storage and value can be defined like this. This denotes that the value type does not change based on runtime 
+			// value. This will take precedence over other declared variables.
+			// It's required the function must be static and return AbstractTypePolicy.
+			static AbstractTypePolicy* GetVariableType()
+			{
+				return {};
+			}
+
+			//This is also a viable declaration for variable types that have differences between static and not static
+			static AbstractTypePolicy* GetVariableType(const example*)
+			{
+				return {};
+			}
+		};
 	}
 
-	
-	//This is storageType
-	template <typename T>
-	struct StorageType : public detail::not_implemented
+
+	namespace detail
 	{
-		//instead of void, I can perhaps use a different type.
-		//No operator as we can see.
-
-		//I still don't like this a ton because you need to implement the function still
-
-	private:
-		ITypePolicy* operator()()
+		//These will need supplemental version
+		template<typename T> concept subject_has_var_type_Store = requires()
 		{
+			{ T::GetVariableType() } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
 
-		}
-	};
+		template<typename T> concept subject_has_var_type_Value = requires(const T * t)
+		{
+			{ T::GetVariableType(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
 
-	//And this is value type.
-	template <typename T>
-	struct ValueType : public detail::not_implemented
+		template<typename T> concept subject_has_var_type = subject_has_var_type_Value<T> || subject_has_var_type_Store<T>;
+
+	}
+
+
+
+
+
+
+	template <typename T, typename = void>
+	struct VariableType : public detail::not_implemented
 	{
-#pragma region a spiel
-		//this one is a bit special dig? See I want to decay whatever T is so there aren't any references, pointers
-		// of the type there, though arrays are allowed. For this I think I'll make my own type trait.
 
-		//A key thing of note is this is manually implemented, so one can say, have the T be TESForm, but the
-		// operator will use TESForm*.
-		// So when searching for the variable type class to use, what it should be done is these things should be decayed
-		// away. 
-		//Specifically as a reminder, pointer types (not just c pointers), constness etc.
-
-		//Within the concept, it's required that the argument that carries the evaluation either be a pointer or reference,
-		// as the creation of new objects shouldn't be allowed here. (unless by chance the object is small/trivally copiable
-		// which would be a slight optimization.
-
-		//Additionally, it's notable that the operator but either be a const pointer or const reference of the type
-		// it's trying to use. Just to make sure that no setting ever happens.
-
-
-
-		//More notable settings. If something is considered nullable that's when return type is needed.
-		// If one never encounters a nullable one you may never need to define the return type. However,
-		// slight issue with this is that what if something is nullable
-
-		//SO maybe to control this is a possible boolean comparison to std::nullptr_t? And that will reenable the
-		// ReturnType query.
-
-
-		//Also if something has a ReturnType but no VariableType that should be able to run that, but perhaps
-		// with a warning. However if you have some tag on the class some how you can prevent it from doing that.
-
-
-		//Maybe for both concepts you can have it only use a base class to signify you will not need the other one.
-#pragma endregion
-	private:
 		//This should never be used manually, so private so just in case it actually is used it will throw 
 		// a compiler error.
+
+		/*
+		AbstractTypePolicy* operator()()
+		{
+			//static_assert
+			return nullptr;
+		}
+
 		AbstractTypePolicy* operator()(const T*)
 		{
 			//static_assert
 			return nullptr;
 		}
+		//*/
 	};
 
 
-	//Examples
-#pragma region Examples
-	//Note: Remove static_assert and "using T" in implementation.
-	
-	template <>
-	struct StorageType<detail::example>
+
+	//This is the non implemented version of GetStorageType
+	template<typename T>
+	detail::not_implemented GetVariableType(const accepts_all, detail::not_implemented = {})
 	{
-		using T = detail::example;
+		static_assert(std::is_same_v<T, T>, "Unimplemented version of GetValueType called.");
+		return {};
+	}
 
-		//Getting the ReturnType returns a ITypePolicy, an interface of a type, as a single C++ type could possibly
-		// be able to represent a generic imaginary object.
+	//This is the implemented version of these functions. They need to pass a concept that states
+	// the function itself implements what's required.
 
-		ITypePolicy* operator()()
-		{
-			static_assert(std::is_same_v<T, T>, "Example ReturnType<detail::example> cannot be used.");
-		}
-		
-	};
-	
-	template <>
-	struct ValueType<detail::example>
+
+	template<detail::subject_has_var_type T>
+	AbstractTypePolicy* GetVariableType(const T* arg = nullptr)
 	{
-		using T = detail::example;
-		
-		//Getting the VariableType must return an AbstractTypePolicy, meaning that it's connected to a real
-		// instantiable type. As it's arguments it takes either a type that passes the "pointer_type" constraints
-		// or is a reference and must always be passed const to prevent data manipulation or access data creation.
+		if constexpr (detail::subject_has_var_type_Value<T>) {
+			return T::GetVariableType(arg);
+		}
+		else {
+			return T::GetVariableType();
+		}
+	}
+
+	///////////////////////////////////////////////
 
 
-		AbstractTypePolicy* operator()(const detail::example*)
+	//To be defined later, this should be a concept that declares GetStorageType and GetValueType need to have an implementation
+	// for each to be used.
+	struct TBDL {};
+
+
+	template<>
+	struct VariableType<TBDL>
+	{
+
+		AbstractTypePolicy* operator()()
 		{
-			static_assert(std::is_same_v<T, T>, "Example VariableType<detail::example> cannot be used.");
+
 		}
 
-		AbstractTypePolicy* operator()(const detail::example&)
+		AbstractTypePolicy* operator()(const TBDL*)
 		{
-			static_assert(std::is_same_v<T, T>, "Example VariableType<detail::example> cannot be used.");
+
 		}
 	};
-
-#pragma endregion
 
 	namespace detail
 	{
-		template<typename T> concept ret_impl = !std::is_base_of_v<detail::not_implemented, StorageType<T>> &&
-			!std::is_same_v<StorageType<example>, StorageType<T>>;
+		template<typename T> concept function_has_var_type_Value = requires(const T * t)
+		{
+			{ GetVariableType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
+		};
+		template<typename T> concept function_has_var_type_Store = requires()
+		{
+			{ GetVariableType<T>() } -> std::same_as<AbstractTypePolicy*>;
+		};
 
-		template<typename T> concept var_impl = !std::is_base_of_v<detail::not_implemented, ValueType<T>> &&
-			!std::is_same_v<ValueType<example>, ValueType<T>>;
-		
-		//
-		template<typename T> concept obj_impl = ret_impl<T> && var_impl<T>;
-
-
-
-		//I will specify how this works later. Right now? Direct as shit.
-
-
-		//About this decay, I'm thinking that primarily you'll see a wrapper function used, a detail function
-		// that can handle the decay somehow.
-		//using Type = 
+		template<typename T> concept function_has_var_type = function_has_var_type_Value<T> || function_has_var_type_Store<T>;
+	}
 
 
-		//the idea of this function is that it needs explicit specialization, or the existence of a certain function within the type to be used.
-		// Otherwise, it will return null, or perhaps the void type.
+	template <detail::function_has_var_type T>
+	struct VariableType<T>
+	{
+		AbstractTypePolicy* operator()(const T* arg)
+		{
+			if constexpr (detail::function_has_var_type_Value<T>) {
+				return GetVariableType<T>(arg);
+			}
+			else {
+				return GetVariableType<T>();
+			}
+		}
+
+		AbstractTypePolicy* operator()()
+		{
+			return this->operator()(nullptr);
+		}
+
+	};
+
+
+
+
+
+	//These are spotty right now. Please redo.
+	namespace detail
+	{
+		template<typename T> concept call_class_has_var_type_Store = !std::is_base_of_v<not_implemented, VariableType<T>>&&
+			//!std::is_same_v<StorageType<example>, StorageType<T>> && 
+			requires()
+		{
+			{ VariableType<T>{}.operator()() } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
+
+		template<typename T> concept call_class_has_var_type_Value = !std::is_base_of_v<not_implemented, VariableType<T>>&&
+			//!std::is_same_v<ValueType<example>, ValueType<T>> && 
+			requires(const T* t)
+		{
+			{ VariableType<T>{}.operator()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
+
+
+		template<typename T> concept call_class_has_var_type = call_class_has_var_type_Store<T> || call_class_has_var_type_Value<T>;
+
 
 		template<typename T>
 		using custom_decay = T;//std::decay_t<T>;//
 	}
-	
-	
-	template <detail::var_impl T>
-	AbstractTypePolicy* GetValueType(detail::custom_decay<T>& arg)
+
+
+
+
+	//When using a reference it will only get the value type. When getting it via pointer it may give you the storage type if null.
+	//Direct functions can be used if one so chooses.
+
+	//<!> Note, these args shouldn't be using custom T, instead that should onl be used to load the next GetValue/Storage function. 
+	// This is so that the explicit specialization doesn't use the wrong type
+
+
+
+	template <detail::call_class_has_var_type_Store T>
+	AbstractTypePolicy* FetchVariableType()
+	{
+		using Decay_T = detail::custom_decay<T>;
+
+		return VariableType<Decay_T>{}();
+
+	}
+
+	template <detail::call_class_has_var_type T>
+	AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>* arg)
+	{
+		using Decay_T = detail::custom_decay<T>;
+
+
+		AbstractTypePolicy* type = nullptr;
+
+		//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
+
+		if constexpr (detail::call_class_has_var_type_Value<T>) {
+			if (arg) {
+				return VariableType<Decay_T>{}(arg);
+			}
+		}
+
+		if constexpr (detail::call_class_has_var_type_Store<T>) {
+			if (!type) {
+				type = FetchVariableType<Decay_T>();
+			}
+		}
+
+		return type;
+
+	}
+
+
+	template <detail::call_class_has_var_type T>
+	AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>& arg)
 	{
 		using _T = detail::custom_decay<T>;
 
-		
-		if constexpr (false)
-		{
-			//If type specified internal function (not implemented yet)
-			return nullptr;
-		}
-		else
-		{
-			return ValueType<_T>{}(arg);
-		}
-		
+
+		return FetchVariableType<_T>(&arg);
 	}
 
-	
-	template <detail::ret_impl T>
-	ITypePolicy* GetStorageType()
-	{
-		using _T = detail::custom_decay<T>;
 
 
-		if constexpr (false)
-		{
-			//If type specified internal function (not implemented yet)
-			return nullptr;
-		}
-		else
-		{
-			return StorageType<_T>{}();
-		}
 
-	}
+
 
 	//This should be called GetVariablePolicy or GetValueType
-	template <detail::obj_impl T>
+	template <typename T>
 	ITypePolicy* GetTypePolicy(detail::custom_decay<T>& arg)
 	{
-		using _T = detail::custom_decay<T>;
-
-
-		//Unsure if I will actually use this, or in what way.
-
-		if constexpr (false)
-		{
-			//If type specified internal function (not implemented yet)
-			return nullptr;
-		}
-		else
-		{
-			if (auto policy = GetValueType<_T>(arg); !policy)//or if the policy is the policy of none
-				return GetStorageType<_T>();
-		}
-
+		return nullptr;
 	}
 
 
 
-
-
-#pragma region Implementation
 
 
 
@@ -234,156 +289,64 @@ namespace LEX
 	struct Array;
 	class Variable;
 
-
-
 	template <>
-	struct StorageType<Void>
+	struct VariableType<Void>
 	{
-
-		ITypePolicy* operator()();
-	};
-
-	template <>
-	struct ValueType<Void>
-	{
-
-		AbstractTypePolicy* operator()(Void&);
+		AbstractTypePolicy* operator()(const Void*);
 	};
 
 
-
 	template <>
-	struct StorageType<Number>
+	struct VariableType<Number>
 	{
-
-		ITypePolicy* operator()();
-	};
-
-	template <>
-	struct ValueType<Number>
-	{
-
-		AbstractTypePolicy* operator()(Number& it);
+		AbstractTypePolicy* operator()(const Number* it);
 	};
 
 
-
 	template <>
-	struct StorageType<String>
+	struct VariableType<String>
 	{
-
-		ITypePolicy* operator()();
-	};
-
-	template <>
-	struct ValueType<String>
-	{
-
-		AbstractTypePolicy* operator()(String& it);
+		AbstractTypePolicy* operator()(const String*);
 	};
 
 
-	//The currently unused once
-
 	template <>
-	struct StorageType<Delegate>
+	struct VariableType<Delegate>
 	{
-
-		ITypePolicy* operator()();
-	};
-
-	template <>
-	struct ValueType<Delegate>
-	{
-
-		AbstractTypePolicy* operator()(Delegate& it);
-	};
-
-	
-	template <>
-	struct StorageType<Object>
-	{
-
-		ITypePolicy* operator()();
-	};
-
-	template <>
-	struct ValueType<Object>
-	{
-
-		AbstractTypePolicy* operator()(Object& it);
+		AbstractTypePolicy* operator()(const Delegate*);
 	};
 
 
-	///
-
 	template <>
-	struct StorageType<FunctionHandle>
+	struct VariableType<Object>
 	{
-
-		ITypePolicy* operator()();
+		AbstractTypePolicy* operator()(const Object*);
 	};
 
 	template <>
-	struct ValueType<FunctionHandle>
+	struct VariableType<FunctionHandle>
 	{
-
-		AbstractTypePolicy* operator()(FunctionHandle& it);
-	};
-
-
-
-	///
-
-	template <>
-	struct StorageType<Array>
-	{
-
-		ITypePolicy* operator()();
+		AbstractTypePolicy* operator()(const FunctionHandle*);
 	};
 
 	template <>
-	struct ValueType<Array>
+	struct VariableType<Array>
 	{
-		AbstractTypePolicy* operator()(Array& it);
-	};
-
-
-
-	template <>
-	struct StorageType<Variable>//
-	{
-		//This wouldn simply return the object type, as a 
-		ITypePolicy* operator()();
+		AbstractTypePolicy* operator()(const Array*);
 	};
 
 	template <>
-	struct ValueType<Variable>// : single_type
+	struct VariableType<Variable>
 	{
-		//this should visit its data, but this doesn't have permission. Likely best to test the implementation 
-		// inside fo the thing.
-		AbstractTypePolicy* operator()(const Variable& it);
+		AbstractTypePolicy* operator()(const Variable*);
 	};
 
 
-
-	
-
-
-
-
-
-	inline void TESTGjowrbgyopg()
+	template <>
+	struct VariableType<double>
 	{
-		using TestType = Variable;
-		TestType& v = reinterpret_cast<TestType&>(*(int*)0);
-		ValueType<TestType>{}(v);
-	}
 
-	//TODO: Issue with all variable type things, they use The actual policy, and not the id itself. The wrapper function should handle the fine details of that.
+		AbstractTypePolicy* operator()();
+	};
 
-
-	//
-
-#pragma endregion
 }
