@@ -236,7 +236,7 @@ namespace LEX
 				return _rsp;
 			}
 
-			report::runtime::fatal("Unknown stack pointer");
+			report::runtime::fatal("Unknown stack pointer"); return {};
 		}
 
 		size_t SetStackPointer(StackPointer type, uint64_t index)
@@ -258,7 +258,7 @@ namespace LEX
 				return _rsp += index;
 			}
 
-			report::runtime::fatal("Unknown stack pointer type");
+			report::runtime::fatal("Unknown stack pointer type");  return {};
 		}
 
 		//May be replaced in the coming times.

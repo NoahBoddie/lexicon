@@ -141,14 +141,14 @@ namespace LEX
 			return procedureData;
 		}
 
-		virtual void SetProcedureData(uint64_t data)
+		virtual void SetProcedureData(Procedure proc, uint64_t data)
 		{
 			if (data == 0 || data == -1)
 				report::fault::error("Procedure data cannot be {}", static_cast<int64_t>(data));
 
 			else if (procedureData && procedureData != -1)
 				report::fault::warn("Procedure data already has value");
-
+			_procedure = proc;
 			procedureData = data;
 		}
 

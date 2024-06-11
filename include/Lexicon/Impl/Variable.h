@@ -694,6 +694,51 @@ namespace LEX
         }
 
 
+       
+        //template <class _Ty, enable_if_t<!is_same_v<_Remove_cvref_t<_Ty>, variant>
+        //&& is_constructible_v<_Variant_init_type<_Ty, _Types...>, _Ty>
+        //    && is_assignable_v<_Variant_init_type<_Ty, _Types...>&, _Ty>,
+        //    int> = 0>
+        //_CONSTEXPR20 variant& operator=(_Ty&& _Obj) noexcept(
+
+
+        //If it's the exact thing it should try to give a reference I think
+        template<variant_convertible_from<VariableValue> To>
+        explicit operator To()
+        {
+
+            To result = {};
+
+            std::visit([&](auto&& self) {
+                logger::info("{} THING", typeid(decltype(self)).name());
+                if constexpr (stl::castable_to<decltype(self), To>)
+                    result = static_cast<To>(self);
+                }, _value);
+
+            return result;
+        }
+
+
+        template<variant_convertible_from<VariableValue> To, size_t I = 0>
+        inline bool CanCastTo() const
+        {
+            //make one without the I, make that the impl version
+            constexpr size_t k_index = convertible_variant_index_v<VariableValue, To, I>;
+
+
+            if (_value.index() == k_index)
+                return true;
+
+            if constexpr (k_index != -1)
+            {
+                if constexpr (constexpr size_t _I = k_index + 1; _I < std::variant_size_v<VariableValue>)
+                    return CanCastTo<To, _I>();
+
+            }
+
+            return false;
+        }
+
         RuntimeVariable Convert(AbstractTypePolicy* to);
     };
 

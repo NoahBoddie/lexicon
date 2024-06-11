@@ -211,6 +211,8 @@ namespace LEX
 			return APIResult::Success;
 		}
 
+
+
 		static APIResult InitShared()
 		{
 			Project* project = nullptr;

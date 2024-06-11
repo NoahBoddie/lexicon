@@ -426,7 +426,7 @@ namespace LEX
             }
 
             RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
-                static_cast<std::string>(*this),
+                ToString(),
                 _setting.sign, _setting.size, _setting.type, _setting.limit);
         }
 
@@ -458,7 +458,7 @@ namespace LEX
 
 
             RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
-                static_cast<std::string>(*this),
+                ToString(),
                 _setting.sign, _setting.size, _setting.type, _setting.limit);
         }
         //*/
@@ -545,7 +545,7 @@ namespace LEX
         //std::is_integral_v<decltype(lhs)> && std::is_integral_v<decltype(rhs)>
 
 
-        explicit operator std::string() const
+        std::string ToString() const
         {
             std::string result = "UNVISITED";
 
@@ -601,6 +601,17 @@ namespace LEX
                 return false;
             }
             return true;
+        }
+
+        template<numeric T>
+        explicit operator T() const
+        {
+            T result;
+
+            if (As<T>(result) == false)
+                report::fault::fatal("Cannot turn number into type {}", typeid(T).name());
+
+            return result;
         }
 
         
@@ -810,7 +821,7 @@ struct formatter<LEX::Limit, Char>
 		// Forwards the formatting by casting the enum to it's underlying type
 		auto format(const LEX::Number& num, format_context& ctx) const
 		{
-			return fmt::format_to(ctx.out(), "{}", static_cast<std::string>(num));;
+			return fmt::format_to(ctx.out(), "{}", num.ToString());;
 		}
 	};
 }

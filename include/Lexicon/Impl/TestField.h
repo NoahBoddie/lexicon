@@ -1915,15 +1915,7 @@ struct Extension
 		GetPolicyFromSpecifiers(empty, nullptr);
 	}
 
-	struct record_strings
-	{
-#define REC_STR(mc_name) inline static const char* mc_name
-		
 
-		REC_STR(constructor) = "ctor";
-#undef REC_STR
-	};
-	
 
 	struct Dispatcher
 	{
@@ -1934,26 +1926,45 @@ struct Extension
 		virtual void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) = 0;
 
 	protected:
+		//A constant code that will serve as varification. Actually unsure what this does but I'll keep it in case I remember
+		static constexpr uint64_t func_code = 1;
+
+
+		bool registered = false;
+
 		//Omega temp shit here, needs to actually have the path and stuff here.
-		static bool Register(Dispatcher* dispatch, Procedure& dispatchee)
+		static bool Register(Dispatcher* dispatch, FunctionBase* dispatchee)
 		{
 			//This type can likely produce a name actually.
 
-			_dispatchList[0] = std::unique_ptr<Dispatcher>{ dispatch };
+			//If this thing cannot take on a procedure is what this check is.
+			if (false)
+				return false;
+
+			_dispatchList.emplace_back(std::unique_ptr<Dispatcher>{dispatch});
 
 			auto reciever = [](RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) -> void
 				{
-					Dispatcher* func = _dispatchList[0].get();
+					Dispatcher* funcOld = _dispatchList[0].get();
+					
+					auto p_data = data.srcFunc->GetProcedureData();
+					
+					//check data here.
+					
+					Dispatcher* func = reinterpret_cast<Dispatcher*>(p_data);
+
 
 					if (!func) {
 						//Throw exception.
 						return;
 					}
-
+					
 					func->Dispatch(result, target, args, data);
 				};
 
-			dispatchee = reciever;
+			dispatchee->SetProcedureData(reciever, reinterpret_cast<uint64_t>(dispatch));
+
+			dispatch->registered = true;
 
 			return true;
 		}
@@ -1967,6 +1978,25 @@ struct Extension
 		
 	};
 
+	
+	
+	//Should be named var converter
+
+	template <stl::castable_from<Variable> Type>
+	struct Unvariable<Type>
+	{
+		Type operator()(Variable* var)
+		{
+			if (var->CanCastTo<Type>() == false)
+				report::apply::fatal("Current value of Variable is unable to be cast to '{}'.", typeid(Type).name());
+
+			return static_cast<Type>(*var);
+		}
+	};
+
+
+
+	/*
 	template <>
 	struct Unvariable<double>
 	{
@@ -1982,17 +2012,84 @@ struct Extension
 			return result;
 		}
 	};
+	//*/
 
+	
+	struct OtherTest
+	{
+
+	};
+	struct Test
+	{
+		operator int() { return 0; }
+		template<std::floating_point T>
+		explicit operator T() { return 0; }
+		
+		explicit operator T() { return {}; }
+	};
+
+	
+
+
+	void TEST()
+	{
+#define unique_name CONCAT(test, __COUNTER__)
+		constexpr bool test4 = specialization_of<VariableValue, std::variant>;
+		constexpr bool test = is_any_convertible_v<float, int, int, int, int>;
+		constexpr bool test2 = is_variant_convertible_v<VariableValue, float>;
+		constexpr bool test3 = variant_convertible_to<VariableValue, double>;
+		//This breaks despite the fact it should be hable to handle this. Please consult.
+		//constexpr bool test5 = variant_convertible_to<double, VariableValue>;
+
+		constexpr bool test226 = stl::convertible_from<double, Variable>;
+		constexpr bool test6 = stl ::convertible_to<Variable, double>;
+
+	
+
+		constexpr bool test7 = std::convertible_to<Test, int>;
+		constexpr bool test8 = std::convertible_to<Test, float>;
+		constexpr bool test9 = std::convertible_to<Test, T>;
+		constexpr bool test10 = std::is_convertible_v<Number, double>;
+		
+		constexpr bool _1 = __is_convertible_to(Number, double);
+		constexpr bool _2 = stl::castable_to<Number, double>;
+		constexpr auto test11 = convertible_variant_index<VariableValue, double>::value;
+		
+		
+		//Test2<double>();
+		//Test3<double>();
+		Variable a;
+		a.CanCastTo<double>();
+		//GetStorageType<String>();
+		Unvariable<double>{}(&a);
+		static_cast<double>(a);
+
+
+	}
 
 
 	template <class R, class T, class... Args>
 	struct BasicDispatcher : public Dispatcher//<R(Args...)>
 	{
-		//Not especially needed anymore.
-		bool registered = false;
+		using _Self = BasicDispatcher<R, T, Args...>;
+		using _Function = R(*)(T, Args...);
+		
 
-		//A constant code that will serve as varification.
-		static constexpr uint64_t func_code = 1;
+
+		static bool Create(_Function func, FunctionBase* dispatchee)
+		{
+			std::unique_ptr<Dispatcher> test_dispatch = std::make_unique<_Self>(func);
+
+			bool result = Register(test_dispatch.get(), dispatchee);
+
+			if (result)//If it's successful, we don't need to delete the dispatcher.
+				test_dispatch.release();
+
+			return result;
+		}
+
+
+		
 
 		R(*_callback)(T, Args...) = nullptr;
 
@@ -2057,21 +2154,10 @@ struct Extension
 			}
 		}
 
-		BasicDispatcher(R(*func)(T, Args...), Procedure& dispatchee) : _callback{ func }
+		constexpr BasicDispatcher(_Function func) : _callback{ func }
 		{
-			Register(this, dispatchee);
-
-			//static_assert(!std::is_same_v<T, void>, "Upper");
 		}
 	};
-
-
-
-
-	template <typename R, typename... Args>
-	Procedure MakeProcedure(R(*func)(Args...))
-	{
-	}
 
 	//Something like this needs to be an interfaceSingleton.
 	struct ProcedureLoader
@@ -2084,34 +2170,198 @@ struct Extension
 
 	};
 
-	int RegisterProcedureImpl2(Procedure procedure, std::string projname, std::string scriptname, std::string path)
+
+	struct PathParser : public LEX::Impl::ParseModule, public LEX::Impl::IdenDeclBoilerPlate
 	{
-
-	}
-
-	int RegisterProcedureImpl(Procedure func, Procedure& to)
-	{
-		Record ret;
-		ret.TOKEN();
-		//needs to be able to report back how something failed.
-
-		//If declaration has not gone through yet, we need to wait.
-		if (Component::HasLinked(LinkFlag::Declaration) == true)
+		//The idea of this is it's a simple parser that acts like the identifier parser, but will handle this in a way that can handle
+		bool CanHandle(LEX::Impl::Parser* parser, Record* target, LEX::Impl::ParseFlag flag) const override
 		{
-			Project* project = ProjectManager::GetProject(projname);
-
-			Script* script = project->FindScript(scriptname);
-
-
-			//Element*
+			return true;
 		}
 
-		return 1;
+		bool IsAtomic() const override
+		{
+			return true;
+		}
+
+
+		Record _HandleThis(LEX::Impl::Parser* parser)
+		{
+			RecordData next = parser->next();
+			next.GetTag() = parse_strings::this_word;
+			return LEX::Impl::Parser::CreateExpression(next, SyntaxType::Field);
+		}
+
+
+		Record HandleToken(LEX::Impl::Parser* parser, Record*) override
+		{
+
+			return _HandlePath(parser, SyntaxType::ProjectName);
+
+		}
+		// Need some boilerplate resolver.
+		std::string_view GetModuleName() override
+		{
+			return typeid(PathParser).name();
+		}
+
+		bool ContextAllowed(LEX::Impl::ProcessContext*, LEX::Impl::ProcessChain*) override
+		{
+			//This prevents anything from following it up for the most part. This shit is a one man show!
+			// If this causes any issues with parsers I may use later, feel free to make a variable to help handle when this is allowed be handled.
+			return false;
+		}
+	};
+
+
+
+	struct Nameless//This goes in the project manager. Make that shit an interface and give it a source
+	{
+		enum Enum
+		{
+			NoneElement,
+			TypeElement,
+			FuncElement,
+			GlobElement,
+		};
+
+
+
+
+		inline static std::unordered_map<size_t, std::pair<Element*, Enum>> _lookupMap;
+
+
+
+		static Element* LookupElement(size_t hash, Enum type)
+		{
+			auto it = _lookupMap.find(hash);
+
+			if (_lookupMap.end() == it || it->second.second == type)
+				return nullptr;
+
+			return it->second.first;
+		}
+
+		static void SaveElement(Element* elem, size_t hash, Enum type)
+		{
+
+			_lookupMap[hash] = std::make_pair(elem, type);
+
+		}
+
+		static size_t HashPath(std::string& path)
+		{
+			//TODO: -Check: I think unordered map already hashes stuff so maybe not needed. Still will handle later
+			std::hash<std::remove_reference_t<decltype(path)>> hasher{};
+
+			return hasher(path);
+
+		}
+
+		static Element* GetElementFromPath(std::string path, Enum elem)
+		{
+			//right now, linking isn't really set up so you know.
+			if (1 || Component::HasLinked(LinkFlag::Declaration) == false){
+				//Tell that this is too early to be valid.
+				return nullptr;
+			}
+
+
+			auto hash = HashPath(path);
+
+			auto element = LookupElement(hash, elem);
+
+
+			if (!element)
+			{
+				Record record = LEX::Impl::Parser__::CreateSyntax<PathParser>(path);
+
+				//<!> After parsing is done, the top most type needs to be set to the standards of what it's expecting.
+
+				//From here, use the path functions that are in environment.
+				// The project should be found from the first part, and from there we should just keep the environ search should finish it out.
+
+				switch (elem)
+				{
+					//Do the search for each type here.
+				case Enum::FuncElement:
+				case Enum::TypeElement:
+				case Enum::GlobElement:
+				default:
+					element = nullptr; break;
+				}
+
+
+				if (element) {
+					SaveElement(element, hash, elem);
+				}
+
+			}
+
+			return element;
+		}
+
+		static FunctionBase* GetFunctionFromPath(std::string path)
+		{
+			if (auto elem = GetElementFromPath(path, FuncElement); elem)
+				return static_cast<FunctionBase*>(elem);
+
+			return nullptr;
+		}
+
+		static FunctionBase* GetFunctioFromPath(std::string path)
+		{
+			if (auto elem = GetElementFromPath(path, FuncElement); elem)
+				return static_cast<FunctionBase*>(elem);
+
+			return nullptr;
+		}
+
+
+
+
+
+		static PolicyBase* GetTypeFromPath(std::string path)
+		{
+			if (auto elem = GetElementFromPath(path, TypeElement); elem)
+				return static_cast<PolicyBase*>(elem);
+
+			return nullptr;
+		}
+
+		static Global* GetGlobalFromPath(std::string path)
+		{
+			if (auto elem = GetElementFromPath(path, GlobElement); elem)
+				return static_cast<Global*>(elem);
+
+			return nullptr;
+		}
+
+	};
+
+
+
+
+
+	bool RegisterProcedure(Procedure procedure, FunctionBase* function)
+	{
+		function->SetProcedureData(procedure, 0);
+
+		return 0;
 	}
+
+	bool RegisterProcedure(Procedure procedure, std::string path)
+	{
+		FunctionBase* function = Nameless::GetFunctionFromPath(path);
+
+		return RegisterProcedure(procedure, function);
+	}
+
+
 
 
 	template <typename R, typename... Args>
-	Signature RegisterProcedure(R(*func)(Args...), Procedure& proc)
+	bool RegisterProcedure(R(*func)(Args...), FunctionBase* base)
 	{
 		//Currently, the only way to properly handle the system is by making a unique lambda each time a new template is created. But needless to say,
 		// cant do that.
@@ -2131,39 +2381,31 @@ struct Extension
 		if (!processed)
 			throw nullptr;
 
-		static auto dispatch = new BasicDispatcher(func, proc);
+
+		OverloadFlag flag = OverloadFlag::None;
+
+		auto overload = sign.Match(base, nullptr, nullptr, flag);
+
+		if (flag & OverloadFlag::Failure)
+			logger::info("FAILED TO MATCH");
+		else
+			logger::info("SUCCESS TO MATCH");
 
 
-		return sign;
+		//static auto dispatch = new BasicDispatcher(func, base);
+		auto result = BasicDispatcher<R, Args...>::Create(func, base);
+
+		return result;
 	}
 
 	//thing to get function here.
 
 	template <typename R, typename... Args>
-	Signature RegisterProcedure(R(*func)(Args...), std::string project, std::string script, std::string path)
+	bool RegisterProcedure(R(*func)(Args...), std::string path)
 	{
-		//Currently, the only way to properly handle the system is by making a unique lambda each time a new template is created. But needless to say,
-		// cant do that.
+		FunctionBase* base = Nameless::GetFunctionFromPath(path);
 
-		//I think something I can do is that optionally a 64 bit context code can be given when making a procedure. This allows me to just simply pull what's needed.
-		// So I think that might be a proceedure thing idk. Something to make context of. But something fast. Definitely not something like what native function
-		// would have been.
-
-		//The context thing is a good idea, it can possibly sort out which overload is being set up, if someone is using it pure (which one shouldn't.
-		// Long story short it's the address to use.
-
-		Signature sign{};
-
-		//bool processed = ProcessEntry<true, R, Args...>(sign);
-		bool processed = ProcessEntry<SignatureEnum::Result, R, Args...>(sign);
-		
-		if (!processed)
-			throw nullptr;
-
-		static auto dispatch =  new BasicDispatcher(func, proc);
-
-
-		return sign;
+		return RegisterProcedure(func, base);
 	}
 
 	
@@ -2540,6 +2782,589 @@ struct Extension
 	}
 
 
+
+	template<typename T, typename = void>
+	detail::not_implemented UnusableFunc(char = {})
+	{
+		logger::info("I'm not implemented");
+		return {};
+	}
+
+	template<>
+	detail::not_implemented UnusableFunc<int>(char)
+	{
+		logger::info("Neither am I implemented");
+		return {};
+	}
+
+	//The implementation one should be the one with the concept
+	template<std::floating_point T, typename = void>
+	void* UnusableFunc()
+	{
+		logger::info("but I am implemented");
+		return {};
+	}
+
+	template<std::floating_point T, typename = void> requires(sizeof(T) > 0x4)
+		void* UnusableFunc()
+	{
+		logger::info("but am I implemented?");
+		return {};
+	}
+
+
+	INITIALIZE()
+	{
+		PointerType<int*>;
+		UnusableFunc<char>();
+		UnusableFunc<int>();
+		UnusableFunc<float>();
+		UnusableFunc<double>();
+	}
+
+
+	struct accepts_all
+	{
+		//This type helps resolve some ambiguity between 2 like functions by making the invalid one convert while the actual on takes a reference.
+		constexpr accepts_all() = default;
+
+		template <typename T>
+		constexpr accepts_all(T) {}
+
+
+		template <typename T>
+		constexpr accepts_all(const T&) {}
+
+		template <typename T>
+		constexpr accepts_all(T&&) {}
+	};
+
+	//*
+	namespace NewVariableType
+	{
+		class ITypePolicy;
+		class AbstractTypePolicy;
+
+		//tag to tell tha this is being used by a single type.
+		struct single_type {};
+
+
+		namespace detail
+		{
+			using not_implemented = ::LEX::detail::not_implemented;
+			//move example
+			struct example 
+			{
+				//The storage type function can be defined like this.
+				// Function must be static, have no parameters, and return ITypePolicy.
+				static ITypePolicy* GetStorageType()
+				{
+					return {};
+				}
+
+
+
+				//As the value type function can be defined like this,
+				// Requiring the function to be const and membered (virtual allowed), no parameters, and return AbstractTypePolicy.
+				AbstractTypePolicy* GetValueType() const
+				{
+					return {};
+				}
+
+				//Additionally, both storage and value can be defined like this. This denotes that the value type does not change based on runtime 
+				// value. This will take precedence over other declared variables.
+				// It's required the function must be static and return AbstractTypePolicy.
+				static AbstractTypePolicy* GetVariableType()
+				{
+					return {};
+				}
+			};
+		}
+
+		struct wrong_type
+		{
+			static int GetStorageType()
+			{
+				return {};
+			}
+
+			ITypePolicy* GetValueType()
+			{
+				return {};
+			}
+
+			AbstractTypePolicy* GetVariableType()
+			{
+				return {};
+			}
+		};
+
+
+		template <class _Derived, class _Base>
+		concept pointer_derived_from = std::derived_from<std::remove_pointer_t<_Derived>, std::remove_pointer_t<_Base>>;
+
+		//This is the sorta test version I wish to use in order
+		template<typename T>
+		constexpr bool exper_fail = requires(T t) { t.getname(); };
+
+
+		//At some point I want to do something kinda like this.
+		// The idea would be that we can use the deviation as something to feed a constexpr condition that would help identify which part exactly failed
+		// mainly for the loser MSVC users.
+		template<typename T>
+		constexpr int _storage_type_deviation = requires(T t) { t.getname(); };
+
+
+
+		//These will need supplemental version
+		template<typename T> concept type_has_variable_type = requires()
+		{
+			{ T::GetVariableType() } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
+
+		template<typename T> concept type_has_storage_type = requires()
+		{
+			{ T::GetStorageType() } -> pointer_derived_from<ITypePolicy*>;
+		} || type_has_variable_type<T>;
+		template<typename T> concept type_has_value_type = requires(const T& t)
+		{
+			{ t.GetValueType() } -> pointer_derived_from<AbstractTypePolicy*>;
+		} || type_has_variable_type<T>;
+		
+
+
+
+
+
+
+		template <type_has_storage_type T>
+		void foo1()
+		{
+			
+		}
+
+		template <type_has_value_type T>
+		void foo2()
+		{
+
+		}
+
+
+		template <type_has_variable_type T>
+		void foo3()
+		{
+
+		}
+
+
+
+
+		void TESTTHEOREM()
+		{
+			constexpr bool testit = std::derived_from<AbstractTypePolicy*, ITypePolicy*>;
+
+			foo1<detail::example>();
+			foo2<detail::example>();
+			foo3<detail::example>();
+
+			//foo1<wrong_type>();
+			//foo2<wrong_type>();
+			//foo3<wrong_type>();
+
+			constexpr bool test = exper_fail<int>;
+		}
+
+
+
+		//This is storageType
+		template <typename T>
+		struct StorageType : public detail::not_implemented
+		{
+			//instead of void, I can perhaps use a different type.
+			//No operator as we can see.
+
+			//I still don't like this a ton because you need to implement the function still
+
+		private:
+			ITypePolicy* operator()()
+			{
+
+			}
+		};
+
+		//And this is value type.
+		template <typename T, typename = void>
+		struct ValueType : public detail::not_implemented
+		{
+		
+			//This should never be used manually, so private so just in case it actually is used it will throw 
+			// a compiler error.
+			AbstractTypePolicy* operator()(const T&)
+			{
+				//static_assert
+				return nullptr;
+			}
+		};
+
+		//This is the non implemented version of GetStorageType
+		template<typename T, typename = void>
+		detail::not_implemented GetStorageType(detail::not_implemented = {})
+		{
+			static_assert(std::is_same_v<T, T>, "Unimplemented version of GetStorageType called.");
+			return {};
+		}
+
+		template<typename T>
+		detail::not_implemented GetValueType(const accepts_all, detail::not_implemented = {})
+		{
+			static_assert(std::is_same_v<T, T>, "Unimplemented version of GetValueType called.");
+			return {};
+		}
+
+		//This is the implemented version of these functions. They need to pass a concept that states
+		// the function itself implements what's required.
+		
+		template<type_has_storage_type T>
+		ITypePolicy* GetStorageType()
+		{
+			return {};
+		}
+
+
+		template<type_has_value_type T>
+		AbstractTypePolicy* GetValueType(const T&)
+		{
+			return {};
+		}
+
+		///////////////////////////////////////////////
+
+
+		//To be defined later, this should be a concept that declares GetStorageType and GetValueType need to have an implementation
+		// for each to be used.
+		struct TBDL {};
+
+
+
+		//These tell if a storage/value type is valid
+		template<typename T> concept value_type_implemented = requires(const T& t)
+		{
+			{ ValueType<T>{}.operator()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
+		template<typename T> concept store_type_implemented = requires()
+		{
+			{ StorageType<T>{}.operator()() } -> pointer_derived_from<ITypePolicy*>;
+		};
+
+		template <>
+		struct StorageType<TBDL>
+		{
+			using T = TBDL;
+
+			ITypePolicy* operator()()
+			{
+				static_assert(std::is_same_v<T, T>, "Example ReturnType<TBDL> cannot be used.");
+			}
+
+		};
+
+		template <>
+		struct ValueType<TBDL>
+		{
+			using T = TBDL;
+
+			AbstractTypePolicy* operator()(const TBDL&)
+			{
+				
+			}
+		};
+
+
+		//I could make another concept for this but Ill keep it like this for now
+
+		//template<typename T> concept val_func_impl = !std::is_same_v<std::invoke_result_t<decltype(GetStorageType<T>)>, detail::not_implemented>;
+
+		//template<typename T> concept stor_func_impl = !std::is_same_v<std::invoke_result_t<decltype(GetValueType<T>), const T&>, detail::not_implemented>;
+
+		template<typename T> concept val_func_impl = requires(const T & t)
+		{
+			{ GetValueType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
+		};
+		template<typename T> concept stor_func_impl = requires()
+		{
+			{ GetStorageType<T>() } -> std::same_as<ITypePolicy*>;
+		};
+
+		//*
+		template <stor_func_impl T>
+		struct StorageType<T>
+		{
+			ITypePolicy* operator()()
+			{
+				return GetStorageType<T>();
+			}
+
+		};
+
+		template <val_func_impl T>
+		struct ValueType<T>
+		{
+
+			AbstractTypePolicy* operator()(const T& arg)
+			{
+				return GetValueType<T>(arg);
+			}
+		};
+		//*/
+
+
+		template <value_type_implemented T>
+		void bar1()
+		{
+
+		}
+
+		template<typename T> concept bar2_constraint = requires(const T & t)
+		{
+			{ ValueType<T>{}.operator()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
+
+
+		template <store_type_implemented T>
+		void bar2()
+		{
+
+		}
+
+		void TestBar()
+		{
+			ValueType<TBDL> t;
+
+			bar1<TBDL>();
+			bar2<TBDL>();
+		}
+
+		
+		//These are spotty right now. Please redo.
+		namespace detail
+		{
+			template<typename T> concept ret_impl = !std::is_base_of_v<detail::not_implemented, StorageType<T>> &&
+				//!std::is_same_v<StorageType<example>, StorageType<T>> && 
+				requires()
+				{
+					{ StorageType<T>{}.operator()() } -> pointer_derived_from<ITypePolicy*>;
+				};
+
+			template<typename T> concept var_impl = !std::is_base_of_v<detail::not_implemented, ValueType<T>> &&
+				//!std::is_same_v<ValueType<example>, ValueType<T>> && 
+				requires(const T& t)
+				{
+					{ ValueType<T>{}.operator()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+				};
+
+			//
+			template<typename T> concept obj_impl = ret_impl<T> && var_impl<T>;
+
+
+			template<typename T>
+			using custom_decay = T;//std::decay_t<T>;//
+		}
+
+
+		template <detail::var_impl T>
+		AbstractTypePolicy* GetValueTypeImpl(detail::custom_decay<T>& arg)
+		{
+			using _T = detail::custom_decay<T>;
+
+			return ValueType<_T>{}(arg);
+		}
+
+
+		template <detail::ret_impl T>
+		ITypePolicy* GetStorageTypeImpl()
+		{
+			using _T = detail::custom_decay<T>;
+
+			return StorageType<_T>{}();
+		}
+
+
+
+		//When using a reference it will only get the value type. When getting it via pointer it may give you the storage type if null.
+		//Direct functions can be used if one so chooses.
+
+		//<!> Note, these args shouldn't be using custom T, instead that should onl be used to load the next GetValue/Storage function. 
+		// This is so that the explicit specialization doesn't use the wrong type
+
+
+
+		template <detail::obj_impl T>
+		ITypePolicy* GetVariableType(detail::custom_decay<T>* arg)
+		{
+			using _T = detail::custom_decay<T>;
+
+
+			ITypePolicy* type = nullptr;
+
+			if (arg) {
+				type = GetValueTypeImpl<_T>(*arg);
+			}
+
+			if (!type) {
+				type = GetStorageTypeImpl<_T>();
+			}
+
+			return type;
+
+		}
+
+		
+		template <detail::obj_impl T>
+		AbstractTypePolicy* GetVariableType(detail::custom_decay<T>& arg)
+		{
+			using _T = detail::custom_decay<T>;
+
+			 
+			return GetValueTypeImpl<_T>(arg);
+		}
+		
+		template <>
+		struct StorageType<int>
+		{
+			using T = int;
+
+			//Getting the ReturnType returns a ITypePolicy, an interface of a type, as a single C++ type could possibly
+			// be able to represent a generic imaginary object.
+
+			ITypePolicy* operator()()
+			{
+				return {};
+			}
+
+		};
+
+		template <>
+		struct ValueType<int>
+		{
+			using T = int;
+
+
+			AbstractTypePolicy* operator()(const T&)
+			{
+				return {};
+			}
+		};
+
+		/*
+
+		template <typename T>
+		struct FailTest;
+
+		template <typename T>
+		struct FailTest
+		{
+			FailTest() = delete;
+			FailTest(const FailTest&) = delete;
+			FailTest(FailTest&&) = delete;
+		};
+		
+		//This seems to work best, but only if the function in question is being called within intellisense.
+		//This mainly exists as a concept that I can use to tell me why I failed certain concepts if someone isn't using clang.
+		//#if !defined(__INTELLISENSE__)
+		template<typename T, template <typename> typename U = FailTest>
+		void Failure(U<T> = {})
+		{
+			//Want to find a way to make intellisense forgive this, despite it being true.
+			//What makes this failure function so powerful is the fact that when used, it will actually lead you to the place that is failing.
+			
+			//To stack on the "this isn't going to work signals, I can both make the function itself no discard, as well as making it's returns not_implemented.
+			// This will prevent the expected result from falling in, and if I prevent not_implemented from being instantiable, I can prevent it from creating anything.
+
+
+			//FailTest<T> {};
+		}
+		//#endif
+		//*/
+		void FULLtest()
+		{
+			
+			using Example = detail::example;
+
+			Example ex;
+			ValueType<Example> v;
+			StorageType<Example> s;
+
+			constexpr bool _1 = detail::ret_impl<Example>;
+			constexpr bool _2 = detail::var_impl<Example>;
+			
+			//ITypePolicy* test = GetStorageType<int>();
+
+			int in = 1;
+			AbstractTypePolicy* test3 = GetVariableType(in);
+
+			ITypePolicy* test = GetStorageType<Example>();
+			AbstractTypePolicy* test2 = GetValueType<Example>(ex);
+			constexpr bool _3 = stor_func_impl<Example>;
+			constexpr bool _4 = val_func_impl<Example>;
+			constexpr bool _5 = detail::obj_impl<Example>;
+			constexpr bool _6 = type_has_value_type<Example>;
+
+			//Failure<int>();
+
+			static_assert(_3, "3");
+			static_assert(_4, "4");
+			static_assert(_5, "5");
+			static_assert(_6, "6");
+
+			GetVariableType(ex);
+		}
+		
+		
+
+
+
+
+
+	//Note: Remove static_assert and "using T" in implementation.
+	
+
+
+
+	}
+	//*/
+	//This kind of set up allows for type based specialization. I think I may actually change my mind and centralize the main thing more
+	// as types no longer have the advantage when it comes to explicit specialization.
+	template <typename T, typename = void>
+	struct VTest
+	{
+
+	};
+
+	template <typename T>
+	struct VTest<T>
+	{
+
+	};
+
+	template <>
+	struct VTest<int>
+	{
+
+	};
+
+	template <typename T>
+	void FTest() {}
+
+
+	template <std::integral T>
+	void FTest() {}
+
+
+	void FunctionTest()
+	{
+		VTest<int>();
+		FTest<int>();
+	}
 
 }
 

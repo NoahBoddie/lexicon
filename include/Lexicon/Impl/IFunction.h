@@ -17,7 +17,5 @@ namespace LEX
 	INTERNAL:
 	
 		virtual uint64_t GetProcedureData() const = 0;
-		virtual void SetProcedureData(uint64_t) = 0;
-
 	};
 }

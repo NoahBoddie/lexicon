@@ -345,6 +345,38 @@ namespace LEX::Impl
 	}
 
 
+	Record Parser__::CreateSyntax(std::string text, ParseModule* mdl, Column column, Line line)
+	{
+		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
+		// and it will determine what can be compiled, and also how valid it is.
+
+		InputStream inp_stream{ "<untitled>", "<loose>", text, line, column};
+
+		TokenStream tok_stream{ inp_stream };
+
+
+		if (!mdl) {
+			report::fault::fatal("No parse module given bruv");
+		}
+		Parser par_stream{ tok_stream,	mdl };
+
+		try
+		{
+			Record result = par_stream._ParseTopLevel();
+
+			return result;
+		}
+		catch (const ParsingError& parse_error)
+		{
+			//This should still include the name if possible.
+			//TODO: Actually report parsing error, and also return a malformed record that can detail what the fuck just happened.
+			RGL_LOG(error, "{}", parse_error._tempWhat);
+			return Parser::CreateExpression(parse_error._tempWhat, SyntaxType::Invalid, Parser::CreateExpression("nameless", SyntaxType::Invalid));
+		}
+
+
+	}
+
 	Record Parser__::CreateSyntaxTree(std::string project, std::string name, std::string text, ParseModule* mdl, Column column, Line line)
 	{
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,

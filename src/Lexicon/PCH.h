@@ -329,7 +329,7 @@ namespace RGL
     struct is_specialization : std::false_type {};
 
     template<template<typename...> class Ref, typename... Args>
-    struct is_specialization<Ref<Args...>, Ref> : std::true_type {};
+    struct is_specialization<Ref<Args...>, Ref> : std::true_type {};//I'd like to make a different one of these where it accepts derived types too.
 
     template<typename Test, template<typename...> class Ref>
     concept specialization_of = is_specialization<Test, Ref>::value;
@@ -338,6 +338,81 @@ namespace RGL
 
     template <typename T>
     using remove_ref_const = std::remove_reference_t<std::remove_const_t<T>>;
+
+
+    
+	template <typename Test, typename T, typename... More>
+	struct is_any_convertible : public std::conditional_t<std::convertible_to<T, Test>, std::true_type, std::conditional_t<!!sizeof...(More), is_any_convertible<Test, More...>, std::false_type>>
+	{
+		is_any_convertible() = delete;
+	};
+
+	template <typename Test, typename T, typename... More>
+	constexpr bool is_any_convertible_v = is_any_convertible<Test, T, More...>::value;
+
+
+
+	template <typename Test, typename T, size_t I = 0>
+	struct convertible_variant_index : public
+		std::conditional_t<
+			specialization_of<Test, std::variant>,                              //Condition
+			std::conditional_t<
+				std::convertible_to<T, std::variant_alternative_t<I, Test>>,    //Condition
+				std::integral_constant<size_t, I>,         //Result A
+				std::conditional_t<     //Result B
+					I + 1 < std::variant_size_v<Test>,                         //Condition
+					convertible_variant_index<Test, T, I + 1>, //Result A
+					std::integral_constant<size_t, -1>                         //Result B
+				>
+			>,
+			std::integral_constant<size_t, -1>
+		>
+	{
+        static constexpr size_t no_pos = -1;
+
+        convertible_variant_index() = delete;
+	};
+
+
+    template <typename Test, typename T, size_t I = 0>
+    constexpr size_t convertible_variant_index_v = convertible_variant_index<Test, T, I>::value;
+
+    
+    /*
+	template <typename Test, typename T, size_t I = 0>
+	struct is_variant_convertible : public 
+		std::conditional_t<
+			specialization_of<Test, std::variant>,                              //Condition
+			std::conditional_t<
+				std::convertible_to<T, std::variant_alternative_t<I, Test>>,    //Condition
+				std::true_type,         //Result A
+				std::conditional_t<     //Result B
+					I + 1 < std::variant_size_v<Test>,                         //Condition
+					is_variant_convertible<Test, T, I + 1>, //Result A
+					std::false_type                         //Result B
+				>
+			>,
+			std::false_type
+		>
+	{
+		is_variant_convertible() = delete;
+	};
+    /*/
+
+    template <typename Test, typename T, size_t I = 0>
+    struct is_variant_convertible : public std::bool_constant<convertible_variant_index_v<Test, T, I> != -1> 
+    {
+        is_variant_convertible() = delete;
+    };
+    //*/
+	template <typename Test, typename T>
+	constexpr bool is_variant_convertible_v = is_variant_convertible<Test, T>::value;
+
+	template <typename _From, typename _To>
+	concept variant_convertible_to = is_variant_convertible<_From, _To>::value;
+	
+    template <typename _To, typename _From>
+    concept variant_convertible_from = variant_convertible_to<_From, _To>;
 
 }
 
@@ -438,7 +513,24 @@ std::invoke_result_t<decltype(T), Args...> ExternCall(LPCSTR module_name, LPCSTR
 	return ExternCall<decltype(T), Args...>(module_name, func_name, std::forward<Args>(args)...);
 }
 
+namespace stl
+{
+    template< class _From, class _To >
+    concept convertible_to = std::convertible_to<_From, _To>;
 
+    
+    template< class To, class From >
+    concept convertible_from = convertible_to<From, To>;
+
+
+
+    template< class _From, class _To >
+    concept castable_to = requires { static_cast<_To>(::std::declval<_From>()); };;
+
+    template< class _To, class _From >
+    concept castable_from = castable_to<_From, _To>;
+
+}
 
 
 

@@ -6,6 +6,7 @@
 #include "Lexicon/Impl/ExpressionType.h"
 #include "Lexicon/Impl/ParseHandler.h"
 
+#include "ParseModule.h"
 
 namespace LEX::Impl
 {
@@ -188,7 +189,7 @@ namespace LEX::Impl
 		template <std::derived_from<ParseModule> Module>
 		ParseModule* GetBuiltModule() const
 		{
-			return GetBuiltModule<Module>();
+			return GetBuiltModule(typeid(Module));
 		}
 
 
@@ -221,6 +222,22 @@ namespace LEX::Impl
 
 	struct Parser__
 	{
+		//Syntax created from this is likely at runtime, and genarally will lack any kind of header behaviour. This is primarily to be used for loose
+		// formulas. The module unlike below has to be specified.
+		// That, or I'll make project locations and such sorta suggestions.
+		static Record CreateSyntax(std::string text, ParseModule* mdl, Column column = 1, Line line = 1);
+
+
+		template <std::derived_from<ParseModule> Module>
+		static Record CreateSyntax(std::string text, Column column = 1, Line line = 1)
+		{
+			std::unique_ptr<ParseModule> mdl;
+
+			mdl = std::make_unique<Module>();
+
+			return CreateSyntax(text, mdl.get(), column, line);
+		}
+
 		static Record CreateSyntaxTree(std::string project, std::string name, std::string text, ParseModule* mdl = nullptr, Column column = 1, Line line = 1);
 	};
 	

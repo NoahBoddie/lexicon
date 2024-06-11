@@ -344,19 +344,14 @@ void LexTesting(std::string formula)
     if (function)
     {
         //Testing the proceedure
-        if (0)
+        if constexpr (1)
         {
-            Signature sign = RegisterProcedure(GetActorValue_backend, function->_procedure);
-
-            OverloadFlag flag = OverloadFlag::None;
-
-            auto overload = sign.Match(function, nullptr, nullptr, flag);
-
-            if (flag & OverloadFlag::Failure)
-                logger::info("FAILED TO MATCH");
-            else
-                logger::info("SUCCESS TO MATCH");
-
+            if (RegisterProcedure(GetActorValue_backend, function) == false)
+            {
+                logger::debug("failure");
+                std::system("pause");
+            }
+            
 
         }
 
@@ -376,9 +371,9 @@ void LexTesting(std::string formula)
         
         //function->_procedure = TestProcedure;
         //A conversion is supposed to happen here.
-        Variable result = function->Call(69, 1, 2, 3, 4, 5);
+        Variable result = function->Call(69.0, 1.0, 2.0, 3.0, 4.0, 5.0);
 
-        std::string number = static_cast<std::string>(result.AsNumber());
+        std::string number = result.AsNumber().ToString();
 
         logger::info("result of {} = {}", formula, number);
     }
@@ -456,7 +451,7 @@ void LexTesting(std::string formula)
 
 
 
-    std::string number = static_cast<std::string>(result.AsNumber());
+    std::string number = result.AsNumber().ToString();
 
     logger::info("result of {} = {}", formula, number);
 
