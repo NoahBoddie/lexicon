@@ -608,3 +608,6 @@ namespace stl
 
 
 #pragma endregion
+
+//Move me please.
+#include "Lexicon/Impl/Versioning.h"

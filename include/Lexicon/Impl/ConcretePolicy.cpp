@@ -142,6 +142,19 @@ namespace LEX
 			report::compile::critical("PLACEHOLDER don't know how to handle unique type."); break;
 		}
 
+
+		//This should be handled after declaration.
+		static_assert(false);
+		if (auto derives = settings->FindChild(parse_strings::derives))
+		{
+			for (auto& inherit : derives->GetChildren())
+			{
+				
+
+				//SetDerivesTo()
+			}
+		}
+
 	}
 
 	void ConcretePolicy::CompileExpression_DEPRECATED(Record& ast)

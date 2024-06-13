@@ -37,6 +37,11 @@ namespace LEX
 
 	struct Element : public Component
 	{
+		struct Data
+		{
+			ElementFlag flags;
+		};
+
 		//TODO: For all of these, there should be an "errorless" version, that just wraps the function and returns some result enum or something.
 
 
@@ -149,7 +154,7 @@ namespace LEX
 
 		ElementFlag& GetElementFlags()
 		{
-			return GetComponentData<ElementFlag>();
+			return GetComponentData<Data>().flags;
 		}
 
 		void DeclareParentTo(Element* child)

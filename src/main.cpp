@@ -203,7 +203,11 @@ void LexTesting(std::string formula)
 #pragma endregion
 
     std::string crash2 = R"(
-        struct Number intrinsic NUMBER::0;
+
+        interface Addable{};
+        interface Primitive{};
+
+        struct Number intrinsic NUMBER::0 : public Addable, public Primitive;
         struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
         struct __string8 intrinsic STRING::0;
         
@@ -308,7 +312,7 @@ void LexTesting(std::string formula)
     
     logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
     
-    //return;
+    return;
     
     
     Script* script = Component::Create<Script>(ast);
@@ -346,7 +350,7 @@ void LexTesting(std::string formula)
         //Testing the proceedure
         if constexpr (1)
         {
-            if (RegisterProcedure(GetActorValue_backend, function) == false)
+            if (RegisterFunction(GetActorValue_backend, function) == false)
             {
                 logger::debug("failure");
                 std::system("pause");
