@@ -68,7 +68,7 @@ namespace LEX::Impl
 
 		bool handle = _QueryModule(rec_nest, mdl, flag);
 		
-		//if (handle)
+		if (handle)
 		{
 			//RGL_LOG(info, "try success? {} {}", module_check, context_check);
 			logger::info("try module: {}, token: {}: target: {}, success: {}", mdl->GetContext(), peek().GetTag(), !!rec_nest, handle);

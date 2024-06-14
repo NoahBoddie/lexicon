@@ -1302,7 +1302,7 @@ namespace LEX
 
 			float64->EmplaceDefault(static_cast<double>(0));
 		
-			float64->SetDerivesTo(NUMBER);
+			float64->SetInheritFrom(NUMBER);
 			float64->PrintInheritance();
 
 			string8->EmplaceDefault("");

@@ -603,6 +603,13 @@ namespace stl
 
 #endif // LEX_SOURCE
 
+#if !defined(__INTELLISENSE__)
+#define NEED_SOURCE static_assert(false, STRINGIZE(CONCAT(__FILE__, needs a source file.)));
+#else
+#define NEED_SOURCE static_assert(true);
+
+#endif
+
 
 
 

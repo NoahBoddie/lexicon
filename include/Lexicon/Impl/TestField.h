@@ -86,7 +86,6 @@
 
 #include "Interface.h"
 #include "InterfaceManager.h"
-#include "InterfaceManagerImpl.h"//At this point object will load first, and this shit hasn't even instantiated yet. So it ends up bugging.
 #include "InterfaceSingleton.h"
 #include "Versioning.h"
 
@@ -483,42 +482,17 @@ namespace LEX
 		//do something with values.
 	}
 
-	//I'd need 2 versions of these. Annoying.
-	class IntrinsicPolicy : public ConcretePolicy, public ICallableUnit
+	
+	class IntrinsicPolicy : public ConcretePolicy
 	{
-		//Intrinsic policies are core policies that are accessible via any script, even if it's not included in commons.
-		// this usually means that you don't need to use it's actual name, like with arrays and such.
+		//The concept of an intrinsic policy is first simply that intrinsic policies are the only 
+		// policies that can Claim a specific space. Think like how void would or something like that.
+			
+		//Second, further branches of it will be able to present default versions of things such as strings, numbers
+		// arrays, etc. This prevents us from having to carry the variable around in every single type despite not needing it.
 
-		//The idea of intrinsic policies is that their names are found by having a type name with @at the beginning.
-		// This means that it was created via keyword and is findable via all locations.
-	public:
-
-		/*
-		PolicyBase();
-
-		PolicyBase(uint32_t i);
-
-		PolicyBase(std::string_view name, TypeOffset offset);
-
-
-
-
-
-
-
-
-
-		static IntrinsicPolicy*
-		//*/
-
-
-
-
-
-	private:
-		std::unordered_map<std::string, IntrinsicPolicy*> _intrinsicTypes;
-
-
+		//There will likely have to be one for generic, but every generic/concrete one won't need new satelites, as they
+		// will just assume that it is a concrete policy. Which it is.
 
 
 
