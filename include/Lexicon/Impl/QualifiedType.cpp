@@ -4,6 +4,8 @@
 
 #include "OverloadEntry.h"
 
+#include "PolicyBase.h"
+
 namespace LEX
 {
 	int QualifiedType::CompareType(OverloadCode& left, OverloadCode& right, QualifiedType& left_type, QualifiedType& right_type)
@@ -12,8 +14,8 @@ namespace LEX
 
 		if (!left.initialized && !right.initialized)
 		{
-			left = left.FinalizeOld(left_type, right_type);
-			right = right.FinalizeOld(right_type, left_type);
+			left = left.FinalizeOld(left_type->GetTypeBase(), right_type->GetTypeBase());
+			right = right.FinalizeOld(right_type->GetTypeBase(), left_type->GetTypeBase());
 
 			//OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
 			//OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);
@@ -34,8 +36,8 @@ namespace LEX
 
 	int QualifiedType::CompareType(QualifiedType& a_lhs, QualifiedType& a_rhs)
 	{
-		OverloadCode left = policy->CreateCode(a_lhs);
-		OverloadCode right = policy->CreateCode(a_rhs);
+		OverloadCode left = policy->GetTypeBase()->CreateCode(a_lhs);
+		OverloadCode right = policy->GetTypeBase()->CreateCode(a_rhs);
 
 		return CompareType(left, right, a_lhs, a_rhs);
 	}
