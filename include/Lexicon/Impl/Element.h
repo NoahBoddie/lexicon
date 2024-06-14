@@ -28,19 +28,18 @@ namespace LEX
 		//FuncSig
 	}
 
-	ENUM(ElementFlag)
-	{
-		None		= 0 << 0,
-		Attached	= 1 << 0,	//When parent is set. If not attached, will not be set.
-
-	};
+	
 
 	struct Element : public Component
 	{
-		struct Data
+		enum Flag
 		{
-			ElementFlag flags;
+			None		= 0 << 0,
+			Attached	= 1 << 0,  //When parent is set. If not attached, will not be set.
+
+			_next		= 1 << 1
 		};
+
 
 		//TODO: For all of these, there should be an "errorless" version, that just wraps the function and returns some result enum or something.
 
@@ -67,25 +66,25 @@ namespace LEX
 		//The safe version of GetScript
 		Script* FetchScript()
 		{
-			return !this ? GetScript() : nullptr;
+			return this ? GetScript() : nullptr;
 		}
 
 		//The safe version of GetProject
 		Project* FetchProject()
 		{
-			return !this ? GetProject() : nullptr;
+			return this ? GetProject() : nullptr;
 		}
 
 		//The safe version of GetEvironment
 		Environment* FetchEnvironment()
 		{
-			return !this ? GetEnvironment() : nullptr;
+			return this ? GetEnvironment() : nullptr;
 		}
 
 		//The safe version of GetParent
 		Element* FetchParent()
 		{
-			return !this ? GetParent() : nullptr;
+			return this ? GetParent() : nullptr;
 		}
 
 
@@ -141,7 +140,7 @@ namespace LEX
 			//This simply removes the attach check by confirming it's already attached.
 			if (IsAttached() == false)
 			{
-				GetElementFlags() |= ElementFlag::Attached;
+				GetFlags() |= Flag::Attached;
 				OnAttach();
 			}
 			
@@ -149,18 +148,18 @@ namespace LEX
 
 		bool IsAttached()
 		{
-			return GetElementFlags() & ElementFlag::Attached;
+			return GetFlags() & Flag::Attached;
 		}
 
-		ElementFlag& GetElementFlags()
+		Flag& GetFlags()
 		{
-			return GetComponentData<Data>().flags;
+			return GetComponentData<Flag>();
 		}
 
 		void DeclareParentTo(Element* child)
 		{
 			child->SetParent(this);
-			child->GetElementFlags() |= ElementFlag::Attached;
+			child->GetFlags() |= Flag::Attached;
 			child->OnAttach();
 			
 		}
