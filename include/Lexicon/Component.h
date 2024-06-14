@@ -34,7 +34,7 @@ namespace LEX
 		//Final happens when all linking is done, notably, what also happens here is a bid for dependency.
 		// Basically by now if it's not loaded properly, it will never be. Final also cannot be manually selected.
 		//TODO: So for the above, Component::Link needs a wrapped function.
-		Final		= LinkFlag::All + 1, 
+		Final		= 0xFF, 
 	};
 	
 	enum struct LinkResult
@@ -230,9 +230,9 @@ namespace LEX
 		{
 			//Make sure to remove the linkCheckFlags
 
-			auto end = _linkerContainer.rend();
+			auto end = _linkerContainer.end();
 
-			for (auto it = _linkerContainer.rbegin(); it != end;)
+			for (auto it = _linkerContainer.begin(); it != _linkerContainer.end();)
 			{
 				LinkFlag& tasks = it->second;
 
@@ -240,7 +240,7 @@ namespace LEX
 
 				Component* target = it->first;
 
-				bool can_validate = true;
+				bool invalid = false;
 
 				if (!flag)
 					goto _continue;
@@ -248,28 +248,33 @@ namespace LEX
 
 				//Its also possible the impl version of the call can do this for me.
 				if (target->OnLink(flag) == LinkResult::Success) {
+					logger::critical("success");
+					logger::critical("success");
 					target->FlagAsValid();
 				}
 				else {
+					logger::critical("failure");
 					target->FlagAsInvalid();
 				}
 
 
 				//If the validation has failed, it will cease to attempt to validate it.
-				can_validate = target->InvalidFlag();
+				invalid = target->InvalidFlag();
 
-				if ((tasks &= ~flag) && !can_validate)
+				if ((tasks &= ~flag) && !invalid)
 				{
 				_continue:
 					it++;
 				}
 				else
 				{
-					auto del = it++;
-					if (can_validate)
-						target->TryValidate();
+					auto del = it;
+					it++;
 
-					_linkerContainer.erase(del->first);
+					//if (can_validate)
+						target->TryValidate();
+					//_linkerContainer.erase(del);
+					_linkerContainer.erase(del);
 				}
 			}
 
@@ -296,7 +301,7 @@ namespace LEX
 
 		bool InvalidFlag() const
 		{
-			return (_flags & ComponentFlag::Valid);
+			return (_flags & ComponentFlag::Invalid);
 		}
 
 		
@@ -473,7 +478,7 @@ public:
 		}
 
 		template <typename T>
-		T& GetComponentData()
+		T& GetComponentData() const
 		{
 			return reinterpret_cast<T&>(_data);
 		}
@@ -485,7 +490,7 @@ public:
 
 
 		//ComponentType _type = ComponentType::Invalid;
-		mutable ComponentFlag _flags = ComponentFlag::Invalid;
+		mutable ComponentFlag _flags = ComponentFlag::None;
 
 		//Data usable by any person to store personal data here. After all, it's free space.
 		mutable uint32_t _data = 0;
