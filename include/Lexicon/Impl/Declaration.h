@@ -62,11 +62,31 @@ namespace LEX
 			{
 			case "readonly"_h:
 				decl |= DeclareSpecifier::Readonly;
+				break;
+
 			case "static"_h:
 				decl |= DeclareSpecifier::Static;
+				break;
+
 			case "const"_h:
 				decl |= DeclareSpecifier::Const;
+				break;
 				//case "mutable~"_h://I don't think I actually intend to have mutables of this.
+			case "public"_h:
+				decl |= DeclareSpecifier::Public;
+				break;
+
+			case "private"_h:
+				decl |= DeclareSpecifier::Private;
+				break;
+
+			case "protected"_h:
+				decl |= DeclareSpecifier::Protected;
+				break;
+
+			case "internal"_h:
+				decl |= DeclareSpecifier::Internal;
+				break;
 
 			}
 		}

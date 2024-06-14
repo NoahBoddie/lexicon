@@ -55,6 +55,7 @@ namespace LEX
 
 		headerGuide[KeywordType::DeclSpec]["const"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["static"] = { HeaderFlag::Storage, HeaderFlag::None };
+		headerGuide[KeywordType::DeclSpec]["external"] = { HeaderFlag::None, HeaderFlag::None };//Extern doesn't really have any enemies other than maybe abstract?
 		headerGuide[KeywordType::DeclSpec]["mutable"] = { HeaderFlag::DeclMute, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["readonly"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["public"] = { HeaderFlag::Access1st, HeaderFlag::None };
