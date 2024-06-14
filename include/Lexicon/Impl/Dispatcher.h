@@ -72,7 +72,7 @@ namespace LEX
 		void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) override
 		{
 			//Unload that shit.
-			using Arg1 = std::tuple_element_t<0, std::tuple<Args...>>;
+			//using Arg1 = std::tuple_element_t<0, std::tuple<Args...>>;
 
 			constexpr size_t arg_size = std::tuple_size_v<std::tuple<Args...>>;
 
