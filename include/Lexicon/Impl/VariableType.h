@@ -218,12 +218,19 @@ namespace LEX
 
 
 
-	template <detail::call_class_has_var_type_Store T>
+	template <detail::call_class_has_var_type T>
 	AbstractTypePolicy* FetchVariableType()
 	{
 		using Decay_T = detail::custom_decay<T>;
 
-		return VariableType<Decay_T>{}();
+		if constexpr (detail::call_class_has_var_type_Value<T>) {
+			return VariableType<Decay_T>{}(nullptr);
+		}
+		else {
+			return VariableType<Decay_T>{}();
+		}
+
+		
 
 	}
 
@@ -265,15 +272,6 @@ namespace LEX
 
 
 
-
-
-
-	//This should be called GetVariablePolicy or GetValueType
-	template <typename T>
-	ITypePolicy* GetTypePolicy(detail::custom_decay<T>& arg)
-	{
-		return nullptr;
-	}
 
 
 
