@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DeclareSpecifier.h"
 
 namespace LEX
 {
@@ -26,4 +27,37 @@ namespace LEX
 		//Protected		Only the scope and derived scopes can observe it (derived data types or required/imported/included scripts). Means different things between data type and 
 		
 	};
+
+
+	namespace Misc
+	{
+		inline Access DeclareToAccess(DeclareSpecifier spec)
+		{
+			spec &= DeclareSpecifier::Access;
+
+			switch (spec)
+			{
+			case DeclareSpecifier::Private:
+				return Access::Private;
+
+			case DeclareSpecifier::Protected:
+				return Access::Protected;
+
+			case DeclareSpecifier::Public:
+				return Access::Public;
+
+			case DeclareSpecifier::InternalPrivate:
+				return Access::PrivateInternal;
+
+			case DeclareSpecifier::InteralProtected:
+				return Access::ProtectedInternal;
+
+			case DeclareSpecifier::InternalPublic:
+				return Access::PublicInternal;
+
+			default:
+				return Access::None;
+			}
+		}
+	}
 }
