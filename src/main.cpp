@@ -62,6 +62,13 @@ void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variab
     result = tar.size();
 }
 
+double size_backend(std::string a_this)
+{
+	logger::info("size of \"{}\"", a_this);
+	return a_this.size();
+}
+
+
 float TestCall_backend(float r, float a, float b)
 {
 
@@ -206,7 +213,7 @@ void LexTesting(std::string formula)
 
         interface Addable{};
         interface Primitive{};
-
+        interface BiggerAddable : public Addable{};
         struct Number intrinsic NUMBER::0 : public Addable, public Primitive;
         struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
         struct __string8 intrinsic STRING::0;
@@ -312,10 +319,14 @@ void LexTesting(std::string formula)
     
     logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
     
-    return;
+    //return;
     
     
     Script* script = Component::Create<Script>(ast);
+
+    Component::Link(LinkFlag::Declaration);
+	Component::Link(LinkFlag::Definition);
+	Component::Link(LinkFlag::External);
 
     //return;
 
@@ -330,7 +341,11 @@ void LexTesting(std::string formula)
 
             if (function)
             {
-                function->_procedure = TestProcedure;
+				if (RegisterFunction(size_backend, function) == false) {
+					logger::debug("failure");
+					std::system("pause");
+				}
+                //function->_procedure = TestProcedure;
             }
         }
     }
@@ -348,7 +363,7 @@ void LexTesting(std::string formula)
     if (function)
     {
         //Testing the proceedure
-        if constexpr (1)
+        if constexpr (0)
         {
             if (RegisterFunction(GetActorValue_backend, function) == false)
             {
