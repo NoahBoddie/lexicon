@@ -7,7 +7,10 @@
 
 #include "IdentityManager.h"
 
+#include "Declaration.h"
+
 #include "parse_strings.h"
+
 namespace LEX
 {
 
@@ -90,71 +93,71 @@ namespace LEX
 		case "class"_h:			_dataType = DataType::Class; break;//Makes a given object act like a class in assignment.
 		case "struct"_h:		_dataType = DataType::Struct; break;
 		case "interface"_h:		_dataType = DataType::Interface; break;
+		//case "enum"_h:		_dataType = DataType::Interface; break;
 		default:				report::compile::critical("improper data type found."); break;
 		}
 
 		//Do something with generic. It's useless right now
 
 
-		Record& attach = settings->FindChild(parse_strings::attach)->GetFront();
-
-		//I actually will allow interfaces to be external. It prevents them from being instantiable though.
-
-		switch (Hash(attach.GetTag()))
+		if (auto test = settings->FindChild(parse_strings::attach); test)
 		{
-			//case "data"_h://Not allowed yet
-		case "external"_h:
-		{
-			//Should clash with intrinsic.
-			_linkExternal = true;
+			Record& attach = test->GetFront();
+			//I actually will allow interfaces to be external. It prevents them from being instantiable though.
 
-			if (attach.size() == 0) {
-				report::compile::critical("external type requires some type.");
-			}
-
-
-			//unique_type.size()
-
-			//save this shit til after linkage.
-			//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
-
-			Record& cat_name = attach.GetFront();
-
-			category = cat_name.GetTag();
-
-			//category name is completely optional.
-			offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
-
-			logger::info("searching {}, our location {}", category, offset);
-
-			//this shouldn't be done yet, but I really just want to send this shit.
-			policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
-		}
-			break;
-
-		case "intrinsic"_h:
-			//if (_dataType == DataType::Interface) {
-			//	report::compile::critical("interfaces cannot be intrinsic/external");
-			//}
-			break;
-
-		default:
-			report::compile::critical("PLACEHOLDER don't know how to handle unique type."); break;
-		}
-
-
-		//This should be handled after declaration.
-		static_assert(false);
-		if (auto derives = settings->FindChild(parse_strings::derives))
-		{
-			for (auto& inherit : derives->GetChildren())
+			
+			switch (Hash(attach.GetTag())) 
 			{
-				
+				//case "data"_h://Not allowed yet
+			case "external"_h:
+				{
+					//Should clash with intrinsic.
+					MarkLinkExtern(); 
 
-				//SetDerivesTo()
+					break;
+					if (attach.size() == 0) {
+						report::compile::critical("external type requires some type.");
+					}
+
+					//unique_type.size()
+
+					//save this shit til after linkage.
+					//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
+
+					Record& cat_name = attach.GetFront();
+
+					category = cat_name.GetTag();
+
+					//category name is completely optional.
+					offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
+
+					logger::info("searching {}, our location {}", category, offset);
+
+					//this shouldn't be done yet, but I really just want to send this shit.
+					policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
+				}
+				break;
+
+			case "intrinsic"_h:
+				//if (_dataType == DataType::Interface) {
+				//	report::compile::critical("interfaces cannot be intrinsic/external");
+				//}
+				break;
+
+			default:
+				report::compile::critical("PLACEHOLDER don't know how to handle unique type.");
+				break;
 			}
+
 		}
 
+
+		
+	}
+
+	void ConcretePolicy::OnAttach()
+	{
+		HandleInheritance();
 	}
 
 	void ConcretePolicy::CompileExpression_DEPRECATED(Record& ast)
@@ -197,23 +200,25 @@ namespace LEX
 		{
 		case LinkFlag::Declaration:
 		{
-			//Handling inheritance here
+			HandleInheritance();
 			break;
 		}
 
 
 		case LinkFlag::External:
 		{
+			Record& attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach)->GetFront();
 
-			Record& obj_type = ast.FindChild("settings")->GetChild(2);
-
-			if (obj_type.size() == 0) {
+			if (attach.size() == 0) {
 				report::compile::critical("external type requires some type.");
 			}
-			else if (obj_type.GetTag() != "external") {
 
-			}
-			Record& cat_name = obj_type.GetFront();
+			//unique_type.size()
+
+			//save this shit til after linkage.
+			//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
+
+			Record& cat_name = attach.GetFront();
 
 			category = cat_name.GetTag();
 
@@ -225,10 +230,9 @@ namespace LEX
 			//this shouldn't be done yet, but I really just want to send this shit.
 			policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
 
-
 			break;
 		}
-
+		
 		default:
 			return LinkResult::Failure;
 		}
@@ -239,13 +243,14 @@ namespace LEX
 
     LinkFlag ConcretePolicy::GetLinkFlags()
     {
-		return LinkFlag::None;
+		//return LinkFlag::None;
 		
 		//Needs to handle linking once when declaration happens 
 		auto result = LinkFlag::Declaration;
 
-		if (_linkExternal)
+		if (IsLinkExtern() == true)
 			result |= LinkFlag::External;
+
 		return  result;
     }
 

@@ -43,6 +43,8 @@ namespace LEX
 
 		Variable GetDefault() override;
 
+		void OnAttach() override;
+
 	protected:
 		void SetDefault(Variable& var) override;
 	public:
