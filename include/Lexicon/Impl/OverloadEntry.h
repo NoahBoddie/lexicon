@@ -3,6 +3,8 @@
 #include "Conversion.h"
 #include "QualifiedType.h"
 
+
+
 namespace LEX
 {
 	//TODO:Delete me
@@ -21,20 +23,7 @@ namespace LEX
 
 		bool initialized = false;//If not initialized
 
-		OverloadCode FinalizeOld(ITypePolicy* type, ITypePolicy* other)
-		{
-
-
-
-			//auto other_data = other->GetInheritData(type);
-
-			if (other->IsInheritedFrom(type)  == false) {
-				return type->CreateCode(nullptr);
-			}
-			//Even if it's virtually inherited, that's ok.
-
-			return other->CreateCode(type);
-		}
+		OverloadCode FinalizeOld(PolicyBase* type, PolicyBase* other);
 
 
 
@@ -44,20 +33,12 @@ namespace LEX
 	{
 		//I'd care about the padding and stuff here but its so small I do not care.
 
-		FakeType* _type;
-
-
-
 		QualifiedType type;//Only qualified because the going to place isn't important for 
 		Conversion convert;
 		ConvertResult convertType;
 		OverloadCode code;
 
 		size_t index;//The guide of where to put the given entries routine information.
-
-
-		OverloadEntry FinalizeOld(FakeType* other);
-		bool Finalize(OverloadEntry& other);
 	};
 
 }
