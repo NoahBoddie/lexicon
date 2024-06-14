@@ -17,6 +17,7 @@ namespace LEX
 	struct IFunction;
 	struct AbstractTypePolicy;
 	class RuntimeVariable;
+	struct PolicyBase;
 	enum struct DataType : uint8_t;
 
 	struct InheritData;
@@ -131,44 +132,27 @@ namespace LEX
 		}
 		//Make some safe functions for these.
 
-		
-
-		virtual size_t GetMemberCount(bool total = false) const = 0;
-		
+	INTERNAL:		
+		virtual PolicyBase* GetTypeBase() = 0;
+		virtual const PolicyBase* GetTypeBase() const = 0;
+	public:
 		virtual _String GetName() const = 0;
 		
-		//Don't entirely need anymore.
-		bool IsInheritedFrom(ITypePolicy* other) const
-		{
-			return GetInheritData(other);
-		}
-
-		virtual InheritData* GetInheritData(ITypePolicy* type) = 0;
-		virtual const InheritData* GetInheritData(const ITypePolicy* type) const = 0;
-
-
-		bool IsGenericArg()
-		{
-			return GetGenericIndex() != NonGenericIndex;
-		}
-
-
-		virtual uint32_t GetGenericIndex()
-		{
-			//full value represents that it isn't generic.
-			return full_value<uint32_t>;
-		}
-
 
 	INTERNAL:
 		//this internal stuff is basically only really used for construction, as such, it's obscured from
 		// non-implementation versions.
 		//This should be const.
-		virtual std::vector<InheritData> GetInheritFrom(uint32_t hashMin, uint32_t idxInc) = 0;
+		//I want to remove this. it should be handled by the new user I think.
+		//virtual std::vector<InheritData> GetInheritFrom(uint32_t hashMin, uint32_t idxInc) = 0;
 
 
 
-		virtual OverloadCode CreateCode(ITypePolicy* target) = 0;
+		//I'm just forking this shit over, no real reason to do it 
+		virtual const InheritData* GetInheritData(const ITypePolicy* type) const = 0;
+
+		virtual std::vector<InheritData> GetInheritData() const = 0;
+
 	};
 
 }
