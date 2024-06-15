@@ -226,7 +226,7 @@ namespace LEX
 
 			if (a_lhs.type == OperandType::Literal) {
 				//This is hard enforced because this will impact so much more than this function.
-				report::runtime::fatal("Move attempted to set literal value.");
+				report::runtime::critical("Move attempted to set literal value.");
 			}
 
 
@@ -334,7 +334,7 @@ namespace LEX
 			FunctionBase* base = const_cast<FunctionBase*>(dynamic_cast<const FunctionBase*>(data.srcFunc));
 
 			if (!base)
-				report::runtime::fatal("No function base on source function");
+				report::runtime::critical("No function base on source function");
 
 			Environment* env = base->GetEnvironment();
 
@@ -352,7 +352,7 @@ namespace LEX
 			AbstractTypePolicy* policy = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
 
 			if (!policy)
-				report::runtime::fatal("No policy could be fetched.");
+				report::runtime::critical("No policy could be fetched.");
 
 			result = policy->GetDefault();
 
@@ -1092,7 +1092,7 @@ namespace LEX
 			Record* head_rec = target.FindChild(parse_strings::header);
 
 			if (!head_rec)
-				report::compile::fatal("No record named header.");
+				report::compile::critical("No record named header.");
 			
 			Declaration header{ *head_rec, compiler->GetEnvironment()};
 
@@ -1100,7 +1100,7 @@ namespace LEX
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
 			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
 			if (header.Matches(true, Qualifier::Const | Qualifier::Runtime) == false) {
-				report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
+				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
 
 			if (header.flags & Qualifier::Const)
@@ -1116,7 +1116,7 @@ namespace LEX
 				//-QUAL_CONV
 				Conversion* out = nullptr;//Not used for now because there are no conversions like this.
 				if (auto convert = result.IsConvertToQualified(header, nullptr); convert <= ConvertResult::Failure) {
-					report::compile::fatal("Cannot initialize. Error {}", (int)convert);
+					report::compile::critical("Cannot initialize. Error {}", (int)convert);
 				}
 
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };

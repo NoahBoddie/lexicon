@@ -131,7 +131,7 @@ namespace LEX
 			else if (index() == 1)
 			{
 				if (auto refs = GetData().refs; refs) {
-					report::runtime::fatal("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
+					report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
 				}
 			}
 		}
@@ -262,7 +262,8 @@ namespace LEX
 			get_switch (index())
 			{
 			default:
-				report::runtime::fatal("RuntimeVariable is undefined. (val = {})", switch_value); throw nullptr;
+				report::runtime::critical("RuntimeVariable is undefined. (val = {})", switch_value);
+				throw nullptr;
 
 			case 1:
 				return std::get<Variable>(*this);
@@ -329,7 +330,7 @@ namespace LEX
 		Variable* operator->()
 		{
 			if (IsEmpty() == true)
-				report::runtime::fatal("RuntimeVariable is undefined, cannot be accessed.");
+				report::runtime::critical("RuntimeVariable is undefined, cannot be accessed.");
 
 			return &Ref();
 		}
@@ -338,7 +339,7 @@ namespace LEX
 		Variable& operator*()
 		{
 			if (IsEmpty() == true)
-				report::runtime::fatal("RuntimeVariable is undefined, cannot be accessed.");
+				report::runtime::critical("RuntimeVariable is undefined, cannot be accessed.");
 
 			return Ref();
 		}

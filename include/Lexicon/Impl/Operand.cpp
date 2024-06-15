@@ -34,7 +34,7 @@ namespace LEX
 			
 		}
 
-		report::runtime::fatal("Operand Cannot return AsVariable. No reference type detected. {} ", (uint8_t)type);
+		report::runtime::critical("Operand Cannot return AsVariable. No reference type detected. {} ", (uint8_t)type);
 		throw nullptr;//Error.
 	}
 
@@ -93,7 +93,7 @@ namespace LEX
 			break;
 		}
 
-		report::runtime::fatal("Operand didn't exist. Fixer later. {} ", (uint8_t)type);
+		report::runtime::critical("Operand didn't exist. Fixer later. {} ", (uint8_t)type);
 		throw nullptr;//Error.
 
 		//*/

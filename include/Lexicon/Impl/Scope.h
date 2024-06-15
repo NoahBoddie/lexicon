@@ -91,7 +91,7 @@ namespace LEX
 			process->currentScope = this;
 
 			if (parent && s == ScopeType::Header) {
-				report::compile::fatal("invalid header scope with parent detected.");
+				report::compile::critical("invalid header scope with parent detected.");
 			}
 		}
 
@@ -177,7 +177,7 @@ namespace LEX
 			if (IsHeader() == true) {
 
 				if (!_return && process->GetReturnType()->FetchTypeID() != -1)
-					report::compile::fatal("Explicit return expected. {}", name());
+					report::compile::critical("Explicit return expected. {}", name());
 
 				return;
 			}

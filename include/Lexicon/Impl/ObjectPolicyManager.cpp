@@ -18,7 +18,7 @@ namespace LEX
 		auto it = aliasList.find(name);
 
 		if (it == end) {
-			report::compile::fatal("AliasNotFound");
+			report::compile::critical("AliasNotFound");
 			throw nullptr;
 		}
 

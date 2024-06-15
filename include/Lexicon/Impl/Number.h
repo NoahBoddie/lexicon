@@ -27,7 +27,7 @@ namespace LEX
             constexpr bool assign = _IsAssign(STRINGIZE(mc_symbol));                                        \
             if constexpr (!assign) {                                                                        \
                 if ((!IsValid() && strcmp(STRINGIZE(mc_symbol), "=") != 0) || a_rhs.IsValid() == false) {   \
-                    report::runtime::fatal("some number is invalid.");                                      \
+                    report::runtime::critical("some number is invalid.");                                   \
                     throw nullptr;                                                                          \
                 }                                                                                           \
             }                                                                                               \
@@ -37,7 +37,7 @@ namespace LEX
                         return lhs mc_symbol rhs;                                                           \
                     }                                                                                       \
                     else {                                                                                  \
-                        report::runtime::fatal("invalid ops used on each other.");                          \
+                        report::runtime::critical("invalid ops used on each other.");                       \
                         throw nullptr;                                                                      \
                         return lhs;                                                                         \
                     }                                                                                       \
@@ -55,7 +55,7 @@ namespace LEX
             constexpr bool assign = _IsAssign(STRINGIZE(mc_symbol));                                        \
             if constexpr (!assign) {                                                                        \
                 if (!IsValid() && strcmp(STRINGIZE(mc_symbol), "=") != 0) {                                 \
-                    report::runtime::fatal("some number is invalid.");                                      \
+                    report::runtime::critical("some number is invalid.");                                   \
                     throw nullptr;                                                                          \
                 }                                                                                           \
             }                                                                                               \
@@ -64,7 +64,7 @@ namespace LEX
                         return mc_symbol lhs;                                                               \
                     }                                                                                       \
                     else {                                                                                  \
-                        report::runtime::fatal("invalid ops used on number.");                              \
+                        report::runtime::critical("invalid ops used on number.");                           \
                         throw nullptr;                                                                      \
                         return lhs;                                                                         \
                     }                                                                                       \
@@ -513,7 +513,8 @@ namespace LEX
         Number operator *(const Number& a_rhs) {
             constexpr bool assign = _IsAssign(STRINGIZE(*)); if constexpr (!assign) {
                 if ((!IsValid() && strcmp(STRINGIZE(*), "=") != 0) || a_rhs.IsValid() == false) {
-                    report::runtime::fatal("some number is invalid. left {} right {}", IsValid(), a_rhs.IsValid()); throw nullptr;
+					report::runtime::critical("some number is invalid. left {} right {}", IsValid(), a_rhs.IsValid());
+					throw nullptr;
                 }
             } Number result = std::visit([&](auto&& lhs) -> Number { return std::visit([&](auto&& rhs) -> Number { if constexpr (true) {
                 return lhs * rhs;
@@ -526,13 +527,13 @@ namespace LEX
             RGL_LOG(info, "tell");
             constexpr bool assign = _IsAssign(STRINGIZE(+)); if constexpr (!assign) {
                 if ((!IsValid() && strcmp(STRINGIZE(+), "=") != 0) || a_rhs.IsValid() == false) {
-                    report::runtime::fatal("some number is invalid. left: {} right: {}", IsValid(), a_rhs.IsValid()); throw nullptr;
+                    report::runtime::critical("some number is invalid. left: {} right: {}", IsValid(), a_rhs.IsValid()); throw nullptr;
                 }
             } Number result = std::visit([&](auto&& lhs) -> Number { return std::visit([&](auto&& rhs) -> Number { if constexpr (true) {
                 return lhs + rhs;
             }
             else {
-                report::runtime::fatal("invalid ops used on each other."); throw nullptr; return lhs;
+                report::runtime::critical("invalid ops used on each other."); throw nullptr; return lhs;
             } }, a_rhs._value); }, _value); if constexpr (assign) return *this; else return result;
         };
         Number BINARY_OPERATOR(/);
@@ -609,7 +610,7 @@ namespace LEX
             T result;
 
             if (As<T>(result) == false)
-                report::fault::fatal("Cannot turn number into type {}", typeid(T).name());
+				report::fault::critical("Cannot turn number into type {}", typeid(T).name());
 
             return result;
         }

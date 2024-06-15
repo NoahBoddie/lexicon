@@ -12,7 +12,7 @@ namespace LEX
 		Variable* target = nullptr;
 
 		if (args.size() != parameters.size())
-			report::apply::fatal("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
+			report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
 
 		size_t size = parameters.size();
 
@@ -28,7 +28,7 @@ namespace LEX
 			RuntimeVariable check = args[j]->Convert(expected);
 
 			if (check.IsVoid() == true)
-				report::apply::fatal("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
+				report::apply::critical("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
 
 			args[i] = check;
 		}

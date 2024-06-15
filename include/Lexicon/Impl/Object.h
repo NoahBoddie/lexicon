@@ -457,13 +457,13 @@ namespace LEX
 
 
 		if (!result.policy) {
-			report::runtime::fatal("no policies");
+			report::runtime::critical("no policies");
 		}
 
 		IObjectVTable* vtable = GetObjectInfo<_Type>();
 
 		if (policy->IsCompatible(vtable) == false) {
-			report::runtime::fatal("incompatible policies");
+			report::runtime::critical("incompatible policies");
 		}
 
 		//This should get handled in compatibility testing.

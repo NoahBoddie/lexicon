@@ -59,13 +59,13 @@ namespace LEX
         Record* head_rec = target.FindChild(parse_strings::header);
 
         if (!head_rec)
-            report::compile::fatal("No record named header.");
+			report::compile::critical("No record named header.");
         //LINK_AFTER
 
         Declaration header{ *head_rec, environment };
 
         if (header.Matches(true, Qualifier::Const) == false) {
-            report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
+			report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
         }
 
         //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
@@ -112,13 +112,13 @@ namespace LEX
             Record* node_head = node.FindChild(parse_strings::header);
 
             if (!node_head)
-                report::compile::fatal("No record named header.");
+				report::compile::critical("No record named header.");
 
             Declaration header{ *node_head, environment };
 
             //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
             if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
-                report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
+				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 
             QualifiedType type = header;
@@ -167,13 +167,13 @@ namespace LEX
             Record* head_rec = target.FindChild(parse_strings::header);
 
             if (!head_rec)
-                report::compile::fatal("No record named header.");
+				report::compile::critical("No record named header.");
             //LINK_AFTER
 
             Declaration header{ *head_rec, environment };
 
             if (header.Matches(true, Qualifier::Const) == false) {
-                report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
+				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 
             //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
@@ -220,13 +220,13 @@ namespace LEX
                 Record* node_head = node.FindChild(parse_strings::header);
 
                 if (!node_head)
-                    report::compile::fatal("No record named header.");
+					report::compile::critical("No record named header.");
 
                 Declaration header{ *node_head, environment };
 
                 //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
                 if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
-                    report::compile::fatal("Either unexpected qualifiers/specifiers or no type when type expected.");
+					report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
                 }
 
                 QualifiedType type = header;

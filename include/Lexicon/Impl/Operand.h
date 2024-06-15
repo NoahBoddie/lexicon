@@ -32,7 +32,7 @@ namespace LEX
 					T result{};
 					//Error message should probably be different here.
 					if (data().Get<Type>(result) == false) {	
-						report::runtime::fatal("Failure to get Target, OperandType {}", (uint8_t)Type);
+						report::runtime::critical("Failure to get Target, OperandType {}", (uint8_t)Type);
 					}
 
 					return result;

@@ -204,13 +204,13 @@ namespace LEX
 			second = true;
 
 			if (data.type == self) {
-				report::compile::fatal("Type '{}' cannot inherit from itself", self->GetName());
+				report::compile::critical("Type '{}' cannot inherit from itself", self->GetName());
 			}
 
 			InheritData* prev_data = _InheritData(data);
 
 			if (prev_data && data.distance == 1 && data.ownerIndex == 0) {
-				report::compile::fatal("Type '{}' inherits {} directly multiple times", self->GetName(), prev_data->type->GetName());
+				report::compile::critical("Type '{}' inherits {} directly multiple times", self->GetName(), prev_data->type->GetName());
 			}
 
 
@@ -273,7 +273,7 @@ namespace LEX
 
 
 		if (self == other)
-			report::compile::fatal("Type '{}' cannot inherit from itself", self->GetName());
+			report::compile::critical("Type '{}' cannot inherit from itself", self->GetName());
 
 		base->HandleInheritance();
 		

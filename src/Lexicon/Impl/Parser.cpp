@@ -356,7 +356,7 @@ namespace LEX::Impl
 
 
 		if (!mdl) {
-			report::fault::fatal("No parse module given bruv");
+			report::fault::critical("No parse module given bruv");
 		}
 		Parser par_stream{ tok_stream,	mdl };
 

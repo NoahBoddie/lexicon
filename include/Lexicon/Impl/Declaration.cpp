@@ -192,7 +192,7 @@ namespace LEX
 	Declaration::Declaration(Record& header, Environment* env)
 	{
 		if (header.GetTag() != parse_strings::header) {
-			report::fault::fatal("header not found.");
+			report::fault::critical("header not found.");
 		}
 
 
@@ -243,7 +243,7 @@ namespace LEX
 
 				if (headerGuide[type].end() == it) {
 					//This didn't crash for some fucking reason????
-					report::fault::fatal("cannot find setting flags for keyword {}", name);
+					report::fault::critical("cannot find setting flags for keyword {}", name);
 				}
 
 				entry = it->second;

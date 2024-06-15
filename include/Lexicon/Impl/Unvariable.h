@@ -21,7 +21,7 @@ namespace LEX
 		Type operator()(Variable* var)
 		{
 			if (var->CanCastTo<Type>() == false)
-				report::apply::fatal("Current value of Variable is unable to be cast to '{}'.", typeid(Type).name());
+				report::apply::critical("Current value of Variable is unable to be cast to '{}'.", typeid(Type).name());
 
 			return static_cast<Type>(*var);
 		}

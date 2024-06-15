@@ -2091,6 +2091,35 @@ struct Extension : public T
 	}
 
 
+
+
+
+
+
+
+	INITIALIZE()
+	{
+		std::string message = "Something {} {} {}";
+		std::source_location loc = std::source_location::current();
+		report::break_debug("Something new {} {} {}", 1, 2, 3);
+		report temp_switch{ IssueType::Compile };
+		report::info("Something else {} {} {}", 3, 2, 1);
+
+		report::message::break_info(1032, 3, 2, 1);
+
+		if constexpr (false)
+			report::parse::critical("Shit ends here");
+		//repTest1("", 12, 23);
+
+		assert(1);
+
+		
+	}
+
+	INITIALIZE()
+	{
+		report::info("Something last {} {} {}", 3, 2, 1);
+	}
 }
 
 

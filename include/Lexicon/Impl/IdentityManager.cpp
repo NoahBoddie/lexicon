@@ -118,7 +118,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		PolicyBase*& slot = policyList[id];
 
 		if (slot) {
-			report::compile::fatal("Slot for {} already taken.", id);
+			report::compile::critical("Slot for {} already taken.", id);
 		}
 
 		//check here 
