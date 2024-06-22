@@ -288,27 +288,27 @@ namespace LEX
 
 #define DECLARE_LOGGER_LEVEL(mc_name, mc_level,...)													\
 	template <is_not<std::source_location>... Ts>													\
-	static __VA_ARGS__ void mc_name(SourceAndProxy<std::string> message, Ts&&... args)              \
+	__VA_ARGS__ static void mc_name(SourceAndProxy<std::string> message, Ts&&... args)              \
 	{																								\
 		return Log<IssueLevel::mc_level>(message.prox, message.src, GetIssueType(), args...);		\
 	}																								\
 	template <is_not<std::source_location>... Ts>													\
-	static __VA_ARGS__ void mc_name(std::string& message, std::source_location loc, Ts&&... args)   \
+	__VA_ARGS__ static void mc_name(std::string& message, std::source_location loc, Ts&&... args)   \
 	{																								\
 		return Log<IssueLevel::mc_level>(message, loc, GetIssueType(), args...);					\
 	}																								\
 	template <is_not<std::source_location>... Ts>													\
-	static __VA_ARGS__ void mc_name(std::string&& message, std::source_location loc, Ts&&... args)  \
+	__VA_ARGS__ static void mc_name(std::string&& message, std::source_location loc, Ts&&... args)  \
 	{																								\
 		return mc_name(message, loc, args...);														\
 	}																								\
 	template <is_not<std::source_location>... Ts>													\
-	static __VA_ARGS__ void mc_name(SourceAndProxy<IssueCode> code, Ts&&... args)					\
+	__VA_ARGS__ static void mc_name(SourceAndProxy<IssueCode> code, Ts&&... args)					\
 	{																								\
 		return Log<IssueLevel::mc_level>(code.prox, code.src, GetIssueType(), args...);				\
 	}																								\
 	template <is_not<std::source_location>... Ts>													\
-	static __VA_ARGS__ void mc_name(IssueCode code, std::source_location loc, Ts&&... args)			\
+	__VA_ARGS__ static void mc_name(IssueCode code, std::source_location loc, Ts&&... args)			\
 	{																								\
 		return Log<IssueLevel::mc_level>(code, loc, GetIssueType(), args...);						\
 	}
