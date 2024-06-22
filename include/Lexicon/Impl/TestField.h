@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 
 
@@ -296,21 +296,137 @@ namespace LEX
 
 
 
-
-
-	class Formula : public ICallableUnit, public RoutineBase
+	class IFormula : public ICallableUnit
 	{
-		//This does not derive from functions, due to not wishing to be included into any place like those.
-		// Formulas as such are validated differently
+		//IFormula simply should provide some clarification that this indeed is a formula
+
+	};
+	
+	template <typename T>
+	struct BasicFormula : public IFormula
+	{
+		//The idea of this is you cast an IFormula into this forcibly, and this type will then manage all of the function calls for the type.
+		// Basically, think of this as a std::function. it should then translate all the rest of the bullshit around it.
 	};
 
+
+	class Formula : public IFormula, public BasicCallableData
+	{
+		//This version is obscured for the user. It should help inline functions and such into the code, or that can be given to others to run.
+		//Formula rules. 
+		// They don't have default parameters, 
+		// they don't have procedures. 
+		// They don't have names.
+		// They don't have targets
+
+
+
+		RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
+		{
+			//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
+
+			Runtime* runtime = nullptr;
+			Variable* target = nullptr;
+
+			if (args.size() != parameters.size())
+				report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
+
+			size_t size = parameters.size();
+
+			
+			for (int i = 0; i < size; i++) {
+				//Cancelling this for now.
+				break;
+				int j = i;
+
+				AbstractTypePolicy* expected = parameters[i].GetType()->FetchTypePolicy(runtime);
+				if (!expected)
+					throw nullptr;
+				RuntimeVariable check = args[j]->Convert(expected);
+
+				if (check.IsVoid() == true)
+					report::apply::critical("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
+
+				args[i] = check;
+			}
+			
+			{
+				RuntimeVariable result;
+
+				Runtime runtime{ *GetRoutine(), args };
+
+				result = runtime.Run();
+
+				return result;
+			}
+		}
+
+
+	};
+
+
+	namespace FunctionalInlining
+	{
+		
+
+		//This will need a fair few things from the compiler in order to make this rigt. So I'm not dealing with it for right now.
+		inline InstructType preserve = InstructType::Invalid;
+		inline InstructType restore = InstructType::Division;
+
+		static void ReserveRegister(RuntimeVariable&, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			auto mode = a_lhs.Get<Index>();
+
+			Register exception = a_rhs.Get<Register>();
+
+			//thinking about it, I may want to put these on the argument register. Mainly because the argument register is more likely to have less permenant increments
+
+			Register reg = (Register)(Register::Total - 1);
+
+			if (preserve) {
+				size_t size = runtime->AdjustStackPointer(StackPointer::Argument, Register::Total);
+
+				size_t it = size - Register::Total;
+
+				for (; reg < Register::Total; reg--) {
+					//Register::Total
+
+					if (reg != exception)
+						runtime->GetArgument(it + reg) = runtime->GetRegister(reg);
+				}
+			} else {
+				size_t size = runtime->GetStackPointer(StackPointer::Argument);
+
+				size_t it = size - Register::Total;
+
+				//mode should equal it.
+
+				//When this loops before 0 stack overflow will happen
+				for (; reg < Register::Total; reg--) {
+					//Register::Total
+
+					if (reg != exception)
+						runtime->GetRegister(reg) = runtime->GetArgument(it + reg);
+				}
+			}
+		}
+
+		inline void InlineRoutine(RoutineCompiler* compiler, RoutineBase& routine)
+		{
+			//compiler->ModParamCount(routine.argCapacity);
+			//compiler->
+			//routine.
+
+			//The arguments should already be expected to go into variable slots rather than call sites by this point.
+		}
+	}
 
 	//Calling function helper constructs. 
 	//Needs names other than target. It's called a ThisVariable
 
 	namespace detail
 	{
-
+		
 		struct ThisHelperImpl
 		{
 			using _Base = ThisHelperImpl;
@@ -353,6 +469,1262 @@ namespace LEX
 			Variable _this;
 		};
 	}
+	
+	
+
+	namespace NumberNew
+	{
+		using Settings = Number::Settings;
+
+
+		enum struct NumberDataType
+		{
+			Invalid,
+			Float,
+			SInt,
+			UInt,
+		};
+
+
+		union NumberData
+		{
+
+			size_t									_raw = 0;
+			std::array<uint8_t, sizeof(size_t)>		_bytes;
+			double									floating;
+			int64_t									sInteger;
+			uint64_t								uInteger;
+
+			template<numeric T>
+			auto& Get()
+			{
+				if constexpr (std::is_floating_point_v<T>) {
+					return floating;
+				} else if constexpr (std::is_same_v<T, uint64_t>) {
+					return uInteger;
+				} else {
+					return sInteger;
+				}
+			}
+
+
+
+			constexpr NumberData() = default;
+			constexpr NumberData(double arg) : floating{ arg } {}//doesn't matter which it is.
+			constexpr NumberData(int64_t arg) : sInteger{ arg } {}//doesn't matter which it is.
+			constexpr NumberData(uint64_t arg) : uInteger{ arg } {}//doesn't matter which it is.
+			constexpr NumberData(int32_t arg) : sInteger{ arg } {}
+			constexpr NumberData(uint32_t arg) : sInteger{ arg } {}
+			constexpr NumberData(int16_t arg) : sInteger{ arg } {}
+			constexpr NumberData(uint16_t arg) : sInteger{ arg } {}
+			constexpr NumberData(int8_t arg) : sInteger{ arg } {}
+			constexpr NumberData(uint8_t arg) : sInteger{ arg } {}
+			constexpr NumberData(bool arg) : sInteger{ arg } {}
+		};
+		REQUIRED_SIZE(NumberData, 0x8);
+
+
+		struct NumberLimit
+		{
+			NumberData min;
+			NumberData max;
+			NumberData posInf;
+			NumberData negInf;
+
+			constexpr NumberLimit() = default;
+			
+			constexpr NumberLimit(NumberData _min, NumberData _max, std::optional<NumberData> pos_inf = std::nullopt, std::optional<NumberData> neg_inf = std::nullopt) :
+				min {_min}, max {_max}, negInf{ neg_inf.value_or(0) }, posInf{pos_inf.value_or(0)}
+			{
+
+			}
+		};
+
+		inline NumberLimit limitMap[NumeralType::Total][Signage::Total][Size::Total];
+
+
+
+
+		
+
+		INITIALIZE()
+		{
+			//there are 3 limit types
+
+
+			using Types = std::tuple<bool, int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double> ;
+			//Instead of going through the settings, I could just make a list of all the ones these limits apply to.
+
+
+			//I will just handle the limit map completely manually. There's little reason not to, as limit not being here makes it only 20 entries.
+
+			//For float, bit is episilon, byte is percent word. Nothing is used for word.
+			max_value<int>;
+
+			//Note, these are given infinity REGARDLESS if it actually can use infinity or not
+			// Also note, the value of infinity is a constant. Maybe also the only time that it will not be cleared.
+			// An infinity of 0 means no infinity at all.
+			limitMap[NumeralType::Floating][Signage::Signed][Size::Bit] = { -1.0, 1.0, INFINITY, -INFINITY };
+			limitMap[NumeralType::Floating][Signage::Signed][Size::Byte] = { -100.0, 100.0, INFINITY, -INFINITY };
+			limitMap[NumeralType::Floating][Signage::Signed][Size::Word] = { -100.0, 100.0, INFINITY, -INFINITY };
+			limitMap[NumeralType::Floating][Signage::Signed][Size::DWord] = { min_value<float>, max_value<float>, INFINITY, -INFINITY };
+			limitMap[NumeralType::Floating][Signage::Signed][Size::QWord] = { min_value<double>, max_value<double>, INFINITY, -INFINITY };
+			
+			limitMap[NumeralType::Floating][Signage::Unsigned][Size::Bit] = { 0.0, 1.0, 0, INFINITY };
+			limitMap[NumeralType::Floating][Signage::Unsigned][Size::Byte] = { 0.0, 100.0, 0, INFINITY };
+			limitMap[NumeralType::Floating][Signage::Unsigned][Size::Word] = { 0.0, 100.0, 0, INFINITY };
+			limitMap[NumeralType::Floating][Signage::Unsigned][Size::DWord] = { 0.0, max_value<float>, 0, INFINITY };
+			limitMap[NumeralType::Floating][Signage::Unsigned][Size::QWord] = { 0.0, max_value<double>, 0, INFINITY };
+
+			
+
+			limitMap[NumeralType::Integral][Signage::Unsigned][Size::Bit] = { (int64_t)false, (int64_t)true };
+			limitMap[NumeralType::Integral][Signage::Unsigned][Size::Byte] = { min_value<uint8_t>, max_value<uint8_t>, max_value<uint64_t> };
+			limitMap[NumeralType::Integral][Signage::Unsigned][Size::Word] = { min_value<uint16_t>, max_value<uint16_t>, max_value<uint64_t> };
+			limitMap[NumeralType::Integral][Signage::Unsigned][Size::DWord] = { min_value<uint32_t>, max_value<uint32_t>, max_value<uint64_t> };
+			limitMap[NumeralType::Integral][Signage::Unsigned][Size::QWord] = { min_value<uint64_t>, max_value<uint64_t>, max_value<uint64_t> };
+
+			limitMap[NumeralType::Integral][Signage::Signed][Size::Bit] = { -1, 1, max_value<int64_t>, min_value<int64_t> };
+			limitMap[NumeralType::Integral][Signage::Signed][Size::Byte] = { min_value<int8_t>, max_value<int8_t>, max_value<int64_t>, min_value<int64_t> };
+			limitMap[NumeralType::Integral][Signage::Signed][Size::Word] = { min_value<int16_t>, max_value<int16_t>, max_value<int64_t>, min_value<int64_t> };
+			limitMap[NumeralType::Integral][Signage::Signed][Size::DWord] = { min_value<int32_t>, max_value<int32_t>, max_value<int64_t>, min_value<int64_t> };
+			limitMap[NumeralType::Integral][Signage::Signed][Size::QWord] = { min_value<int64_t>, max_value<int64_t>, max_value<int64_t>, min_value<int64_t> };
+
+		}
+
+
+		ENUM(InfiniteState, int8_t)
+		{
+			Negative = -1,
+			Finite = 0,
+			Positive = 1,
+		};
+
+
+		struct infinity
+		{
+			
+			//This is a struct to represent infinity for whatever current setting is active. Helps represent infinity for types that don't actually have it.
+		
+			bool positive = true;
+			NumeralType type{ NumeralType::Invalid };
+			Size        size{ Size::Invalid };
+			Signage     sign{ Signage::Invalid };
+
+			//Also a note to this, I'd like to make constexpr versions of infinity to represent each version of infinity.
+
+
+			infinity operator-() const
+			{
+				infinity result = *this;
+				if (sign != Signage::Unsigned)
+					result.positive = !result.positive;
+				else
+					report::message::break_warn("infinity cannot be negated with current settings");
+
+				return result;
+			}
+
+
+			constexpr infinity() = default;
+
+			constexpr infinity(NumeralType nt, Size sz, Signage sg) : type {nt}, size {sz}, sign {sg}
+			{}
+
+
+			//returns a constant for use when one wants to set a number to an infinite, but also doesn't want to 
+			// override the settings.
+			inline static constexpr infinity constant()
+			{
+				return infinity{};
+			}
+
+			inline static constexpr infinity float32()
+			{
+				return infinity{ NumeralType::Floating, Size::DWord, Signage::Signed };
+			}
+
+			inline static constexpr infinity float64()
+			{
+				return infinity{ NumeralType::Floating, Size::QWord, Signage::Signed };
+			}
+
+			inline static constexpr infinity ufloat32()
+			{
+				return infinity{ NumeralType::Floating, Size::DWord, Signage::Unsigned };
+			}
+
+			inline static constexpr infinity ufloat64()
+			{
+				return infinity{ NumeralType::Floating, Size::QWord, Signage::Unsigned };
+			}
+
+
+
+
+			//Also, positive will be restricted, instead, you must perform unary minus on infinity to get negative infinity.
+		};
+
+
+		namespace seperator
+		{
+			struct Number_
+			{
+				NumberData _data;
+				Settings _setting;
+				uint8_t _priority;//Space is free so I might as well
+				InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
+			
+
+				//Proving line.
+			
+
+				constexpr bool IsInfinite() const
+				{
+					return infinite != InfiniteState::Finite;
+				}
+
+				NumberDataType GetNumberType() const
+				{
+					if (_setting.IsFloat() == true)
+					{
+						return NumberDataType::Float;
+					}
+					else if (_setting.IsInteger() == true)
+					{
+						if (_setting.IsSigned() == true)
+						{
+							return NumberDataType::SInt;
+						}
+						else if (_setting.IsUnsigned() == true)
+						{
+							return NumberDataType::UInt;
+						}
+					}
+
+					return NumberDataType::Invalid;
+				}
+
+
+				template <typename V>
+				decltype(auto) Visit(V visitor)
+				{
+					//Visit will visit with a version of number data's different data types, or fail if the settings are invalid.
+
+					switch (GetNumberType())
+					{
+					case NumberDataType::Float:
+						return visitor(_data.floating);
+
+					case NumberDataType::SInt:
+						return visitor(_data.sInteger);
+
+					case NumberDataType::UInt:
+						return visitor(_data.uInteger);
+
+					default:
+						report::error("Invalid number settings. Data cannot be visited.");
+						break;
+					}
+				}
+
+				template <typename V>
+				decltype(auto) Visit(V visitor) const
+				{
+					//Visit will visit with a version of number data's different data types, or fail if the settings are invalid.
+
+					switch (GetNumberType())
+					{
+					case NumberDataType::Float:
+						return visitor(_data.floating);
+
+					case NumberDataType::SInt:
+						return visitor(_data.sInteger);
+
+					case NumberDataType::UInt:
+						return visitor(_data.uInteger);
+
+					default:
+						report::error("Invalid number settings. Data cannot be visited.");
+						break;
+					}
+				}
+
+
+
+
+				Number_ Convert(Settings settings) const
+				{
+					//This is a really lazy and also incorrect way to do this.
+
+					Number_ copy = settings;
+
+					//copy._data = other._data;
+
+
+					//The limit type observed on this is changed to Maximum(limits) if left is unsigned, and right is negative infinity.
+
+					if (infinite && copy._setting.limit != Limit::Infinite)
+					{
+						auto _neg = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].negInf;
+						auto _pos = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].posInf;
+
+
+
+						switch (infinite)
+						{
+						case InfiniteState::Positive:
+							copy._data = _pos;
+							break;
+						case InfiniteState::Negative:
+							report::debug("neg");
+							copy._data = _neg;
+							break;
+						}
+
+						if (_setting.limit == Limit::Infinite) {
+							copy.SetInfinite(infinite);
+							return copy;
+						}
+					}
+
+					auto& other = *this;
+
+					copy.Visit([&]<typename L>(L& lhs)
+					{
+						other.Visit([&]<typename R>(R rhs)
+						{
+							lhs = (L)rhs;
+						});
+
+						copy.NewLimitCheck();
+					});
+
+					return copy;
+				}
+
+				Number_& Assign(const Number_& other)
+				{
+					*this = other.Convert(_setting);
+					return *this;
+				}
+			
+
+				std::string ToString() const
+				{
+					switch (infinite)
+					{
+					case InfiniteState::Finite:
+						return Visit([](auto it) { return std::to_string(it); });
+					case InfiniteState::Positive:
+						return "inf";
+					case InfiniteState::Negative:
+						return "-inf";
+					}
+
+
+					return "INVALID";
+				}
+
+
+
+				//I'd like to change the name but this is good.
+				Settings DuelTypes(const Number_& other, Settings ret)
+				{
+					constexpr Settings k_int{ NumeralType::Integral, Size::DWord, Signage::Signed, Limit::Overflow };
+					constexpr auto k_offset = k_int.GetOffset();
+
+
+					Settings result = _setting;
+
+					if (auto settings = other._setting; result.GetOffset() < settings.GetOffset())
+						result = settings;
+
+					if (result.GetOffset() < k_offset)
+						result = k_int;
+
+
+					if (result.GetOffset() < ret.GetOffset())
+						result = ret;
+
+					return result;
+					//other is the right hand side, "this" is the left hand side, and ret is the return of the predicate turned into a number setting.
+					//The largest ont between these options, and int wins.
+				}
+
+
+
+
+
+				void SetInfinite(InfiniteState state)
+				{
+					//This is just so the same lambda isn't floating around.
+
+					if (Visit([](auto it) { return it == 0; }) == false)
+						infinite = state;
+				}
+
+
+				void NewLimitCheck(int overflow = 0)
+				{
+
+
+					auto _min = limitMap[_setting.type][_setting.sign][_setting.size].min;
+					auto _max = limitMap[_setting.type][_setting.sign][_setting.size].max;
+
+					if (!overflow)
+					{
+						overflow = Visit(
+							[&]<typename T>(T value) -> int
+							{
+								return value > _max.Get<T>() ?
+									1 : value < _min.Get<T>() ?
+									-1 : 0;
+							});
+
+
+					}
+
+					if (!overflow)
+						return;
+
+
+					switch (_setting.limit)
+					{
+						case Limit::Overflow:
+						{
+							Visit([&]<typename T>(T& value) 
+							{
+								using Cast = std::conditional_t<std::is_floating_point_v<T>, double, size_t>;
+								value -= (_setting.IsSigned() + (size_t)(value / ((size_t)_max.Get<T>() + 1))) * ((size_t)_max.Get<T>() + 1);
+							});
+						}
+						break;
+						
+						case Limit::Bound:
+						{
+							Visit([&](auto& value)
+							{
+								if (overflow == 1)
+									_data = _max;
+								else if (overflow == -1)
+									_data = _min;
+							});
+						}
+						break;
+
+						case Limit::Infinite:
+						{
+							InfiniteState state = InfiniteState::Finite;
+
+							if (overflow == 1) {
+								_data = limitMap[_setting.type][_setting.sign][_setting.size].posInf;
+								state = InfiniteState::Positive;
+							}
+							else if (overflow == -1) {
+								_data = limitMap[_setting.type][_setting.sign][_setting.size].negInf;
+								state = InfiniteState::Negative;
+							}
+							
+							SetInfinite(state);							
+						}
+						break;
+						
+						default:
+							report::message::error("Invalid limit.");
+					}
+				}
+
+
+
+				template <typename Func>
+				Number_ Operator(const Number_& other, Func func)
+				{
+					using Result = std::invoke_result_t<Func, bool, bool>;
+					Number_ result = DuelTypes(other, Settings::CreateFromType<Result>());
+					
+
+					constexpr bool no_limit_check = requires(int lhs, int rhs)
+					{
+						func(lhs, rhs, 0);
+					};
+
+					double comp;
+
+
+					result.Visit([&](auto& res)
+					{
+						this->Visit([&]<typename L>(L& lhs)
+						{
+							other.Visit([&]<typename R>(R rhs)
+							{
+								res = func(lhs, rhs);
+
+								if constexpr (!no_limit_check)
+									comp = func((double)lhs, (double)rhs);
+							});
+						});
+					});
+
+
+
+					//Should require an integral
+
+					if constexpr (!no_limit_check)
+					{
+						int overflow = result.Visit([comp]<typename T>(T res) -> int
+						{
+							return  res > comp ?
+								-1 : res < comp ?
+								1 : 0;
+						});
+
+
+						report::trace("overflow {}", overflow);
+						//bool bound = false;
+
+						result.NewLimitCheck(overflow);
+					}
+
+					return result;
+				}
+
+
+				//-end
+			
+
+
+			
+				Number_() = default;
+				
+				Number_(Settings _set) :
+					// _value{ v },
+					_setting{ _set },
+					_priority{ _setting.GetOffset() }
+				{
+					const char* name = "INVALID";
+
+					Visit([&]<typename T>(T) { name = typeid(T).name(); });
+
+
+					RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
+						ToString(),
+						_setting.sign, _setting.size, _setting.type, _setting.limit);
+				}
+
+				template <numeric T>
+				Number_(T v) :
+					_setting{ Settings::CreateFromType<T>() },
+					_priority{ _setting.GetOffset() }
+				{
+				
+					_data.Get<T>() = v;
+				
+
+					RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
+						ToString(),
+						_setting.sign, _setting.size, _setting.type, _setting.limit);
+				}
+
+				Number_(infinity inf)
+				{
+
+					if (inf.type == NumeralType::Invalid || inf.sign == Signage::Invalid || inf.size == Size::Invalid) {
+						report::fault::break_error("Number given an infinite with invalid settings. Type: {}, Sign: {}, Size: {}", (int)inf.type, (int)inf.sign, (int)inf.size);
+					}
+
+					_setting.limit = Limit::Infinite;
+
+					*this = inf;
+					RGL_LOG(trace, "Number<infinity?> ctor {}, sets: sign {} size {} num {} lim {}",
+						ToString(),
+						_setting.sign, _setting.size, _setting.type, _setting.limit);
+				}
+
+				Number_& operator= (infinity inf)
+				{
+					//Infinity will completely ignore it's own settings if they're all
+					auto type = inf.type != NumeralType::Invalid ? inf.type : _setting.type;
+					auto sign = inf.sign != Signage::Invalid ? inf.sign : _setting.sign;
+					auto size = inf.size != Size::Invalid ? inf.size : _setting.size;
+
+					_setting.type = type;
+					_setting.sign = sign;
+					_setting.size = size;
+
+					//You can't set things to infinity (yet) because it doesn't have settings. Once I make it have some settings,
+					// just the non-limit ones I'll make it handle that.
+				
+					if (inf.positive){
+						_data = limitMap[type][sign][size].posInf;
+					}
+					else{
+						_data = limitMap[type][sign][size].negInf;
+					}
+
+					if (_data._raw != 0 && _setting.limit == Limit::Infinite)
+						infinite = inf.positive ? InfiniteState::Positive : InfiniteState::Negative;
+
+					return *this;
+				}
+
+			
+
+			};
+
+
+
+			INITIALIZE()
+			{
+#undef max
+#undef min
+
+
+				logger::critical("starting process now");
+
+				Number_ testA = std::numeric_limits<int32_t>::max();
+				Number_ testB = 266;
+
+
+				auto lambda = [](auto lhs, auto rhs) { auto res = lhs * rhs; report::info("res = {}", res); return res; };
+
+				//auto data = testB.OperateData(4, [](auto lhs, auto rhs) { auto res = lhs * rhs; return res; });
+				//report::debug("data is {}", data.sInteger);
+
+
+				Number_ testResult = testA.Operator(testB, lambda);
+
+				Number_ unsigned_int8 = (uint8_t)1;
+
+				Number_ test_inf = -infinity::ufloat64();
+
+
+				report::debug("inf test {}", test_inf.ToString());
+
+				unsigned_int8.Assign(testB);
+				report::debug("uint8 {}", unsigned_int8.ToString());
+
+				report::debug("{} * {} = {} ?", testA.ToString(), testB.ToString(), testResult.ToString());
+				constexpr auto fill = std::numeric_limits<int8_t>::max();
+
+				unsigned_int8.Visit([](auto& it) { it += 1; });
+
+				report::debug("uint8 later {}", unsigned_int8.ToString());
+			}
+
+		}
+
+
+		struct Number_
+		{
+			NumberData _data;
+			Settings _setting;
+			uint8_t _priority;//Space is free so I might as well
+			InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
+			Number_() = default;
+			Number_(Settings _set) :
+				// _value{ v },
+				_setting{ _set },
+				_priority{ _setting.GetOffset() }
+			{
+				const char* name = "INVALID";
+
+				if (_setting.IsFloat() == true)
+				{
+					name = typeid(double).name();
+				}
+				else if (_setting.IsInteger() == true)
+				{
+					if (_setting.IsSigned() == true)
+					{
+						name = typeid(int64_t).name();
+					}
+					else if (_setting.IsUnsigned() == true)
+					{
+						name = typeid(uint64_t).name();
+					}
+				}
+
+
+				RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
+					ToString(),
+					_setting.sign, _setting.size, _setting.type, _setting.limit);
+			}
+			template <numeric T>// requires (!std::is_integral_v<T>)
+			Number_(T v) :
+				// _value{ v },
+				_setting{ Settings::CreateFromType<T>() },
+				_priority{ _setting.GetOffset() }
+			{
+
+				_data.Get<T>() = v;
+
+
+				RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
+					ToString(),
+					_setting.sign, _setting.size, _setting.type, _setting.limit);
+			}
+
+			Number_& operator= (infinity inf)
+			{
+				//You can't set things to infinity (yet) because it doesn't have settings. Once I make it have some settings,
+				// just the non-limit ones I'll make it handle that.
+				auto _neg = limitMap[_setting.type][_setting.sign][_setting.size].negInf;
+				auto _pos = limitMap[_setting.type][_setting.sign][_setting.size].posInf;
+
+
+				if (inf.positive)
+				{
+					_data = limitMap[_setting.type][_setting.sign][_setting.size].posInf;
+				}
+				else
+				{
+					_data = limitMap[_setting.type][_setting.sign][_setting.size].negInf;
+				}
+
+				if (OperateData(0, [](auto l, auto r) {return l == r; }) == false)
+					infinite = inf.positive ? InfiniteState::Positive : InfiniteState::Negative;
+
+				return *this;
+			}
+
+
+			template <numeric T>
+			auto GetValue()
+			{
+				auto raw = _data.Get<T>();
+
+				//if (infinity)
+				// return ...
+			}
+
+			template <numeric L, numeric R>
+			void SecondStep_convert(L& lhs, R rhs)
+			{
+				lhs = (L)rhs;
+			}
+
+			template <numeric L>
+			void FirstStep_convert(L& lhs, const Number_& other)
+			{
+				//By this point, "this" should be a number that is created based on the settings between 2 types.
+				//auto return_type = CreateFromType
+
+				switch (other._setting.type) {
+				case NumeralType::Floating:
+					SecondStep_convert(lhs, other._data.floating);
+					break;
+
+				case NumeralType::Integral:
+					if (_setting.sign == Signage::Signed)
+						SecondStep_convert(lhs, other._data.sInteger);
+					else if (_setting.sign == Signage::Unsigned)
+						SecondStep_convert(lhs, other._data.uInteger);
+					else
+						report::critical("a failure noted.");
+					break;
+				}
+			}
+
+
+
+			template<numeric T, typename Pred> requires(std::is_same_v<std::invoke_result_t<Pred, int, int>, bool>)
+				auto OperateData(T number, Pred predicate)
+			{
+				//pred has to be able to take 2 entries
+				switch (GetStoredNumeral())
+				{
+				case 1:
+					return predicate(_data.floating, number);
+				case 2:
+					return predicate(_data.sInteger, number);
+				case 3:
+					return predicate(_data.uInteger, number);
+				}
+
+				report::error("invalid number type settings are invalid.");
+			}
+
+			template<numeric T, typename Pred>
+			NumberData OperateData(T number, Pred predicate)
+			{
+				//pred has to be able to take 2 entries
+				switch (GetStoredNumeral())
+				{
+				case 1:
+					return predicate(_data.floating, number);
+				case 2:
+					return predicate(_data.sInteger, number);
+				case 3:
+					return predicate(_data.uInteger, number);
+				}
+
+				report::error("invalid number type settings are invalid.");
+			}
+
+			Number_ Convert(const Number_& other)
+			{
+				//This is a really lazy and also incorrect way to do this.
+
+				Number_ copy = _setting;
+
+				//copy._data = other._data;
+
+
+				//The limit type observed on this is changed to Maximum(limits) if left is unsigned, and right is negative infinity.
+
+				if (other.infinite && copy._setting.limit != Limit::Infinite)
+				{
+					auto _neg = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].negInf;
+					auto _pos = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].posInf;
+
+
+
+					switch (other.infinite)
+					{
+					case InfiniteState::Positive:
+						copy._data = _pos;
+						break;
+					case InfiniteState::Negative:
+						report::debug("neg");
+						copy._data = _neg;
+						break;
+					}
+
+					if (_setting.limit == Limit::Infinite) {
+						if (copy.OperateData(0, [](auto l, auto r) {report::debug("{}", l); return l == r; }) == false)
+							copy.infinite = other.infinite;
+
+						return copy;
+					}
+				}
+
+				//This can be simplified.
+				switch (GetStoredNumeral())
+				{
+				case 1:
+					copy.FirstStep_convert(copy._data.floating, other);
+					copy.CheckBounds<double>();
+					break;
+
+				case 2:
+					copy.FirstStep_convert(copy._data.sInteger, other);
+					copy.CheckBounds<int64_t>();
+					break;
+
+				case 3:
+					copy.FirstStep_convert(copy._data.uInteger, other);
+					copy.CheckBounds<uint64_t>();
+					break;
+				}
+
+				return copy;
+
+			}
+
+
+			std::string ToString() const
+			{
+				switch (infinite)
+				{
+				case InfiniteState::Finite:
+					switch (GetStoredNumeral())
+					{
+					case 1:
+						return std::to_string(_data.floating);
+
+
+					case 2:
+						return std::to_string(_data.sInteger);
+
+					case 3:
+						return std::to_string(_data.uInteger);
+
+					default:
+						break;
+					}
+
+				case InfiniteState::Positive:
+					return "inf";
+				case InfiniteState::Negative:
+					return "-inf";
+				}
+
+
+				return "INVALID";
+			}
+
+			Settings DuelTypes(const Number_& other, Settings ret)
+			{
+				constexpr Settings k_int{ NumeralType::Integral, Size::DWord, Signage::Signed, Limit::Overflow };
+				constexpr auto k_offset = k_int.GetOffset();
+
+
+				Settings result = _setting;
+
+				if (auto settings = other._setting; result.GetOffset() < settings.GetOffset())
+					result = settings;
+
+				if (result.GetOffset() < k_offset)
+					result = k_int;
+
+
+				if (result.GetOffset() < ret.GetOffset())
+					result = ret;
+
+				return result;
+				//other is the right hand side, "this" is the left hand side, and ret is the return of the predicate turned into a number setting.
+				//The largest ont between these options, and int wins.
+			}
+
+
+			//make some enum later.
+			int GetStoredNumeral() const
+			{
+				if (_setting.IsFloat() == true)
+				{
+					return 1;
+				}
+				else if (_setting.IsInteger() == true)
+				{
+					if (_setting.IsSigned() == true)
+					{
+						return 2;
+					}
+					else if (_setting.IsUnsigned() == true)
+					{
+						return 3;
+					}
+				}
+
+				return 0;
+			}
+
+			NumberDataType GetNumberType() const
+			{
+				if (_setting.IsFloat() == true)
+				{
+					return NumberDataType::Float;
+				}
+				else if (_setting.IsInteger() == true)
+				{
+					if (_setting.IsSigned() == true)
+					{
+						return NumberDataType::SInt;
+					}
+					else if (_setting.IsUnsigned() == true)
+					{
+						return NumberDataType::UInt;
+					}
+				}
+
+				return NumberDataType::Invalid;
+			}
+
+
+			template <typename V>
+			auto Visit(V visitor)
+			{
+				//Visit will visit with a version of number data's different data types, or fail if the settings are invalid.
+
+				switch (GetNumberType())
+				{
+				case NumberDataType::Float:
+					logger::info("a");
+					return visitor(_data.floating);
+
+
+				case NumberDataType::SInt:
+					logger::info("b");
+					return visitor(_data.sInteger);
+
+				case NumberDataType::UInt:
+					logger::info("c");
+					return visitor(_data.uInteger);
+
+				default:
+					report::error("Invalid number settings. Data cannot be visited.");
+					break;
+				}
+			}
+
+			int GetInfinity()
+			{
+				switch (GetStoredNumeral())
+				{
+				case 1:
+				{
+					auto value = _data.Get<double>();
+
+					if (std::numeric_limits<double>::infinity() == value)
+						return 1;
+					if (-std::numeric_limits<double>::infinity() == value)
+						return -1;
+					break;
+				}
+
+				}
+
+				return 0;
+
+			}
+
+			template <numeric T>
+			void HandleBounds(int overflow, T _min, T _max)
+			{
+				//bounds only cares if the current value is outside of the given bounds of its own type.
+
+				if (GetInfinity() != 0)
+					return;
+
+
+				//auto value = _data.Get<T>();
+
+				if (overflow == 1)
+					_data.Get<T>() = _max;
+				if (overflow == -1)
+					_data.Get<T>() = _min;
+			}
+
+			template<numeric T>
+			void CheckBounds()
+			{
+				auto _min = limitMap[_setting.type][_setting.sign][_setting.size].min.Get<T>();
+				auto _max = limitMap[_setting.type][_setting.sign][_setting.size].max.Get<T>();
+
+				auto& value = _data.Get<T>();
+
+				if (_setting.limit == Limit::Overflow)
+				{
+					value -= (_setting.IsSigned() + (size_t)(value / ((size_t)_max + 1))) * ((size_t)_max + 1);
+					return;
+				}
+
+
+
+				//Possibly make overflow a parameter?
+				int overflow = value > _max ?
+					1 : value < _min ?
+					-1 : 0;
+
+				return HandleBounds(overflow, _min, _max);
+			}
+
+			template <typename Pred, numeric L, numeric R>
+			void SecondStep(L lhs, R rhs, Pred predicate)
+			{
+				using Result = std::invoke_result_t<Pred, L, R>;
+
+				//I have this idea that there's a possible third argument the predicate can have, this will allow me to tell if I care about integer overflow or not.
+				//Here might be the settings
+				//care
+				//care but only if integer
+				//care but only if can be transfered into double. This might just be care.
+				//doubles are basically what I use for guards. They aren't very accurate, but I assume they'll be able to handle the differences between
+				// good enough values and maxes.
+
+				auto result = predicate(lhs, rhs);
+
+				_data.Get<Result>() = predicate(lhs, rhs);
+
+				if constexpr (std::is_floating_point_v<Result>) {
+					_data.floating = predicate(lhs, rhs);
+				}
+				else if constexpr (std::is_same_v<Result, uint64_t>) {
+					_data.sInteger = predicate(lhs, rhs);
+				}
+				else {
+					_data.sInteger = predicate(lhs, rhs);
+				}
+
+				constexpr bool no_overflow = !std::is_floating_point_v<Result> && requires(L lhs, R rhs)
+				{
+					predicate(lhs, rhs, 0);
+				};
+
+				//Should require an integral
+
+				if constexpr (!no_overflow)
+				{
+
+					auto _min = limitMap[_setting.type][_setting.sign][_setting.size].min.Get<Result>();
+					auto _max = limitMap[_setting.type][_setting.sign][_setting.size].max.Get<Result>();
+
+
+					int overflow = result > _max ?
+						1 : result < _min ?
+						-1 : 0;
+
+
+					//This is an overflow safety check in case the value is too large, but can be missed if it's one of the lesser conversions.
+					if (!overflow)
+					{
+						auto comp = predicate(lhs, rhs);
+
+
+						//This version of overflow only happens if the size of the result given types is too large to actually handle properly.
+						overflow = result > comp ?
+							-1 : result < comp ?
+							1 : 0;
+					}
+
+					report::trace("overflow {}", overflow);
+					//bool bound = false;
+
+					//This has to be made into a function.
+					if (false)
+					{
+						//this only happens if it caps itself specifically.
+						if (overflow == 1)
+							_data.Get<Result>() = _max;
+						if (overflow == -1)
+							_data.Get<Result>() = _min;
+					}
+					else
+					{
+						auto& data = _data.Get<Result>();
+
+
+						data -= (_setting.IsSigned() + (size_t)(data / ((size_t)_max + 1))) * ((size_t)_max + 1);;
+
+					}
+
+					//An interesting phenomenon is if you use the keywords and parentheses, you can make an expression handle it's given types
+					// as if it were another limit type.
+				}
+			}
+
+
+			template <typename Pred, numeric L>
+			void FirstStep(L lhs, const Number_& other, Pred predicate)
+			{
+				//By this point, "this" should be a number that is created based on the settings between 2 types.
+				//auto return_type = CreateFromType
+
+				switch (other._setting.type) {
+				case NumeralType::Floating:
+					SecondStep(lhs, other._data.floating, predicate);
+					break;
+
+				case NumeralType::Integral:
+					if (_setting.sign == Signage::Signed)
+						SecondStep(lhs, other._data.sInteger, predicate);
+					else if (_setting.sign == Signage::Unsigned)
+						SecondStep(lhs, other._data.uInteger, predicate);
+					else
+						report::critical("a failure noted.");
+					break;
+				}
+			}
+
+			template <typename Pred>
+			Number_ Operator(const Number_& other, Pred predicate)
+			{
+				//The only way this actually matters if it's a boolean. The question is, how to test this fact?
+				// We given it the lowest priority version that it could be. A boolean. so pre
+
+				using PredResult = std::invoke_result_t<Pred, bool, bool>;
+				Number_ result = DuelTypes(other, Settings::CreateFromType<PredResult>());
+
+				switch (_setting.type)
+				{
+				case NumeralType::Floating:
+					result.FirstStep(_data.floating, other, predicate);
+					break;
+
+				case NumeralType::Integral:
+					if (_setting.sign == Signage::Signed)
+						result.FirstStep(_data.sInteger, other, predicate);
+					else if (_setting.sign == Signage::Unsigned)
+						result.FirstStep(_data.uInteger, other, predicate);
+					else
+						report::critical("a failure noted.");
+					break;
+				}
+
+				return result;
+
+			}
+
+		};
+
+
+		template <typename Pred>
+		void TestTemplate(Pred predicate)
+		{
+			predicate(1, 2);
+			predicate(1.0, 2.0);
+			predicate(1.0f, 2.0f);
+			predicate(true, 2.0f);
+			
+		}
+		
+
+		INITIALIZE()
+		{
+#undef max
+#undef min
+			return;
+
+			report::info("starting process now");
+
+			Number_ testA = std::numeric_limits<uint32_t>::max();
+			Number_ testB = 266;
+			
+
+			auto lambda = [](auto lhs, auto rhs) { auto res = lhs * rhs; report::info("res = {}", res); return res; };
+
+			auto data =  testB.OperateData(4, [](auto lhs, auto rhs) { auto res = lhs * rhs; return res; });
+			report::debug("data is {}", data.sInteger);
+
+
+			Number_ testResult = testA.Operator(testB, lambda);
+
+			Number_ unsigned_int8 = (uint8_t)1;
+			
+			Number_ test_inf = 1.0;
+
+			test_inf = infinity{};
+			
+			report::debug("inf test {}", test_inf.ToString());
+			report::debug("inf test {}", test_inf.ToString());
+
+			unsigned_int8 = unsigned_int8.Convert(testB);
+			report::debug("uint8 {}", unsigned_int8.ToString());
+
+			report::debug("{} * {} = {} ?", testA.ToString(), testB.ToString(), testResult.ToString());
+			constexpr auto fill = std::numeric_limits<int8_t>::max();
+
+			unsigned_int8.Visit([](auto& it) { it += 1; });
+
+			report::debug("uint8 later {}", unsigned_int8.ToString());
+			return;
+			
+			TestTemplate([](auto a1, auto a2) {});
+
+			//This is my simple way to tell if stack overflow has happened.
+			constexpr auto a = std::numeric_limits<int64_t>::max();
+			constexpr auto b = std::numeric_limits<int32_t>::min();
+
+			#define OP +
+
+			constexpr auto aish = (a OP b);
+			constexpr auto bish = ((double)a OP (double)b);
+
+			constexpr auto test = aish == bish;
+
+			
+			constexpr int weight = aish > bish ?
+				-1 : aish < bish ?
+				1 : 0;
+		
+			constexpr auto modolo = a % b;
+			Number_ test_num{};
+			test_num.SecondStep(1, 1, [](auto, auto) { return 1; });
+		}
+
+	}
+
 
 	//*
 
@@ -1096,7 +2468,7 @@ struct Extension : public T
 			}
 
 
-			constexpr wchar_t t = '�';
+			constexpr wchar_t t = '™';
 
 			void test()
 			{
@@ -2091,7 +3463,8 @@ struct Extension : public T
 	}
 
 
-
+#include <io.h>
+#include <fcntl.h>
 
 
 
@@ -2106,7 +3479,13 @@ struct Extension : public T
 		report::info("Something else {} {} {}", 3, 2, 1);
 
 		report::message::break_info(1032, 3, 2, 1);
+		
+		//constexpr auto v = "こんにちは世界";
+		//_setmode(_fileno(stdout), _O_U16TEXT);
+		//SetConsoleOutputCP(CP_UTF8);
+		//std::wcout << "こんにちは世界";
 
+		//report::message::debug(v);
 		if constexpr (false)
 			report::parse::critical("Shit ends here");
 		//repTest1("", 12, 23);
