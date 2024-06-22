@@ -5,7 +5,7 @@
 namespace LEX
 {
 	using TypeIndex = uint32_t;
-	using TypeOffset = uint16_t;
+	using TypeOffset = uint32_t;
 
 
 	struct Trival
