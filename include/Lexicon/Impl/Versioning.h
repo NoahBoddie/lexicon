@@ -5,6 +5,8 @@
 //Also, shorten the fuck out of these macros please.
 
 
+//I would like to merge these, as I feel having the override visible would be helpful. The only difference might be
+// text.
 #ifdef LEX_SOURCE
 	//A macro that pivots between an invalid function call and a forward declared virtual function. Currently forward declared.
 #define INTERFACE_METHOD override
@@ -13,10 +15,10 @@
 #define INTERFACE_FUNCTION 
 #else
 	//A macro that pivots between an invalid function call and a forward declared virtual function. Currently invalid call.
-#define INTERFACE_METHOD override { logger::critical("Interface not created from lex source. Aborting."); throw nullptr;}
+#define INTERFACE_METHOD override { report::break_critical("Interface not created from lex source. Aborting.");}
 
 //A macro that pivotes between an invalid function call and a forward declared non-virtual function. Currently invalid call.
-#define INTERFACE_FUNCTION  { logger::critical("Interface not created from lex source. Aborting."); throw nullptr;} 
+#define INTERFACE_FUNCTION  { report::break_critical("Interface not created from lex source. Aborting.");} 
 #endif
 
 //Make only one interface function and use override where it is.
