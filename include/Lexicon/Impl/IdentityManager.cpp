@@ -90,6 +90,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		return dataList[index].startID;
 	}
 
+
 	TypeIndex IdentityManager::GetIndexFromName(std::string_view name)
 	{
 		auto size = dataList.size();
@@ -104,6 +105,19 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 		return -1;
 	}
+
+
+	TypeIdentity IdentityManager::GetIdentityFromID(TypeID id)
+	{
+		for (auto& data : dataList)
+		{
+			if (data.startID <= id)
+				return TypeIdentity{ data.startID, id - data.startID };
+		}
+
+		return {};
+	}
+
 
 
 	//This feels like it's really only going to be used for the other 2.

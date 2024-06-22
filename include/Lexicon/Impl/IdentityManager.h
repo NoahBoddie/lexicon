@@ -14,7 +14,12 @@ namespace LEX
 	struct TypeID;
 	struct ITypePolicy;
 	struct PolicyBase;
-
+	
+	struct TypeIdentity
+	{
+		TypeIndex index = 0;
+		TypeOffset offset = 0;
+	};
 
 	namespace Version
 	{
@@ -25,6 +30,7 @@ namespace LEX
 				virtual ITypePolicy* GetTypeByID(TypeID id) = 0;
 				virtual uint32_t GetIDFromIndex(TypeIndex index) = 0;
 				virtual TypeIndex GetIndexFromName(std::string_view name) = 0;
+				virtual TypeIdentity GetIdentityFromID(TypeID id) = 0;
 			};
 		}
 
@@ -32,12 +38,14 @@ namespace LEX
 	}
 
 
+
 	struct IMPL_VERSION(IdentityManager)
 	{
 		ITypePolicy* GetTypeByID(TypeID id) INTERFACE_METHOD;//Isn't this supposed to be public?
 		uint32_t GetIDFromIndex(TypeIndex index) INTERFACE_METHOD;
 		TypeIndex GetIndexFromName(std::string_view name) INTERFACE_METHOD;
-		
+		TypeIdentity GetIdentityFromID(TypeID id) INTERFACE_METHOD;
+
 		uint32_t GetIDFromName(std::string_view name) { return GetIDFromIndex(GetIndexFromName(name)); }
 		ITypePolicy* GetTypeByOffset(std::string_view name, TypeOffset offset) { return GetTypeByID(GetIDFromName(name) + offset); }
 		
@@ -45,7 +53,7 @@ namespace LEX
 		
 		PolicyBase* GetBaseByID(TypeID id) INTERFACE_FUNCTION;
 
-		uint32_t ObtainID(PolicyBase * policy) INTERFACE_FUNCTION;
+		uint32_t ObtainID(PolicyBase* policy) INTERFACE_FUNCTION;
 		uint32_t GenerateID(std::string_view name, uint16_t range) INTERFACE_FUNCTION;
 		TypeID ClaimID(PolicyBase* policy, uint32_t id) INTERFACE_FUNCTION;
 
