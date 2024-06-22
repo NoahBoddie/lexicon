@@ -18,7 +18,7 @@ namespace LEX
 
 		TypeOffset TypeID::GetOffset() const
 		{
-			return CreateID(0);//return IdentityManager::GetOffsetFromID(*this);
+			return IdentityManager::instance->GetIdentityFromID(*this).offset;
 		}
 
 
