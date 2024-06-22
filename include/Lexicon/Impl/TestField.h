@@ -1102,8 +1102,6 @@ namespace LEX
 					Visit([](auto it){return value = static_cast<T>(it); });
 
 					return true;
-
-					return 
 				}
 
 				
