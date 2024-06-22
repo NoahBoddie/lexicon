@@ -215,7 +215,7 @@ void LexTesting(std::string formula)
         interface Primitive{};
         interface BiggerAddable : public Addable{};
         struct Number intrinsic NUMBER::0 : public Addable, public Primitive;
-        struct __float64 intrinsic NUMBER::82;//is actually double, also float is a keyword
+        struct __float64 intrinsic NUMBER::45;//is actually double, also float is a keyword
         struct __string8 intrinsic STRING::0;
         
         class Array external ARRAY;
@@ -267,9 +267,9 @@ void LexTesting(std::string formula)
         };
 
     )"s;
-
+    
     std::string test_identifier = R"(
-        struct __float64 intrinsic NUMBER::82 : public ::::SomeProject::SomeScript::SomeType::OtherType::Number, public internal Commons::Primitive;
+        struct __float64 intrinsic NUMBER::45 : public ::::SomeProject::SomeScript::SomeType::OtherType::Number, public internal Commons::Primitive;
 
         ::::name1::name2::more_name::final_name;
 
