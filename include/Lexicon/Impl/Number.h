@@ -89,9 +89,10 @@ namespace LEX
         //I'm thinking about getting rid of limit. Overflow for integers, infinity for floats.
         Overflow = 1,
         Infinite,
+        Bound,
         Total,
 
-        Shift = 0,//uses 2 bytes
+        Shift = 0,//uses 2 bits
         Invalid = 0xFF
     };
 
@@ -106,7 +107,7 @@ namespace LEX
         DWord,
         QWord,
         Total,
-        Shift = Limit::Shift + 2,//Uses 3 bytes
+        Shift = Limit::Shift + 2,//Uses 3 bits
         //Total bytes, 3
         Invalid = 0xFF
     };
@@ -118,7 +119,7 @@ namespace LEX
         Unsigned,
         Total,
 
-        Shift = Size::Shift + 3,//Uses 1 byte
+        Shift = Size::Shift + 3,//Uses 1 bit
         Invalid = 0xFF
     };
     
@@ -128,7 +129,7 @@ namespace LEX
         Integral,
         Floating,
         Total,
-        Shift = Signage::Shift + 1,//Uses 1 bytes
+        Shift = Signage::Shift + 1,//Uses 1 bit
         Invalid = 0xFF
     };
 
@@ -193,16 +194,16 @@ namespace LEX
             
 
 
-            Settings() = default;
+            constexpr Settings() = default;
 
             template <numeric T>
-            Settings()
+            constexpr Settings()
             {
                 *this = Settings::CreateFromType<T>();
             }
 
             //Might not use this.
-            Settings(NumeralType tp, Size sz, Signage sg, Limit lm) :
+            constexpr Settings(NumeralType tp, Size sz, Signage sg, Limit lm) :
                 type{ tp }, size{ sz }, sign{ sg }, limit{ lm }
             {
 
@@ -632,6 +633,8 @@ namespace LEX
         {
             return std::get<int64_t>(_value);
         }
+
+
 
 
 
