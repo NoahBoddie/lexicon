@@ -2,7 +2,7 @@
 
 //src
 #include "TypeID.h"
-
+#include "IdentityManager.h"
 
 template <typename EnumType>
 requires(std::is_enum_v<EnumType>&& !std::is_scoped_enum_v<EnumType>) struct fmt::formatter<EnumType> : fmt::formatter<std::underlying_type_t<EnumType>>
@@ -81,18 +81,20 @@ namespace LEX
     template<typename T>
     concept numeric = std::is_integral_v<T> || std::is_floating_point_v<T>;
 
+    //Remove use of shift in all of these.
+
     //Determines how the number reacts to reaching its limits. Whether it hits infinity or overflows and wraps around. 
     // Integers are naturally aligned to overflow, floats don't wrap
 	ENUM(Limit, uint8_t)
     {
         //Limit, the smallest value must always have a value
         //I'm thinking about getting rid of limit. Overflow for integers, infinity for floats.
-        Overflow = 1,
-        Infinite,
+        Overflow,
         Bound,
+        Infinite,
         Total,
+        Last = Limit::Total - 1,
 
-        Shift = 0,//uses 2 bits
         Invalid = 0xFF
     };
 
@@ -107,8 +109,8 @@ namespace LEX
         DWord,
         QWord,
         Total,
-        Shift = Limit::Shift + 2,//Uses 3 bits
-        //Total bytes, 3
+        Last = Size::Total - 1,
+
         Invalid = 0xFF
     };
 
@@ -118,9 +120,9 @@ namespace LEX
         Signed,
         Unsigned,
         Total,
+        Last = Signage::Total - 1,
 
-        Shift = Size::Shift + 3,//Uses 1 bit
-        Invalid = 0xFF
+        Invalid = 0xFF,
     };
     
     //The actual way it accounts for data. Integral uses integers while floating uses floating point values like doubles and floats. As on the tin so it is.
@@ -129,24 +131,35 @@ namespace LEX
         Integral,
         Floating,
         Total,
-        Shift = Signage::Shift + 1,//Uses 1 bit
-        Invalid = 0xFF
+        Last = NumeralType::Total - 1,
+        
+        Invalid = 0xFF,
     };
 
     //2 + 3 + 1 + 1
     //Total bytes, 7
+    
+    constexpr uint8_t limit_load = 0;//there is no limit load.
+    constexpr uint8_t sizeOffsetLoad = Limit::Total;
+    constexpr uint8_t signOffsetLoad = sizeOffsetLoad * Size::Total;
+    constexpr uint8_t typeOffsetLoad = signOffsetLoad * Signage::Total;
 
-    constexpr static uint8_t GetOffset_(NumeralType type, Size size, Signage sign, Limit limit)
+
+    constexpr uint8_t GetNumberOffset(NumeralType type, Size size, Signage sign, Limit limit)
     {
-        uint8_t result = 0;
-        //Old entries marked right
-        result |= type << NumeralType::Shift;   //24
-        result |= size << Size::Shift;          //16
-        result |= sign << Signage::Shift;       //8
-        result |= limit << Limit::Shift;        //0
+        
+        if (type == NumeralType::Invalid ||
+            size == Size::Invalid ||
+            sign == Signage::Invalid ||
+            limit == Limit::Invalid) {
+            return 0;
+        }
+            
 
-        return result;
+        return typeOffsetLoad * type + signOffsetLoad * sign + sizeOffsetLoad * size + limit + 1;
     }
+    
+    
 
 
     enum struct direction
@@ -206,13 +219,13 @@ namespace LEX
             constexpr Settings(NumeralType tp, Size sz, Signage sg, Limit lm) :
                 type{ tp }, size{ sz }, sign{ sg }, limit{ lm }
             {
-
+                
             }
 
 
 
             //It's 7 bits long. Want to use GetOffset but it's 
-            static constexpr TypeOffset length = 0x7F;//GetOffset(NumeralType::Floating, Size::QWord, Signage::Unsigned, Limit::Infinite);//
+            static constexpr TypeOffset length = GetNumberOffset(NumeralType::Last, Size::Last, Signage::Last, Limit::Last);
 
 
             //Unionize this for easy reading
@@ -224,26 +237,13 @@ namespace LEX
 
             constexpr uint8_t GetOffset() const
             {
-                uint8_t result = 0;
-                //Old entries marked right
-                result |= type << NumeralType::Shift;   //24
-                result |= size << Size::Shift;          //16
-                result |= sign << Signage::Shift;       //8
-                result |= limit << Limit::Shift;        //0
-
-                return result;
+                
+                return GetNumberOffset(type, size, sign, limit);
             }
 
             constexpr static uint8_t GetOffset(NumeralType type, Size size, Signage sign, Limit limit)
             {
-                uint8_t result = 0;
-                //Old entries marked right
-                result |= type << NumeralType::Shift;   //24
-                result |= size << Size::Shift;          //16
-                result |= sign << Signage::Shift;       //8
-                result |= limit << Limit::Shift;        //0
-
-                return result;
+                return GetNumberOffset(type, size, sign, limit);
             }
 
             constexpr static uint8_t GetOffset(NumeralType type)
@@ -257,31 +257,36 @@ namespace LEX
             {
                 //This could be constexpr, though no point innit?
 
+                TypeIdentity identity = IdentityManager::instance->GetIdentityFromID(id);
+
                 //make create from offset.
-                if (id != 0 && id <= length)
+                if (auto offset = identity.offset; id != 0 && id <= offset)
                 {
-                    uint8_t value = static_cast<uint8_t>(id);
-                    uint8_t temp = static_cast<uint8_t>(id);
+                    //This gets rid of the spot for number in the offset.
+                    offset--;
 
                     Settings result{};
 
-                    //messy but I hope it works.
+                    auto set = (offset / typeOffsetLoad);
+                    
+                    result.type = (NumeralType)set;
+                    offset -= typeOffsetLoad * set;
 
-                    temp = value >> NumeralType::Shift;
-                    result.type = static_cast<NumeralType>(temp);
-                    value &= ~(temp << NumeralType::Shift);
+                    set = (offset / signOffsetLoad);
 
-                    temp = value >> Size::Shift;
-                    result.size = static_cast<Size>(temp);
-                    value &= ~(temp << Size::Shift);
+                    result.sign = (Signage)set;
+                    offset -= signOffsetLoad * set;
 
-                    temp = value >> Signage::Shift;
-                    result.sign = static_cast<Signage>(temp);
-                    value &= ~(temp << Signage::Shift);
 
-                    //temp = value >> Limit::Shift;//No need.
-                    result.limit = static_cast<Limit>(temp);
-                    //value &= ~temp;//Also no need.
+                    set = (offset / sizeOffsetLoad);
+
+                    result.size = (Size)set;
+                    offset -= sizeOffsetLoad * set;
+
+
+                    //What remains is likely the limit.
+                    result.limit = (Limit)offset;
+
 
                     return result;
 
