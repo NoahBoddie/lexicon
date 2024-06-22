@@ -540,26 +540,23 @@ namespace LEX
 			}
 		};
 
+		//A few things, I want the access of this to be a function, second, this function should start an initializer.
+		// This would allow me to make
+		//Note, this isn't going to be accessed from one place, probably should be allowed to migrate be based on whatever system it's on.
 		inline NumberLimit limitMap[NumeralType::Total][Signage::Total][Size::Total];
-
-
-
-
 		
 
-		INITIALIZE()
+		void InitLimitMap()
 		{
-			//there are 3 limit types
+			static bool init = false;
 
+			if (init)
+				return;
 
-			using Types = std::tuple<bool, int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double> ;
-			//Instead of going through the settings, I could just make a list of all the ones these limits apply to.
-
-
-			//I will just handle the limit map completely manually. There's little reason not to, as limit not being here makes it only 20 entries.
+			init = true;
 
 			//For float, bit is episilon, byte is percent word. Nothing is used for word.
-			max_value<int>;
+			
 
 			//Note, these are given infinity REGARDLESS if it actually can use infinity or not
 			// Also note, the value of infinity is a constant. Maybe also the only time that it will not be cleared.
@@ -569,14 +566,14 @@ namespace LEX
 			limitMap[NumeralType::Floating][Signage::Signed][Size::Word] = { -100.0, 100.0, INFINITY, -INFINITY };
 			limitMap[NumeralType::Floating][Signage::Signed][Size::DWord] = { min_value<float>, max_value<float>, INFINITY, -INFINITY };
 			limitMap[NumeralType::Floating][Signage::Signed][Size::QWord] = { min_value<double>, max_value<double>, INFINITY, -INFINITY };
-			
+
 			limitMap[NumeralType::Floating][Signage::Unsigned][Size::Bit] = { 0.0, 1.0, 0, INFINITY };
 			limitMap[NumeralType::Floating][Signage::Unsigned][Size::Byte] = { 0.0, 100.0, 0, INFINITY };
 			limitMap[NumeralType::Floating][Signage::Unsigned][Size::Word] = { 0.0, 100.0, 0, INFINITY };
 			limitMap[NumeralType::Floating][Signage::Unsigned][Size::DWord] = { 0.0, max_value<float>, 0, INFINITY };
 			limitMap[NumeralType::Floating][Signage::Unsigned][Size::QWord] = { 0.0, max_value<double>, 0, INFINITY };
 
-			
+
 
 			limitMap[NumeralType::Integral][Signage::Unsigned][Size::Bit] = { (int64_t)false, (int64_t)true };
 			limitMap[NumeralType::Integral][Signage::Unsigned][Size::Byte] = { min_value<uint8_t>, max_value<uint8_t>, max_value<uint64_t> };
@@ -590,6 +587,25 @@ namespace LEX
 			limitMap[NumeralType::Integral][Signage::Signed][Size::DWord] = { min_value<int32_t>, max_value<int32_t>, max_value<int64_t>, min_value<int64_t> };
 			limitMap[NumeralType::Integral][Signage::Signed][Size::QWord] = { min_value<int64_t>, max_value<int64_t>, max_value<int64_t>, min_value<int64_t> };
 
+		}
+
+
+		NumberLimit GetNumberLimit(NumeralType type, Signage sign, Size size)
+		{
+			InitLimitMap();
+			return limitMap[type][sign][size];
+		}
+
+
+
+		
+
+		INITIALIZE()
+		{
+			//there are 3 limit types
+
+
+			InitLimitMap();
 		}
 
 
@@ -766,8 +782,8 @@ namespace LEX
 
 					if (infinite && copy._setting.limit != Limit::Infinite)
 					{
-						auto _neg = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].negInf;
-						auto _pos = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].posInf;
+						auto _neg = GetNumberLimit(copy._setting.type, copy._setting.sign, copy._setting.size).negInf;
+						auto _pos = GetNumberLimit(copy._setting.type, copy._setting.sign, copy._setting.size).posInf;
 
 
 
@@ -867,10 +883,10 @@ namespace LEX
 
 				void NewLimitCheck(int overflow = 0)
 				{
+					auto _limit = GetNumberLimit(_setting.type, _setting.sign, _setting.size);
 
-
-					auto _min = limitMap[_setting.type][_setting.sign][_setting.size].min;
-					auto _max = limitMap[_setting.type][_setting.sign][_setting.size].max;
+					auto _min = _limit.min;
+					auto _max = _limit.max;
 
 					if (!overflow)
 					{
@@ -918,11 +934,11 @@ namespace LEX
 							InfiniteState state = InfiniteState::Finite;
 
 							if (overflow == 1) {
-								_data = limitMap[_setting.type][_setting.sign][_setting.size].posInf;
+								_data = _limit.posInf;
 								state = InfiniteState::Positive;
 							}
 							else if (overflow == -1) {
-								_data = limitMap[_setting.type][_setting.sign][_setting.size].negInf;
+								_data = _limit.negInf;
 								state = InfiniteState::Negative;
 							}
 							
@@ -980,7 +996,7 @@ namespace LEX
 						});
 
 
-						report::trace("overflow {}", overflow);
+						//report::trace("overflow {}", overflow);
 						//bool bound = false;
 
 						result.NewLimitCheck(overflow);
@@ -1056,10 +1072,10 @@ namespace LEX
 					// just the non-limit ones I'll make it handle that.
 				
 					if (inf.positive){
-						_data = limitMap[type][sign][size].posInf;
+						_data = GetNumberLimit(type, sign, size).posInf;
 					}
 					else{
-						_data = limitMap[type][sign][size].negInf;
+						_data = GetNumberLimit(type, sign, size).negInf;
 					}
 
 					if (_data._raw != 0 && _setting.limit == Limit::Infinite)
@@ -1086,7 +1102,7 @@ namespace LEX
 				Number_ testB = 266;
 
 
-				auto lambda = [](auto lhs, auto rhs) { auto res = lhs * rhs; report::info("res = {}", res); return res; };
+				auto lambda = [](auto lhs, auto rhs) { auto res = lhs * rhs; return res; };
 
 				//auto data = testB.OperateData(4, [](auto lhs, auto rhs) { auto res = lhs * rhs; return res; });
 				//report::debug("data is {}", data.sInteger);
@@ -1169,17 +1185,17 @@ namespace LEX
 			{
 				//You can't set things to infinity (yet) because it doesn't have settings. Once I make it have some settings,
 				// just the non-limit ones I'll make it handle that.
-				auto _neg = limitMap[_setting.type][_setting.sign][_setting.size].negInf;
-				auto _pos = limitMap[_setting.type][_setting.sign][_setting.size].posInf;
+				auto _neg = GetNumberLimit(_setting.type, _setting.sign, _setting.size).negInf;
+				auto _pos = GetNumberLimit(_setting.type, _setting.sign, _setting.size).posInf;
 
 
 				if (inf.positive)
 				{
-					_data = limitMap[_setting.type][_setting.sign][_setting.size].posInf;
+					_data = GetNumberLimit(_setting.type, _setting.sign, _setting.size).posInf;
 				}
 				else
 				{
-					_data = limitMap[_setting.type][_setting.sign][_setting.size].negInf;
+					_data = GetNumberLimit(_setting.type, _setting.sign, _setting.size).negInf;
 				}
 
 				if (OperateData(0, [](auto l, auto r) {return l == r; }) == false)
@@ -1275,8 +1291,8 @@ namespace LEX
 
 				if (other.infinite && copy._setting.limit != Limit::Infinite)
 				{
-					auto _neg = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].negInf;
-					auto _pos = limitMap[copy._setting.type][copy._setting.sign][copy._setting.size].posInf;
+					auto _neg = GetNumberLimit(copy._setting.type, copy._setting.sign, copy._setting.size).negInf;
+					auto _pos = GetNumberLimit(copy._setting.type, copy._setting.sign, copy._setting.size).posInf;
 
 
 
@@ -1489,8 +1505,8 @@ namespace LEX
 			template<numeric T>
 			void CheckBounds()
 			{
-				auto _min = limitMap[_setting.type][_setting.sign][_setting.size].min.Get<T>();
-				auto _max = limitMap[_setting.type][_setting.sign][_setting.size].max.Get<T>();
+				auto _min = GetNumberLimit(_setting.type, _setting.sign, _setting.size).min.Get<T>();
+				auto _max = GetNumberLimit(_setting.type, _setting.sign, _setting.size).max.Get<T>();
 
 				auto& value = _data.Get<T>();
 
@@ -1547,8 +1563,8 @@ namespace LEX
 				if constexpr (!no_overflow)
 				{
 
-					auto _min = limitMap[_setting.type][_setting.sign][_setting.size].min.Get<Result>();
-					auto _max = limitMap[_setting.type][_setting.sign][_setting.size].max.Get<Result>();
+					auto _min = GetNumberLimit(_setting.type, _setting.sign, _setting.size).min.Get<Result>();
+					auto _max = GetNumberLimit(_setting.type, _setting.sign, _setting.size).max.Get<Result>();
 
 
 					int overflow = result > _max ?
