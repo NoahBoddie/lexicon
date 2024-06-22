@@ -686,11 +686,6 @@ namespace LEX
 		{
 			struct Number_
 			{
-				NumberData _data;
-				Settings _setting;
-				uint8_t _priority;//Space is free so I might as well
-				InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
-			
 
 				//Proving line.
 			
@@ -845,7 +840,7 @@ namespace LEX
 
 
 				//I'd like to change the name but this is good.
-				Settings DuelTypes(const Number_& other, Settings ret)
+				Settings CompareSettings(const Number_& other, Settings ret)
 				{
 					constexpr Settings k_int{ NumeralType::Integral, Size::DWord, Signage::Signed, Limit::Overflow };
 					constexpr auto k_offset = k_int.GetOffset();
@@ -957,7 +952,7 @@ namespace LEX
 				Number_ Operator(const Number_& other, Func func)
 				{
 					using Result = std::invoke_result_t<Func, bool, bool>;
-					Number_ result = DuelTypes(other, Settings::CreateFromType<Result>());
+					Number_ result = CompareSettings(other, Settings::CreateFromType<Result>());
 					
 
 					constexpr bool no_limit_check = requires(int lhs, int rhs)
@@ -1052,6 +1047,7 @@ namespace LEX
 					_setting.limit = Limit::Infinite;
 
 					*this = inf;
+
 					RGL_LOG(trace, "Number<infinity?> ctor {}, sets: sign {} size {} num {} lim {}",
 						ToString(),
 						_setting.sign, _setting.size, _setting.type, _setting.limit);
@@ -1081,12 +1077,43 @@ namespace LEX
 					if (_data._raw != 0 && _setting.limit == Limit::Infinite)
 						infinite = inf.positive ? InfiniteState::Positive : InfiniteState::Negative;
 
+					_priority = _setting.GetOffset();
+
 					return *this;
 				}
 
 			
+				template <numeric T>
+				T Get() const
+				{
+					return Visit([](auto it)->T {return static_cast<T>(it); });
+				}
 
+				template <numeric T>
+				bool As(T& value) const
+				{
+					constexpr NumberDataType type = std::is_floating_point_v<T> ?
+						NumberDataType::Float : std::is_unsigned_v<T> ?
+						NumberDataType::UInt : NumberDataType::SInt;
+
+					if (GetNumberType() != type)
+						return false;
+
+					Visit([](auto it){return value = static_cast<T>(it); });
+
+					return true;
+
+					return 
+				}
+
+				
+				NumberData _data;
+				Settings _setting;
+				uint8_t _priority;//Space is free so I might as well
+				InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
 			};
+
+
 
 
 
@@ -1094,7 +1121,26 @@ namespace LEX
 			{
 #undef max
 #undef min
+				uint8_t r = 0;
+				bool tests[60]{};
+				for (NumeralType a = (NumeralType)0; a < NumeralType::Total; a++)
+				{
+					for (Signage c = (Signage)0; c < Signage::Total; c++)
+					{
+						for (Size b = (Size)0; b < Size::Total; b++)
+						{
+							for (Limit d = (Limit)0; d < Limit::Total; d++)
+							{
+								report::info("offset test {}-{}", GetNumberOffset(a, b, c, d), ++r);
+								
+							}
+							
+						}
+					}
+					logger::debug("end");
+				}
 
+				report::info("final {}", r);
 
 				logger::critical("starting process now");
 
@@ -1680,6 +1726,7 @@ namespace LEX
 		{
 #undef max
 #undef min
+			
 			return;
 
 			report::info("starting process now");
@@ -3490,11 +3537,11 @@ struct Extension : public T
 	{
 		std::string message = "Something {} {} {}";
 		std::source_location loc = std::source_location::current();
-		report::break_debug("Something new {} {} {}", 1, 2, 3);
+		report::debug("Something new {} {} {}", 1, 2, 3);
 		report temp_switch{ IssueType::Compile };
 		report::info("Something else {} {} {}", 3, 2, 1);
 
-		report::message::break_info(1032, 3, 2, 1);
+		report::message::info(1032, 3, 2, 1);
 		
 		//constexpr auto v = "こんにちは世界";
 		//_setmode(_fileno(stdout), _O_U16TEXT);
