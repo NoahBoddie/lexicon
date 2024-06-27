@@ -64,7 +64,10 @@ namespace LEX
 			//The below needs to curb "class std::" from the below
 			RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
 
-			a_rhs = Variable{ result, back.Cmp(front) > 0 ? nullptr : nullptr };
+			//Why do I do this again?
+			// ANSWER: because it literally will crash if I do not.
+			a_rhs = Variable{ result, back.GetOffset() > front.GetOffset() ? nullptr : nullptr };
+			
 
 			if constexpr (Assign) {
 				//Whichever one is used is based on the measuring of numbers
@@ -108,7 +111,8 @@ namespace LEX
 			//The below needs to curb "class std::" from the below
 			RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
 
-			a_rhs = Variable{ result, back.Cmp(front) > 0 ? nullptr : nullptr };
+			//a_rhs = Variable{ result, back.Cmp(front) > 0 ? nullptr : nullptr };
+			a_rhs = Variable{ result, back.GetOffset() > front.GetOffset() ? nullptr : nullptr };
 
 
 			return a_rhs;
@@ -122,6 +126,7 @@ namespace LEX
 		{
 			//This is old and I forget how it's done.
 
+
 			IFunction* itfc = a_lhs.Get<IFunction*>();
 
 			AbstractFunction* func = itfc->GetFunction(runtime);
@@ -131,12 +136,9 @@ namespace LEX
 			
 			
 			std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
-			
-			logger::critical("Tar before call {}", runtime->GetVariable(3).index());
 
 			ret = func->Call(args);
 
-			logger::critical("Tar after call {}", runtime->GetVariable(3).index());
 
 			//I may actually just include the decrement in here myself.
 
@@ -150,6 +152,44 @@ namespace LEX
 				//Personally, I would actually like to bake the decrement into the call, as there's never a situation where you wouldn't want it.
 			}
 		}
+
+		static void Convert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			//This is old and I forget how it's done.
+
+
+			ICallableUnit* func = nullptr;
+
+			std::vector<RuntimeVariable> from { a_rhs.GetVariable(runtime) };
+
+			get_switch (a_lhs.type)
+			{
+				case OperandType::Function:
+				{
+					IFunction* itfc = a_lhs.Get<IFunction*>();
+					
+					func = itfc->GetFunction(runtime);
+					
+					
+
+				}
+				break;
+			
+				case OperandType::Callable:
+				{
+					func = a_lhs.Get<ICallableUnit*>();
+				}
+				break;
+
+				default:
+					report::runtime::critical("Invalid operand type detected. {}", (int)a_lhs.type);
+
+			}
+			
+			
+			ret = func->Call(from);
+		}
+
 
 		//void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
 
@@ -321,7 +361,7 @@ namespace LEX
 
 
 
-		static void Convert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void Convert_OLD(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 
 			RuntimeVariable from = a_rhs.GetVariable(runtime);
@@ -630,7 +670,7 @@ namespace LEX
 			case "%"_h:
 				logger::debug("construct symbol \'%\'");
 				return InstructType::Modulo;
-			
+
 			case "."_h:
 				logger::debug("construct symbol \'.\'");
 				return InstructType::Access;
@@ -638,7 +678,7 @@ namespace LEX
 			case "="_h:
 				logger::debug("construct symbol \'=\'");
 				return InstructType::Assign;
-			
+
 			default:
 				//ARTHMETIC_LOGGER(info, "Failure to handle operator, value \'{}\'", data->view[0]);
 				return InstructType::Invalid;
@@ -841,17 +881,17 @@ namespace LEX
 
 
 				Solution to = compiler->CompileExpression(left, prefered);
-				
+
 				if (to.IsReadOnly() == true) {
 
 					report::compile::critical("target solution is read only.");
 				}
-			
-				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true){
+
+				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true) {
 					compiler->GetOperationList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
 				}
 
-		
+
 
 
 				Solution from = compiler->CompileExpression(right, reg2, to, TargetObject::Assign);
@@ -886,7 +926,7 @@ namespace LEX
 			case InstructType::Assign:
 				return OpProcessors::AssignProcess(compiler, target);
 
-			default: 
+			default:
 				return OpProcessors::GenericProcess(compiler, target, op);
 			}
 		}
@@ -896,10 +936,10 @@ namespace LEX
 		{
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
-			
+
 			result = LiteralManager::ObtainLiteral(target);
-			
-			
+
+
 			Solution sol{ result->Policy(), OperandType::Literal, result };
 			RGL_LOG(trace, "literal obtained, typeid: {}", (uint32_t)sol.policy->GetTypeID());
 			return sol;
@@ -909,7 +949,7 @@ namespace LEX
 		{
 			//Currently, this cannot be handled
 			QualifiedField var = compiler->GetScope()->SearchFieldPath(target);
-			
+
 			if (!var) {
 				report::compile::critical("Cannot find variable '{}'.", target.GetTag());
 				return {};
@@ -918,15 +958,15 @@ namespace LEX
 			//XTOR
 			//Solution result{ var->GetType(), OperandType::Index, var->GetFieldIndex() };
 			Solution result = var.AsSolution();
-	
-			
-			
+
+
+
 			assert(result.policy);
 
 			logger::debug("Var__3 {:X}", (uint64_t)result.policy);
 			//TODO: BIG NOTE, the resulting solution should note that it's a reference type.
 
-		
+
 			return result;
 		}
 
@@ -1003,7 +1043,7 @@ namespace LEX
 			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
 
 			if (!info) {
-				report::compile::critical("'{}' is not the name of a function.", target.GetTag());
+				report::compile::critical("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
 			}
 
 			FunctionBase* func = info->Get();
@@ -1038,9 +1078,9 @@ namespace LEX
 		}
 
 
-		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, Record& target) 
-		{ 
-			
+		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, Record& target)
+		{
+
 			//OverloadInput input;
 			//input.object = self;
 			//input.paramInput = args;
@@ -1048,7 +1088,7 @@ namespace LEX
 			//TODO: Should be in error if has an explicit target.
 
 			ITypePolicy* type = compiler->GetScope()->SearchTypePath(target);
-		
+
 			if (type)
 			{
 				//TODO: Give this a compiler utility function, in case it has a manually defined constructor.
@@ -1057,11 +1097,11 @@ namespace LEX
 
 				result = Solution{ type, OperandType::Register, compiler->GetPrefered() };
 			}
-			
+
 
 			return type;
 		}
-	
+
 
 
 
@@ -1082,6 +1122,65 @@ namespace LEX
 
 
 
+		bool HandleConversion(RoutineCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result)
+		{
+
+			if (out) {
+				//If out exists, this means there's something that can be used to convert it. 
+				// however, this does NOT work when this conversion needs to be baked into the function.
+
+				//Now granted, because this is in real time, I can just make an instruction handle this.
+				// But that instruction would have to do it over and over and over again.
+
+				bool fall = false;
+
+				switch (convert_result)
+				{
+				case ConvertResult::ImplDefined:
+					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.implDefined, OperandType::Callable }, value);
+					break;
+
+				case ConvertResult::UserDefined:
+				resume:
+
+					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.userDefined, OperandType::Function }, value);
+
+
+					if (!fall)
+						break;
+
+					[[fallthrough]];
+
+				case ConvertResult::UserToImplDefined:
+					if (!fall) {
+						fall = true;
+						goto resume;
+					}
+					
+					compiler->GetOperationList().emplace_back(
+						InstructionType::Convert,
+						compiler->GetPrefered(),
+						Operand{ out.userToImpl, OperandType::Callable },
+						Operand{ compiler->GetPrefered(), OperandType::Register });
+					
+					break;
+
+				default:
+					return false;
+				}
+
+				
+				//This shouldn't really be using the previous policy, but I kinda don't care for now.
+				//TODO: This should be using CompUtil::Mutate
+				value = Solution{ value.policy, OperandType::Register, compiler->GetPrefered() };
+
+				return true;
+			}
+
+			return false;
+		}
+
+
 		void VariableProcess(RoutineCompiler* compiler, Record& target)
 		{
 
@@ -1093,8 +1192,8 @@ namespace LEX
 
 			if (!head_rec)
 				report::compile::critical("No record named header.");
-			
-			Declaration header{ *head_rec, compiler->GetEnvironment()};
+
+			Declaration header{ *head_rec, compiler->GetEnvironment() };
 
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
@@ -1106,40 +1205,54 @@ namespace LEX
 			if (header.flags & Qualifier::Const)
 				logger::info("{} is const", target.GetTag());
 
-			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);	
+			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);
 
 			size_t loc_index = loc->_index;
 			if (Record* definition = target.FindChild(parse_strings::def_expression); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
 
 
+
+
 				//-QUAL_CONV
-				Conversion* out = nullptr;//Not used for now because there are no conversions like this.
-				if (auto convert = result.IsConvertToQualified(header, nullptr); convert <= ConvertResult::Failure) {
+				Conversion out;
+				
+				auto convert = result.IsConvertToQualified(header, nullptr, &out);
+
+				if (convert <= ConvertResult::Failure) {
 					report::compile::critical("Cannot initialize. Error {}", (int)convert);
 				}
+
+				HandleConversion(compiler, out, result, convert);
+
 
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
 				//compiler->GetOperationList().emplace_back(InstructType::Forward, Operand{ var_index, OperandType::Index }, result);
 				compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
 			}
 
-			
+
 		}
 
 
 
 
-		void BlockProcess(RoutineCompiler* compiler, Record& target)
+		void StatementProcess(RoutineCompiler* compiler, Record& target)
 		{
 			compiler->CompileBlock(target);
+		}
+
+
+		Solution ExpressionProcess(ExpressionCompiler* compiler, Record& target)
+		{
+			return compiler->CompileExpression(target.GetFront(), compiler->GetPrefered());
 		}
 
 
 
 		void ReturnProcess(RoutineCompiler* compiler, Record& target)
 		{
-			ITypePolicy* return_policy = compiler->GetReturnType();
+			QualifiedType return_policy = compiler->GetReturnType();
 
 
 			if (target.size() != 0)
@@ -1155,44 +1268,36 @@ namespace LEX
 
 				//left broken because I just realized even non-abstract types are going to have to worry about
 				// inheritence too.
-			
+
 
 
 				//Basically, if one doesn't exist, and they aren't both just void.
 				//TODO: Actually use void for this, at no point should null be used here. Such would be a statement.
-				if (!return_policy && return_policy != result.policy) {
+				if (!return_policy) {// && return_policy != result.policy) {
 					report::compile::critical("Expecting return value but value is found.");
 				}
-				
 
-				ICallableUnit* out = nullptr;
+
+				Conversion out;
 
 				assert(result.policy);
 				report::compile::debug("result {:X}", (uint64_t)result.policy);
 
-				if (result.policy->IsConvertibleTo(return_policy, nullptr) <= convertFailure)
+				auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
+
+				if (convert_result <= convertFailure)
 				{
 					report::compile::critical("Expression not convertible to return type.");
 				}
 
-				if (out){
-					//If out exists, this means there's something that can be used to convert it. 
-					// however, this does NOT work when this conversion needs to be baked into the function.
-
-					//Now granted, because this is in real time, I can just make an instruction handle this.
-					// But that instruction would have to do it over and over and over again.
-					
-					
-					//So
-				}
-
+				HandleConversion(compiler, out, result, convert_result);
 
 			}
 			else if (return_policy)
 			{
 				report::compile::critical("Expecting return expression");
 			}
-			
+
 
 			compiler->GetScope()->FlagReturn();
 
@@ -1227,12 +1332,239 @@ namespace LEX
 			compiler->GetOperationList().push_back(ret_op);
 		}
 
+
+
+
+		struct StrConvert final : public ICallableUnit
+		{
+			using Self = StrConvert;
+
+			static Self& GetSingleton()
+			{
+				static Self singleton{};
+
+				return singleton;
+			}
+
+
+			inline static Self* instance = &GetSingleton();
+
+			RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def) override
+			{
+				return (double)args[0]->AsString().size();
+			}
+		};
+
+
+
+		namespace
+		{
+			//Unsure if this should be using a reference to the runtime variable. I guess not? This doesn't intend to
+// actually alter the register, just the value the register holds.
+			using ConvertFunc = RuntimeVariable(*)(RuntimeVariable);
+
+
+			template<ConvertFunc Func>
+			struct Convert final : public ICallableUnit
+			{
+				using Self = Convert<Func>;
+
+				static Self& GetSingleton()
+				{
+					static Self singleton{};
+
+					return singleton;
+				}
+
+
+				inline static Self* instance = &GetSingleton();
+
+				virtual RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
+				{
+
+					//Convert should be real simple.
+					//here, it's supposed to return the conversion.
+					return Func(args[0]);
+				}
+
+
+				Convert(ConvertFunc func) {}
+
+			protected:
+				constexpr Convert() = default;
+
+				Convert(const Convert&) = delete;
+				Convert(Convert&&) = delete;
+				Convert& operator=(const Convert&) = delete;
+				Convert& operator=(Convert&&) = delete;
+
+			};
+
+
+
+
+			//struct NumberConvert : public ICallableUnit
+
+
+			std::array<ICallableUnit*, Number::Settings::length> convertMap;
+
+
+			template <NumeralType A, Signage B, Size C, Limit D>
+			RuntimeVariable ConvNum(RuntimeVariable var)
+			{
+				Number number = var->AsNumber();
+
+				number = number.Convert(Number::Settings{ A, C, B, D });
+
+				return number;
+			}
+
+
+
+
+
+			template <NumeralType A, Signage B, Size C, Limit D = (Limit)0>
+			inline void FillLimit(int& i)
+			{
+
+				convertMap[i++] = Convert<ConvNum<A, B, C, D>>::instance;
+
+				constexpr auto _d = (Limit)(D + 1);
+
+				if constexpr (_d < Limit::Total)
+				{
+					FillLimit<A, B, C, _d>(i);
+				}
+			}
+
+			template <NumeralType A, Signage B, Size C = (Size)0>
+			inline void FillSize(int& i)
+			{
+				FillLimit<A, B, C>(i);
+
+				constexpr auto _c = (Size)(C + 1);
+
+				if constexpr (_c < Size::Total)
+				{
+					FillSize<A, B, _c>(i);
+				}
+			}
+
+			template <NumeralType A, Signage B = (Signage)0>
+			inline void FillSign(int& i)
+			{
+				FillSize<A, B>(i);
+
+				constexpr auto _b = (Signage)(B + 1);
+
+				if constexpr (_b < Signage::Total)
+				{
+					FillSign<A, _b>(i);
+				}
+			}
+
+			template <NumeralType A = (NumeralType)0>
+			inline void FillNumeral(int& i)
+			{
+				FillSign<A>(i);
+
+				constexpr NumeralType _a = (NumeralType)(A + 1);
+
+				if constexpr (_a < NumeralType::Total)
+				{
+					FillNumeral<_a>(i);
+				}
+			}
+
+
+			void FillNumberConvertMap()
+			{
+				int i = 0;
+				FillNumeral(i);
+			}
+
+
+			INITIALIZE()
+			{
+				FillNumberConvertMap();
+			}
+		}
+
+
+		struct StringType : public ConcretePolicy
+		{
+			using ConcretePolicy::ConcretePolicy;
+
+			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+			{
+				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
+				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
+
+				static StrConvert converter{};
+
+				ConvertResult result = __super::IsConvertibleTo(other, scope, out, type);
+
+
+				if (out && result <= ConvertResult::Failure)
+				{
+					auto double_offset = Number::Settings::CreateFromType<double>().GetOffset();
+					
+					if (IdentityManager::instance->GetTypeByOffset("NUMBER", double_offset) == other)
+					{
+						out->implDefined = std::addressof(converter);
+						result = ConvertResult::ImplDefined;
+					}
+				}
+
+				return result;
+			}
+		};
+
+
+		struct NumberType : public ConcretePolicy
+		{
+			using ConcretePolicy::ConcretePolicy;
+
+			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+			{
+				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
+				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
+
+				ConvertResult result = __super::IsConvertibleTo(other, scope, out, type);
+				
+				
+				
+				
+				if (out && result <= ConvertResult::Failure)
+				{
+					auto identity = other->FetchTypeID().GetIdentity();
+
+					auto index = IdentityManager::instance->GetIndexFromName("NUMBER");
+
+					if (identity.index == index)
+					{
+						if (identity.offset >= Number::Settings::length)
+							report::fault::critical("Offset greater than number type length.");
+
+						out->implDefined = convertMap[--identity.offset];
+
+						result = ConvertResult::ImplDefined;
+					}
+				}
+
+				return result;
+			}
+		};
+
+
+
 		INITIALIZE()
 		{
 			//I would like something to make this assign a fuck ton easier
 
 			generatorList[SyntaxType::Return] = ReturnProcess;
-			generatorList[SyntaxType::Block] = BlockProcess;
+			generatorList[SyntaxType::StateBlock] = StatementProcess;
+			generatorList[SyntaxType::ExpressBlock] = ExpressionProcess;
 
 			generatorList[SyntaxType::Unary] = OperatorProcess;
 			generatorList[SyntaxType::Binary] = OperatorProcess;
@@ -1244,6 +1576,7 @@ namespace LEX
 			generatorList[SyntaxType::String] = LiteralProcess;
 			generatorList[SyntaxType::Object] = LiteralProcess;
 
+
 			generatorList[SyntaxType::Variable] = VariableProcess;
 			generatorList[SyntaxType::Field] = FieldProcess;
 			generatorList[SyntaxType::Call] = CallProcess;
@@ -1251,6 +1584,7 @@ namespace LEX
 
 
 			instructList[InstructType::Call] = InstructWorkShop::Call;
+			instructList[InstructType::Convert] = InstructWorkShop::Convert;
 			instructList[InstructType::Construct] = InstructWorkShop::Construct;
 
 			instructList[InstructType::Push] = InstructWorkShop::Push;//deprecated
@@ -1295,14 +1629,22 @@ namespace LEX
 
 			static ConcretePolicy* NUMBER = new ConcretePolicy{ "NUMBER", 0 };
 
+		
 
-			static ConcretePolicy* float64 = new ConcretePolicy{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
-			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
+			static ConcretePolicy* float64 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
+			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating, Size::DWord, Signage::Signed, Limit::Infinite) };
+			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound) };
+			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound) };
+			static ConcretePolicy* string8 = new StringType{ "STRING", 0 };
 
 
 			float64->EmplaceDefault(static_cast<double>(0));
+			float32->EmplaceDefault(static_cast<float>(0));
+			uBoolean->EmplaceDefault(static_cast<bool>(0));
+			sBoolean->EmplaceDefault(Number{ Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} });
 		
 			float64->SetInheritFrom(NUMBER);
+			float32->SetInheritFrom(NUMBER);
 			float64->PrintInheritance();
 
 			string8->EmplaceDefault("");
