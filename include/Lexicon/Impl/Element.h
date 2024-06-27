@@ -124,11 +124,7 @@ namespace LEX
 		void OnInit(Record& rec) final override
 		{
 			SetSyntaxTree(rec);
-			
-			//We get the node like this so the target is a viable syntax tree. Other wise, it may use a tree that doesn't exist anymore.
-			auto& node = *GetSyntaxTree();
-
-			LoadFromRecord(node);
+			LoadFromRecord(rec);
 		}
 
 
