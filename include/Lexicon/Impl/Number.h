@@ -21,60 +21,47 @@ requires(std::is_enum_v<EnumType>&& !std::is_scoped_enum_v<EnumType>) struct fmt
 
 namespace LEX
 {
-    
-#define BINARY_OPERATOR(mc_symbol, ...)                                                                     \
-        operator mc_symbol(const Number& a_rhs) {                                                           \
-            constexpr bool assign = _IsAssign(STRINGIZE(mc_symbol));                                        \
-            if constexpr (!assign) {                                                                        \
-                if ((!IsValid() && strcmp(STRINGIZE(mc_symbol), "=") != 0) || a_rhs.IsValid() == false) {   \
-                    report::runtime::critical("some number is invalid.");                                   \
-                    throw nullptr;                                                                          \
-                }                                                                                           \
-            }                                                                                               \
-            Number result = std::visit([&](auto&& lhs) -> Number {                                          \
-                return std::visit([&](auto&& rhs) -> Number {                                               \
-                    if constexpr (true __VA_OPT__(&&) __VA_ARGS__) {                                        \
-                        return lhs mc_symbol rhs;                                                           \
-                    }                                                                                       \
-                    else {                                                                                  \
-                        report::runtime::critical("invalid ops used on each other.");                       \
-                        throw nullptr;                                                                      \
-                        return lhs;                                                                         \
-                    }                                                                                       \
-                    }, a_rhs._value);                                                                       \
-                }, _value);                                                                                 \
-            if constexpr (assign)                                                                           \
-                return *this;                                                                               \
-            else                                                                                            \
-                return result;                                                                              \
+    //*
+#define BINARY_OPERATOR(mc_symbol, ...)                                                                         \
+        operator mc_symbol(const Number& other)                                                                 \
+        {                                                                                                       \
+            Number result = Operator(other,                                                                     \
+                [](auto lhs, auto rhs)                                                                          \
+                {                                                                                               \
+                    if constexpr (true __VA_OPT__(&&) __VA_ARGS__) {                                            \
+                        return lhs mc_symbol rhs;                                                               \
+                    }                                                                                           \
+                    else {                                                                                      \
+                        report::runtime::break_critical("invalid ops used on each other.");                     \
+                        return lhs;/*This just helps the thing know it definitely has a return type.*/          \
+                    }                                                                                           \
+                });                                                                                             \
+            return result;                                                                                      \
         }
+
+
 
     //Needs work, as this can assign with ++
-#define UNARY_OPERATOR(mc_symbol, ...)                                                                      \
-        operator mc_symbol() {                                                                              \
-            constexpr bool assign = _IsAssign(STRINGIZE(mc_symbol));                                        \
-            if constexpr (!assign) {                                                                        \
-                if (!IsValid() && strcmp(STRINGIZE(mc_symbol), "=") != 0) {                                 \
-                    report::runtime::critical("some number is invalid.");                                   \
-                    throw nullptr;                                                                          \
-                }                                                                                           \
-            }                                                                                               \
-            Number result = std::visit([&](auto&& lhs) -> Number {                                          \
-                 if constexpr (true __VA_OPT__(&&) __VA_ARGS__) {                                           \
-                        return mc_symbol lhs;                                                               \
+#define PRE_UNARY_OPERATOR(mc_symbol, ...)                                                                  \
+        operator mc_symbol()                                                                                \
+        {                                                                                                   \
+            Number result = Operator([](auto self)                                                          \
+                {                                                                                           \
+                    if constexpr (true __VA_OPT__(&&) __VA_ARGS__)                                          \
+                    {                                                                                       \
+                        return mc_symbol self;                                                              \
                     }                                                                                       \
                     else {                                                                                  \
-                        report::runtime::critical("invalid ops used on number.");                           \
-                        throw nullptr;                                                                      \
-                        return lhs;                                                                         \
+                        report::runtime::break_critical("invalid ops used on each other.");                 \
+                        return self;                                                                        \
                     }                                                                                       \
-                }, _value);                                                                                 \
-            if constexpr (assign)                                                                           \
-                return *this;                                                                               \
-            else                                                                                            \
-                return result;                                                                              \
+                });                                                                                         \
+            return result;                                                                                  \
         }
+        
 
+
+    
     //Visit in the above operator doesn't work.
     //#define BINARY_OPERATOR(mc_symbol, ...) static CONCAT(test, __LINE__); static_assert(true);
 
@@ -162,49 +149,229 @@ namespace LEX
     
 
 
-    enum struct direction
+    enum struct NumberDataType
     {
-
-        left,
-        right
+        Invalid,
+        Float,
+        SInt,
+        UInt,
     };
-    //not using, unsure if I want
-    template <std::integral T>
-    T _UnsetPastBit(T value, size_t shift, direction dir)
+
+
+    union NumberData
     {
-        bool done = false;
-        if (!done && dir == direction::left)
-        {
-        __left:
-            value <<= shift;
 
+        size_t									_raw = 0;
+        std::array<uint8_t, sizeof(size_t)>		_bytes;
+        double									floating;
+        int64_t									sInteger;
+        uint64_t								uInteger;
+
+        template<numeric T>
+        auto& Get()
+        {
+            if constexpr (std::is_floating_point_v<T>) {
+                return floating;
+            }
+            else if constexpr (std::is_same_v<T, uint64_t>) {
+                return uInteger;
+            }
+            else {
+                return sInteger;
+            }
         }
 
-        if (!done && dir == direction::right)
+
+
+        constexpr NumberData() = default;
+        constexpr NumberData(double arg) : floating{ arg } {}//doesn't matter which it is.
+        constexpr NumberData(int64_t arg) : sInteger{ arg } {}//doesn't matter which it is.
+        constexpr NumberData(uint64_t arg) : uInteger{ arg } {}//doesn't matter which it is.
+        constexpr NumberData(int32_t arg) : sInteger{ arg } {}
+        constexpr NumberData(uint32_t arg) : sInteger{ arg } {}
+        constexpr NumberData(int16_t arg) : sInteger{ arg } {}
+        constexpr NumberData(uint16_t arg) : sInteger{ arg } {}
+        constexpr NumberData(int8_t arg) : sInteger{ arg } {}
+        constexpr NumberData(uint8_t arg) : sInteger{ arg } {}
+        constexpr NumberData(bool arg) : sInteger{ arg } {}
+    };
+    REQUIRED_SIZE(NumberData, 0x8);
+
+
+    struct NumberLimit
+    {
+        NumberData min;
+        NumberData max;
+        NumberData posInf;
+        NumberData negInf;
+
+        constexpr NumberLimit() = default;
+
+        constexpr NumberLimit(NumberData _min, NumberData _max, std::optional<NumberData> pos_inf = std::nullopt, std::optional<NumberData> neg_inf = std::nullopt) :
+            min{ _min }, max{ _max }, negInf{ neg_inf.value_or(0) }, posInf{ pos_inf.value_or(0) }
         {
-        __right:
-            value >>= shift;
 
         }
+    };
 
-        if (!done)
-        {
-            done = true;
-            if (dir == direction::left)         goto __right;
-            else if (dir == direction::right)   goto __left;
-        }
+    //A few things, I want the access of this to be a function, second, this function should start an initializer.
+    // This would allow me to make
+    //Note, this isn't going to be accessed from one place, probably should be allowed to migrate be based on whatever system it's on.
+    inline NumberLimit limitMap[NumeralType::Total][Signage::Total][Size::Total];
 
-        return value;
+
+    inline void InitLimitMap()
+    {
+        static bool init = false;
+
+        if (init)
+            return;
+
+        init = true;
+
+        //For float, bit is episilon, byte is percent word. Nothing is used for word.
+
+
+        //Note, these are given infinity REGARDLESS if it actually can use infinity or not
+        // Also note, the value of infinity is a constant. Maybe also the only time that it will not be cleared.
+        // An infinity of 0 means no infinity at all.
+        limitMap[NumeralType::Floating][Signage::Signed][Size::Bit] = { -1.0, 1.0, INFINITY, -INFINITY };
+        limitMap[NumeralType::Floating][Signage::Signed][Size::Byte] = { -100.0, 100.0, INFINITY, -INFINITY };
+        limitMap[NumeralType::Floating][Signage::Signed][Size::Word] = { -100.0, 100.0, INFINITY, -INFINITY };
+        limitMap[NumeralType::Floating][Signage::Signed][Size::DWord] = { min_value<float>, max_value<float>, INFINITY, -INFINITY };
+        limitMap[NumeralType::Floating][Signage::Signed][Size::QWord] = { min_value<double>, max_value<double>, INFINITY, -INFINITY };
+
+        limitMap[NumeralType::Floating][Signage::Unsigned][Size::Bit] = { 0.0, 1.0, 0, INFINITY };
+        limitMap[NumeralType::Floating][Signage::Unsigned][Size::Byte] = { 0.0, 100.0, 0, INFINITY };
+        limitMap[NumeralType::Floating][Signage::Unsigned][Size::Word] = { 0.0, 100.0, 0, INFINITY };
+        limitMap[NumeralType::Floating][Signage::Unsigned][Size::DWord] = { 0.0, max_value<float>, 0, INFINITY };
+        limitMap[NumeralType::Floating][Signage::Unsigned][Size::QWord] = { 0.0, max_value<double>, 0, INFINITY };
+
+
+
+        limitMap[NumeralType::Integral][Signage::Unsigned][Size::Bit] = { (int64_t)false, (int64_t)true };
+        limitMap[NumeralType::Integral][Signage::Unsigned][Size::Byte] = { min_value<uint8_t>, max_value<uint8_t>, max_value<uint64_t> };
+        limitMap[NumeralType::Integral][Signage::Unsigned][Size::Word] = { min_value<uint16_t>, max_value<uint16_t>, max_value<uint64_t> };
+        limitMap[NumeralType::Integral][Signage::Unsigned][Size::DWord] = { min_value<uint32_t>, max_value<uint32_t>, max_value<uint64_t> };
+        limitMap[NumeralType::Integral][Signage::Unsigned][Size::QWord] = { min_value<uint64_t>, max_value<uint64_t>, max_value<uint64_t> };
+
+        limitMap[NumeralType::Integral][Signage::Signed][Size::Bit] = { -1, 1, max_value<int64_t>, min_value<int64_t> };
+        limitMap[NumeralType::Integral][Signage::Signed][Size::Byte] = { min_value<int8_t>, max_value<int8_t>, max_value<int64_t>, min_value<int64_t> };
+        limitMap[NumeralType::Integral][Signage::Signed][Size::Word] = { min_value<int16_t>, max_value<int16_t>, max_value<int64_t>, min_value<int64_t> };
+        limitMap[NumeralType::Integral][Signage::Signed][Size::DWord] = { min_value<int32_t>, max_value<int32_t>, max_value<int64_t>, min_value<int64_t> };
+        limitMap[NumeralType::Integral][Signage::Signed][Size::QWord] = { min_value<int64_t>, max_value<int64_t>, max_value<int64_t>, min_value<int64_t> };
+
     }
 
-    //TODO: Make number smaller by packing the settings into the variant.
-    struct Number
+
+    inline NumberLimit GetNumberLimit(NumeralType type, Signage sign, Size size)
+    {
+        InitLimitMap();
+        return limitMap[type][sign][size];
+    }
+
+
+
+
+
+    INITIALIZE()
+    {
+        //there are 3 limit types
+
+
+        InitLimitMap();
+    }
+
+
+    ENUM(InfiniteState, int8_t)
+    {
+        Negative = -1,
+        Finite = 0,
+        Positive = 1,
+    };
+
+
+    struct infinity
     {
 
+        //This is a struct to represent infinity for whatever current setting is active. Helps represent infinity for types that don't actually have it.
+
+        bool positive = true;
+        NumeralType type{ NumeralType::Invalid };
+        Size        size{ Size::Invalid };
+        Signage     sign{ Signage::Invalid };
+
+        //Also a note to this, I'd like to make constexpr versions of infinity to represent each version of infinity.
+
+
+        infinity operator-() const
+        {
+            infinity result = *this;
+            if (sign != Signage::Unsigned)
+                result.positive = !result.positive;
+            else
+                report::message::break_warn("infinity cannot be negated with current settings");
+
+            return result;
+        }
+
+
+        constexpr infinity() = default;
+
+        constexpr infinity(NumeralType nt, Size sz, Signage sg) : type{ nt }, size{ sz }, sign{ sg }
+        {}
+
+
+        //returns a constant for use when one wants to set a number to an infinite, but also doesn't want to 
+        // override the settings.
+        inline static constexpr infinity constant()
+        {
+            return infinity{};
+        }
+
+        inline static constexpr infinity float32()
+        {
+            return infinity{ NumeralType::Floating, Size::DWord, Signage::Signed };
+        }
+
+        inline static constexpr infinity float64()
+        {
+            return infinity{ NumeralType::Floating, Size::QWord, Signage::Signed };
+        }
+
+        inline static constexpr infinity ufloat32()
+        {
+            return infinity{ NumeralType::Floating, Size::DWord, Signage::Unsigned };
+        }
+
+        inline static constexpr infinity ufloat64()
+        {
+            return infinity{ NumeralType::Floating, Size::QWord, Signage::Unsigned };
+        }
+
+
+
+
+        //Also, positive will be restricted, instead, you must perform unary minus on infinity to get negative infinity.
+    };
+
+
+
+    struct NumberConstant
+    {
+        struct {} static inline Maybe;
+    };
+
+    
+
+
+
+	struct Number
+	{
 
         struct Settings
         {
-            
+
 
 
             constexpr Settings() = default;
@@ -219,7 +386,7 @@ namespace LEX
             constexpr Settings(NumeralType tp, Size sz, Signage sg, Limit lm) :
                 type{ tp }, size{ sz }, sign{ sg }, limit{ lm }
             {
-                
+
             }
 
 
@@ -237,7 +404,7 @@ namespace LEX
 
             constexpr uint8_t GetOffset() const
             {
-                
+
                 return GetNumberOffset(type, size, sign, limit);
             }
 
@@ -252,7 +419,42 @@ namespace LEX
                 return GetOffset(type, Size::QWord, Signage::Signed, type == NumeralType::Floating ? Limit::Infinite : Limit::Overflow);
             }
 
-            
+            static Settings CreateFromOffset(TypeOffset offset)
+            {
+                //This could be constexpr, though no point innit?
+
+                if (offset >= length)
+                    return {};
+
+                offset--;
+
+                Settings result{};
+
+                auto set = (offset / typeOffsetLoad);
+
+                result.type = (NumeralType)set;
+                offset -= typeOffsetLoad * set;
+
+                set = (offset / signOffsetLoad);
+
+                result.sign = (Signage)set;
+                offset -= signOffsetLoad * set;
+
+
+                set = (offset / sizeOffsetLoad);
+
+                result.size = (Size)set;
+                offset -= sizeOffsetLoad * set;
+
+
+                //What remains is likely the limit.
+                result.limit = (Limit)offset;
+
+
+                return result;
+            }
+
+
             static Settings CreateFromID(TypeID id)
             {
                 //This could be constexpr, though no point innit?
@@ -268,7 +470,7 @@ namespace LEX
                     Settings result{};
 
                     auto set = (offset / typeOffsetLoad);
-                    
+
                     result.type = (NumeralType)set;
                     offset -= typeOffsetLoad * set;
 
@@ -299,7 +501,7 @@ namespace LEX
 
 
             constexpr std::strong_ordering operator <=> (const Settings& rhs) const = default;
-            
+
             /*
             {
                 //The conversion rules follow the same rules as the code range for it's type, that it is the combined value (via OR) of all its settings.
@@ -319,6 +521,8 @@ namespace LEX
 
             bool IsFloat() const { return type == NumeralType::Floating; }
             bool IsInteger() const { return type == NumeralType::Integral; }
+
+            bool IsBoolean() const { return type == NumeralType::Integral && size == Size::Bit; }
 
             bool IsUnsigned() const { return sign == Signage::Unsigned; }
             bool IsSigned() const { return sign == Signage::Signed; }
@@ -347,7 +551,7 @@ namespace LEX
             {
                 return 0;
             }
-            
+
 
             template <numeric T>
             constexpr static Settings CreateFromType()
@@ -380,7 +584,7 @@ namespace LEX
                 else {
                     setting.size = Size::Bit;
                     //Might have bools specifically lock for this sort of thing.
-                    setting.limit = Limit::Infinite;
+                    setting.limit = Limit::Bound;
                 }
 
                 //Signage
@@ -397,177 +601,73 @@ namespace LEX
 
         };
 
-
-        Number() = default;
-        
-        //*
-        template <numeric T>// requires (!std::is_integral_v<T>)
-        Number(T v) :
-           // _value{ v },
-            _setting{ Settings::CreateFromType<T>() },
+        Number(decltype(NumberConstant::Maybe) m) :
+            _setting{ NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound }, 
+            _data { GetNumberLimit(NumeralType::Integral, Signage::Signed, Size::Bit).min },
             _priority{ _setting.GetOffset() }
         {
-            //This is the list of concessions made to make sure the variant works.
-            //Also thinking of making void the first entry
-            if constexpr (std::is_integral_v<T>)
-            {
-                if constexpr (std::is_signed_v<T>){
-                    _value.emplace<int64_t>(v);
-                    //_value = static_cast<int64_t>(v);
-                }
-                else {
-                    _value.emplace<uint64_t>(v);
-                    //_value = static_cast<uint64_t>(v);
-                }
-            }
-            else if constexpr (std::is_floating_point_v<T>)
-            {
-                _value.emplace<double>(v);
-                //_value = static_cast<double>(v);
-            }
-            else 
-            {
-                _value.emplace<T>(v);
-                //_value = v;
-            }
-
-            RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
-                ToString(),
-                _setting.sign, _setting.size, _setting.type, _setting.limit);
         }
 
-        Number(Settings _set) :
-            // _value{ v },
-            _setting{ _set },
-            _priority{ _setting.GetOffset() }
-        {
-            const char* name = "INVALID";
-
-            if (_setting.IsFloat() == true)
-            {
-                _value.emplace<double>(0);
-                name = typeid(double).name();
-            }
-            else if (_setting.IsInteger() == true)
-            {
-                if (_setting.IsSigned() == true)
-                {
-                    _value.emplace<int64_t>(0);
-                    name = typeid(int64_t).name();
-                }
-                else if (_setting.IsUnsigned() == true)
-                {
-                    _value.emplace<uint64_t>(0);
-                    name = typeid(uint64_t).name();
-                }
-            }
-
-
-            RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
-                ToString(),
-                _setting.sign, _setting.size, _setting.type, _setting.limit);
-        }
-        //*/
-
-
-        //Number& operator=(Number a_rhs) noexcept
-        //{
-        //    _value = a_rhs._value;
-        //    return *this;
-        //}
-
-
-        constexpr std::partial_ordering operator <=> (Number rhs) const
-        {
-            return _value <=> rhs._value;
-        }
-
-
-        constexpr bool operator==(const Number& a_rhs) const
-        {
-            return operator<=>(a_rhs) == std::strong_ordering::equal;
-        }
-
-
-        int Cmp(const Number& a_rhs)
-        {
-            return _priority - a_rhs._priority;
-        }
-
-
-
-
-
-        //Move this.
-        static constexpr bool _IsAssign(const std::string_view str)
-        {
-            if (str == "==" || str == "===" || str == "!=" || str == "!==")
-                return false;
-
-            return str.find('=') != std::string_view::npos;
-        }
-
-        bool IsValid() const
-        {
-            logger::trace("index in is valid {}", _value.index());
-
-            return _value.index() != 0;
-
-        }
-
-
-        Number operator *(const Number& a_rhs) {
-            constexpr bool assign = _IsAssign(STRINGIZE(*)); if constexpr (!assign) {
-                if ((!IsValid() && strcmp(STRINGIZE(*), "=") != 0) || a_rhs.IsValid() == false) {
-					report::runtime::critical("some number is invalid. left {} right {}", IsValid(), a_rhs.IsValid());
-					throw nullptr;
-                }
-            } Number result = std::visit([&](auto&& lhs) -> Number { return std::visit([&](auto&& rhs) -> Number { if constexpr (true) {
-                return lhs * rhs;
-            }
-            else {
-                report::runtime::fatal("invalid ops used on each other."); throw nullptr; return lhs;
-            } }, a_rhs._value); }, _value); if constexpr (assign) return *this; else return result;
-        };
-        Number operator +(const Number& a_rhs) {
-            RGL_LOG(info, "tell");
-            constexpr bool assign = _IsAssign(STRINGIZE(+)); if constexpr (!assign) {
-                if ((!IsValid() && strcmp(STRINGIZE(+), "=") != 0) || a_rhs.IsValid() == false) {
-                    report::runtime::critical("some number is invalid. left: {} right: {}", IsValid(), a_rhs.IsValid()); throw nullptr;
-                }
-            } Number result = std::visit([&](auto&& lhs) -> Number { return std::visit([&](auto&& rhs) -> Number { if constexpr (true) {
-                return lhs + rhs;
-            }
-            else {
-                report::runtime::critical("invalid ops used on each other."); throw nullptr; return lhs;
-            } }, a_rhs._value); }, _value); if constexpr (assign) return *this; else return result;
-        };
+        Number BINARY_OPERATOR(+);
         Number BINARY_OPERATOR(/);
+        Number BINARY_OPERATOR(*);
         Number BINARY_OPERATOR(-);
         Number BINARY_OPERATOR(%, std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>);
-        Number UNARY_OPERATOR(-);
-        //Number UNARY_OPERATOR(!);
+        Number PRE_UNARY_OPERATOR(-);
         
-        //This set up allows us to be able to visit, but cause error on operators that can't actually use the value.
-        //std::is_integral_v<decltype(lhs)> && std::is_integral_v<decltype(rhs)>
-
-
-        std::string ToString() const
+        constexpr std::strong_ordering operator <=> (Number other) const
         {
-            std::string result = "UNVISITED";
+            
+            return Visit([&](auto lhs)
+            {
+                return other.Visit([&](auto rhs)
+                {
+                    if (lhs < rhs)
+                        return std::strong_ordering::less;
+                    else if (lhs > rhs)
+                        return std::strong_ordering::greater;
+                    else
+                        return std::strong_ordering::equal;
+                });
+            });
 
-            std::visit([&](auto&& arg) {
-                using T = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<T, char>)
-                    result = "INVALID_NUMBER";
-                else
-                    //Should control its output based on below settings.
-                    result = std::to_string(arg);
-
-                }, _value);
-
-            return result;
         }
+
+
+        constexpr bool operator==(const Number& other) const
+        {
+            return operator<=>(other) == std::strong_ordering::equal;
+        }
+            
+        
+		//Proving line.
+
+
+		constexpr bool IsInfinite() const
+		{
+			return infinite != InfiniteState::Finite;
+		}
+
+		NumberDataType GetNumberType() const
+		{
+			if (_setting.IsFloat() == true)
+			{
+				return NumberDataType::Float;
+			}
+			else if (_setting.IsInteger() == true)
+			{
+				if (_setting.IsSigned() == true)
+				{
+					return NumberDataType::SInt;
+				}
+				else if (_setting.IsUnsigned() == true)
+				{
+					return NumberDataType::UInt;
+				}
+			}
+
+			return NumberDataType::Invalid;
+		}
 
         TypeOffset GetOffset() const
         {
@@ -575,154 +675,491 @@ namespace LEX
             return _priority;
         }
 
-        //If it's index is the first, it's value will be null and unassignable. Thus, this easiest signals that it's value is zero.
-        std::variant<char, uint64_t, int64_t, double> _value;
+		template <typename V>
+		decltype(auto) Visit(V visitor)
+		{
+			//Visit will visit with a version of number data's different data types, or fail if the settings are invalid.
+
+			switch (GetNumberType())
+			{
+			case NumberDataType::Float:
+				return visitor(_data.floating);
+
+			case NumberDataType::SInt:
+				return visitor(_data.sInteger);
+
+			case NumberDataType::UInt:
+				return visitor(_data.uInteger);
+
+			default:
+				report::error("Invalid number settings. Data cannot be visited.");
+				break;
+			}
+		}
+
+		template <typename V>
+		constexpr decltype(auto) Visit(V visitor) const
+		{
+			//Visit will visit with a version of number data's different data types, or fail if the settings are invalid.
+
+			switch (GetNumberType())
+			{
+			case NumberDataType::Float:
+				return visitor(_data.floating);
+
+			case NumberDataType::SInt:
+				return visitor(_data.sInteger);
+
+			case NumberDataType::UInt:
+				return visitor(_data.uInteger);
+
+			default:
+				report::error("Invalid number settings. Data cannot be visited.");
+				break;
+			}
+		}
 
 
-        template<numeric T>
-        bool As(T& out) const
+
+
+		Number Convert(Settings settings) const
+		{
+			//This is a really lazy and also incorrect way to do this.
+
+			Number copy = settings;
+
+			//copy._data = other._data;
+
+
+			//The limit type observed on this is changed to Maximum(limits) if left is unsigned, and right is negative infinity.
+
+			if (infinite && copy._setting.limit != Limit::Infinite)
+			{
+				auto _neg = GetNumberLimit(copy._setting.type, copy._setting.sign, copy._setting.size).negInf;
+				auto _pos = GetNumberLimit(copy._setting.type, copy._setting.sign, copy._setting.size).posInf;
+
+
+
+				switch (infinite)
+				{
+				case InfiniteState::Positive:
+					copy._data = _pos;
+					break;
+				case InfiniteState::Negative:
+					report::debug("neg");
+					copy._data = _neg;
+					break;
+				}
+
+				if (_setting.limit == Limit::Infinite) {
+					copy.SetInfinite(infinite);
+					return copy;
+				}
+			}
+
+			auto& other = *this;
+
+			copy.Visit([&]<typename L>(L & lhs)
+			{
+				other.Visit([&]<typename R>(R rhs)
+				{
+					lhs = (L)rhs;
+				});
+
+				copy.NewLimitCheck();
+			});
+
+			return copy;
+		}
+
+		Number& Assign(const Number& other)
+		{
+			*this = other.Convert(_setting);
+			return *this;
+		}
+
+
+		std::string ToString() const
+		{
+			switch (infinite)
+			{
+			case InfiniteState::Finite:
+                if (_setting.IsBoolean() == true)
+                {
+                    switch (Get<int>())
+                    {
+                    case -1:
+                        return "maybe";
+                    case  0:
+                        return "false";
+                    case  1:
+                        return "true";
+
+                    default:
+                        report::warn("invalid boolean value detected");
+                        return "inv bool";
+                    }
+                    
+                }
+                else
+                {
+                    return Visit([](auto it) { return std::to_string(it); });
+                }
+			case InfiniteState::Positive:
+				return "inf";
+			case InfiniteState::Negative:
+				return "-inf";
+			}
+
+
+			return "INVALID";
+		}
+
+
+
+		//I'd like to change the name but this is good.
+        //This really should just take a setting and run through it. It using a number is a detriment
+		Settings CompareSettings(const Number& other, Settings ret)
+		{
+			constexpr Settings k_int{ NumeralType::Integral, Size::DWord, Signage::Signed, Limit::Overflow };
+			constexpr auto k_offset = k_int.GetOffset();
+
+
+			Settings result = _setting;
+
+			if (auto settings = other._setting; result.GetOffset() < settings.GetOffset())
+				result = settings;
+
+			if (result.GetOffset() < k_offset)
+				result = k_int;
+
+
+			if (result.GetOffset() < ret.GetOffset())
+				result = ret;
+
+			return result;
+			//other is the right hand side, "this" is the left hand side, and ret is the return of the predicate turned into a number setting.
+			//The largest ont between these options, and int wins.
+		}
+
+
+
+
+
+		void SetInfinite(InfiniteState state)
+		{
+			//This is just so the same lambda isn't floating around.
+
+			if (Visit([](auto it) { return it == 0; }) == false)
+				infinite = state;
+		}
+
+
+		void NewLimitCheck(int overflow = 0)
+		{
+			auto _limit = GetNumberLimit(_setting.type, _setting.sign, _setting.size);
+
+			auto _min = _limit.min;
+			auto _max = _limit.max;
+
+			if (!overflow)
+			{
+				overflow = Visit(
+					[&]<typename T>(T value) -> int
+				{
+					return value > _max.Get<T>() ?
+						1 : value < _min.Get<T>() ?
+						-1 : 0;
+				});
+
+
+			}
+
+			if (!overflow)
+				return;
+
+
+			switch (_setting.limit)
+			{
+			case Limit::Overflow:
+			{
+				Visit([&]<typename T>(T & value)
+				{
+					using Cast = std::conditional_t<std::is_floating_point_v<T>, double, size_t>;
+					value -= (_setting.IsSigned() + (size_t)(value / ((size_t)_max.Get<T>() + 1))) * ((size_t)_max.Get<T>() + 1);
+				});
+			}
+			break;
+
+			case Limit::Bound:
+			{
+				Visit([&](auto& value)
+					{
+						if (overflow == 1)
+							_data = _max;
+						else if (overflow == -1)
+							_data = _min;
+					});
+			}
+			break;
+
+			case Limit::Infinite:
+			{
+				InfiniteState state = InfiniteState::Finite;
+
+				if (overflow == 1) {
+					_data = _limit.posInf;
+					state = InfiniteState::Positive;
+				}
+				else if (overflow == -1) {
+					_data = _limit.negInf;
+					state = InfiniteState::Negative;
+				}
+
+				SetInfinite(state);
+			}
+			break;
+
+			default:
+				report::message::error("Invalid limit.");
+			}
+		}
+
+		template <typename Func>
+		Number Operator(Func func)
+		{
+			using Result = std::invoke_result_t<Func, int8_t>;
+
+            constexpr Settings bool_settings = Settings::CreateFromType<bool>();
+
+            constexpr Settings res_settings = Settings::CreateFromType<Result>();
+
+
+            Number result = bool_settings == res_settings ? res_settings : CompareSettings(*this, res_settings);
+
+
+			constexpr bool no_limit_check = requires(int self)
+			{
+				func(self, 0);
+			};
+
+			double comp;
+
+
+			result.Visit([&](auto& res)
+				{
+					this->Visit([&]<typename L>(L& self)
+					{
+                        res = func(self);
+
+                        //This should also check if doubles can play.
+                        if constexpr (!no_limit_check)
+                            comp = func((double)self);
+					});
+				});
+
+
+
+			//Should require an integral
+
+			if constexpr (!no_limit_check)
+			{
+				int overflow = result.Visit([comp]<typename T>(T res) -> int
+				{
+					return  res > comp ?
+						-1 : res < comp ?
+						1 : 0;
+				});
+
+
+				//report::trace("overflow {}", overflow);
+				//bool bound = false;
+
+				result.NewLimitCheck(overflow);
+			}
+
+			return result;
+		}
+
+
+        template <typename Func>
+        Number Operator(const Number& other, Func func)
         {
-            constexpr auto query = Settings::CreateFromType<T>();
-            //Make this a bit less exact in the future.
-            
-            if (query != _setting) {
-                return false;
-            }
+            using Result = std::invoke_result_t<Func, int8_t, int8_t>;
 
-            switch (_value.index())
+            constexpr Settings bool_settings = Settings::CreateFromType<bool>();
+
+            constexpr Settings res_settings = Settings::CreateFromType<Result>();
+
+
+            Number result = bool_settings == res_settings ? res_settings : CompareSettings(other, res_settings);
+
+
+            constexpr bool no_limit_check = requires(int lhs, int rhs)
             {
-            case 1: 
-                if constexpr (std::is_integral_v<T>)
-                    out = _UInt(); 
-                break;
-            case 2: 
-                if constexpr (std::is_integral_v<T>)
-                    out = _SInt(); 
-                break;
-            case 3: 
-                if constexpr (std::is_floating_point_v<T>)
-                    out = _Float(); 
-                break;
+                func(lhs, rhs, 0);
+            };
 
-            default:
-                return false;
+            double comp;
+
+
+            result.Visit([&](auto& res)
+                {
+                    this->Visit([&]<typename L>(L& lhs)
+                    {
+                        other.Visit([&]<typename R>(R rhs)
+                        {
+                            res = func(lhs, rhs);
+
+                            if constexpr (!no_limit_check)
+                                comp = func((double)lhs, (double)rhs);
+                        });
+                    });
+                });
+
+
+
+            //Should require an integral
+
+            if constexpr (!no_limit_check)
+            {
+                int overflow = result.Visit([comp]<typename T>(T res) -> int
+                {
+                    return  res > comp ?
+                        -1 : res < comp ?
+                        1 : 0;
+                });
+
+
+                //report::trace("overflow {}", overflow);
+                //bool bound = false;
+
+                result.NewLimitCheck(overflow);
             }
-            return true;
-        }
-
-        template<numeric T>
-        explicit operator T() const
-        {
-            T result;
-
-            if (As<T>(result) == false)
-				report::fault::critical("Cannot turn number into type {}", typeid(T).name());
 
             return result;
         }
 
-        
-        double _Float() const
+
+		//-end
+
+
+
+
+		Number() = default;
+
+		Number(Settings _set) :
+			// _value{ v },
+			_setting{ _set },
+			_priority{ _setting.GetOffset() }
+		{
+			const char* name = "INVALID";
+
+			Visit([&]<typename T>(T) { name = typeid(T).name(); });
+
+
+			RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
+				ToString(),
+				_setting.sign, _setting.size, _setting.type, _setting.limit);
+		}
+
+		template <numeric T>
+		Number(T v) :
+			_setting{ Settings::CreateFromType<T>() },
+			_priority{ _setting.GetOffset() }
+		{
+
+			_data.Get<T>() = v;
+
+
+			RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
+				ToString(),
+				_setting.sign, _setting.size, _setting.type, _setting.limit);
+		}
+
+		Number(infinity inf)
+		{
+
+			if (inf.type == NumeralType::Invalid || inf.sign == Signage::Invalid || inf.size == Size::Invalid) {
+				report::fault::break_error("Number given an infinite with invalid settings. Type: {}, Sign: {}, Size: {}", (int)inf.type, (int)inf.sign, (int)inf.size);
+			}
+
+			_setting.limit = Limit::Infinite;
+
+			*this = inf;
+
+			RGL_LOG(trace, "Number<infinity?> ctor {}, sets: sign {} size {} num {} lim {}",
+				ToString(),
+				_setting.sign, _setting.size, _setting.type, _setting.limit);
+		}
+
+		Number& operator= (infinity inf)
+		{
+			//Infinity will completely ignore it's own settings if they're all
+			auto type = inf.type != NumeralType::Invalid ? inf.type : _setting.type;
+			auto sign = inf.sign != Signage::Invalid ? inf.sign : _setting.sign;
+			auto size = inf.size != Size::Invalid ? inf.size : _setting.size;
+
+			_setting.type = type;
+			_setting.sign = sign;
+			_setting.size = size;
+
+			//You can't set things to infinity (yet) because it doesn't have settings. Once I make it have some settings,
+			// just the non-limit ones I'll make it handle that.
+
+			if (inf.positive) {
+				_data = GetNumberLimit(type, sign, size).posInf;
+			}
+			else {
+				_data = GetNumberLimit(type, sign, size).negInf;
+			}
+
+			if (_data._raw != 0 && _setting.limit == Limit::Infinite)
+				infinite = inf.positive ? InfiniteState::Positive : InfiniteState::Negative;
+
+			_priority = _setting.GetOffset();
+
+			return *this;
+		}
+
+
+		template <numeric T>
+		T Get() const
+		{
+			return Visit([](auto it)->T {return static_cast<T>(it); });
+		}
+
+		template <numeric T>
+		bool As(T& value) const
+		{
+			constexpr NumberDataType type = std::is_floating_point_v<T> ?
+				NumberDataType::Float : std::is_unsigned_v<T> ?
+				NumberDataType::UInt : NumberDataType::SInt;
+
+			if (GetNumberType() != type)
+				return false;
+
+			Visit([](auto it) {return value = static_cast<T>(it); });
+
+			return true;
+		}
+
+        template<numeric T>
+        operator T() const
         {
-            return std::get<double>(_value);
+            return Get<T>();
         }
 
-        
-        uint64_t _UInt() const
-        {
-            return std::get<uint64_t>(_value);
-        }
-
-        
-        int64_t _SInt() const
-        {
-            return std::get<int64_t>(_value);
-        }
 
 
 
 
+		NumberData _data;
+		Settings _setting;
+		uint8_t _priority;//Space is free so I might as well
+		InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
+	};
 
-        //mutable const?
-        Settings _setting{};
-
-
-        uint8_t _priority{};//helps determine which number should become the new number.
-        //extra 3 bytes
-
-        //If its being set to or from an unset type, it will handle the conversion
-
-
-
-
-
-        //For now the only thing I'm doing is additive.
-
-        //CreateNumber of size, limit, and signage(?) should possibly be a thing I need
-
-
-        /*
-        Type Priority, determines what type turns into another type when
-
-        If an entry contains a floating point type, both will be compared as floating points.
-
-        After that, there's the handling of 1 is unsigned and the other isn't, if both are signed, or if they are both unsigned.
-
-        Whichever properties are taken are based on which is the left hand side,or the dominant among the operands (see floats).
-
-        Actually, scratch. Dominant type only
-
-        The priority is
-
-        Floating point//4
-        Larger type 2
-        unsigned 1
-
-
-        So unsigned double + signed char == unsigned double.
-
-        //*/
-    };
-    static_assert(sizeof(Number) == 0x18);
-
-
-
-
-    /*
-    #include <iostream>
-    #include <limits>
-    #include <cmath>
-    using namespace std;
-
-    int main()
-    {
-        uint64_t max = 128;
-        uint64_t test;
-        //test = std::numeric_limits<uint64_t>::max();
-        test = 255;
-        //test = 256;//Should be 0
-
-        //the result of these should not be the same, but for uint64's limit, they are
-        // when shortened to uint8. It shouldn't be.
-        //Correction. These should be the same. HOWEVER, it should be favoring -1.
-        // * 2 on max size should double back, not set it to zero.
-        //test *= 2;
-        //test -= 1;
-        float raw  = test / (float)max;
-        auto loops  = test / max;
-        float percent = raw - loops;
-        auto remain = test % max;
-        //The minus 1 is almost correct, but note it has to pass zero a buch of times.
-        // actually, twas all wrong.
-
-        //This is the prefered version because it works better with floats. Presumably.
-        auto should = test - (max * (loops));
-        cout<<"Test << " << test << "\n";
-        cout<<"vals << " << raw << ", "  << (raw == loops) << ", " << loops << ", and " << remain << "\n";
-        cout<<"Should << " << should;
-        return 0;
-    }
-    //*/
 
 
     
