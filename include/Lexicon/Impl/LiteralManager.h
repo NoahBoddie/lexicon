@@ -12,12 +12,14 @@ namespace LEX
 	using SyntaxType = Impl::SyntaxType;
 
 
-	inline bool CreateNum(std::string value, bool is_int, Number& number) try
+	inline bool CreateNum(const std::string& value, bool is_int, Number& number) try
 	{
+		//TODO: CreateNum needs to be a bit more responsible. It cannot handle invalid arguments. Probably sorta important.
 
+		
 		if (is_int)
 		{
-			throw nullptr;//TODO: REMOVE THROW, SHIT MAKES IT A DOUBLE
+			
 			try {
 				number = std::stoll(value);
 
@@ -30,7 +32,20 @@ namespace LEX
 		}
 		else
 		{
-			number = std::stold(value);
+			if (value.back() != 'f'){
+				double_anyways:
+				number = std::stold(value);
+			}
+			else{
+				
+				try {
+					number = std::stof(value);
+				}
+				catch (std::out_of_range sign_error) {
+					report::warn("number value '{}' is too large to be a float. Making double instead.", value);
+					goto double_anyways;
+				}
+			}
 		}
 
 		return true;
@@ -57,8 +72,11 @@ namespace LEX
 					result = MakeVariable(true);
 					//result = true;
 				}
+				else if (code == "maybe") {
+					result = MakeVariable(NumberConstant::Maybe);
+				}
 				else {
-					result = MakeVariable(true);
+					result = MakeVariable(false);
 					//result = true;
 				}
 				break;
