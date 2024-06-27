@@ -179,8 +179,8 @@ namespace LEX
 	{
 		if (IsDefined() == true)
 			return;
-
-		_syntaxTree = rec;
+		//This ast likely has no interest, move resources.
+		_syntaxTree = std::move(rec);
 	}
 
 
