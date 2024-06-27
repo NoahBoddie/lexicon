@@ -356,10 +356,10 @@ namespace LEX
 			return PushExpression(node, pref, *_current);
 		}
 
-		Solution PushExpression(Record& node, Register pref, Solution tar)
+		Solution PushExpression(Record& node, Register pref, Solution tar, bool is_expl = true)
 		{
 
-			TargetObject target{ tar, GetTarget(), true };
+			TargetObject target{ tar, GetTarget(), is_expl };
 
 			PushTargetObject(target);
 
