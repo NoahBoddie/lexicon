@@ -115,215 +115,55 @@ double GetActorValue_backend(double a_this, double othername, double shootfol, d
 
 void LexTesting(std::string formula)
 {
-    if (false)
-    LEX::ProjectManager::InitShared();
+
+
+    constexpr auto testeetet =  GetNumberOffset(NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound);
+
+
+    {
+        std::string test_identifier = R"(
+          struct __float64 intrinsic NUMBER::45 : public ::::SomeProject::SomeScript::SomeType::OtherType::Number, public internal Commons::Primitive;
+
+          ::::name1::name2::more_name::final_name;
+
+          const readonly int flag;
+
+          ::name1::name2::name const readonly flag;
+
+          ::name1::name2::name const readonly flag(int name1, int name2, int name3) const
+          {
+              const Array test_again = Array();
+
+              {
+                  ::name1::name2::name const readonly flag;
+                  ::name1::name2::name const readonly flag2;
+
+                  return flag2;
+              }
+          }
+
+          typename_here identifier = something * something_else.(some() + process * that - does / stuff + 20).inner_something;
+
+          identifer = a_thing + another_thing - a_third_thing;
+      )"s;
+
+        Record ast = Parser__::CreateSyntaxTree("Shared", "Commons", test_identifier);
+
+        PrintAST(ast);
+
+        logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
+
+        std::system("pause");
+    }
     
 
-    //for (const auto iterator = std::filesystem::directory_iterator("C:/Users/Noah/Desktop/Modding/[Lab]/{Lab Tools}/lex-tester/src"); const auto & entry : iterator) {
-    //    if (entry.exists() == false) continue;
-    //    logger::info("{}", entry.path().string());
-    //}
 
-
-
-    std::string project = "shared";
-    std::string file = "Test";
-    //Note the existence of these
-
-    //int test2[5];
-    //int result = !++test2[2];
-    //cout << "Hello World << " << result;
-    //constexpr int test = 1 - - -  - - - 1;
-
-    /*
-    std::string text = "function( ) * (8 * 4 + 5) / -6";
-
-
-    /*/
-    //adding the ; seems to help. Some how, it seems to simultaneously not be able to read the last token
-    // and also skip right past it.
-    //*
-#pragma region Texts
-    std::string text_hope = R"(
-        ActorValue::ActorValueStruct GetActorValue(float a1, float a2, commons::type a3)
-        {
-            var test = function( ) * (8 * 4 + 5) / -6;
-            //This is a comment.
-
-            var next = test /*This is also a comment.*/ + 5;
-
-            return (test * next) / 2;
-        }
-
-    )"s;
-
-    std::string text_v1 = R"(
-        int GetActorValue()
-        {
-            int test = 77 * (8 + 4) / 2;
-            //This is a comment.
-
-            //we aint ready for this one
-            //int next = test /*This is also a comment.*/ + 5;
-
-            //return 20;
-            return test / 2;
-        }
-
-    )"s;
-
-
-    std::string crash1 = R"(
-        struct float intrinsic NUMBER::82;//is actually double, also float is a keyword
-
-        float GetActorValue(float othername, float shootfol, float tellinal, float peacefal, float scrundal)
-        {
-            return 1;
-        };
-
-    )"s;
-
-
-    std::string crash3 = R"(
-        Scope::Scope::Scope::Type1 ref type = 2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        
-        
-        float TestCall(this float, float a, float b)
-        {
-            return a + b + this;
-        };
-        //I have to put extra ";" after everything that expects an end now. Delimit might not be fit to use for this anymore.
-        float GetActorValue(this float, float othername, float shootfol, float tellinal, float peacefal, float scrundal)
-        {
-            //int test = othername + shootfol + tellinal + peacefal + scrundal;
-            //Nope, it's just broken right now.
-            //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
-            
-
-            float test = tellinal.TestCall(othername, shootfol) + tellinal + peacefal + scrundal + this; ;
-            this = 0;
-            
-            return this + test;
-        };
-
-    )"s;
-#pragma endregion
-
-    std::string crash2 = R"(
-
-        interface Addable{};
-        interface Primitive{};
-        interface BiggerAddable : public Addable{};
-        struct Number intrinsic NUMBER::0 : public Addable, public Primitive;
-        struct __float64 intrinsic NUMBER::45;//is actually double, also float is a keyword
-        struct __string8 intrinsic STRING::0;
-        
-        class Array external ARRAY;
-
-
-        void otherTest()
-        {
-        };
-
-        float size(this string)
-        {
-            //defined elsewhere.
-            return 0;
-        }
-
-        float TestCall(this float, float a, float b)
-        {
-
-            this = this + 3;//This is the bread and butter of what we want. All considered, it should be 93, but if not done right, it's 90.
-
-            return a + b + this;
-        };
-
-        float GetActorValue(this float, float othername, float shootfol, float tellinal, float peacefal, float scrundal)
-        {
-            //int test = othername + shootfol + tellinal + peacefal + scrundal;
-            //Nope, it's just broken right now.
-            //int test = TestCall(othername + 2, shootfol) + tellinal + peacefal + scrundal;//This causes a crash?
-            
-            //This shit's itself for some reason.
-            Number testValue = 12;
-
-            Array const _array = Array();
-            //Array _array2 = _array;
-            __string8 test_string = "THISSTR";
-            //Calling TestCall twice like this makes it crash
-            float test = tellinal.TestCall(othername, shootfol).TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
-            //float test = tellinal.TestCall(othername, shootfol)  + tellinal + peacefal + scrundal + this;
-            this = 0;
-
-            float testB = __float64();
-
-            const float testConst = 5;
-
-            //testConst = testB;
-
-            return this + test + testB + test_string.size();
-            //Old answer was 93.
-        };
-
-    )"s;
-    
-    std::string test_identifier = R"(
-        struct __float64 intrinsic NUMBER::45 : public ::::SomeProject::SomeScript::SomeType::OtherType::Number, public internal Commons::Primitive;
-
-        ::::name1::name2::more_name::final_name;
-
-        const readonly int flag;
-
-        ::name1::name2::name const readonly flag;
-
-        ::name1::name2::name const readonly flag(int name1, int name2, int name3) const
-        {
-            const Array test_again = Array();
-
-            {
-                ::name1::name2::name const readonly flag;
-                ::name1::name2::name const readonly flag2;
-
-                return flag2;
-            }
-        }
-
-        typename_here identifier = something * something_else.(some() + process * that - does / stuff + 20).inner_something;
-
-        identifer = a_thing + another_thing - a_third_thing;
-    )"s;
-    std::string this_functions = R"(
-        float size(this string)
-        {
-            //defined elsewhere.
-            return 0;
-        }
-    )"s;
-
-    //Identifier, Header
-	std::string text = crash2;
-    //std::string text = test_identifier;
-    //std::string text = this_functions;
-
-
-    //std::string formula = "2 * (4 + 6) / 5";
-    //*/
-    //There used to be a thingy here.
-    //std::string text = "1 + 1 + 1 + 1";
-
-    ///Record ast = Parser__::CreateSyntaxTree("project", "name", "return " + formula, ReturnParser::GetSingleton());
-    Record ast = Parser__::CreateSyntaxTree("project", "name", text);
-
-    PrintAST(ast);
-    
-    logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
-    
-    //return;
     
     
-    Script* script = Component::Create<Script>(ast);
-
+    ProjectManager::InitShared();
+ 
+    Script* script = ProjectManager::GetSharedProject()->GetCommons();
+    
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
 	Component::Link(LinkFlag::External);
@@ -401,84 +241,29 @@ void LexTesting(std::string formula)
         logger::info("Function couldn't be found in script");
     }
     
+    
+    {
+        auto funcs = script->FindFunctions("TestBoolean");
+
+        ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
+
+        if (function)
+        {
+            
+            Variable result = function->Call();
+
+            std::string number = result.AsNumber().ToString();
+
+            logger::info("result of Test = {}", number);
+        }
+        else
+        {
+            logger::info("Function couldn't be found in script");
+        }
+    }
     //END OF THE CONTROLLED ENVIRONMENT
     return;
     //END OF THE CONTROLLED ENVIRONMENT
-
-
-    //No longer needed to test stuff
-    /*
-    if (false)
-    {
-        LEX::PolicyBase* policy = LEX::ObtainPolicy(ast.GetChild(1));
-        
-        if (policy) {
-            policy->ConstructFromRecord(ast.GetChild(1));
-            logger::info("id? {}", policy->GetName());
-        }
-        else
-            logger::info("no policy");
-
-        return;
-    }
-    //*/
-    constexpr auto offset = LEX::Number::Settings::GetOffset(LEX::NumeralType::Floating);
-
-    QualifiedType number_type = QualifiedType{ LEX::IdentityManager::instance->GetTypeByID(offset + 1) };
-    
-    LEX::FunctionData test_data{};
-
-
-    test_data._returnType = number_type;
-    std::vector<LEX::ParameterInfo> parameters
-    {
-        LEX::ParameterInfo{number_type, "scrundal", 0},
-        LEX::ParameterInfo{number_type, "peacefal", 1},
-        LEX::ParameterInfo{number_type, "tellinal", 2},
-        LEX::ParameterInfo{number_type, "shootfol", 3},
-        LEX::ParameterInfo{number_type, "othername", 4}
-    };
-    //test_data.parameters = parameters;
-
-    //remember to actually use these now
-
-    
-    
-    std::vector<LEX::Variable> arguments
-    {
-        LEX::Number{1.0},
-        LEX::Number{2.0},
-        LEX::Number{3.0},
-        LEX::Number{4.0},
-        LEX::Number{5.0},
-    };
-
-    
-    //LEX::RoutineBase routine = LEX::RoutineCompiler::Compile(ast, &test_data);//this is if it's just the function
-    LEX::RoutineBase routine = LEX::RoutineCompiler::Compile(ast.GetChild(1), &test_data);
-    
-    
-    for (int i = 0; i < routine.GetOperativeCapacity(); i++)
-    {
-        logger::debug("instruct at {} = {}", i, routine[i]._instruct);
-    }
-    
-  
-    LEX::Runtime runtime{ routine, arguments };//The creation of runtime yields 2 numbers that should not exist.
-    
-    LEX::Variable result = runtime.Run();
-
-
-
-    std::string number = result.AsNumber().ToString();
-
-    logger::info("result of {} = {}", formula, number);
-
-    //I want to make a temporary runtime and fire this.
-    //LEX::ProjectManager::InitShared();
-    //RGL::Record ast = Parser__::CreateSyntaxTree(project, file, text);
-
-    //PrintAST(ast);
 }
 
 
@@ -580,9 +365,9 @@ int main(int argc, char** argv) {
     //std::cin >> formula;
 
     SafeInvoke([&]() {
-        std::getline(std::cin >> std::ws, formula);
+        //std::getline(std::cin >> std::ws, formula);
 
-        LexTesting(formula);
+        LexTesting("GetValueTest");
     });
     
     std::system("pause");
