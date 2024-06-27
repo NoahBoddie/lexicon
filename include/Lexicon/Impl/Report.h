@@ -341,8 +341,8 @@ namespace LEX
 #undef DECLARE_LOGGER_LEVEL
 #undef DECLARE_LOGGER_TYPE
 #undef DECLARE_ALL_LOGGER_LEVELS
-
-#define BREAK_LOGGER(mc_name, ...) mc_name(__VA_ARGS__); if (IsDebuggerPresent()) __debugbreak()
+		
+#define BREAK_LOGGER(mc_name, ...) mc_name(__VA_ARGS__), (IsDebuggerPresent() ? __debugbreak() : void())
 
 //Need to ensure this only happens if a debugger is active.
 #define break_trace(...) BREAK_LOGGER(trace, __VA_ARGS__)
