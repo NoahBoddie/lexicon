@@ -65,6 +65,7 @@ namespace LEX
 
 
 		Call,
+		Convert,				//Handles the call as it would a conversion. This doesn't need to allocate the argument stack to be performed.
 		Construct,				//Constructs the default uninitialized object.
 		ReturnDefault,
 		DropStack,
