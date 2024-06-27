@@ -188,11 +188,12 @@ namespace LEX
 				//		var.Clear();//Clears the runtime var instead of the value it targets
 				//}
 				//return _vsp += step;
-				
+				//Does this shit actually work???
 				for (auto i = _vsp; i >= _vsp + step; i++) {
-					if (auto& var = _varStack[i]; var.IsVoid() == false)
+					if (auto& var = _varStack[i]; var.IsVoid() == false) {
 						//var->Clear();
 						var.Clear();//Clears the runtime var instead of the value it targets
+					}
 				}
 				return _vsp += step;
 
@@ -338,10 +339,16 @@ namespace LEX
 		//TODO:Make a static function do Run and construct, no need to wait right? Doing so means I can also make a function called "Test"
 		RuntimeVariable Run()
 		{
+			size_t _limit = _data.GetOperativeCapacity();
+			
+			if (_limit == 0)
+				return {};
+
+
 			if (_rsp != max_value<size_t>)
 			{
 				//I'm unsure if I'll want to move this to being  member or something.
-				size_t _limit = _data.GetOperativeCapacity();
+				
 
 				while (_flags.Get(RuntimeFlag::RetBit) == false)
 				{
