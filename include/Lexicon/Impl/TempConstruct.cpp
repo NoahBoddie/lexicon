@@ -971,6 +971,210 @@ namespace LEX
 		}
 
 
+
+		bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result)
+		{
+
+			if (out) {
+				//If out exists, this means there's something that can be used to convert it. 
+				// however, this does NOT work when this conversion needs to be baked into the function.
+
+				//Now granted, because this is in real time, I can just make an instruction handle this.
+				// But that instruction would have to do it over and over and over again.
+
+				bool fall = false;
+
+				switch (convert_result)
+				{
+				case ConvertResult::ImplDefined:
+					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.implDefined, OperandType::Callable }, value);
+					break;
+
+				case ConvertResult::UserDefined:
+				resume:
+
+					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.userDefined, OperandType::Function }, value);
+
+
+					if (!fall)
+						break;
+
+					[[fallthrough]];
+
+				case ConvertResult::UserToImplDefined:
+					if (!fall) {
+						fall = true;
+						goto resume;
+					}
+
+					compiler->GetOperationList().emplace_back(
+						InstructionType::Convert,
+						compiler->GetPrefered(),
+						Operand{ out.userToImpl, OperandType::Callable },
+						Operand{ compiler->GetPrefered(), OperandType::Register });
+
+					break;
+
+				default:
+					return false;
+				}
+
+
+				//This shouldn't really be using the previous policy, but I kinda don't care for now.
+				//TODO: This should be using CompUtil::Mutate
+				value = Solution{ value.policy, OperandType::Register, compiler->GetPrefered() };
+
+				return true;
+			}
+
+			return false;
+		}
+
+
+
+		Solution HandleCall_V2(ExpressionCompiler* compiler, Record& target)
+		{
+
+			//The argument check has to happen first.
+
+			Record* arg_record = target.FindChild(parse_strings::args);
+
+			if (!arg_record) {
+				report::compile::critical("no args record in '{}' detected.", target.GetTag());
+			}
+
+			//This is used so that we know what size we're to after the fact, and place it at the head.
+			// By default it starts with 1, so we don't have to resize when we add the last (and first) piece.
+			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
+			//std::vector<Operation> ops{1};
+
+			TargetObject* self = compiler->GetTarget()->GetCallTarget();
+
+			std::vector<Solution> args;
+			std::vector<std::vector<Operation>> operations;
+
+			size_t alloc_size = arg_record->size();
+
+
+			args.resize(alloc_size);
+			operations.resize(alloc_size);
+
+
+
+			//At a later point, one will get the ability to define default arg out of order, via the below:
+			// function(arg1, arg2, def_param4 = arg3);
+			// This sort of thing is known as a default argument, and instead of processing it here,
+			// it will process it later, when it is processing default arguments. 
+			//std::vector<Record*> def_args;
+
+
+
+			//I do the index this way in prep for explicit default arguments, where any default argument found
+			// will NOT increment the index, instead storing the record for later use.
+			//Additionally, I use get arg count so that the index being pushed
+			//*Turns out, the I was not required.
+			for (size_t i = 0; auto & arg : arg_record->GetChildren())
+			{
+
+				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
+
+				//compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+
+				args[i] = result;
+
+				i++;
+			}
+
+
+			//'function' <Expression: Call>
+			//		'args' <Expression: Header>
+
+
+			OverloadInput input;
+			input.object = self;
+			input.paramInput = args;//can probably move here.
+
+			Overload instructions;
+
+			//Around here, you'd use the args.
+			FunctionInfo* info = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
+
+			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
+
+			if (!info) {
+				report::compile::critical("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
+			}
+
+			FunctionBase* func = info->Get();
+
+			if (!func) {
+				report::compile::critical("No callable for info at '{}' detected.", target.GetTag());
+			}
+
+			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
+
+			size_t req_args = func->GetReqArgCount();
+
+
+			if constexpr (1)
+			{
+				if (args.size() < req_args) {
+					report::compile::critical("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
+				}
+
+				if (func->GetTargetType() != nullptr) {
+					//Increase the allocation size to include the "this" argument.
+					//alloc_size++;
+				}
+			}
+
+			bool has_tar = false;
+
+			auto& list = compiler->GetOperationList();
+
+			if (func->GetTargetType() != nullptr) {
+				//This will push itself into the arguments, but it will only be used under certain situations.
+				list.push_back(CompUtil::MutateRef(*self->target, Operand{ compiler->GetArgCount(), OperandType::Argument }));
+				alloc_size++;
+				has_tar = true;
+			}
+
+			alloc_size += instructions.defaults.size();
+
+			auto start = compiler->ModArgCount(alloc_size);
+
+
+			for (size_t i = 0; i < args.size(); i++)
+			{
+				auto& o_entry = instructions.given[i];
+				auto& arg = args[i];
+				auto& ops = operations[i];
+
+				list.append_range(std::move(ops));
+
+				HandleConversion(compiler, o_entry.convert, arg, o_entry.convertType);
+
+				list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
+			}
+
+			//default is dealt with here.
+
+
+			size_t dealloc_size = alloc_size;
+
+			list.emplace_back(InstructType::Call, compiler->GetPrefered(),
+				Operand{ func, OperandType::Function },
+				Operand{ alloc_size, OperandType::Index });
+
+			compiler->ModArgCount(-static_cast<int64_t>(alloc_size));
+
+
+
+			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
+		}
+
+
+
 		Solution HandleCall(ExpressionCompiler* compiler, Record& target)
 		{
 
@@ -1113,7 +1317,8 @@ namespace LEX
 			Solution result;
 
 			if (HandleCtor(result, compiler, target) == false) {
-				result = HandleCall(compiler, target);
+				//result = HandleCall(compiler, target);
+				result = HandleCall_V2(compiler, target);
 			}
 
 
@@ -1121,64 +1326,6 @@ namespace LEX
 		}
 
 
-
-		bool HandleConversion(RoutineCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result)
-		{
-
-			if (out) {
-				//If out exists, this means there's something that can be used to convert it. 
-				// however, this does NOT work when this conversion needs to be baked into the function.
-
-				//Now granted, because this is in real time, I can just make an instruction handle this.
-				// But that instruction would have to do it over and over and over again.
-
-				bool fall = false;
-
-				switch (convert_result)
-				{
-				case ConvertResult::ImplDefined:
-					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.implDefined, OperandType::Callable }, value);
-					break;
-
-				case ConvertResult::UserDefined:
-				resume:
-
-					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.userDefined, OperandType::Function }, value);
-
-
-					if (!fall)
-						break;
-
-					[[fallthrough]];
-
-				case ConvertResult::UserToImplDefined:
-					if (!fall) {
-						fall = true;
-						goto resume;
-					}
-					
-					compiler->GetOperationList().emplace_back(
-						InstructionType::Convert,
-						compiler->GetPrefered(),
-						Operand{ out.userToImpl, OperandType::Callable },
-						Operand{ compiler->GetPrefered(), OperandType::Register });
-					
-					break;
-
-				default:
-					return false;
-				}
-
-				
-				//This shouldn't really be using the previous policy, but I kinda don't care for now.
-				//TODO: This should be using CompUtil::Mutate
-				value = Solution{ value.policy, OperandType::Register, compiler->GetPrefered() };
-
-				return true;
-			}
-
-			return false;
-		}
 
 
 		void VariableProcess(RoutineCompiler* compiler, Record& target)
@@ -1635,7 +1782,7 @@ namespace LEX
 			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating, Size::DWord, Signage::Signed, Limit::Infinite) };
 			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound) };
 			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound) };
-			static ConcretePolicy* string8 = new StringType{ "STRING", 0 };
+			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
 
 
 			float64->EmplaceDefault(static_cast<double>(0));
