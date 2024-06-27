@@ -144,6 +144,11 @@ namespace LEX
 		//TODO: EnvironmentError in this situation is exclusively an error on my part, need a new exception for that.
 		if (env->IsComponentType<Project>() == false)
 			throw EnvironmentError("Parent of script must be a project.");
+		if (_parent)
+			throw nullptr;
+		if (!env->GetProject())
+			throw nullptr;
+
 
 		_parent = env->GetProject();
 	}
@@ -180,7 +185,9 @@ namespace LEX
 		if (IsDefined() == true)
 			return;
 
-		_syntaxTree = rec;
+		//This ast likely has no interest, move resources.
+		_syntaxTree = std::move(rec);
+		//_syntaxTree = rec;
 	}
 
 
