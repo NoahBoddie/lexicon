@@ -15,6 +15,16 @@
 namespace LEX
 {
 
+	constexpr std::string_view cmpExtension = "lex";//This is prefered
+	constexpr std::string_view prsExtension = "lsp";//Then this
+	constexpr std::string_view intExtension = "lsi";//Then this.
+	constexpr std::string_view srcExtension = "lsc";
+
+	//constexpr std::string_view core_path = "Data/Lexicon";
+	constexpr std::string_view core_path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon";
+
+
+	//Note however, the commons must always be interpreted. it cannot ever not be. Main reason being because it's what people need to see to use.
 
 
 	//*
@@ -60,10 +70,10 @@ namespace LEX
 
 	enum struct APIResult
 	{
-		Success = -1,
-		Failure
-	};
+		Failure,
+		Success,
 
+	};
 
 
 	class ProjectManager
@@ -120,7 +130,7 @@ namespace LEX
 		static APIResult CreateScript(Project* project, std::string name, std::string path)
 		{
 			//Might break this down into a function that knows it's path and one that doesn't, mostly for scripts created via function.
-			std::string script_path = path + "/" + name + ".lex";
+			std::string script_path = path + "/" + name + ".lsi";
 
 
 			std::ifstream file_input;
@@ -141,6 +151,7 @@ namespace LEX
 			Script* script = name == "Commons" ? Component::Create<CommonScript>(ast) : Component::Create<Script>(ast);
 
 			project->AddScript(script);
+			
 
 			if (false) {//TODO: supposed to read "if ast has failed"
 				//TODO: Have project be the thing that sends the failure to the project client, or just logs clientless failures itself.
@@ -154,7 +165,6 @@ namespace LEX
 		{
 			//I'm thinking no api result for this, just project pointer.
 
-			constexpr std::string_view core_path = "Data/Lexicon";
 
 			//For now, shared won't be it's own special class. But that may change in the future.
 			//bool is_shared = name == "Shared";
@@ -179,7 +189,7 @@ namespace LEX
 			if (name != "Shared")
 				path += "/" + name;
 
-			std::filesystem::path commons_path = std::filesystem::path(path + "/Commons.lex");
+			std::filesystem::path commons_path = std::filesystem::path(path + "/Commons.lsi");
 
 			//These actually shouldn't through, that's a parsing process thing. What it should actually be doing is probably returning in some failure and
 			// communicating to the project client.
@@ -194,7 +204,7 @@ namespace LEX
 			}
 
 			{
-				std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lex", "Commons.lex");
+				std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi", "Commons.lsi");
 
 				for (auto full_path : scripts)
 				{
