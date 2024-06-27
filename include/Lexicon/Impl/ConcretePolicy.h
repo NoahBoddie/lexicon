@@ -67,6 +67,14 @@ namespace LEX
 		// it. Should have a class called TypeIDHandler handle it.
 
 
+		//TODO: This needs to be able to convert to bool, as most types should be capable of such a feat.
+		// but I'll need to make something for each type
+		ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+		{
+			return __super::IsConvertibleTo(other, scope, out, type);
+		}
+
+
 	private:
 		Variable _default;
 

@@ -42,9 +42,7 @@ namespace LEX
     
     
     
-    //TODO: Do the below. Medium priority.
-    //Resuming the style from last time, there's a single function that one overloads for each of these to determine how their IDs are recieved.
-    // Accompanying that, there should be a handler function that turns a type into a variable. Either by turning it into an object, or transfering it into one of the types.
+    //TODO: Remove Array, FunctionHandle, and Delegate from being handled here. All of which are likely to be handled by object.
     using VariableValue =  std::variant
         <
         //Types that will not need to exist coming soon:
@@ -52,13 +50,12 @@ namespace LEX
         Void,						    //Void given form. Invalidates all other types.
         Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
         String,
-        Array,
-        FunctionHandle,
+        Array,//Remove
+        FunctionHandle,//Remove
         Object,
-        Delegate
+        Delegate//Remove
         >;
     
-#pragma pack (push, 1)
     
 
     using SizeType = std::_Variant_index_t<std::variant_size_v<VariableValue>>;

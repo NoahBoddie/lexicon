@@ -241,7 +241,7 @@ void LexTesting(std::string formula)
         logger::info("Function couldn't be found in script");
     }
     
-    
+    if constexpr (0)
     {
         auto funcs = script->FindFunctions("TestBoolean");
 
