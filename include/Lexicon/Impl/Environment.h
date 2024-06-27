@@ -256,7 +256,7 @@ namespace LEX
 
 
 
-		FunctionInfo* SearchFunction(std::string name, OverloadKey& key, Overload& out);
+		FunctionInfo* SearchFunction(Record& path, OverloadKey& key, Overload& out);
 
 
 		///These functions are supposed to resolve generic ambiguity.
@@ -304,20 +304,26 @@ namespace LEX
 		Element* _parent = nullptr;//can be project or script/class
 
 		//private:
-			//>-------------------------
-			//This is for environment
+		//>-------------------------
+		//This is for environment
 
-			std::map<String, FunctionContainer> functionMap;
+		std::map<String, FunctionContainer> functionMap;
 
 
-			//>-------------------------
-			//This is for environment
-			std::map<String, TypeContainer> typeMap;
-			std::vector<Global*> variables;//should be global variables
+		//>-------------------------
+		//This is for environment
+		std::map<String, TypeContainer> typeMap;
+		//TODO: I need a class called policy base that will handle PolicyBases. Basically it'd be something like what IType is to AbstractType.
+		// largely, it'd serve as a good wrapper for type aliases or other types such as generic arguments.
+
+		
+		std::vector<Global*> variables;//should be global variables
 			
-			//The idea here is the virtual methods go here. But within a type.
-			//Should be a more map like structure though.
-			//std::vector<IFunction*> methods;
+
+
+		//The idea here is the virtual methods go here. But within a type.
+		//Should be a more map like structure though.
+		//std::vector<IFunction*> methods;
 
 	};
 

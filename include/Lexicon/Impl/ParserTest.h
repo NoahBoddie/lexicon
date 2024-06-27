@@ -263,7 +263,7 @@ namespace LEX::Impl
 					return Parser::CreateExpression(left, SyntaxType::Identifier);
 
 				//Scope name works for this sort of situation.
-				Record path = Parser::CreateExpression(parse_strings::path, SyntaxType::Scopename);
+				Record path = Parser::CreateExpression(parse_strings::path, SyntaxType::Path);
 
 				Record left_or_center;
 
@@ -271,8 +271,8 @@ namespace LEX::Impl
 
 				do {
 					if (current) {
-						current->EmplaceChild(Parser::CreateExpression(parse_strings::lhs, SyntaxType::None, { left_or_center }));
-						current = &current->EmplaceChild(Parser::CreateExpression(parse_strings::rhs, SyntaxType::None));
+						current->EmplaceChild(Parser::CreateExpression(parse_strings::lhs, SyntaxType::Path, { left_or_center }));
+						current = &current->EmplaceChild(Parser::CreateExpression(parse_strings::rhs, SyntaxType::Path));
 					}
 
 					left_or_center = Parser::CreateExpression(left, enforced_type);
@@ -866,17 +866,19 @@ namespace LEX::Impl
 			{
 				Record result;
 				
-				result.SYNTAX().type = SyntaxType::Block;
+				
 
 				if (parser->SkipIfType(TokenType::Punctuation, "(") == true) {
-					result.GetTag() = parse_strings::expression_block;
+					result.SYNTAX().type = SyntaxType::ExpressBlock;
+					//result.GetTag() = parse_strings::expression_block;
 					
 					result.EmplaceChild(parser->ParseExpression());
 					//result = parser->ParseExpression();
 
 					parser->SkipType(TokenType::Punctuation, ")");
 				} else {
-					result.GetTag() = parse_strings::statement_block;
+					result.SYNTAX().type = SyntaxType::StateBlock;
+					//result.GetTag() = parse_strings::statement_block;
 
 					//std::vector<Record> children = parser->Delimited("{", "}", ";", &Parser::ParseExpression);
 					std::vector<Record> children = parser->Delimited("{", "}", [&]() { Record out; ParseModule::QueryModule<EndParser>(parser, out, nullptr); }, &Parser::ParseExpression);
@@ -915,6 +917,7 @@ namespace LEX::Impl
 			{
 				auto peek = parser->peek();
 
+				//Require some of these be keywords
 				switch (peek.TOKEN().type) {
 				case TokenType::Boolean:
 				case TokenType::Number:
@@ -942,9 +945,12 @@ namespace LEX::Impl
 						if (tag == "true") {
 							next.GetTag() = parse_strings::true_value;
 						}
-						else if  (tag == "false") {
+						else if (tag == "maybe") {
+							next.GetTag() = parse_strings::maybe_value;
+						}
+						else if (tag == "false") {
 							next.GetTag() = parse_strings::false_value;
-						} 
+						}
 						else {
 							//TODO:Fix Format #5
 							parser->croak("Invalid boolean");  //std::format("invalid boolean '{}' detected.", tag));
@@ -955,6 +961,8 @@ namespace LEX::Impl
 
 				case TokenType::Number:
 					{
+
+					report::parse::info("thing? {}", tag);
 						try {
 							//Should crash if the value isn't valid. the actual value doesn't matter too much, that will get sorted later.
 							// All the matters is it passes the transfer.

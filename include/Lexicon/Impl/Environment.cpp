@@ -84,15 +84,13 @@ namespace LEX
 			std::vector<FunctionInfo*> result{};
 
 			auto end = functionMap.end();
-			logger::trace("should have cap {} from {}", functionMap.size(), name);
 
 			//TODO: FindFunctions is busted because I need to LoadFromRecord for a name but needs to be added to Load.
 			if (auto it = functionMap.find(name); end != it) {
 			//if (auto it = std::find_if(functionMap.begin(), functionMap.end(), [&](auto i) { return name == i.second.Get()->GetName(); }); end != it) {
-				logger::trace("should have size {}", functionMap.size());
 				result.push_back(&it->second);
 			}
-
+			
 			return result;
 		}
 
@@ -353,11 +351,11 @@ namespace LEX
 
 
 
-		FunctionInfo* Environment::SearchFunction(std::string name, OverloadKey& key, Overload& out)
+		FunctionInfo* Environment::SearchFunction(Record& path, OverloadKey& key, Overload& out)
 		{
 			//This should prepare the generic arguments.
 
-			return SearchFunctionImpl(name, key, out);
+			return SearchFunctionImpl(path.GetTag(), key, out);
 		}
 
 
@@ -429,6 +427,7 @@ namespace LEX
 				case Prefer::Script:
 				{
 					//Rule, no children.
+
 					result = GetProject()->FindScript(path.GetTag());
 
 					break;
@@ -503,28 +502,34 @@ namespace LEX
 			//This should keep going as long as the left path is a binary. When it stops being so, it should return the last searching environment, and adjust the
 			// path reference.
 
+			switch (_path->SYNTAX().type)
+			{
+			default:
+				if (auto new_path = _path->FindChild(parse_strings::path); new_path) {
+					_path = new_path;
+					break;
+				}
+			[[fallthrough]];
 
-			if (_path->SYNTAX().type != SyntaxType::Binary || _path->GetTag() != "::") {
-				//If this is not the operator, we return this
+			case SyntaxType::Typename:
+			case SyntaxType::Scriptname:
 				return this;
-			}
-
-			//This simply needs environment.
-			Environment* new_this = SearchEnvironment(*_path->FindChild(parse_strings::lhs));
-
-			_path = _path->FindChild(parse_strings::rhs);
-
-
-
-			if (_path->SYNTAX().type != SyntaxType::Binary || _path->GetTag() != "::") {
-				//This part can be made boilerplate
-				return this;
-			}
-			else {
-				return SearchEnvironmentPath(_path);
+			
+			case SyntaxType::Path:
+				break;
 			}
 
 
+
+			if (auto left = _path->FindChild(parse_strings::lhs); left) {
+				Environment* a_this = SearchEnvironment(*left);
+				_path = _path->FindChild(parse_strings::rhs);
+				return a_this->SearchEnvironmentPath(_path);
+			}
+			else
+			{
+				return SearchEnvironment(_path->GetFront());
+			}
 		}
 
 
@@ -534,13 +539,19 @@ namespace LEX
 
 			Environment* env = SearchEnvironmentPath(path);
 
-			return env->SearchType(*path);
+			return env->SearchType(_path);
 
 		}
 
 		//This actually probably will want to return the function info, because of something like generic functions.
 		FunctionInfo* Environment::SearchFunctionPath(Record& _path, OverloadKey& input, Overload& out)
 		{
+			Record* path = &_path;
+
+			Environment* env = SearchEnvironmentPath(path);
+
+			return env->SearchFunction(_path, input, out);
+
 			//While this can be a field, it will not be treated like one.
 
 			//Here, record is only for the path, not for anything else.
@@ -552,7 +563,7 @@ namespace LEX
 				return nullptr;
 			}
 
-			Record* path = &_path;
+			//Record* path = &_path;
 
 			if (Environment* env = SearchEnvironmentPath(path); !env) {
 				//This is mostly correct, but it should also use it's includes. Hm, that actually would be better suited in the search functions below
@@ -560,7 +571,7 @@ namespace LEX
 				return env->SearchFunctionPath(_path, input, out);
 			}
 			else {
-				return env->SearchFunction(path->GetTag(), input, out);
+				return env->SearchFunction(*path, input, out);
 			}
 
 
@@ -576,7 +587,7 @@ namespace LEX
 			Environment* env = SearchEnvironmentPath(path);
 
 
-			return env->SearchField(*path);
+			return env->SearchField(_path);
 		}
 
 
