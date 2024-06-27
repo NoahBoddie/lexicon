@@ -110,7 +110,7 @@ namespace LEX
 
 
 
-		ITypePolicy* GetReturnType()
+		QualifiedType GetReturnType()
 		{
 			//this return type doesn't need to be the specialized one. In fact, for now it's better that it isn't.
 			return _targetFunc->GetReturnType();
