@@ -70,7 +70,7 @@ namespace LEX
 
         //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 
-        QualifiedType type = header;
+        QualifiedType type = QualifiedType{ header };
 
         //GENERIC_SPACE
 
@@ -121,7 +121,7 @@ namespace LEX
 				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 
-            QualifiedType type = header;
+            QualifiedType type = QualifiedType{ header };
 
             //auto& tag = node.FindChild("type")->GetFront().GetTag();
 
@@ -135,6 +135,8 @@ namespace LEX
             
             //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
             auto& param = parameters.emplace_back(type, node.GetTag(), static_cast<uint32_t>(parameters.size()));
+
+            
 
             assert(param.GetType());
         }
@@ -178,7 +180,7 @@ namespace LEX
 
             //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 
-            QualifiedType type = header;
+            QualifiedType type = QualifiedType{ header };
 
             //GENERIC_SPACE
 
@@ -207,11 +209,11 @@ namespace LEX
 
                 //Qualifiers like const are put here depending on if the function is const. 
                 // We don't have those post declarations yet.
-				auto& param = parameters.emplace_back(QualifiedType{ type }, parse_strings::this_word, 0);
+				auto& param = parameters.emplace_back(QualifiedType{ _targetType }, parse_strings::this_word, 0);
 
-
+                report::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
                 //Include things like whether this is
-                __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ type }, parse_strings::this_word, 0);
+                __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ _targetType }, parse_strings::this_word, 0);
             }
 
 
@@ -229,7 +231,7 @@ namespace LEX
 					report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
                 }
 
-                QualifiedType type = header;
+                QualifiedType type = QualifiedType{ header };
 
                 //auto& tag = node.FindChild("type")->GetFront().GetTag();
 
@@ -243,7 +245,7 @@ namespace LEX
 
                 //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
                 auto& param = parameters.emplace_back(type, node.GetTag(), static_cast<uint32_t>(parameters.size()));
-
+                
                 assert(param.GetType());
             }
 

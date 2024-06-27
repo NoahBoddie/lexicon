@@ -144,7 +144,7 @@ namespace LEX
 
 				result.convertType = convertType;
 
-				if (convertType == ConvertResult::Failure)
+				if (convertType <= ConvertResult::Failure)
 				{
 					flags |= OverloadFlag::Failure;
 					return result;
