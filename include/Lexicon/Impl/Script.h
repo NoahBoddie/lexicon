@@ -32,8 +32,6 @@ namespace LEX
 		};
 
 
-		Project* _parent = nullptr;
-
 		//Not needed,
 		//bool _defined = false;
 
@@ -90,7 +88,7 @@ namespace LEX
 		Relationship AddRelationship(Script*, Relationship bond);
 
 
-
+		virtual bool IsCommons() const { return false; }
 		void SetParent(Element* env) override;
 	};
 
@@ -98,6 +96,8 @@ namespace LEX
 	struct CommonScript : public Script
 	{
 		CommonScript* GetCommons();
+
+		bool IsCommons() const override { return true; }
 
 		//The common ground of a project, mainly exists to override some functions in script.
 		std::string GetName() override;

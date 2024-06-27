@@ -21,16 +21,24 @@ namespace LEX
 	{
 		//Should search for script, throwing if within, then call SetParent on the script.
 
-		auto end = _scripts.end();
+		if (script->IsCommons() == true) {
 
-		//TODO: Report name when Project::AddScript is used, seems pretty important.
-		if (auto it = std::find(_scripts.begin(), end, script); it != end)
-			throw EnvironmentError("Script already added.");
+			_commons = static_cast<CommonScript*>(script);
+		}
+		else
+		{
+			auto end = _scripts.end();
 
-		_scripts.push_back(script);
+			//TODO: Report name when Project::AddScript is used, seems pretty important.
+			if (auto it = std::find(_scripts.begin(), end, script); it != end)
+				throw EnvironmentError("Script already added.");
+
+			_scripts.push_back(script);
+		}
 
 		//Call add parent function
-		script->SetParent(this);
+		DeclareParentTo(script);
+
 	}
 
 
