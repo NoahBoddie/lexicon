@@ -88,7 +88,7 @@ namespace LEX::Impl
 			"mutable",
 			"void",
 			"ref",
-			"maybe",
+			//"maybe",
 			"readonly",
 			"public",
 			"private",
@@ -98,10 +98,10 @@ namespace LEX::Impl
 
 		inline static std::string _compRegex;
 		inline static std::string _constRegex;
-
+		//
 		//The para's should come predone
-		constexpr static std::string_view digits = R"(((\d|\.)+))";
-		constexpr static std::string_view identifiers = R"(((_|\w)(_|\w|\d){0,}))";
+		constexpr static std::string_view digits = R"((\.*\d(\d|\.)*f?))";//((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
+		constexpr static std::string_view identifiers = R"(([_A-z][\w]*))";
 		constexpr static std::string_view quotes = R"((('''[^']{0,}'{0,3})|("""[^"]{0,}"{0,3})|('[^'\n]{0,}'?)|("[^"\n]{0,}"?)))";
 		constexpr static std::string_view comments = R"((\/\/[^\n]{0,})|(\/\*([^*]|\*(?!\/)){0,}(\*\/)?))";
 		constexpr static std::string_view objects = R"((:{[^}\n]{0,}}?))";//Currently objects aren't used, but I'm thinking about maybe not having these as a literal.

@@ -94,8 +94,8 @@ namespace LEX::Impl
 			return token.find(":{") == 0 && token.rfind("}") == token.size() - 1;
 
 		case TokenType::Boolean:
-			//should I make this string
-			return token == "true" || token == "false";
+			//TODO: Maybe might not be forced into being a boolean, as I have other plans for the name.
+			return token == "true" || token == "false" || token == "maybe";
 
 		case TokenType::Identifier:
 			return std::isalpha(token.front()) || token.front() == '_';
