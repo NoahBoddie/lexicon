@@ -25,8 +25,9 @@ namespace LEX
 		constexpr static auto statement_block = "<:statement:>";
 		constexpr static auto expression_block = "<:express:>";
 
-		constexpr static auto true_value = "1";
-		constexpr static auto false_value = "0";
+		constexpr static auto true_value = "true";
+		constexpr static auto false_value = "false";
+		constexpr static auto maybe_value = "maybe";
 
 		constexpr static auto generic = "<:gen:>";
 		constexpr static auto settings = "<:settings:>";
