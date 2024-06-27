@@ -131,12 +131,14 @@ namespace LEX
 				case "bool"_h:
 					settings.type = NumeralType::Integral;
 					settings.size = Size::Bit;
+					if (settings.sign == Signage::Invalid)
+						settings.sign = Signage::Unsigned;
+					if (settings.limit == Limit::Invalid)
+						settings.limit = Limit::Bound;
 					break;
 
 					//Double is going to have to use other things.
 				case "double"_h:
-				case "float"_h://Right now, float IS double.
-
 					settings.type = NumeralType::Floating;
 					if (settings.size == Size::Invalid)
 						settings.size = Size::QWord;
@@ -146,7 +148,7 @@ namespace LEX
 						settings.limit = Limit::Infinite;
 					break;
 
-				case "float_"_h:
+				case "float"_h:
 					settings.type = NumeralType::Floating;
 					if (settings.size == Size::Invalid)
 						settings.size = Size::DWord;
@@ -154,7 +156,6 @@ namespace LEX
 						settings.sign = Signage::Signed;
 					if (settings.limit == Limit::Invalid)
 						settings.limit = Limit::Infinite;
-
 					break;
 
 				case "void"_h:

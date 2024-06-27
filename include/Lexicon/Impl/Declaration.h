@@ -151,7 +151,6 @@ namespace LEX
 
 		bool Matches(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
 		{
-			return true;
 			return !Filter(type, qual, decl);
 		}
 
