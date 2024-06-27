@@ -66,6 +66,7 @@ namespace LEX
 		//When loaded and not trival, added to a map. Should have a function called SetTypeID and that should handle
 		// it. Should have a class called TypeIDHandler handle it.
 
+
 	private:
 		Variable _default;
 

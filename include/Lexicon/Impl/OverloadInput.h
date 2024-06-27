@@ -81,7 +81,7 @@ namespace LEX
 
 
 			OverloadEntry tar = clause->EvaluateEntry2(type, scope, -1, -1, flag);
-
+			//object->flag
 
 			if (flag & OverloadFlag::Failure)
 				return MatchFailure(a_flag, prev);

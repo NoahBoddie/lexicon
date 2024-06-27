@@ -43,7 +43,7 @@ namespace LEX::Impl
 		boost::smatch what;
 
 		//bool is_end = eof();
-
+		//boost::regex_constants::
 
 		if (boost::regex_search(it, end, what, _regex) == true) {
 			//So the problem with this is it's not accounting for what it had to cull from _current to get to the new it.
@@ -146,10 +146,9 @@ namespace LEX::Impl
 		
 		//Will croak without outputting line and column at this point.
 
-		std::string kinda_basic_1 = "(?<Minus>- )|(?<Object><([^>](?!\\s)){0,}(?=>).)|(?<Digits>(\\d|\\.)+)|(?<Quotes>'[^']{0,}.)|(?<Identifiers>\
-(_|\\w)(\\w|\\d){0,})|(::)|(?<Symbols>[^\\w\\d\\s'\\.][^\\w\\d\\s'\\.]{0,})";
+	
 		std::string kinda_basic = TokenHandler::GetRegex();
-		RGL_LOG(debug, "kinda_basic: {}", kinda_basic);
+		
 		_regex = boost::regex{ kinda_basic };
 		_project = p;
 		_name = n;

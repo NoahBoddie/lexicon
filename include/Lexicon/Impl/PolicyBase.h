@@ -9,8 +9,6 @@
 namespace LEX
 {
 	
-	
-
 	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public OverloadClause, public PolicyData
 	{//PolicyBase Might not even use clauses directly. We shall see.
 

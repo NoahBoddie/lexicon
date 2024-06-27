@@ -586,7 +586,7 @@ namespace LEX
 
         Number AsNumber() { return std::get<Number>(_value); }
         Integer AsInteger() { throw nullptr; }
-        String AsString() { return std::get<String>(_value);; }
+        String AsString() { return std::get<String>(_value); }
         Object AsObject() { return std::get<Object>(_value);; }
         Delegate AsDelegate() {throw nullptr; }
         FunctionHandle AsFunction() { throw nullptr; }

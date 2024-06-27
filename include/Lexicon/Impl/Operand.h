@@ -73,6 +73,7 @@ namespace LEX
 			return result == value;
 		}
 
+
 		Variable CopyVariable(Runtime* runtime);
 
 
