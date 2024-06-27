@@ -17,13 +17,14 @@ namespace LEX::Impl
 		Boolean,
 		Field,
 		Variable, 
-		
+		Path,			//Used to tell if something is a pathing record used as a header for a scope deduction.
 		Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
 		Scopename,//Basically is Scriptname, but static class functions might be introduced.
 		Call,
 		Function,		//Completely different than a call, this is more focused toward the declaration/definition of a function
 		Return,
-		Block,			//The declaration of a code block, a manually denoted one. express for expression, state for statement
+		StateBlock,				//The declaration of a code block, a manually denoted one. express for expression, state for statement
+		ExpressBlock,			//The declaration of a code block, a manually denoted one. express for expression, state for statement
 		Typename,		//The type name of something. This encapsulates similar to how call will, but not on the same hierarchy of operators.
 		Type,
 		Format,			//A change in language format. Can be select from TOML, JSON, etc
@@ -133,8 +134,11 @@ namespace LEX::Impl
 				return cap ? "Call" : "Call";
 			case SyntaxType::Function:
 				return cap ? "Function" : "Function";
-			case SyntaxType::Block:
-				return cap ? "Block" : "Block";
+			case SyntaxType::StateBlock:
+				return cap ? "Statement" : "Statement";
+			case SyntaxType::ExpressBlock:
+				return cap ? "Expression" : "Expression";
+
 			case SyntaxType::Scopename:
 				return cap ? "Scopename" : "Scopename";
 			case SyntaxType::Typename:
@@ -163,6 +167,8 @@ namespace LEX::Impl
 			case SyntaxType::Scriptname:
 				return cap ? "Scriptname" : "Scriptname";
 
+			case SyntaxType::Path:
+				return cap ? "Path" : "Path";
 			case SyntaxType::ProjectName:
 				return cap ? "ProjectName" : "ProjectName";
 			case SyntaxType::Header:
