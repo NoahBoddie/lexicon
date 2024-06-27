@@ -109,10 +109,14 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 	TypeIdentity IdentityManager::GetIdentityFromID(TypeID id)
 	{
-		for (auto& data : dataList)
+		auto size = dataList.size();
+
+		for (uint32_t i = 0; i < size; i++)
 		{
+			auto& data = dataList[i];
+
 			if (data.startID <= id)
-				return TypeIdentity{ data.startID, id - data.startID };
+				return TypeIdentity{ data.startID, i, id - data.startID };
 		}
 
 		return {};

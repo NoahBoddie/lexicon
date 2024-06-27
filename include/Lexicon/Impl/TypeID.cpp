@@ -18,8 +18,20 @@ namespace LEX
 
 		TypeOffset TypeID::GetOffset() const
 		{
-			return IdentityManager::instance->GetIdentityFromID(*this).offset;
+			return GetIdentity().offset;
 		}
+
+		TypeIndex TypeID::GetIndex() const
+		{
+			return GetIdentity().index;
+		}
+
+
+		TypeIdentity TypeID::GetIdentity() const
+		{
+			return IdentityManager::instance->GetIdentityFromID(*this);
+		}
+
 
 
 		/*

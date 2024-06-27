@@ -15,12 +15,6 @@ namespace LEX
 	struct ITypePolicy;
 	struct PolicyBase;
 	
-	struct TypeIdentity
-	{
-		TypeIndex index = 0;
-		TypeOffset offset = 0;
-	};
-
 	namespace Version
 	{
 		namespace _1

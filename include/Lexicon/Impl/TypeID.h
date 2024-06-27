@@ -8,6 +8,14 @@ namespace LEX
 	using TypeOffset = uint32_t;
 
 
+	struct TypeIdentity
+	{
+		uint32_t start = 0;
+		TypeIndex index = 0;
+		TypeOffset offset = 0;
+	};
+
+
 	struct Trival
 	{
 		inline static uint32_t trivalIndex = 8000;	//Index of the trival set of IDs
@@ -49,6 +57,10 @@ namespace LEX
 		
 		TypeOffset GetOffset() const;
 
+		TypeIndex GetIndex() const;
+
+		TypeIdentity GetIdentity() const;
+
 
 
 		constexpr operator uint32_t()
@@ -68,11 +80,6 @@ namespace LEX
 		bool IsTrival() const
 		{
 			return std::clamp<uint32_t>(_value, Trival::trivalStart, Trival::trivalEnd) == _value;
-		}
-
-		constexpr uint8_t GetIndex() const
-		{
-			return 0;
 		}
 
 
