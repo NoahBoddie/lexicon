@@ -248,12 +248,9 @@ namespace LEX
 
 				//Its also possible the impl version of the call can do this for me.
 				if (target->OnLink(flag) == LinkResult::Success) {
-					logger::critical("success");
-					logger::critical("success");
 					target->FlagAsValid();
 				}
 				else {
-					logger::critical("failure");
 					target->FlagAsInvalid();
 				}
 
