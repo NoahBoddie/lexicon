@@ -50,6 +50,17 @@ namespace LEX
 			return nullptr;
 		}
 
+
+		bool IsExplicit() const
+		{
+			return flag & Flag::Explicit;
+		}
+
+		bool IsImplicit() const
+		{
+			return !IsExplicit();
+		}
+
 		Solution* GetSolution()
 		{
 			return this ? target : nullptr;
