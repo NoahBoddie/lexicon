@@ -67,7 +67,7 @@ namespace LEX
 #endif
 
 		}
-
+	private:
 		struct _instance//class should be private.
 		{
 		private:
@@ -105,7 +105,7 @@ namespace LEX
 #endif
 			}
 		};
-
+	public:
 		//inline static T& instance = GetSingleton();
 		inline static _instance instance = _instance{};
 		
