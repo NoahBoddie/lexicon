@@ -60,6 +60,7 @@ namespace LEX
 			}
 
 
+
 			if (clause->PreEvaluate(nullptr, paramInput.size(), defaultInput.size(), a_flag) == false) {
 				logger::info("pre-eval fail");
 				return MatchFailure(a_flag);
@@ -69,15 +70,24 @@ namespace LEX
 			//I want to phase out of function. Maybe combine it with prev in some way.
 
 			//Make a copy as to not completely mutate this.
-			OverloadFlag flag = a_flag;
 
 
 			Overload overload;
 
 			QualifiedType type;
 
-			if (object && object->target)
-				type = *object->target;
+			if (auto call_tar = object->GetCallTarget(); call_tar)
+			{
+				
+				if (call_tar->IsImplicit() == true)
+					a_flag |= OverloadFlag::TargetOpt;
+
+				if (call_tar->target)
+					type = *call_tar->target;
+
+			}
+
+			OverloadFlag flag = a_flag;
 
 
 			OverloadEntry tar = clause->EvaluateEntry2(type, scope, -1, -1, flag);

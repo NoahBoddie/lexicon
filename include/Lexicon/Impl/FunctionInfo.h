@@ -135,12 +135,9 @@ namespace LEX
 
 			QualifiedType sub_type = subject->FetchQualifiedType();
 
-			if (type)
+			if (type && sub_type)
 			{
-				LEX::Conversion* out = nullptr;//Is entries if it's not the thing. Currently, not setting this up.
-				//TODO: This returns the wrong value rn.
-
-				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, out);
+				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &result.convert);
 
 				result.convertType = convertType;
 
@@ -154,6 +151,12 @@ namespace LEX
 				//result.convertType = ConvertResult::TypeDefined;
 				result.index = subject->GetFieldIndex();
 				result.type = sub_type;
+			}
+			else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
+			{
+				//This bit will need to change, as you may be able to access static functions from a member function.
+				result.convertType = ConvertResult::Exact;
+				result.index = -1;
 			}
 			else
 			{

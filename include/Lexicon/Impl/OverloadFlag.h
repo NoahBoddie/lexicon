@@ -11,7 +11,7 @@ namespace LEX
 		NoConvert = 1 << 3,		//If no conversions are used in one, converting ones are no longer valid.
 
 
-		FinalEntry = 1 << 4,	//Used if this is the final entry, allowing the clause to declare there's more required.
+		TargetOpt = 1 << 4,		//If using a target is optional this will be ticked.
 		AllAccess = 1 << 5,		//If all access is used, there are no rules about conversions.
 		Failure = 1 << 6,
 		Ambiguous = 1 << 7,
