@@ -178,6 +178,11 @@ namespace LEX
 				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 
+            if (header.declare & Specifier::External)
+            {
+                procedureData = -1;
+            }
+
             //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 
             QualifiedType type = QualifiedType{ header };
@@ -254,9 +259,22 @@ namespace LEX
 
         case LinkFlag::Definition:
         {
-            _routine = RoutineCompiler::Compile(target, this, GetEnvironment());
+            if (!procedureData || procedureData != -1) {
+                if (target.FindChild(parse_strings::code) == nullptr)
+                    report::compile::error("Function '{}' doesn't have a body", GetName());
+
+                _routine = RoutineCompiler::Compile(target, this, GetEnvironment());
+            }
             break;
         }
+
+        case LinkFlag::Final:
+        {
+            if (procedureData && !_procedure)
+                report::link::error("Function '{}' did not register a procedure.");
+            break;
+        }
+        break;
 
         default:
             //Invalid linkage

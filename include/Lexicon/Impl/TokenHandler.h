@@ -57,6 +57,7 @@ namespace LEX::Impl
 		// === is another one, and maybe !==
 		//Also to tell if something is not some form of assign, if it doesn't start with '=' or '!' and ends with '='
 
+		//TODO: use (?:...) more, this is a non-capturing group, and most of the time this is what I actually want.
 
 		inline static std::vector<std::string> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::" };//?
 		
@@ -100,6 +101,7 @@ namespace LEX::Impl
 		inline static std::string _constRegex;
 		//
 		//The para's should come predone
+		constexpr static std::string_view format = R"((format[\s\S]*end_format))";//((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
 		constexpr static std::string_view digits = R"((\.*\d(\d|\.)*f?))";//((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
 		constexpr static std::string_view identifiers = R"(([_A-z][\w]*))";
 		constexpr static std::string_view quotes = R"((('''[^']{0,}'{0,3})|("""[^"]{0,}"{0,3})|('[^'\n]{0,}'?)|("[^"\n]{0,}"?)))";

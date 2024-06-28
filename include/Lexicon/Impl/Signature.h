@@ -41,7 +41,7 @@ namespace LEX
 		{
 			a_flag |= OverloadFlag::AllAccess;
 
-			if (clause->PreEvaluate(result, parameters.size(), 0, a_flag) == false) {
+			if (clause->CanMatch(result, parameters.size(), 0, a_flag) == false) {
 				return MatchFailure(a_flag);
 			}
 
@@ -52,7 +52,7 @@ namespace LEX
 
 			Overload overload;
 
-			OverloadEntry tar = clause->EvaluateEntry2(target, nullptr, -1, -1, flag);
+			OverloadEntry tar = clause->MatchSuggestedEntry(target, nullptr, -1, -1, flag);
 
 			if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
 				return MatchFailure(a_flag);
@@ -67,7 +67,7 @@ namespace LEX
 			for (int i = 0; i < parameters.size(); i++) {
 				QualifiedType input = parameters[i];
 
-				OverloadEntry entry = clause->EvaluateEntry2(input, nullptr, offset_placeholder, i, flag);
+				OverloadEntry entry = clause->MatchSuggestedEntry(input, nullptr, offset_placeholder, i, flag);
 
 				if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
 					return MatchFailure(a_flag);

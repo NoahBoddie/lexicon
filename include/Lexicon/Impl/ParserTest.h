@@ -733,9 +733,12 @@ namespace LEX::Impl
 				
 				target->SYNTAX().type = SyntaxType::Function;
 
-				target->EmplaceChildren(Record{ parse_strings::code, SyntaxType::None, parser->Delimited("{", "}", 
-					[&]() { Record out; ParseModule::QueryModule<EndParser>(parser, out, nullptr); }, 
-					&Parser::ParseExpression) });
+				if (parser->SkipIfType(TokenType::Punctuation, ";") == false) {
+					target->EmplaceChildren(Record{ parse_strings::code, SyntaxType::None, parser->Delimited("{", "}",
+						[&]() { Record out; ParseModule::QueryModule<EndParser>(parser, out, nullptr); },
+						&Parser::ParseExpression) });
+
+				}
 
 				return std::move(*target);
 			}
@@ -1335,6 +1338,77 @@ namespace LEX::Impl
 		};
 
 
+
+		//*
+		//Remove
+		struct FormatParser : public AutoParser<FormatParser>
+		{
+			//The idea of this should be the lowest priority possible. It expects an identifier and if nothing else claims it then it's a field.
+
+
+
+			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			{
+				//Must have a target, the target must be an identifier, and mustn't have a path.
+				if (!target)
+					return false;
+
+				return parser->IsType(TokenType::Format);
+				//The rules are slightly more lax because Format really really always needs to happen here, bar no other.
+				// so incorrect use is grounds for parser failure rather than anything else.
+
+
+				return target && target->SYNTAX().type == SyntaxType::Identifier && parser->IsType(TokenType::Format);
+			}
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				if (target->SYNTAX().type != SyntaxType::Identifier) {
+					parser->croak("expected identifier");
+				}
+
+				if (target->FindChild(parse_strings::path) != nullptr) {
+					parser->croak("expected identifier without path");
+				}
+
+				
+
+
+				RecordData format = parser->next();
+
+
+				
+
+				auto& tag = format.GetTag();
+				
+				if (tag.ends_with(parse_strings::format_end) == false) {
+					parser->croak("format token must end with 'end_format'");
+				}
+
+
+				auto size = tag.size();
+				
+				auto offset = std::strlen(parse_strings::format_start);
+
+				size -= offset;
+				size -= std::strlen(parse_strings::format_end);
+
+				tag = tag.substr(offset, size);
+
+
+				report::break_debug(tag);
+				
+				target->SYNTAX().type = SyntaxType::None;
+				
+				return parser->CreateExpression(format, SyntaxType::Format, std::move(*target));
+			}
+
+			bool IsAtomic() const override
+			{
+				return true;
+			}
+		};
+		//*/
 
 		struct FieldParser : public AutoParser<FieldParser>
 		{

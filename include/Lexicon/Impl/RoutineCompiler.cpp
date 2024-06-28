@@ -157,11 +157,11 @@ namespace LEX
 
 			switch (funcRecord.SYNTAX().type)
 			{
-			case SyntaxType::Function:
+			case SyntaxType::Function: {
 				//operations = CompileBlock(*funcRecord.FindChild("code"));
 				operations.insert_range(end, CompileBlock(*funcRecord.FindChild(parse_strings::code)));
 				break;
-
+			}
 
 			case SyntaxType::Return:
 				//operations = CompileLine(funcRecord, Register::Result);

@@ -55,23 +55,23 @@ namespace LEX
 		
 		OverloadClause* GetClause() override { return this; }
 
-		bool PreEvaluate(QualifiedType, size_t suggested, size_t optional, OverloadFlag flag) override
+		bool CanMatch(QualifiedType, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
 			return false;
 		}
 
-		std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
+		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
 		{
 			return {};
 		}
 
 
-		OverloadEntry EvaluateEntry2(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
 			return {};
 		}
-		OverloadEntry EvaluateDefault2(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
+		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
 			return {};

@@ -1678,7 +1678,7 @@ struct Extension : public T
 			a_flag |= OverloadFlag::AllAccess;
 
 
-			if (clause->PreEvaluate(result, parameters.size(), 0, a_flag) == false) {
+			if (clause->CanMatch(result, parameters.size(), 0, a_flag) == false) {
 				return MatchFailure(a_flag);
 			}
 
@@ -1692,7 +1692,7 @@ struct Extension : public T
 			Overload overload;
 
 
-			OverloadEntry tar = clause->EvaluateEntry2(target, nullptr, -1, -1, flag);
+			OverloadEntry tar = clause->MatchSuggestedEntry(target, nullptr, -1, -1, flag);
 
 
 			if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
@@ -1709,7 +1709,7 @@ struct Extension : public T
 			{
 				QualifiedType input = parameters[i];
 
-				OverloadEntry entry = clause->EvaluateEntry2(input, nullptr, offset_placeholder, i, flag);
+				OverloadEntry entry = clause->MatchSuggestedEntry(input, nullptr, offset_placeholder, i, flag);
 
 				if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
 					return MatchFailure(a_flag);
@@ -1816,38 +1816,6 @@ struct Extension : public T
 		}
 	}
 	
-#define TESTNAME CONCAT(Test,__COUNTER__)
-
-	void SCRAPNAME(void(*infoke)())
-	{
-		
-	}
-	void Scrapname()
-	{
-		
-	}
-	struct Callish
-	{
-		void operator () ()
-		{
-
-		}
-	};
-
-
-	struct Scrap
-	{
-		//inline static Callish name;
-		static void name(int)
-		{
-
-		}
-		static void name()
-		{
-
-		}
-	};
-
 	constexpr bool is_thing = std::is_polymorphic_v < std::function<void()>>;
 	
 	/*
@@ -1925,78 +1893,8 @@ struct Extension : public T
 	};
 
 
-	struct _SIZE
-	{
-		int a, b, c;
-	};
-	void TESTNAME()
-	{
-		//Scrap::name::(int);
-		int n{ 1 };
-
-		_SIZE size(1, 2, 3);
-
-		//TestA::TestB::GetTest()::last;
-		Scrapname();
-		Record empty;
-		GetPolicyFromSpecifiers(empty, nullptr);
-	}
-
-
 
 	
-	struct OtherTest
-	{
-
-	};
-	struct Test
-	{
-		operator int() { return 0; }
-		template<std::floating_point T>
-		explicit operator T() { return 0; }
-		
-		explicit operator T() { return {}; }
-	};
-
-	
-
-
-	void TEST()
-	{
-#define unique_name CONCAT(test, __COUNTER__)
-		constexpr bool test4 = specialization_of<VariableValue, std::variant>;
-		constexpr bool test = is_any_convertible_v<float, int, int, int, int>;
-		constexpr bool test2 = is_variant_convertible_v<VariableValue, float>;
-		constexpr bool test3 = variant_convertible_to<VariableValue, double>;
-		//This breaks despite the fact it should be hable to handle this. Please consult.
-		//constexpr bool test5 = variant_convertible_to<double, VariableValue>;
-
-		constexpr bool test226 = stl::convertible_from<double, Variable>;
-		constexpr bool test6 = stl ::convertible_to<Variable, double>;
-
-	
-
-		constexpr bool test7 = std::convertible_to<Test, int>;
-		constexpr bool test8 = std::convertible_to<Test, float>;
-		constexpr bool test9 = std::convertible_to<Test, T>;
-		constexpr bool test10 = std::is_convertible_v<Number, double>;
-		
-		constexpr bool _1 = __is_convertible_to(Number, double);
-		constexpr bool _2 = stl::castable_to<Number, double>;
-		constexpr auto test11 = convertible_variant_index<VariableValue, double>::value;
-		
-		
-		//Test2<double>();
-		//Test3<double>();
-		Variable a;
-		a.CanCastTo<double>();
-		//GetStorageType<String>();
-		Unvariable<double>{}(&a);
-		static_cast<double>(a);
-
-
-	}
-
 
 	struct PathParser : public LEX::Impl::ParseModule, public LEX::Impl::IdenDeclBoilerPlate
 	{
@@ -2224,42 +2122,9 @@ struct Extension : public T
 	}
 
 
-#include <io.h>
-#include <fcntl.h>
 
+	//These are collected within a 
 
-
-
-
-	INITIALIZE()
-	{
-		std::string message = "Something {} {} {}";
-		std::source_location loc = std::source_location::current();
-		report::debug("Something new {} {} {}", 1, 2, 3);
-		report temp_switch{ IssueType::Compile };
-		report::info("Something else {} {} {}", 3, 2, 1);
-
-		report::message::info(1032, 3, 2, 1);
-		
-		//constexpr auto v = "こんにちは世界";
-		//_setmode(_fileno(stdout), _O_U16TEXT);
-		//SetConsoleOutputCP(CP_UTF8);
-		//std::wcout << "こんにちは世界";
-
-		//report::message::debug(v);
-		if constexpr (false)
-			report::parse::critical("Shit ends here");
-		//repTest1("", 12, 23);
-
-		assert(1);
-
-		
-	}
-
-	INITIALIZE()
-	{
-		report::info("Something last {} {} {}", 3, 2, 1);
-	}
 }
 
 

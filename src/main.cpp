@@ -113,49 +113,47 @@ double GetActorValue_backend(double a_this, double othername, double shootfol, d
     return result;;
 }
 
+
+
+
+void TestParse()
+{
+    std::string path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon/parse_test.txt";
+    std::ifstream file_input;
+    file_input.open(path);
+
+    std::stringstream stream;
+    stream << file_input.rdbuf();
+    std::string contents = stream.str();
+
+    file_input.close();//Don't really need to do this, seeing as the destructor does, but eh
+    
+    if (contents.empty())
+    {
+        report::debug("parse_test.txt is empty");
+        std::system("pause");
+        return;
+    }
+
+    Record ast = Parser__::CreateSyntaxTree("Fake", "Script", contents);
+
+    PrintAST(ast);
+
+    logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
+
+    std::system("pause");
+
+
+
+}
+
 void LexTesting(std::string formula)
 {
 
 
     constexpr auto testeetet =  GetNumberOffset(NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound);
 
-
-    {
-        std::string test_identifier = R"(
-          struct __float64 intrinsic NUMBER::45 : public ::::SomeProject::SomeScript::SomeType::OtherType::Number, public internal Commons::Primitive;
-
-          ::::name1::name2::more_name::final_name;
-
-          const readonly int flag;
-
-          ::name1::name2::name const readonly flag;
-
-          ::name1::name2::name const readonly flag(int name1, int name2, int name3) const
-          {
-              const Array test_again = Array();
-
-              {
-                  ::name1::name2::name const readonly flag;
-                  ::name1::name2::name const readonly flag2;
-
-                  return flag2;
-              }
-          }
-
-          typename_here identifier = something * something_else.(some() + process * that - does / stuff + 20).inner_something;
-
-          identifer = a_thing + another_thing - a_third_thing;
-      )"s;
-
-        Record ast = Parser__::CreateSyntaxTree("Shared", "Commons", test_identifier);
-
-        PrintAST(ast);
-
-        logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
-
-        std::system("pause");
-    }
-    
+    TestParse();
 
 
     

@@ -1,6 +1,7 @@
 #include "Lexicon/Impl/InputStream.h"
 #include "Lexicon/Impl/TokenStream.h"
 #include "Lexicon/Impl/TokenHandler.h"
+#include "Lexicon/Impl/parse_strings.h"
 
 namespace LEX::Impl
 {
@@ -119,9 +120,11 @@ namespace LEX::Impl
 		case TokenType::Format:
 			//If the last token was a format
 		{
-			RecordData previous = prev();
+			return token.starts_with(parse_strings::format_start);
+
+			//RecordData previous = prev();
 			//The last tag has to be format, and the front and back of this token needs to be '{' and '}'
-			return previous.GetTag() == "format" && token.front() == '{' && token.back() == '}';
+			//return previous.GetTag() == "format" && token.front() == '{' && token.back() == '}';
 
 		}
 
@@ -186,6 +189,11 @@ namespace LEX::Impl
 			return _ReadNext();
 		}
 
+
+
+		if (SetIfToken(data, TokenType::Format) == true)
+			return data;
+
 		if (SetIfToken(data, TokenType::Boolean) == true)
 			return data;
 
@@ -211,10 +219,6 @@ namespace LEX::Impl
 
 
 		if (SetIfToken(data, TokenType::Punctuation) == true)
-			return data;
-
-
-		if (SetIfToken(data, TokenType::Format) == true)
 			return data;
 
 		croak(std::format("Tokenizing: Unidentified token '{}' detected", data.GetTag()));

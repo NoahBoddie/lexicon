@@ -88,6 +88,12 @@ namespace LEX
 				decl |= DeclareSpecifier::Internal;
 				break;
 
+			case "external"_h:
+				decl |= DeclareSpecifier::External;
+				break;
+
+			default:
+				report::error("unknown specifier '{}' detected", name);
 			}
 		}
 

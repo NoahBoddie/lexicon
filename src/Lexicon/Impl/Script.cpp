@@ -193,6 +193,13 @@ namespace LEX
 		//_defined = true;
 		//_syntaxTree = ast;
 
+		//CompileExpression(ast);
+	}
+
+	void Script::OnAttach()
+	{
+		//Really I can and probably will just split this shit.
+		Record& ast = *GetSyntaxTree();
 		CompileExpression(ast);
 	}
 
@@ -214,7 +221,15 @@ namespace LEX
 		{
 			switch (node.SYNTAX().type)
 			{
-			case SyntaxType::Project:
+
+			case SyntaxType::Project://No fucking idea why this is even here.
+				break;
+
+			case SyntaxType::Format: {
+				Project* project = GetProject();
+
+				project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
+			}
 				break;
 
 			case SyntaxType::Function:
@@ -246,7 +261,6 @@ namespace LEX
 				break;
 			}
 			//These 2 are script exclusives
-			case SyntaxType::Format:
 			case SyntaxType::Directive:
 
 			default:

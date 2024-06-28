@@ -29,7 +29,7 @@ namespace LEX
 
 #pragma region Clause
 
-		bool PreEvaluate(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
+		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
 			if (type) {
 				if (type != _returnType)
@@ -58,7 +58,7 @@ namespace LEX
 
 		//Fuck it, these return non-booleans and use something else to denote their failures.
 
-		OverloadEntry EvaluateEntry2(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
 			OverloadEntry result;
 
@@ -108,13 +108,13 @@ namespace LEX
 			return result;
 
 		}
-		OverloadEntry EvaluateDefault2(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
+		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
 			return { };
 		}
 
-		std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
+		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
 		{
 			return {};
 		}

@@ -59,6 +59,7 @@ namespace LEX
 
 		void LoadFromRecord(Record& ast) override;
 
+		void OnAttach() override;
 
 		std::string GetName() override;
 

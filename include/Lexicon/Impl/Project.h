@@ -8,6 +8,17 @@
 
 namespace LEX
 {
+	struct Script;
+
+	struct Format
+	{
+		std::string formatName;
+		std::string formatContent;
+		LEX::Script* formatScript = nullptr;
+	};
+
+
+
 	struct Project : public Element
 	{
 		struct CrudeAddon
@@ -50,6 +61,8 @@ namespace LEX
 		std::string _name;
 
 		std::vector<Script*> _scripts;
+		std::vector<Format> formatList;
+
 
 		
 		//Linkage status, needs to link later depending on the performance of its commons
@@ -118,6 +131,17 @@ namespace LEX
 			return typeid(Project);
 		}
 
+		virtual void AddFormat(std::string& name, std::string& content, Script* source)
+		{
+			Format format;
+			format.formatName = name;
+			format.formatContent= content;
+			format.formatScript = source;
+
+			formatList.push_back(format);
+
+			report::debug("adding format {}", name);
+		}
 
 		Script* FindScript(std::string name);
 	};
@@ -126,18 +150,17 @@ namespace LEX
 	namespace ExperimentZone
 	{
 
-		struct SharedProject : public Project//, public ComponentMaker<SharedProject, ComponentType::Invalid>
+		struct SharedProject : public Project
 		{
 
 
-			//Projects might be handled else where actually
-			std::vector<Project*> _projects;
+			//void AddFormat(std::string& name, std::string& content, Script* source) override
+			//{
+			//	//report::error("Shared project cannot use any format");
+			//}
 
-		protected:
-			void AddProject(Project* prj)
-			{
-				//prj->SetParent(this);
-			}
+			//Projects might be handled else where actually
+			
 		};
 	}
 

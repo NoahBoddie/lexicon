@@ -148,6 +148,8 @@ namespace LEX
 
 			PrintAST(ast);
 
+			//std::system("pause");
+
 			Script* script = name == "Commons" ? Component::Create<CommonScript>(ast) : Component::Create<Script>(ast);
 
 			project->AddScript(script);

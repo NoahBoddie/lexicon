@@ -75,6 +75,8 @@ namespace LEX::Impl
 			return;
 
 		_constRegex.clear();
+		_constRegex += format;
+		_constRegex += "|";
 		_constRegex += comments;
 		_constRegex += "|";
 		_constRegex += identifiers;

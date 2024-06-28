@@ -34,6 +34,8 @@ namespace LEX
 		constexpr static auto data_type = "<:datatype:>";
 		constexpr static auto attach = "<:attach:>";
 		constexpr static auto derives = "<:derives:>";
+		constexpr static auto format_start = "format";
+		constexpr static auto format_end = "end_format";
 
 	};
 

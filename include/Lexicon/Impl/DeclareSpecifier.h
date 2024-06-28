@@ -3,6 +3,7 @@
 
 namespace LEX
 {
+	//This will likely need expansion
 	ENUM(DeclareSpecifier, uint8_t)
 	{
 		None				= 0,
@@ -20,6 +21,7 @@ namespace LEX
 		InteralProtected	= 0b101 << 4,
 		InternalPublic		= 0b111 << 4,
 		
+		External			= 1 << 7,
 
 		All = max_value<std::underlying_type_t<DeclareSpecifier>>,
 	};

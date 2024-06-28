@@ -61,7 +61,7 @@ namespace LEX
 
 
 
-			if (clause->PreEvaluate(nullptr, paramInput.size(), defaultInput.size(), a_flag) == false) {
+			if (clause->CanMatch(nullptr, paramInput.size(), defaultInput.size(), a_flag) == false) {
 				logger::info("pre-eval fail");
 				return MatchFailure(a_flag);
 			}
@@ -90,7 +90,7 @@ namespace LEX
 			OverloadFlag flag = a_flag;
 
 
-			OverloadEntry tar = clause->EvaluateEntry2(type, scope, -1, -1, flag);
+			OverloadEntry tar = clause->MatchSuggestedEntry(type, scope, -1, -1, flag);
 			//object->flag
 
 			if (flag & OverloadFlag::Failure)
@@ -110,7 +110,7 @@ namespace LEX
 			{
 				QualifiedType input = paramInput[i];
 
-				OverloadEntry entry = clause->EvaluateEntry2(input, scope, offset_placeholder, i, flag);
+				OverloadEntry entry = clause->MatchSuggestedEntry(input, scope, offset_placeholder, i, flag);
 
 				if (flag & OverloadFlag::Failure)
 					return MatchFailure(a_flag, prev);
@@ -141,7 +141,7 @@ namespace LEX
 			{
 				QualifiedType input = it->second;
 
-				OverloadEntry entry = clause->EvaluateDefault2(input, scope, it->first, flag);
+				OverloadEntry entry = clause->MatchDefaultEntry(input, scope, it->first, flag);
 
 				if (flag & OverloadFlag::Failure)
 					return MatchFailure(a_flag, prev);
