@@ -157,6 +157,16 @@ namespace logger
 	a_func(fmt::format_string<Args...>, Args&&...) -> a_func<Args...>;
 
 
+    inline void InitializeLogging();
+
+
+	SOURCE_LOGGER(trace, trace);
+	SOURCE_LOGGER(debug, debug);
+	SOURCE_LOGGER(info, info);
+	SOURCE_LOGGER(warn, warn);
+	SOURCE_LOGGER(error, err);
+	SOURCE_LOGGER(critical, critical);
+
     inline void InitializeLogging()
     {
         static bool _initialized = false;
@@ -216,23 +226,16 @@ namespace logger
         return;
 
         auto color_log = dynamic_cast<spdlog::sinks::stdout_color_sink_mt*>(log.get());
-        
+
         if (color_log)
         {
             //color_log->set_color(spdlog::level::level_enum::trace, spdlog::color)
         }
-        
+
         //void set_color(spdlog::level::level_enum::trace, spdlog::yellow);
     }
-
-
-	SOURCE_LOGGER(trace, trace);
-	SOURCE_LOGGER(debug, debug);
-	SOURCE_LOGGER(info, info);
-	SOURCE_LOGGER(warn, warn);
-	SOURCE_LOGGER(error, err);
-	SOURCE_LOGGER(critical, critical);
 }
+
 
 
 #include "RoguesGallery.hpp"
