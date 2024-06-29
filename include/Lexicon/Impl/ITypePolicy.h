@@ -136,7 +136,7 @@ namespace LEX
 		virtual PolicyBase* GetTypeBase() = 0;
 		virtual const PolicyBase* GetTypeBase() const = 0;
 	public:
-		virtual _String GetName() const = 0;
+		virtual std::string GetName() const = 0;
 		
 
 	INTERNAL:

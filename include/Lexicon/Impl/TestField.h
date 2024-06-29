@@ -98,6 +98,8 @@
 #include "ProcedureHandler.h"
 #include "Dispatcher.h"
 
+#include "String.h"
+
 namespace std
 {
 	template <class _Elem, class _Alloc>
@@ -479,6 +481,7 @@ namespace LEX
 
 		INITIALIZE()
 		{
+			
 #undef max
 #undef min
 			uint8_t r = 0;
@@ -1223,284 +1226,21 @@ struct Extension : public T
 		namespace NewString
 		{
 
-			void Accept(const char8_t*)
-			{
 
+			INITIALIZE()
+			{
+				std::string testA = "l;";
+
+				//report::info(testA.ToString());
+
+				std::string testB = std::move(testA);
+
+				//report::info("{} vs {}", testA.ToString(), testB.ToString());
 			}
 
-
-			constexpr wchar_t t = '™';
-
-			void test()
-			{
-				const wchar_t* test_v = L"thge";
-
-
-				//std::strdup(test_v);
-				//wcsdup
-				//Need more than this.
-				/*
-				char *_strdup(
-				   const char *strSource
-				);
-				wchar_t *_wcsdup(
-				   const wchar_t *strSource
-				);
-				unsigned char *_mbsdup(
-				   const unsigned char *strSource
-				);
-				//*/
-
-				//Accept(test_v);
-				std::basic_string<wchar_t> wide_str;
-				std::basic_string<char8_t> smol_str;
-
-
-				constexpr auto testrr = sizeof(decltype(wide_str)::value_type) > sizeof(decltype(smol_str)::value_type);
-
-				using BiggerType = std::conditional_t<testrr, decltype(wide_str), decltype(smol_str) >;
-				//wide_str;
-			   //BiggerType comp_str = BiggerType{ smol_str };
-
-
-
-			   //bool testComp = wide_str == smol_str;
-
-			}
-			//Not needed anymore.
-			enum struct CharType : uint8_t
-			{
-				Byte,
-				Word,
-				DWord,
-			};
-
-
-			static_assert(std::is_unsigned_v<wchar_t>, "test failure");
-			static_assert(alignof(wchar_t) == alignof(char16_t), "test failure");
-
-			template <typename C>
-			struct ptr//this is place holder.
-			{
-				const C* loc = nullptr;
-			};
-
-			namespace rgl
-			{
-				template< class T >
-				concept character =
-					std::is_same_v<char, T> ||
-					std::is_same_v<char8_t, T> ||
-					std::is_same_v<char16_t, T> ||
-					std::is_same_v<char32_t, T> ||
-					std::is_same_v<wchar_t, T> ||
-					std::is_same_v<signed char, T> ||
-					std::is_same_v<unsigned char, T>;
-
-
-				//Here's the concept, I think I'm going to turn char, unsigned char, signed char, and wchar_t
-				// into whatever char they're matched as. I'll make a custom type trait for this sort of thing.
-				// it should match between files, but it means the basic string type will depend on your compiler.
-				// But I mean, it always has
-
-				//Correction, signed char remains.
-			}
-
-
-			template <rgl::character C>
-			struct true_char
-			{
-				using type = C;
-			};
-
-			template <>
-			struct true_char<unsigned char>
-			{
-				using type = char8_t;
-			};
-
-			template <>
-			struct true_char<wchar_t>
-			{
-				using type = std::conditional_t<alignof(wchar_t) == alignof(char16_t), char16_t, char32_t>;
-			};
-
-			template <>
-			struct true_char<char>
-			{
-				using type = std::conditional_t<std::is_unsigned_v<char>, char8_t, signed char>;
-			};
-
-
-
-
-
-			static void Imagine()
-			{
-				//std::use_facet<std::ctype<char
-			}
-
-
-			//do is spec of varient.
-			template <specialization_of<std::variant> T>
-			static constexpr auto free_space = 8 - sizeof(std::_Variant_index_t<std::variant_size_v<T>>);
-
-			//These are the 4 types I'm keeping track of. Anything else will merely get turned into this.
-			//signed char
-			//char8_t
-			//char16_t
-			//char32_t
-
-
-
-
-			using CharTypes = std::variant
-				<
-				ptr<signed char>,
-				ptr<char8_t>,
-				ptr<char16_t>,
-				ptr<char32_t>
-				>;
-
-			//static_assert(std::is_same_v<char, signed char>);
-			struct StringData
-			{
-				uint32_t size = 0;
-			};
-			REQ_OR_LESS_SIZE(StringData, free_space<CharTypes>);
-
-
-			struct StringHelper
-			{
-				static constexpr auto offset = sizeof(CharTypes) - sizeof(StringData);
-
-			protected:
-				StringData& GetData()
-				{
-					auto a_this = (uintptr_t)this;
-
-					return *reinterpret_cast<StringData*>(a_this + offset);
-				}
-
-				const StringData& GetData() const
-				{
-					auto a_this = (uintptr_t)this;
-
-					return *reinterpret_cast<StringData*>(a_this + offset);
-				}
-
-				uint32_t& size()
-				{
-					return GetData().size;
-				}
-
-			public:
-
-
-
-				uint32_t size() const
-				{
-					return GetData().size;
-				}
-
-
-				StringHelper()
-				{
-					size() = 0;
-				}
-
-				StringHelper(const RunDataHelper& other)
-				{
-					size() = 0;
-
-				}
-
-
-				StringHelper(RunDataHelper&& other)
-				{
-					size() = 0;
-				}
-
-
-				StringHelper& operator=(const RunDataHelper& other)
-				{
-					size() = 0;
-					return *this;
-				}
-
-
-
-				StringHelper& operator=(RunDataHelper&& other)
-				{
-					size() = 0;
-					return *this;
-				}
-			};
-
-
-
-			template <rgl::character _Elem>
-			struct CharHandle
-			{
-				using value_type = _Elem;
-
-				//value_type
-
-			};
-
-
-
-			struct String
-			{
-				//This sort of thing will help converting one set to another. For now, I don't really need this sort of thing, and miss matches will be
-				// rejected outright.
-				//#include <codecvt>
-				//std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-				//std::string narrow = converter.to_bytes(wide_utf16_source_string);
-				//std::wstring wide = converter.from_bytes(narrow_utf8_source_string);
-
-				//Unlike with arrays and such, strings will be treated as completely seperate types. This also helps not encounter any issues with generic implementations later.
-
-
-
-				//I could get away with using a variant for this.
-				void* ptr = nullptr;
-				uint32_t size = 0;
-				CharType type = CharType::Byte;
-
-
-				bool operator==(const String& other)
-				{
-					if (type != other.type)
-						return false;
-
-					if (size != other.size)
-						return false;
-
-
-				}
-
-				bool operator==(String&& other)
-				{
-					return operator==(other);
-				}
-
-
-				template <rgl::character Char>
-				String(const Char* str)
-				{
-
-				}
-
-				template <rgl::character Char>
-				String(std::basic_string<Char> str)
-				{
-
-				}
-
-			};
-			REQUIRED_SIZE(String, 0x10);
 		}
+
+
 
 		class ClassStruct
 		{
@@ -1755,6 +1495,9 @@ struct Extension : public T
 		Argument,
 	};
 
+	template<typename T>
+	struct failure;
+
 	using INT = std::remove_const_t<const int&>;
 	template <SignatureEnum T, typename E, typename... Next>
 	bool ProcessEntry(Signature& sign)
@@ -1788,7 +1531,9 @@ struct Extension : public T
 			sign.target : sign.parameters.emplace_back();
 			
 		logger::info("increase? {}", sign.parameters.size());
+		
 		entry.policy = FetchVariableType<_Refless>();
+		
 
 		if constexpr (std::is_const_v<_Naked>){
 			entry.flags |= Qualifier::Const;
@@ -1873,8 +1618,6 @@ struct Extension : public T
 		}
 	};
 	//*/
-
-
 
 
 
@@ -2126,6 +1869,7 @@ struct Extension : public T
 	//These are collected within a 
 
 }
+
 
 
 namespace fmt

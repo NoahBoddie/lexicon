@@ -33,7 +33,7 @@ namespace LEX
 		//The interface for fields
 		virtual ~Field() = default;
 
-		virtual String GetFieldName() const = 0;
+		virtual std::string GetFieldName() const = 0;
 
 		virtual FieldType GetFieldType() const = 0;
 

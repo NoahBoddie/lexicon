@@ -109,7 +109,7 @@ namespace LEX
 			//>-------------------------
 			//This is for environment
 
-			std::map<String, FunctionContainer> functionMap;
+			std::map<std::string, FunctionContainer> functionMap;
 
 			//>------------------------
 			//This is for classes.
@@ -126,7 +126,7 @@ namespace LEX
 		{
 			//>-------------------------
 			//This is for environment
-			std::map<String, TypeContainer> typeMap;
+			std::map<std::string, TypeContainer> typeMap;
 			std::vector<Global*> variables;//should be global variables
 
 
@@ -307,12 +307,12 @@ namespace LEX
 		//>-------------------------
 		//This is for environment
 
-		std::map<String, FunctionContainer> functionMap;
+		std::map<std::string, FunctionContainer> functionMap;
 
 
 		//>-------------------------
 		//This is for environment
-		std::map<String, TypeContainer> typeMap;
+		std::map<std::string, TypeContainer> typeMap;
 		//TODO: I need a class called policy base that will handle PolicyBases. Basically it'd be something like what IType is to AbstractType.
 		// largely, it'd serve as a good wrapper for type aliases or other types such as generic arguments.
 

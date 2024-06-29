@@ -157,7 +157,7 @@ namespace LEX
 		// but I realized that I want ICallableUnit to be an information and invoking interface, not one made
 		// for setting features or flags.
 
-		String _name;
+		std::string _name;
 
 		
 		size_t defaultIndex = (size_t)-1;  //max_value<size_t>;//basically whenever the defaults start.

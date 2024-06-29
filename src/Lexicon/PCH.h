@@ -251,9 +251,6 @@ namespace LEX
 {
 	using namespace RGL_NAMESPACE;
 	using namespace RGL_INCLUDE_NAMESPACE;
-
-    using String = std::string;
-    using _String = std::string;
 }
 
 inline int __init = 0;

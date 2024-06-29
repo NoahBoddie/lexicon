@@ -286,7 +286,7 @@ namespace LEX
 	struct FunctionHandle;
 	struct Array;
 	class Variable;
-
+	struct String;
 	template <>
 	struct VariableType<Void>
 	{

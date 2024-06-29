@@ -192,7 +192,7 @@ namespace LEX
 
 
 
-		virtual _String GetName() const
+		virtual std::string GetName() const
 		{
 			return _name;
 		}

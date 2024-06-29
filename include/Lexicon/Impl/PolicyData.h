@@ -41,7 +41,7 @@ namespace LEX
 		TypeID _id;
 
 
-		String _name;
+		std::string _name;
 
 
 		DataType _dataType = DataType::Invalid;

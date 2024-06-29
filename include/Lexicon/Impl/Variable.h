@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "String.h"
 #include "Number.h"
 #include "AbstractTypePolicy.h"
 //#include "AbstractFunction.h"
@@ -14,6 +14,8 @@
 #include "TypeID.h"
 
 #include "VariableType.h"
+
+
 
 //Some notes about the, the setting that's used should be a result of whichever of the 2 sides has more priority. Need to figure out a way
 // to do that, then have a function handle the truncating process.
@@ -29,7 +31,6 @@ namespace LEX
 
     using Boolean = bool;
     
-    using String = std::string;
 
     
     

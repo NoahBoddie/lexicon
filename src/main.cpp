@@ -62,9 +62,9 @@ void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variab
     result = tar.size();
 }
 
-double size_backend(std::string a_this)
+double size_backend(String a_this)
 {
-	logger::info("size of \"{}\"", a_this);
+	logger::info("size of \"{}\"", a_this.ToView());
 	return a_this.size();
 }
 

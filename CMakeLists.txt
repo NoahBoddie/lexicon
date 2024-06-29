@@ -92,7 +92,7 @@ include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/InterfaceManager.h" 
  "include/Lexicon/Impl/InterfaceSingleton.h"
  "include/Lexicon/Impl/HierarchyData.h"
- "include/Lexicon/Impl/Versioning.h"  "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h" "include/Lexicon/Impl/QualifiedField.h" "include/Lexicon/Impl/GlobalData.h" "include/Lexicon/Impl/Conversion.h" "include/Lexicon/Impl/OverloadEntry.h" "include/Lexicon/Impl/OverloadSection.h" "include/Lexicon/Impl/OverloadFlag.h" "include/Lexicon/Impl/InheritData.h" "include/Lexicon/Impl/CompileUtility.h" "include/Lexicon/Impl/parse_strings.h" "include/Lexicon/Impl/ProcedureHandler.h" "include/Lexicon/Impl/Dispatcher.h" "include/Lexicon/Impl/Unvariable.h")
+ "include/Lexicon/Impl/Versioning.h"  "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h" "include/Lexicon/Impl/QualifiedField.h" "include/Lexicon/Impl/GlobalData.h" "include/Lexicon/Impl/Conversion.h" "include/Lexicon/Impl/OverloadEntry.h" "include/Lexicon/Impl/OverloadSection.h" "include/Lexicon/Impl/OverloadFlag.h" "include/Lexicon/Impl/InheritData.h" "include/Lexicon/Impl/CompileUtility.h" "include/Lexicon/Impl/parse_strings.h" "include/Lexicon/Impl/ProcedureHandler.h" "include/Lexicon/Impl/Dispatcher.h" "include/Lexicon/Impl/Unvariable.h" "include/Lexicon/Impl/String.h")
 
 set(sources
 #src/main.cpp
