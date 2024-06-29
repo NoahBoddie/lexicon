@@ -28,6 +28,35 @@
         }
       ],
       "intelliSenseMode": "windows-msvc-x64"
+    },
+    {
+      "name": "DevR",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64" ],
+      "variables": [
+        {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x64-windows-static-md",
+          "type": "STRING"
+        },
+        {
+          "name": "VCPKG_HOST_TRIPLET",
+          "value": "x64-windows-static-md",
+          "type": "STRING"
+        },
+        {
+          "name": "VCPKG_INSTALLED_DIR",
+          "value": "C:/dev/vcpkg/installed/",
+          "type": "PATH"
+        }
+      ],
+      "intelliSenseMode": "windows-msvc-x64"
     }
   ]
 }
