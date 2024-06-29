@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-
+#include "TempConstruct.h"
 
 
 //#include "Object.h"

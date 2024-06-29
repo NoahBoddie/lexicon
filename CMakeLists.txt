@@ -39,7 +39,7 @@ include/Lexicon/Impl/Parser.h
 include/Lexicon/Impl/ParseModule.h
  "include/Lexicon/Impl/Field.h" "include/Lexicon/Impl/Instruction.h" "include/Lexicon/Impl/RuntimeVariable.h" "include/Lexicon/Impl/Target.h"  "include/Lexicon/Impl/InstructionType.h" "include/Lexicon/Impl/RoutineBase.h" "include/Lexicon/Impl/Solution.h" "include/Lexicon/Impl/RoutineCompiler.h" "include/Lexicon/Impl/Scope.h" "include/Lexicon/Impl/LiteralManager.h" "include/Lexicon/Impl/IVariable.h" "include/Lexicon/Impl/GlobalVariable.h" "include/Lexicon/Impl/Runtime.h" "include/Lexicon/Impl/MemberPointer.h" "include/Lexicon/Impl/OperatorType.h" "include/Lexicon/Impl/ICallableUnit.h" "include/Lexicon/Impl/Number.h"
  "include/Lexicon/Impl/Literal.h" 
- "include/Lexicon/Impl/TempConstruct.h" 
+ #"include/Lexicon/Impl/TempConstruct.h" 
  "include/Lexicon/Impl/FunctionHandle.h" 
  "include/Lexicon/Impl/Delegate.h" 
  "include/Lexicon/Impl/Array.h" 
