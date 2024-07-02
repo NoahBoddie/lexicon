@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Conversion.h"
-#include "QualifiedType.h"
+#include "Lexicon/QualifiedType.h"
 
 
 

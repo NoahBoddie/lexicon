@@ -3,7 +3,7 @@
 #include "Overload.h"
 #include "OverloadKey.h"
 
-#include "QualifiedType.h"
+#include "Lexicon/QualifiedType.h"
 
 namespace LEX
 {

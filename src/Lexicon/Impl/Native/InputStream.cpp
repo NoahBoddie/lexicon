@@ -1,5 +1,5 @@
-#include "Lexicon/Impl/InputStream.h"
-#include "Lexicon/Impl/TokenHandler.h"
+#include "InputStream.h"
+#include "TokenHandler.h"
 
 namespace LEX::Impl
 {
