@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Element.h"
-#include "IFunction.h"
+#include "Lexicon/Element.h"
+#include "Lexicon/IFunction.h"
 #include "FunctionData.h"
 #include "OverloadClause.h"
 namespace LEX

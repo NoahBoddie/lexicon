@@ -1829,8 +1829,8 @@ struct Extension : public T
 
 		if (!processed)
 			throw nullptr;
-
-		OverloadFlag flag = OverloadFlag::None;
+		
+		OverloadFlag flag = OverloadFlag::AllAccess;
 
 		auto overload = sign.Match(base, nullptr, nullptr, flag);
 
@@ -1863,11 +1863,6 @@ struct Extension : public T
 
 		return ProcedureHandler::instance->RegisterFunction(procedure, func);
 	}
-
-
-
-	//These are collected within a 
-
 }
 
 

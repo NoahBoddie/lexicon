@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Lexicon/Impl/Token.h"
-#include "Lexicon/Impl/Exception.h"
+#include "Token.h"
+#include "Lexicon/Exception.h"
 namespace LEX::Impl
 {
 	//submit the streams to the next one.

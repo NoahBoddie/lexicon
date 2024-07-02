@@ -1,5 +1,6 @@
 #pragma once
-
+//#define __STOP_USING__ 1
+#ifdef __STOP_USING__
 
 #include <cassert>
 #include <cctype>
@@ -95,8 +96,6 @@
 #include <variant>
 #include <vector>
 #include <version>
-
-
 
 
 #include <ShlObj_core.h>
@@ -243,9 +242,11 @@ namespace logger
 
 
 
+
 using namespace std::literals;
 
-#include "Lexicon/Impl/Report.h"
+//*
+#include "Lexicon/Report.h"
 
 
 
@@ -321,6 +322,20 @@ INITIALIZE__COUNTED(__COUNTER__)
 #define CAN_INSTANTIATE(mc_type) void CONCAT(__INSTANT_TEST__,__COUNTER__)() { mc_type a_test{}; }
 
 #define UNCONST(mc_expression) const_cast<std::remove_const_t<decltype(mc_expression)>>(mc_expression)
+
+
+//#define DEFINE_SELF_IMPL(mc_counter) auto CONCAT(__self_,mc_counter)() -> decltype(*this); using Self = std::invoke_result_t<decltype(CONCAT(__self_,mc_counter))>
+//#define DEFINE_SELF DEFINE_SELF_IMPL(__COUNTER__)
+
+/*
+//This is how define self should be implemented.
+template<typename T>
+struct class_t;
+
+template<typename T, typename R>
+struct class_t< R(T::*)() > { using type = T; };
+void self_f(); using Self = typename class_t<decltype(&self_f)>::type;
+//*/
 
 namespace RGL
 {
@@ -617,4 +632,7 @@ namespace stl
 #pragma endregion
 
 //Move me please.
-#include "Lexicon/Impl/Versioning.h"
+#include "Lexicon/Versioning.h"
+//*/
+
+#endif

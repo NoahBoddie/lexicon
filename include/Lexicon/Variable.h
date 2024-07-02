@@ -7,8 +7,8 @@
 //#include "ExternalHandle.h"
 #include "Object.h"
 #include "Array.h"
-#include "Delegate.h"
-#include "FunctionHandle.h"
+//#include "Delegate.h"
+//#include "FunctionHandle.h"
 
 
 #include "TypeID.h"
@@ -51,10 +51,7 @@ namespace LEX
         Void,						    //Void given form. Invalidates all other types.
         Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
         String,
-        Array,//Remove
-        FunctionHandle,//Remove
-        Object,
-        Delegate//Remove
+        Object
         >;
     
     
@@ -154,10 +151,7 @@ namespace LEX
     {
         Void,
         Number,
-        Array,
         String,
-        Function,
-        Delegate,
         Object,
         Total,
     };
@@ -166,10 +160,7 @@ namespace LEX
     {
         variant_index<VariableValue, Void>(),
         variant_index<VariableValue, Number>(),
-        variant_index<VariableValue, Array>(),
         variant_index<VariableValue, String>(),
-        variant_index<VariableValue, FunctionHandle>(),
-        variant_index<VariableValue, Delegate>(),
         variant_index<VariableValue, Object>()
     };
 
@@ -238,10 +229,7 @@ namespace LEX
             {
             case basicTypeIndices[BasicType::Void]:     return BasicType::Void;
             case basicTypeIndices[BasicType::Number]:   return BasicType::Number;
-            case basicTypeIndices[BasicType::Array]:    return BasicType::Array;
             case basicTypeIndices[BasicType::String]:   return BasicType::Number;
-            case basicTypeIndices[BasicType::Function]: return BasicType::Function;
-            case basicTypeIndices[BasicType::Delegate]: return BasicType::Delegate;
             case basicTypeIndices[BasicType::Object]:   return BasicType::Object;
             default:                                    return BasicType::Total;
             }

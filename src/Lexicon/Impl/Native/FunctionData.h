@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Variable.h"
+#include "Lexicon/Variable.h"
 #include "RoutineBase.h"
 #include "ParameterInfo.h"
 //Should have parameterinfos?
 
-#include "QualifiedType.h"
+#include "Lexicon/QualifiedType.h"
 
 namespace LEX
 {

@@ -33,6 +33,12 @@
 
 #include "parse_strings.h"
 
+
+//SHOULD_NATIVE
+#include "FunctionInfo.h"
+#include "VariableInfo.h"
+
+
 namespace LEX
 {
 
