@@ -292,6 +292,18 @@ install(
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+
+
+install(
+	DIRECTORY include/
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(
+	DIRECTORY include/bignato/
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
 configure_file(
 	cmake/config.cmake.in
 	${PROJECT_NAME}Config.cmake
