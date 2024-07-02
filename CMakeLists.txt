@@ -109,7 +109,7 @@ include/Lexicon/Impl/LiteralManager.cpp
  "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
  "include/Lexicon/Impl/Declaration.cpp"
  "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp" "include/Lexicon/Impl/FunctionBase.cpp" "include/Lexicon/Impl/ConcreteFunction.cpp" "include/Lexicon/Impl/ICallableUnit.cpp" "include/Lexicon/Impl/Scope.cpp" "include/Lexicon/Impl/OverloadInput.cpp" "include/Lexicon/Impl/ParamInput.cpp" "include/Lexicon/Impl/Variable.cpp" "include/Lexicon/Impl/VariableType.cpp" "include/Lexicon/Impl/Field.cpp" "include/Lexicon/Impl/VariableInfo.cpp" "include/Lexicon/Impl/ObjectPolicyHandle.cpp" "include/Lexicon/Impl/ConcretePolicy.cpp" "include/Lexicon/Impl/InterfaceManager.cpp" "include/Lexicon/Impl/ObjectPolicy.cpp"  "include/Lexicon/Impl/ObjectPolicyManager.cpp" "include/Lexicon/Impl/QualifiedType.cpp" "include/Lexicon/Impl/OverloadKey.cpp"  "include/Lexicon/Impl/VoidPolicy.cpp" "include/Lexicon/Impl/ProcedureHandler.cpp" "include/Lexicon/Impl/Dispatcher.cpp" "include/Lexicon/Impl/Signature.h" "include/Lexicon/Impl/OverloadEntry.cpp" "include/Lexicon/Impl/HierarchyData.cpp")
-
+ 
 source_group(
 	TREE
 		${CMAKE_CURRENT_SOURCE_DIR}
@@ -152,7 +152,7 @@ endif()
 
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
+target_sources( Lexicon PRIVATE "include/Lexicon/Impl/Default.h" )
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_compile_features(
