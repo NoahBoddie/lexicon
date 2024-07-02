@@ -274,7 +274,9 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:src>)
 
 #interface
-
+message("LOUD:")
+message(${CMAKE_CURRENT_SOURCE_DIR})
+message(${CMAKE_CURRENT_BINARY_DIR})
 #was explicitly public, should be private??
 target_include_directories(${PROJECT_NAME}
         ${PUBLIC_ACCESS}
