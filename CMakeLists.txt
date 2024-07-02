@@ -113,7 +113,6 @@ include/Lexicon/Impl/LiteralManager.cpp
 source_group(
 	TREE
 		${CMAKE_CURRENT_SOURCE_DIR}
-		${CMAKE_CURRENT_SOURCE_DIR}/bignato
 	FILES
 		${headers}
 		${sources}
@@ -123,8 +122,6 @@ source_group(
 	TREE
 		${CMAKE_CURRENT_SOURCE_DIR}/bignato
 	FILES
-		${headers}
-		${sources}
 )
 
 # ---- Create library ----
