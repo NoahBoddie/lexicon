@@ -287,12 +287,6 @@ install(
 	EXPORT ${PROJECT_NAME}-targets
 )
 
-install(
-	DIRECTORY include/ include/bignato/
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-
 
 install(
 	DIRECTORY include/
