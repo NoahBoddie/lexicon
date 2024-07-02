@@ -1,14 +1,16 @@
 #pragma once
 
 #include "Lexicon/Component.h"
-//#include "Lexicon/Impl/Native/ExpressionType.h"
+#include "ExpressionType.h"
 #include "Exception.h"
 #include "Parser.h"
 #include "Element.h"
 
 #include "TypeID.h"
-#include "MemberPointer.h"
+#include "FunctionInfo.h"
+#include "VariableInfo.h"//For tests only
 
+#include "SearchPredicate.h"
 
 //*src
 //#include "ConcreteFunction.h"//For some reason concrete function will not function if not included here. Mess with the order.
@@ -23,11 +25,6 @@
 
 //#include "GlobalVariable.h"
 
-namespace LEX::Impl
-{
-	enum struct SyntaxType;
-	struct Syntax;
-}
 
 namespace LEX
 {
@@ -46,7 +43,6 @@ namespace LEX
 	struct ConcretePolicy;
 	struct AbstractTypePolicy;
 
-	struct Overload;
 	struct OverloadKey;
 
 	//For now, this is just a fucking dummy class, as nothing uses it, but it's here to remind myself of it. For now.
@@ -89,10 +85,6 @@ namespace LEX
 	//For now only one per name. I'm not dealing with function and type signatures.
 	//using FunctionContainer = std::vector<FunctionInfo>;
 	//using TypeContainer = std::vector<ITypePolicy*>;
-
-	struct FunctionInfo;
-	struct VariableInfo;
-
 	using FunctionContainer = FunctionInfo;
 	using TypeContainer = PolicyBase*;
 

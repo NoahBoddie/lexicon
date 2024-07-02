@@ -5,8 +5,6 @@ namespace LEX
 {
 	class Variable;
 
-	//TODO: Revise literal to take a literal holder, an interface that can store Literals, including temporary formulas.
-
 	class Literal final
 	{
 	public:

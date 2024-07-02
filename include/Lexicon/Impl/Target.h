@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Lexicon/Register.h"
-#include "Lexicon/Variable.h"
-#include "Lexicon/ITypePolicy.h"
-#include "Lexicon/IFunction.h"
-#include "Lexicon/MemberPointer.h"
+#include "Register.h"
+#include "Variable.h"
+#include "ITypePolicy.h"
+#include "IFunction.h"
+#include "MemberPointer.h"
 #include "OperandType.h"
 #include "Literal.h"
 

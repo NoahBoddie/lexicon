@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include "Lexicon/ITypePolicy.h"
-#include "Lexicon/Environment.h"
+#include "ITypePolicy.h"
+#include "Environment.h"
 #include "PolicyData.h"
 #include "OverloadClause.h"
 

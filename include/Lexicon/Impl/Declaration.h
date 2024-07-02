@@ -2,14 +2,14 @@
 
 //#include "BasicQualifier.h"
 //#include "RuntimeQualifier.h"
-#include "Lexicon/DeclareSpecifier.h"
+#include "DeclareSpecifier.h"
 #include "HeaderSettings.h"
 
 
 //*src
-#include "Lexicon/Environment.h"
-#include "Lexicon/Number.h"
-#include "Lexicon/Impl/IdentityManager.h"
+#include "Environment.h"
+#include "Number.h"
+#include "IdentityManager.h"
 
 
 namespace LEX

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Component.h"
+#include "Lexicon/Component.h"
 #include "RGL/Impl/Record.h"
 #include "Exception.h"//May move to src
 
