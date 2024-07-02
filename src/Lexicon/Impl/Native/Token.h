@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Lexicon/Impl/TypeAliases.h"
-#include "Lexicon/Impl/TokenType.h"
+#include "Lexicon/TypeAliases.h"
+#include "TokenType.h"
 
 namespace LEX::Impl
 {
