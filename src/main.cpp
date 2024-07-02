@@ -1,21 +1,17 @@
-int main(int argc, char** argv) { return 0; }
-
-/*
-
 #include "Lexicon.h"
 
-#include "Lexicon/Impl/Native/OperandType.h"
-#include "Lexicon/Register.h"
-#include "Lexicon/Impl/Native/Operand.h"
+#include "Lexicon/Impl/OperandType.h"
+#include "Lexicon/Impl/Register.h"
+#include "Lexicon/Impl/Operand.h"
 
 //Component must move from impl.
 #include "Lexicon/Component.h"
 
-#include "Lexicon/TestField.h"
-#include "Lexicon/Impl/Native/Parser.h"
-#include "Lexicon/Impl/Native/ParserTest.h"
-#include "Lexicon/Impl/Native/RoutineBase.h"
-#include "Lexicon/Impl/Native/RoutineCompiler.h"
+//#include "Lexicon/Impl/TestField.h"
+#include "Lexicon/Impl/Parser.h"
+#include "Lexicon/Impl/ParserTest.h"
+#include "Lexicon/Impl/RoutineBase.h"
+#include "Lexicon/Impl/RoutineCompiler.h"
 
 //#include "spdlog/spdlog.h"
 //#include "spdlog/sinks/stdout_color_sinks.h"
@@ -24,10 +20,12 @@ int main(int argc, char** argv) { return 0; }
 //#include <spdlog/sinks/stdout_sinks.h>
 
 
-#include "Lexicon/Runtime.h"
+#include "Lexicon/Impl/Runtime.h"
+
 //
 //#include "Lexicon/Impl/TempConstruct.cpp"
 //
+
 
 
 
@@ -374,4 +372,3 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-//*/

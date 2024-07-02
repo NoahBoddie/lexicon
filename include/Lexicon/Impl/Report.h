@@ -10,8 +10,7 @@ namespace LEX
 	concept is_not = !std::is_same_v<std::remove_reference_t<std::remove_pointer_t<This>>, Not>;
 
 
-	ENUM(IssueType, uint8_t)
-	{
+	ENUM(IssueType, uint8_t){
 		Parse,    //A fundemental syntax issue possibly preventing the rest from being read properly.
 		Compile,  //An error that occurs trying to use data as provided
 		Link,     //An error that occurs trying to connect or look up elements
