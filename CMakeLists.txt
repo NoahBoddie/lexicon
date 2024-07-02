@@ -288,7 +288,7 @@ install(
 )
 
 install(
-	DIRECTORY include/
+	DIRECTORY include/ include/bignato/
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
