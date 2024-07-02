@@ -161,7 +161,7 @@ target_compile_features(
 		cxx_std_23
 )
 
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/bignato/include") 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/bignato/include") 
 
 
 
@@ -179,7 +179,9 @@ target_include_directories(${PROJECT_NAME}
         ${PUBLIC_ACCESS}
 		${fmt_INCLUDE_DIRS}
 		${spdlog_INCLUDE_DIRS}
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/bignato/include>
+)
 
 
 #was explicit
