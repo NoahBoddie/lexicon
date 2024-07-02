@@ -119,6 +119,14 @@ source_group(
 		${sources}
 )
 
+source_group(
+	TREE
+		${CMAKE_CURRENT_SOURCE_DIR}/bignato
+	FILES
+		${headers}
+		${sources}
+)
+
 # ---- Create library ----
 
 include(GNUInstallDirs)
