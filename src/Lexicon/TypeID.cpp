@@ -1,8 +1,8 @@
 #pragma once
 
-#include "TypeID.h"
+#include "Lexicon/TypeID.h"
 
-#include "IdentityManager.h"
+#include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {

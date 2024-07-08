@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ObjectPolicyHandle.h"
+#include "Lexicon/ObjectPolicyHandle.h"
 
 
-#include "ObjectPolicyManager.h"
+#include "Lexicon/Interfaces/ObjectPolicyManager.h"
 
 namespace LEX
 {

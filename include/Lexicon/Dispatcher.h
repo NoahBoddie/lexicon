@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Variable.h"
-#include "Unvariable.h"
-#include "Runtimevariable.h"
+#include "Lexicon/Variable.h"
+#include "Lexicon/Unvariable.h"
+#include "Lexicon/Runtimevariable.h"
 
 
 //*src
-#include "ProcedureHandler.h"
-#include "IFunction.h"
+#include "Lexicon/Interfaces/ProcedureHandler.h"
+#include "Lexicon/IFunction.h"
 
 namespace LEX
 {

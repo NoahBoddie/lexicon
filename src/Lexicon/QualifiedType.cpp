@@ -1,10 +1,10 @@
 #pragma once
 
-#include "QualifiedType.h"
+#include "Lexicon/QualifiedType.h"
 
-#include "OverloadEntry.h"
+#include "Lexicon/Engine/OverloadEntry.h"
 
-#include "PolicyBase.h"
+#include "Lexicon/Engine/PolicyBase.h"
 
 namespace LEX
 {

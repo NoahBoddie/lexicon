@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Impl/Interface.h"
+#include "Lexicon/Interfaces/Interface.h"
 
 namespace LEX
 {

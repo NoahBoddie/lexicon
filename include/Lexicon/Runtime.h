@@ -1,10 +1,10 @@
 #pragma once
 
-#include "IGenericArgument.h"
-#include "ICallableUnit.h"
-#include "RuntimeVariable.h"
-#include "RoutineBase.h"
-#include "Register.h"
+#include "Lexicon/IGenericArgument.h"
+#include "Lexicon/ICallableUnit.h"
+#include "Lexicon/RuntimeVariable.h"
+#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Register.h"
 
 //To be in impl probably.
 namespace LEX

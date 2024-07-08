@@ -71,10 +71,10 @@ namespace LEX
 			//auto comp = flags & other.flags;
 
 			//These in essence did a switch. need to rename to To and from.
-			auto l_comp = flags & Qualifier::Const;
-			auto r_comp = other.flags & Qualifier::Const;
+			Qualifier l_comp = flags & Qualifier::Const;
+			Qualifier r_comp = other.flags & Qualifier::Const;
 
-			if (l_comp != r_comp){
+			if (l_comp != r_comp) {
 				
 				//this  first bit makes no sense, if the left side is const anything can still go into it (as long as we are initializing).
 				if (1 != 1) {

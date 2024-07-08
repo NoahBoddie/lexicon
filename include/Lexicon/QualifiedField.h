@@ -1,14 +1,14 @@
 #pragma once
-#include "Field.h"
+#include "Lexicon/Field.h"
 
-#include "Qualifier.h"
+#include "Lexicon/Qualifier.h"
 
 
 //*src
-#include "ParamInput.h"
-#include "InfoBase.h"
-#include "QualifiedType.h"
-#include "DeclareSpecifier.h"
+
+#include "Lexicon/Engine/InfoBase.h"
+#include "Lexicon/QualifiedType.h"
+#include "Lexicon/DeclareSpecifier.h"
 
 
 namespace LEX
@@ -153,6 +153,8 @@ namespace LEX
 		{
 			return _target;
 		}
+
+		Solution AsSolution();
 
 		operator bool() const
 		{

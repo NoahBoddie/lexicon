@@ -1,13 +1,13 @@
 #pragma once
 
-#include "IGenericArgument.h"
-#include "ISpecial.h"
-#include "TypeID.h"
+#include "Lexicon/IGenericArgument.h"
+#include "Lexicon/ISpecial.h"
+#include "Lexicon/TypeID.h"
 
 
-#include "DataType.h"
+#include "Lexicon/DataType.h"
 
-#include "Conversion.h"
+#include "Lexicon/Conversion.h"
 
 namespace LEX
 {
@@ -136,7 +136,7 @@ namespace LEX
 		virtual PolicyBase* GetTypeBase() = 0;
 		virtual const PolicyBase* GetTypeBase() const = 0;
 	public:
-		virtual std::string GetName() const = 0;
+		virtual std::string_view GetName() const = 0;
 		
 
 	INTERNAL:

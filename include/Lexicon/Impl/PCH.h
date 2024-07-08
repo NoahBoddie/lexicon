@@ -1,5 +1,5 @@
 #pragma once
-//#define __STOP_USING__ 1
+#define __STOP_USING__ 1
 #ifdef __STOP_USING__
 
 #include <cassert>

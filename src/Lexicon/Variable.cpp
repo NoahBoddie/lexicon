@@ -1,5 +1,5 @@
-#include "Variable.h"
-#include "RuntimeVariable.h"
+#include "Lexicon/Variable.h"
+#include "Lexicon/RuntimeVariable.h"
 
 
 namespace LEX

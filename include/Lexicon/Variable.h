@@ -573,9 +573,7 @@ namespace LEX
         Number AsNumber() { return std::get<Number>(_value); }
         Integer AsInteger() { throw nullptr; }
         String AsString() { return std::get<String>(_value); }
-        Object AsObject() { return std::get<Object>(_value);; }
-        Delegate AsDelegate() {throw nullptr; }
-        FunctionHandle AsFunction() { throw nullptr; }
+        Object AsObject() { return std::get<Object>(_value); }
         Array AsArray() { throw nullptr; }
 
 
@@ -596,10 +594,8 @@ namespace LEX
             {
             case BasicType::String:     _value = ""; break;
             //case BasicType::Number:     _value = (Number)0; break;
-            case BasicType::Array:      _value = Array{}; break;
+
             case BasicType::Object:     _value = Object{}; break;
-            case BasicType::Delegate:   _value = Delegate{}; break;
-            case BasicType::Function:   _value = FunctionHandle{}; break;
 
             default:    throw nullptr;// This is in error, just have no idea how.
             }

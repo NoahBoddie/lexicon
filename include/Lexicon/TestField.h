@@ -1,27 +1,25 @@
 ﻿#pragma once
 
-#include "TempConstruct.h"
 
 
 //#include "Object.h"
 //#include "ObjectID.h"
 //#include "ObjectIDMapper.h"
 
-#include "Lexicon/Impl/Operand.h"
+#include "Lexicon/Engine/Operand.h"
 
 
-#include "Lexicon/Impl/Script.h"
-#include "Lexicon/Impl/Project.h"
-#include "Lexicon/Impl/ProjectManager.h"
+#include "Lexicon/Interfaces/Script.h"
+#include "Lexicon/Interfaces/Project.h"
+#include "Lexicon/Interfaces/ProjectManager.h"
 
-#include "Lexicon/Impl/Exception.h"
+#include "Lexicon/Exception.h"
 //#include "Parser.h"
-#include "Lexicon/Impl/ParserTest.h"
+#include "Lexicon/Engine/ParserTest.h"
 
 
-#include "Compiler.h"
 
-#include "Lexicon/Impl/Variable.h"
+#include "Lexicon/Variable.h"
 
 
 
@@ -31,41 +29,39 @@
 
 //New
 //*
-#include "Instruction.h"
-#include "InstructionType.h"
-#include "OperatorType.h"
+#include "Lexicon/Engine/Instruction.h"
+#include "Lexicon/Engine/InstructionType.h"
+#include "Lexicon/Engine/OperatorType.h"
 #include "Runtime.h"
 #include "RuntimeVariable.h"
 #include "IVariable.h"
-#include "GlobalVariable.h"
-#include "Literal.h"
-#include "LiteralManager.h"
-#include "Scope.h"
-#include "Solution.h"
-#include "RoutineBase.h"
-#include "Operation.h"
-#include "Operand.h"
-#include "OperandType.h"
-#include "Target.h"
+#include "Lexicon/Engine/GlobalVariable.h"
+#include "Lexicon/Engine/Literal.h"
+#include "Lexicon/Engine/LiteralManager.h"
+#include "Lexicon/Engine/Scope.h"
+#include "Lexicon/Engine/Solution.h"
+#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Operation.h"
+#include "Lexicon/Engine/Operand.h"
+#include "Lexicon/Engine/OperandType.h"
+#include "Lexicon/Engine/Target.h"
 #include "RuntimeVariable.h"
 #include "MemberPointer.h"
-#include "RoutineCompiler.h"
+#include "Lexicon/Engine/RoutineCompiler.h"
 
-#include "External.h"
-#include "ExternalHandle.h"
-#include "ExternalManager.h"
+
 
 #include "TypeID.h"
 
 
-#include "ConcretePolicy.h"
+#include "Lexicon/Engine/ConcretePolicy.h"
 
 
-#include "Lexicon/Impl/VariableType.h"
+#include "Lexicon/VariableType.h"
 
-#include "ConcreteFunction.h"
+#include "Lexicon/Engine/ConcreteFunction.h"
 
-#include "OverloadClause.h"
+#include "Lexicon/Engine/OverloadClause.h"
 
 
 
@@ -75,7 +71,7 @@
 #include "ObjectInfo.h"
 #include "ObjectPolicy.h"
 #include "ObjectPolicyHandle.h"
-#include "ObjectPolicyManager.h"
+#include "Lexicon/Interfaces/ObjectPolicyManager.h"
 
 
 #include "ObjectPoolData.h"
@@ -84,21 +80,23 @@
 
 
 
-#include "Interface.h"
-#include "InterfaceManager.h"
-#include "InterfaceSingleton.h"
+#include "Lexicon/Interfaces/Interface.h"
+#include "Lexicon/Interfaces/InterfaceManager.h"
+#include "Lexicon/Interfaces/InterfaceSingleton.h"
 #include "Versioning.h"
 
 #include "DeclareSpecifier.h"
 
-#include "OverloadInput.h"
+#include "Lexicon/Engine/OverloadInput.h"
 
-#include "Declaration.h"
+#include "Lexicon/Engine/Declaration.h"
 
-#include "ProcedureHandler.h"
+#include "Lexicon/Interfaces/ProcedureHandler.h"
 #include "Dispatcher.h"
 
 #include "String.h"
+
+#include "Lexicon/Engine/Signature.h"
 
 namespace std
 {
@@ -1378,105 +1376,7 @@ struct Extension : public T
 		};
 	}
 	
-	
-	struct Signature : public OverloadKey
-	{
-		//The match for this should be aimed to be as very little in terms of ambiguity as possible.
-		//Thus, the stated project, script, and of course, the path.
-		//The path for generics will probably simply be controlled by the amount of generic parameters it has, rather than the entires.
-		// So no generic, no generic notation. Is generic, has generic notation. If it's the only one you can
 
-
-
-		//Make these 2 a single function.
-		Overload MatchFailure(OverloadFlag& flag)
-		{
-			logger::critical("Force failure");
-
-			
-			flag |= OverloadFlag::Failure;
-			
-			return {};
-		}
-
-		Overload MatchAmbiguous(OverloadFlag& flag)
-		{
-			logger::critical("Force ambiguous");
-
-			
-			flag |= OverloadFlag::Ambiguous;
-
-			return {};
-		}
-
-
-		//Please note, this kind of match is what a clause should be doing.
-
-		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
-		Overload Match(OverloadClause* clause, ITypePolicy*, Overload*, OverloadFlag& a_flag) override
-		{
-			a_flag |= OverloadFlag::AllAccess;
-
-
-			if (clause->CanMatch(result, parameters.size(), 0, a_flag) == false) {
-				return MatchFailure(a_flag);
-			}
-
-
-			//I want to phase out of function. Maybe combine it with prev in some way.
-
-			//Make a copy as to not completely mutate this.
-			OverloadFlag flag = a_flag;
-
-
-			Overload overload;
-
-
-			OverloadEntry tar = clause->MatchSuggestedEntry(target, nullptr, -1, -1, flag);
-
-
-			if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
-				return MatchFailure(a_flag);
-
-			overload.target = tar.type;
-			overload.clause = clause;
-
-			constexpr auto offset_placeholder = 0;
-
-			int winner = 0;
-
-			for (int i = 0; i < parameters.size(); i++)
-			{
-				QualifiedType input = parameters[i];
-
-				OverloadEntry entry = clause->MatchSuggestedEntry(input, nullptr, offset_placeholder, i, flag);
-
-				if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
-					return MatchFailure(a_flag);
-
-
-
-				//entry.funcs = conversion;
-				//entry.type = input;
-				//entry.index = index;
-
-
-				overload.given.push_back(entry);
-			}
-
-			return overload;
-
-		}
-
-
-
-		QualifiedType result;
-		QualifiedType target;
-		
-		std::vector<QualifiedType>				parameters;
-		
-	};
-	
 	//TODO: Move to RGL
 	template <class T> struct extract_class { using type = T; };
 	template <class T> struct extract_class<T&> { using type = T; };
@@ -1866,7 +1766,10 @@ struct Extension : public T
 }
 
 
-
+void Test()
+{
+	LEX::ConcreteFunction t{};
+}
 namespace fmt
 {
 	//Really want this to work

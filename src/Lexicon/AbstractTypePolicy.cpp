@@ -1,8 +1,8 @@
-#include "AbstractTypePolicy.h"
-#include "Variable.h"
-#include "TypeID.h"
+#include "Lexicon/AbstractTypePolicy.h"
+#include "Lexicon/Variable.h"
+#include "Lexicon/TypeID.h"
 
-#include "RuntimeVariable.h"
+#include "Lexicon/RuntimeVariable.h"
 
 namespace LEX
 {

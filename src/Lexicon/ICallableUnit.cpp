@@ -1,6 +1,6 @@
-#include "ICallableUnit.h"
+#include "Lexicon/ICallableUnit.h"
 
-#include "RuntimeVariable.h"
+#include "Lexicon/RuntimeVariable.h"
 
 
 namespace LEX

@@ -2,7 +2,7 @@
 
 //src
 #include "Lexicon/TypeID.h"
-#include "Lexicon/Impl/IdentityManager.h"
+#include "Lexicon/Interfaces/IdentityManager.h"
 
 template <typename EnumType>
 requires(std::is_enum_v<EnumType>&& !std::is_scoped_enum_v<EnumType>) struct fmt::formatter<EnumType> : fmt::formatter<std::underlying_type_t<EnumType>>

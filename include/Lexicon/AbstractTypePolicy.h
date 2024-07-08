@@ -35,6 +35,7 @@ namespace LEX
 	public:
 		//Make these work like an actual emplace function, where it basically does the construction elsewhere.
 		// Move into function base? Largely non-basic structures depend on something else for this shit.
+		//REMOVE THIS PLEASE.
 		void EmplaceDefault(Variable& var);
 		void EmplaceDefault(Variable&& var) { return EmplaceDefault(var); }
 

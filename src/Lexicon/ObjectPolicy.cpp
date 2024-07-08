@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ObjectPolicy.h"
-#include "Object.h"
+#include "Lexicon/ObjectPolicy.h"
+#include "Lexicon/Object.h"
 
 namespace LEX
 {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "TypeID.h"
-#include "ObjectPoolData.h"
-#include "ObjectInfo.h"
+#include "Lexicon/TypeID.h"
+#include "Lexicon/ObjectPoolData.h"
+#include "Lexicon/ObjectInfo.h"
 
 namespace LEX
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Exception.h"
+#include "Lexicon/Exception.h"
 
 namespace LEX
 {

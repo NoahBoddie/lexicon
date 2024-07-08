@@ -1,24 +1,10 @@
-#include "BigNato.h"
 
 
-int main(int argc, char** argv) { return 0; }
+//int main(int argc, char** argv) { return 0; }
 
-/*
+//*
 
 #include "Lexicon.h"
-
-#include "Lexicon/Impl/Native/OperandType.h"
-#include "Lexicon/Register.h"
-#include "Lexicon/Impl/Native/Operand.h"
-
-//Component must move from impl.
-#include "Lexicon/Component.h"
-
-#include "Lexicon/TestField.h"
-#include "Lexicon/Impl/Native/Parser.h"
-#include "Lexicon/Impl/Native/ParserTest.h"
-#include "Lexicon/Impl/Native/RoutineBase.h"
-#include "Lexicon/Impl/Native/RoutineCompiler.h"
 
 //#include "spdlog/spdlog.h"
 //#include "spdlog/sinks/stdout_color_sinks.h"
@@ -29,7 +15,7 @@ int main(int argc, char** argv) { return 0; }
 
 #include "Lexicon/Runtime.h"
 //
-//#include "Lexicon/Impl/TempConstruct.cpp"
+//#include "Lexicon/Engine/TempConstruct.cpp"
 //
 
 

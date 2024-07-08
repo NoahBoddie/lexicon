@@ -1,5 +1,5 @@
-#include "ITypePolicy.h"
-#include "IdentityManager.h"
+#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {

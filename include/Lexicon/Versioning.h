@@ -148,7 +148,7 @@ struct F
 
 
 
-#define IMPL_VERSION(mc_type) mc_type : public Version::Current::mc_type, public InterfaceSingleton<mc_type>
+#define IMPL_SINGLETON(mc_type) mc_type : public Version::Current::mc_type, public InterfaceSingleton<mc_type>
 
 
 namespace LEX
