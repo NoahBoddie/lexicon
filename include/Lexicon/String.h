@@ -1,7 +1,12 @@
 #pragma once
 
+//*src
+#include "Lexicon/AbstractTypePolicy.h"
+#include "Lexicon/Interfaces/IdentityManager.h"
+
 namespace LEX
 {
+	struct AbstractTypePolicy;
 
 	struct String
 	{
@@ -135,6 +140,14 @@ namespace LEX
 
 		bool operator==(const String& other) const = default;
 
+
+		static AbstractTypePolicy* GetVariableType(const String*)
+		{
+			ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+
+			//Should already be specialized, so just sending it.
+			return policy->FetchTypePolicy(nullptr);
+		}
 
 
 	};

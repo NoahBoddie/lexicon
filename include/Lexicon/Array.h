@@ -5,6 +5,8 @@ namespace LEX
 {
     class Variable; 
 
+    struct AbstractTypePolicy;
+
     class Array
     {
         //It's possible I opt to make my own container for this, just to cut on space
@@ -14,6 +16,11 @@ namespace LEX
         //Arrays themselves will need to be stocked with a type to submit to the variable when called upon.
         AbstractTypePolicy* type;
 
+
+        static AbstractTypePolicy* GetVariableType(const Array*)
+        {
+            return nullptr;
+        }
 
     public:
         constexpr std::strong_ordering operator <=> (const Array& rhs) const

@@ -676,6 +676,17 @@ namespace LEX
         }
 
 
+        static AbstractTypePolicy* GetVariableType(const Variable* it)
+        {
+            if (it)
+            {
+                return it->Policy();
+            }
+
+            return nullptr;
+        }
+     
+
        
         //template <class _Ty, enable_if_t<!is_same_v<_Remove_cvref_t<_Ty>, variant>
         //&& is_constructible_v<_Variant_init_type<_Ty, _Types...>, _Ty>

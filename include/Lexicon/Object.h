@@ -65,6 +65,14 @@ namespace LEX
 		}
 		
 
+		static AbstractTypePolicy* GetVariableType(const Object*)
+		{
+			return nullptr;
+		}
+
+
+
+
 		void Destroy()
 		{
 			//Destroying an object will do 2 things.
