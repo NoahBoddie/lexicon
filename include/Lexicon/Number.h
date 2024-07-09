@@ -1,7 +1,10 @@
 #pragma once
 
+#include "VariableType.h"
+
 //src
 #include "Lexicon/TypeID.h"
+#include "Lexicon/AbstractTypePolicy.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 template <typename EnumType>
@@ -21,6 +24,9 @@ requires(std::is_enum_v<EnumType>&& !std::is_scoped_enum_v<EnumType>) struct fmt
 
 namespace LEX
 {
+    struct AbstractTypePolicy;
+
+
     //*
 #define BINARY_OPERATOR(mc_symbol, ...)                                                                         \
         operator mc_symbol(const Number& other)                                                                 \
@@ -64,9 +70,6 @@ namespace LEX
     
     //Visit in the above operator doesn't work.
     //#define BINARY_OPERATOR(mc_symbol, ...) static CONCAT(test, __LINE__); static_assert(true);
-
-    template<typename T>
-    concept numeric = std::is_integral_v<T> || std::is_floating_point_v<T>;
 
     //Remove use of shift in all of these.
 
@@ -362,8 +365,6 @@ namespace LEX
         struct {} static inline Maybe;
     };
 
-    
-
 
 
 	struct Number
@@ -639,7 +640,15 @@ namespace LEX
             return operator<=>(other) == std::strong_ordering::equal;
         }
             
-        
+        static AbstractTypePolicy* GetVariableType(const Number* it)
+        {
+            ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset("NUMBER", !it ? 0 : it->GetOffset());
+
+            //Should already be specialized, so just sending it.
+            return policy->FetchTypePolicy(nullptr);
+        }
+
+
 		//Proving line.
 
 
@@ -1161,9 +1170,29 @@ namespace LEX
 	};
 
 
+    /*
+    template<numeric T>
+    AbstractTypePolicy* GetVariableType()
+    {
 
-    
 
+        static AbstractTypePolicy* result = nullptr;
+
+        if (!result) {
+
+            constexpr auto setting = LEX::Number::Settings::CreateFromType<T>();
+
+
+            auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
+
+            result = buffer->FetchTypePolicy(nullptr);
+
+            logger::info("id? {}", (int)result->FetchTypeID());
+        }
+
+        return result;
+    }
+    //*/
 }
 
 namespace fmt
