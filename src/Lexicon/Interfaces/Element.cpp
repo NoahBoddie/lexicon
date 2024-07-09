@@ -7,7 +7,7 @@ namespace LEX
 	Project* Element::GetShared()
 	{
 		//Actually supposed to search for the project manager
-		return ProjectManager::GetSharedProject();
+		return ProjectManager::instance->GetShared();
 	}
 	
 	Script* Element::GetCommons() { return GetScript()->FetchCommons(); }
