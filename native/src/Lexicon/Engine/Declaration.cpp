@@ -2,6 +2,7 @@
 
 #include "Lexicon/Engine/Declaration.h"
 
+#include "Lexicon/Engine/Expression.h"
 
 #include "Lexicon/Engine/PolicyBase.h"
 

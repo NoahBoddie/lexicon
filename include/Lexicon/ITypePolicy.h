@@ -100,7 +100,6 @@ namespace LEX
 
 		TypeID FetchTypeID() const
 		{
-			logger::info("is this ? {}", !!this);
 			return this ? GetTypeID() : TypeID{ 0 };
 		}
 

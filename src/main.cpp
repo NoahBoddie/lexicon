@@ -13,7 +13,7 @@
 //#include <spdlog/sinks/stdout_sinks.h>
 
 
-#include "Lexicon/Runtime.h"
+
 //
 //#include "Lexicon/Engine/TempConstruct.cpp"
 //
@@ -149,9 +149,9 @@ void LexTesting(std::string formula)
 
     
     
-    ProjectManager::InitShared();
+    ProjectManager::instance->InitMain();
  
-    Script* script = ProjectManager::GetSharedProject()->GetCommons();
+    Script* script = ProjectManager::instance->GetShared()->GetCommons();
     
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
@@ -170,7 +170,7 @@ void LexTesting(std::string formula)
 
             if (function)
             {
-				if (RegisterFunction(size_backend, function) == false) {
+				if (ProcedureHandler::instance->RegisterFunction(size_backend, function) == false) {
 					logger::debug("failure");
 					std::system("pause");
 				}
@@ -194,7 +194,7 @@ void LexTesting(std::string formula)
         //Testing the proceedure
         if constexpr (0)
         {
-            if (RegisterFunction(GetActorValue_backend, function) == false)
+            if (ProcedureHandler::instance->RegisterFunction(GetActorValue_backend, function) == false)
             {
                 logger::debug("failure");
                 std::system("pause");

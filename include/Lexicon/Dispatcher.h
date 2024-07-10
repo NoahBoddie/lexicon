@@ -6,7 +6,6 @@
 
 
 //*src
-#include "Lexicon/Interfaces/ProcedureHandler.h"
 #include "Lexicon/IFunction.h"
 
 namespace LEX
@@ -23,6 +22,8 @@ namespace LEX
 		// I might make a thing where you can switch out registered external functions similar to that of changing states.
 		inline static std::vector<std::unique_ptr<Dispatcher>> _dispatchList{ 1 };
 
+		static bool TryRegister(Dispatcher* dispatch, IFunction* func);
+
 		virtual void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) = 0;
 
 	protected:
@@ -38,12 +39,15 @@ namespace LEX
 	{
 		using Self = BasicDispatcher<R, T, Args...>;
 		using Function = R (*)(T, Args...);
+	private:
 
-		static bool Create(Function func, IFunction* dispatchee)
+		
+	public:
+		static bool Create(Function func, IFunction* dispatchee) 
 		{
 			std::unique_ptr<Dispatcher> test_dispatch = std::make_unique<Self>(func);
 
-			bool result = ProcedureHandler::instance->RegisterDispatch(test_dispatch.get(), dispatchee);
+			bool result = TryRegister(test_dispatch.get(), dispatchee);
 
 			if (result)  //If it's successful, we don't need to delete the dispatcher.
 				test_dispatch.release();

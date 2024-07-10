@@ -9,7 +9,9 @@
 
 namespace LEX
 {
-	struct Script;
+	class Script;
+
+	struct ProjectClient;
 
 	struct Format
 	{
@@ -20,7 +22,7 @@ namespace LEX
 
 
 
-	struct Project : public Element, public IProject
+	class Project : public Element, public IProject
 	{
 	public:
 		Script* GetCommons() override;
@@ -51,6 +53,8 @@ namespace LEX
 
 		CommonScript* _commons = nullptr;
 
+		ProjectClient* _client = nullptr;
+
 		std::string _name;
 
 		std::vector<Script*> _scripts;
@@ -71,7 +75,7 @@ namespace LEX
 			return _name;
 		}
 
-		void SetName(std::string name)
+		void SetName(std::string_view name)
 		{
 			_name = name;
 		}

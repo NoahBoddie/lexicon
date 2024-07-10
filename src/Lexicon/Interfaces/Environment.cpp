@@ -33,6 +33,7 @@
 
 #include "Lexicon/Engine/parse_strings.h"
 
+#include "Lexicon/Interfaces/Script.h"
 
 //SHOULD_NATIVE
 #include "Lexicon/Engine/FunctionInfo.h"
@@ -41,6 +42,12 @@
 
 namespace LEX
 {
+
+	Environment::~Environment()
+	{
+		//Destroy all info data.
+	}
+
 
 		void Environment::AddFunction(FunctionBase* tar)
 		{
@@ -58,9 +65,9 @@ namespace LEX
 				throw nullptr;
 			}
 			else {
-				auto& info = functionMap[name];
-				info.function = tar;
-				info.signature = tar;
+				auto& info = functionMap[name] = new FunctionInfo;
+				info->function = tar;
+				info->signature = tar;
 				DeclareParentTo(tar);
 			}
 
@@ -94,7 +101,7 @@ namespace LEX
 			//TODO: FindFunctions is busted because I need to LoadFromRecord for a name but needs to be added to Load.
 			if (auto it = functionMap.find(name); end != it) {
 			//if (auto it = std::find_if(functionMap.begin(), functionMap.end(), [&](auto i) { return name == i.second.Get()->GetName(); }); end != it) {
-				result.push_back(&it->second);
+				result.push_back(it->second);
 			}
 			
 			return result;
@@ -434,8 +441,8 @@ namespace LEX
 				{
 					//Rule, no children.
 
-					result = GetProject()->FindScript(path.GetTag());
-
+					auto bybfi = GetProject()->FindScript(path.GetTag());
+					result = bybfi;
 					break;
 				}
 
@@ -480,7 +487,7 @@ namespace LEX
 				case Prefer::Project:
 				{
 
-					ProjectManager::GetProject(path.GetTag());
+					ProjectManager::instance->GetProject(path.GetTag());
 					result = nullptr;
 					break;
 				}

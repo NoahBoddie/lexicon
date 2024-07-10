@@ -149,7 +149,7 @@ include/Lexicon/Interfaces/ProjectManager.h
 	native/include/Lexicon/Engine/TokenType.h
 	native/include/Lexicon/Engine/VariableInfo.h
 	native/include/Lexicon/Engine/VoidPolicy.h
- "include/Lexicon/Interfaces/IElement.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IScript.h" "include/Lexicon/Interfaces/IProject.h")
+ "include/Lexicon/Interfaces/IElement.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IScript.h" "include/Lexicon/Interfaces/IProject.h" "include/Lexicon/Interfaces/ProjectClient.h" "include/Lexicon/SignatureBase.h")
 
 set(sources
 src/Lexicon/AbstractTypePolicy.cpp

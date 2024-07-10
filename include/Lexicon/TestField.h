@@ -187,15 +187,63 @@ namespace LEX
 #define OBJECT_SET_NAME "OBJECT"
 #define DELEGATE_SET_NAME "DELEGATE"
 
-	//TODO: This should be moved.
+	//*
+	AbstractTypePolicy* VariableType<double>::operator()()
+	{
+		//I could just make this numeric
+		static AbstractTypePolicy* result = nullptr;
 
+		if (!result) {
+
+			//offset
+			constexpr auto setting = LEX::Number::Settings::CreateFromType<double>();
+
+			auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
+
+			result = buffer->FetchTypePolicy(nullptr);
+
+			logger::info("id? {}", (int)result->FetchTypeID());
+		}
+
+		return result;
+	}
+	AbstractTypePolicy* VariableType<Void>::operator()(const Void*)
+	{
+		return nullptr;
+	}
+	//*/
+	
+
+	/*
+	template<numeric T>
+	AbstractTypePolicy* GetVariableType<T>()
+	{
+		static AbstractTypePolicy* result = nullptr;
+
+		if (!result) {
+
+			constexpr auto setting = LEX::Number::Settings::CreateFromType<T>();
+
+
+			auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
+
+			result = buffer->FetchTypePolicy(nullptr);
+
+			logger::info("id? {}", (int)result->FetchTypeID());
+		}
+
+		return result;
+	}
+	//*/
+	//TODO: This should be moved.
+	/*
 	AbstractTypePolicy* VariableType<Void>::operator()(const Void*)
 	{
 		return nullptr;
 	}
 
 
-
+	
 	AbstractTypePolicy* VariableType<Number>::operator()(const Number* it)
 	{
 		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, !it ? 0 : it->GetOffset());
@@ -203,11 +251,11 @@ namespace LEX
 		//Should already be specialized, so just sending it.
 		return policy->FetchTypePolicy(nullptr);
 	}
-
+	
 
 	AbstractTypePolicy* VariableType<String>::operator()(const String*)
 	{
-		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(STRING_SET_NAME, CoreOffset::String);
+		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(STRING_SET_NAME, 1);
 
 		//Should already be specialized, so just sending it.
 		return policy->FetchTypePolicy(nullptr);
@@ -238,7 +286,7 @@ namespace LEX
 	{
 		return nullptr;
 	}
-
+	
 	AbstractTypePolicy* VariableType<Variable>::operator()(const Variable* it)
 	{
 		if (it)
@@ -248,7 +296,7 @@ namespace LEX
 
 		return nullptr;
 	}
-
+	
 	AbstractTypePolicy* VariableType<double>::operator()()
 	{
 		//I could just make this numeric
@@ -268,7 +316,7 @@ namespace LEX
 
 		return result;
 	}
-
+	//*/
 
 
 
@@ -479,7 +527,7 @@ namespace LEX
 
 		INITIALIZE()
 		{
-			
+			return;
 #undef max
 #undef min
 			uint8_t r = 0;
@@ -695,15 +743,6 @@ namespace LEX
 
 
 
-	struct TypeA1 {};
-	struct TypeA2 :public TypeA1 {};
-
-	struct TypeB1 {};
-	struct TypeB2 : public TypeB1 {};
-
-	struct TypeA : public TypeA2 {};
-	struct TypeB : public TypeA, public TypeB2 {};
-	struct TypeC : public TypeB {};
 	//TypeC hash to TypeB2
 	//i:0, 1
 	//TypeC hash to TypeB1
@@ -851,8 +890,18 @@ namespace LEX
 
 	}
 
-	struct T
+	struct TestingInheritance
 	{
+
+		struct TypeA1 {};
+		struct TypeA2 :public TypeA1 {};
+
+		struct TypeB1 {};
+		struct TypeB2 : public TypeB1 {};
+
+		struct TypeA : public TypeA2 {};
+		struct TypeB : public TypeA, public TypeB2 {};
+		struct TypeC : public TypeB {};
 
 		int foo(TypeA2&)
 		{
@@ -1098,67 +1147,6 @@ namespace LEX
 
 
 
-#define EXTEND(mc_object) 1
-
-template <typename T>
-struct Extension : public T
-{
-	//the idea is this is a struct that either takes a reference derives from it with no vtable and attempts to perform some new function on it.
-
-	//The only problem is making additional increases to the extension methods.
-};
-
-
-#define TO_XVALUE(mc_expr) true ? mc_expr : static_cast<decltype(mc_expr)&&>(*(int*)0)
-
-	namespace Fields
-	{
-
-
-
-
-		template <typename T>
-		struct Derived : public T, public Void
-		{
-			//How do we handle T?
-			//First
-
-
-			void Foo(int i)
-			{
-				//We cannot do this, because we don't know from these unresolved types if these are compatible.
-				i = *this;
-			}
-
-
-			//What we learned.
-			//-First off, that the inheritence list will be completely different between concrete and generic types.
-			//  From a generic standpoint, it inherits from all the things it knows it can inherit. More than likely,
-			//  it will inherit from these FIRST, regardless order. The main reason why is if I try to unpack them in
-			//  the order given, what if something that we inherit from later is inherited from sooner?
-			// -Such as classC derives from Interface, so it's member offset is like 4, but our generic type 
-			//  also derives from it, making it a lot sooner, making the member offset inaccurate between specializations.
-			//  This is still problematic however. Mainly because of member access to non-existent parts.
-			// <!>Ah, I know what will resolve this. if the generic has typed constraints that allow it to derive from concrete types, it will use those concrete types
-			//  within the generic class. Note, this will also result in those being sooner than thought.
-
-			//The question operating with this is how to handle the adjustments when calling functions that expect something different?
-
-
-			//Inherit list
-			//Concrete:
-			// Void
-
-			//Specialization
-			//T...
-
-			//Total
-
-
-		};
-
-
-	}
 
 
 
@@ -1388,79 +1376,9 @@ struct Extension : public T
 	static_assert(std::is_same_v<int const, const int>);
 
 	
-	enum struct SignatureEnum
-	{
-		Result,
-		Target, 
-		Argument,
-	};
-
 	template<typename T>
 	struct failure;
 
-	using INT = std::remove_const_t<const int&>;
-	template <SignatureEnum T, typename E, typename... Next>
-	bool ProcessEntry(Signature& sign)
-	{
-		//In order to handle specific reference types, or specific qualifiers, there will be a wrapper type to handle it.
-		// I'll just unpack it when the time comes. This would mostly be used for the target of a function.
-		// under these situations, it will use the suggested  qualifiers rather than the the true ones.
-
-		//If an the last entry is the callInfo, ignore it and move on. If it's callinfo but not last, do not compile.
-
-
-		if constexpr (std::is_same_v<E, Void> && T == SignatureEnum::Argument) {
-			//Do not compile actually.
-			return false;
-		}
-
-
-		//Need to save this for later.
-		//if constexpr (Tar && !std::is_reference_v<E>) {
-		//	return false;
-		//}
-
-		constexpr auto next_size = sizeof...(Next);
-
-		using _Pointless = std::remove_pointer_t<E>;
-		using _Refless = std::remove_const_t<std::remove_reference_t<E>>;
-		using _Naked = std::remove_pointer_t<_Pointless>;//Might be better to get the underlying value of the thing.
-
-		QualifiedType& entry = T == SignatureEnum::Result ?
-			sign.result : T == SignatureEnum::Target ?
-			sign.target : sign.parameters.emplace_back();
-			
-		logger::info("increase? {}", sign.parameters.size());
-		
-		entry.policy = FetchVariableType<_Refless>();
-		
-
-		if constexpr (std::is_const_v<_Naked>){
-			entry.flags |= Qualifier::Const;
-		}
-
-		//For right now it really doesn't matter.
-		if constexpr (std::is_reference_v<E>) {
-			entry.flags |= Qualifier::RefL;
-		}
-
-
-
-		if constexpr (next_size)
-		{
-			constexpr SignatureEnum Enum = T == SignatureEnum::Result ?
-				SignatureEnum::Target : T == SignatureEnum::Target ?
-				SignatureEnum::Argument : T;
-
-
-			return ProcessEntry<Enum, Next...>(sign);
-		}
-		else
-		{
-			return true;
-		}
-	}
-	
 	constexpr bool is_thing = std::is_polymorphic_v < std::function<void()>>;
 	
 	/*
@@ -1520,256 +1438,25 @@ struct Extension : public T
 	//*/
 
 
-
-
-	struct TestA {
-		struct TestB {
-			struct TheTest
-			{
-				static int last;
-			};
-			TheTest GetTest()
-			{
-				return {};
-			}
-		};
-	};
-
-
-
 	
 
-	struct PathParser : public LEX::Impl::ParseModule, public LEX::Impl::IdenDeclBoilerPlate
+	INITIALIZE()
 	{
-		//The idea of this is it's a simple parser that acts like the identifier parser, but will handle this in a way that can handle
-		bool CanHandle(LEX::Impl::Parser* parser, Record* target, LEX::Impl::ParseFlag flag) const override
-		{
-			return true;
-		}
-
-		bool IsAtomic() const override
-		{
-			return true;
-		}
-
-
-		Record _HandleThis(LEX::Impl::Parser* parser)
-		{
-			RecordData next = parser->next();
-			next.GetTag() = parse_strings::this_word;
-			return LEX::Impl::Parser::CreateExpression(next, SyntaxType::Field);
-		}
-
-
-		Record HandleToken(LEX::Impl::Parser* parser, Record*) override
-		{
-
-			return _HandlePath(parser, SyntaxType::ProjectName);
-
-		}
-		// Need some boilerplate resolver.
-		std::string_view GetModuleName() override
-		{
-			return typeid(PathParser).name();
-		}
-
-		bool ContextAllowed(LEX::Impl::ProcessContext*, LEX::Impl::ProcessChain*) override
-		{
-			//This prevents anything from following it up for the most part. This shit is a one man show!
-			// If this causes any issues with parsers I may use later, feel free to make a variable to help handle when this is allowed be handled.
-			return false;
-		}
-	};
-
-
-
-	struct Nameless//This goes in the project manager. Make that shit an interface and give it a source
-	{
-		enum Enum
-		{
-			NoneElement,
-			TypeElement,
-			FuncElement,
-			GlobElement,
-		};
-
-
-
-
-		inline static std::unordered_map<size_t, std::pair<Element*, Enum>> _lookupMap;
-
-
-
-		static Element* LookupElement(size_t hash, Enum type)
-		{
-			auto it = _lookupMap.find(hash);
-
-			if (_lookupMap.end() == it || it->second.second == type)
-				return nullptr;
-
-			return it->second.first;
-		}
-
-		static void SaveElement(Element* elem, size_t hash, Enum type)
-		{
-
-			_lookupMap[hash] = std::make_pair(elem, type);
-
-		}
-
-		static size_t HashPath(std::string& path)
-		{
-			//TODO: -Check: I think unordered map already hashes stuff so maybe not needed. Still will handle later
-			std::hash<std::remove_reference_t<decltype(path)>> hasher{};
-
-			return hasher(path);
-
-		}
-
-		static Element* GetElementFromPath(std::string path, Enum elem)
-		{
-			//right now, linking isn't really set up so you know.
-			if (1 || Component::HasLinked(LinkFlag::Declaration) == false){
-				//Tell that this is too early to be valid.
-				return nullptr;
-			}
-
-
-			auto hash = HashPath(path);
-
-			auto element = LookupElement(hash, elem);
-
-
-			if (!element)
-			{
-				Record record = LEX::Impl::Parser__::CreateSyntax<PathParser>(path);
-
-				//<!> After parsing is done, the top most type needs to be set to the standards of what it's expecting.
-
-				//From here, use the path functions that are in environment.
-				// The project should be found from the first part, and from there we should just keep the environ search should finish it out.
-
-				switch (elem)
-				{
-					//Do the search for each type here.
-				case Enum::FuncElement:
-				case Enum::TypeElement:
-				case Enum::GlobElement:
-				default:
-					element = nullptr; break;
-				}
-
-
-				if (element) {
-					SaveElement(element, hash, elem);
-				}
-
-			}
-
-			return element;
-		}
-
-		static FunctionBase* GetFunctionFromPath(std::string path)
-		{
-			if (auto elem = GetElementFromPath(path, FuncElement); elem)
-				return static_cast<FunctionBase*>(elem);
-
-			return nullptr;
-		}
-
-		static FunctionBase* GetFunctioFromPath(std::string path)
-		{
-			if (auto elem = GetElementFromPath(path, FuncElement); elem)
-				return static_cast<FunctionBase*>(elem);
-
-			return nullptr;
-		}
-
-
-
-
-
-		static PolicyBase* GetTypeFromPath(std::string path)
-		{
-			if (auto elem = GetElementFromPath(path, TypeElement); elem)
-				return static_cast<PolicyBase*>(elem);
-
-			return nullptr;
-		}
-
-		static Global* GetGlobalFromPath(std::string path)
-		{
-			if (auto elem = GetElementFromPath(path, GlobElement); elem)
-				return static_cast<Global*>(elem);
-
-			return nullptr;
-		}
-
-	};
-
-
+		FetchVariableType<Variable>();
+		FetchVariableType<Number>();
+		FetchVariableType<String>();
+		FetchVariableType<Variable>();
+		FetchVariableType<Variable>();
+		FetchVariableType<Variable>();
+	}
 	
-	template <typename R, typename... Args>
-	bool RegisterFunction(R (*func)(Args...), FunctionBase* base)
-	{
-		//Currently, the only way to properly handle the system is by making a unique lambda each time a new template is created. But needless to say,
-		// cant do that.
+	
 
-		//I think something I can do is that optionally a 64 bit context code can be given when making a procedure. This allows me to just simply pull what's needed.
-		// So I think that might be a proceedure thing idk. Something to make context of. But something fast. Definitely not something like what native function
-		// would have been.
 
-		//The context thing is a good idea, it can possibly sort out which overload is being set up, if someone is using it pure (which one shouldn't.
-		// Long story short it's the address to use.
-
-		Signature sign{};
-
-		//bool processed = ProcessEntry<true, R, Args...>(sign);
-		bool processed = ProcessEntry<SignatureEnum::Result, R, Args...>(sign);
-
-		if (!processed)
-			throw nullptr;
-		
-		OverloadFlag flag = OverloadFlag::AllAccess;
-
-		auto overload = sign.Match(base, nullptr, nullptr, flag);
-
-		if (flag & OverloadFlag::Failure) {
-			logger::info("FAILED TO MATCH");
-			return false;
-		}
-		else
-			logger::info("SUCCESS TO MATCH");
-
-		//static auto dispatch = new BasicDispatcher(func, base);
-		auto result = BasicDispatcher<R, Args...>::Create(func, base);
-
-		return result;
-	}
-
-	//thing to get function here.
-
-	template <typename R, typename... Args>
-	bool RegisterFunction(R (*func)(Args...), std::string path)
-	{
-		FunctionBase* base = Nameless::GetFunctionFromPath(path);
-
-		return RegisterFunction(func, base);
-	}
-
-	bool RegisterFunction(Procedure procedure, std::string path)
-	{
-		FunctionBase* func = Nameless::GetFunctionFromPath(path);
-
-		return ProcedureHandler::instance->RegisterFunction(procedure, func);
-	}
 }
 
 
-void Test()
-{
-	LEX::ConcreteFunction t{};
-}
+
 namespace fmt
 {
 	//Really want this to work

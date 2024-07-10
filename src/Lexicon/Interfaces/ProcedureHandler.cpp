@@ -2,7 +2,9 @@
 
 #include "Lexicon/Interfaces/ProcedureHandler.h"
 
+#include "Lexicon/Engine/Signature.h"
 #include "Lexicon/Engine/FunctionBase.h"
+
 #include "Lexicon/AbstractFunction.h"
 #include "Lexicon/Dispatcher.h"
 
@@ -11,6 +13,30 @@ namespace LEX
 
 	inline static std::vector<std::unique_ptr<Dispatcher>> _dispatchList{};
 
+
+	bool ProcedureHandler::CheckSignatureMatch(SignatureBase& base, IFunction* func)
+	{
+
+		Signature sign{ base };
+
+		OverloadFlag flag = OverloadFlag::AllAccess;
+
+		auto overload = sign.Match(dynamic_cast<FunctionBase*>(func), nullptr, nullptr, flag);
+
+		bool result;
+
+		if (flag & OverloadFlag::Failure) {
+			logger::info("FAILED TO MATCH");
+			result = false;
+		}
+		else {
+			logger::info("SUCCESS TO MATCH");
+			result = true;
+		}
+		//Should this fail on any step it needs to report the error to itself.
+
+		return result;
+	}
 
 	bool ProcedureHandler::RegisterDispatch(Dispatcher* dispatch, IFunction* func)
 	{
@@ -28,8 +54,6 @@ namespace LEX
 		_dispatchList.emplace_back(std::unique_ptr<Dispatcher>{ dispatch });
 
 		auto reciever = [](RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) -> void {
-			Dispatcher* funcOld = _dispatchList[0].get();
-
 			auto p_data = data.srcFunc->GetProcedureData();
 
 			//check data here.

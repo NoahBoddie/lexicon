@@ -9,6 +9,8 @@
 #include "Lexicon/Engine/GlobalVariable.h"
 #include "Lexicon/Engine/parse_strings.h"
 
+#include "Lexicon/Engine/Expression.h"
+
 namespace LEX
 {
 	//TODO: ObtainPolicy needs to be moved else where at some point.

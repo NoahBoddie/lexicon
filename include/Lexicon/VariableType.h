@@ -101,7 +101,7 @@ namespace LEX
 	template<typename T>
 	detail::not_implemented GetVariableType(const accepts_all, detail::not_implemented = {})
 	{
-		static_assert(std::is_same_v<T, T>, "Unimplemented version of GetValueType called.");
+		static_assert(!std::is_same_v<T, T>, "Unimplemented version of GetVariableType called.");
 		return {};
 	}
 
@@ -145,7 +145,7 @@ namespace LEX
 
 	namespace detail
 	{
-		template<typename T> concept function_has_var_type_Value = requires(const T * t)
+		template<typename T> concept function_has_var_type_Value = requires(const T* t)
 		{
 			{ GetVariableType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
 		};
@@ -171,6 +171,7 @@ namespace LEX
 			}
 		}
 
+		//Can likely remove this
 		AbstractTypePolicy* operator()()
 		{
 			return this->operator()(nullptr);
@@ -287,6 +288,9 @@ namespace LEX
 	struct Array;
 	class Variable;
 	struct String;
+	
+	
+
 	template <>
 	struct VariableType<Void>
 	{
@@ -294,51 +298,7 @@ namespace LEX
 	};
 
 
-	template <>
-	struct VariableType<Number>
-	{
-		AbstractTypePolicy* operator()(const Number* it);
-	};
-
-
-	template <>
-	struct VariableType<String>
-	{
-		AbstractTypePolicy* operator()(const String*);
-	};
-
-
-	template <>
-	struct VariableType<Delegate>
-	{
-		AbstractTypePolicy* operator()(const Delegate*);
-	};
-
-
-	template <>
-	struct VariableType<Object>
-	{
-		AbstractTypePolicy* operator()(const Object*);
-	};
-
-	template <>
-	struct VariableType<FunctionHandle>
-	{
-		AbstractTypePolicy* operator()(const FunctionHandle*);
-	};
-
-	template <>
-	struct VariableType<Array>
-	{
-		AbstractTypePolicy* operator()(const Array*);
-	};
-
-	template <>
-	struct VariableType<Variable>
-	{
-		AbstractTypePolicy* operator()(const Variable*);
-	};
-
+	
 
 	template <>
 	struct VariableType<double>
@@ -347,4 +307,74 @@ namespace LEX
 		AbstractTypePolicy* operator()();
 	};
 
+	//This is how I'll prefer to get variable types.
+	// GetVariableType becomes FetchVariableType, vice versa
+	// Newly named GetVariableType will instead use FetchVariableType, which will either want a VariableType struct
+	// or a GetVariableType function within the type itself.
+	/*
+	template <std::integral T>
+	struct VariableType<T>
+	{
+
+		AbstractTypePolicy* operator()() { return nullptr; }
+	};
+	//*/
+	
+	//template class VariableType<Number>;
+	
+	//template AbstractTypePolicy* VariableType<Number>::operator()(const Number*);
+	
+	/*
+	 
+	//x
+	template <>
+	struct VariableType<Number>
+	{
+		inline AbstractTypePolicy* operator()(const Number* it);
+	};
+	
+	//x
+	template <>
+	struct VariableType<String>
+	{
+		AbstractTypePolicy* operator()(const String*);
+	};
+
+	//no
+	template <>
+	struct VariableType<Delegate>
+	{
+		AbstractTypePolicy* operator()(const Delegate*);
+	};
+
+	//x
+	template <>
+	struct VariableType<Object>
+	{
+		AbstractTypePolicy* operator()(const Object*);
+	};
+
+
+	//no
+	template <>
+	struct VariableType<FunctionHandle>
+	{
+		AbstractTypePolicy* operator()(const FunctionHandle*);
+	};
+	//x
+	template <>
+	struct VariableType<Array>
+	{
+		AbstractTypePolicy* operator()(const Array*);
+	};
+	//x
+	template <>
+	struct VariableType<Variable>
+	{
+		AbstractTypePolicy* operator()(const Variable*);
+	};
+
+
+	void TestFunc();
+	//*/
 }

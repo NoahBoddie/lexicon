@@ -1,6 +1,5 @@
 #include "Lexicon/Field.h"
 
-#include "Lexicon/Engine/Solution.h"
 #include "Lexicon/QualifiedType.h"
 namespace LEX
 {
