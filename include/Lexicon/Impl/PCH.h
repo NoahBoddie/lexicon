@@ -633,6 +633,10 @@ namespace stl
 
 //Move me please.
 #include "Lexicon/Versioning.h"
+
+#include "Lexicon/Impl/CustomTraits.h"
+#include "Lexicon/Interfaces/Interface.h"
+#include "Lexicon/Interfaces/InterfaceSingleton.h"
 //*/
 
 #endif
