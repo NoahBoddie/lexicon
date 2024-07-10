@@ -8,6 +8,9 @@ namespace LEX
 	class Project;
 	struct Element;
 	struct Environment;
+	struct ITypePolicy;
+	struct IFunction;
+	struct IGlobal;
 
 	namespace Version
 	{
@@ -21,6 +24,10 @@ namespace LEX
 				virtual Element* GetParent() = 0;//TODO: IElement::GetParent should be environment.
 				virtual Record* GetSyntaxTree() = 0;
 				virtual Environment* GetEnvironment() = 0;
+
+				virtual ITypePolicy* ToType() { return nullptr; }
+				virtual IFunction* ToFunction() { return nullptr; }
+				virtual IGlobal* ToGlobal() { return nullptr; }
 			};
 
 		}
