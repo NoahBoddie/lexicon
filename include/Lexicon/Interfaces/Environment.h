@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Lexicon/Component.h"
-//#include "Lexicon/Engine/Native/ExpressionType.h"
+
 #include "Lexicon/Exception.h"
-#include "Lexicon/Engine/Parser.h"
+
 #include "Lexicon/Interfaces/Element.h"
 
 #include "Lexicon/TypeID.h"
 #include "Lexicon/MemberPointer.h"
-#include "Lexicon/Engine/FunctionInfo.h"
+
 
 #include "Lexicon/Interfaces/IEnvironment.h"
 
@@ -43,7 +43,7 @@ namespace LEX
 
 	struct Global;
 
-	class PolicyBase;
+	struct PolicyBase;
 	class FunctionBase;
 
 	struct ConcretePolicy;
@@ -98,7 +98,7 @@ namespace LEX
 	struct FunctionInfo;
 	struct VariableInfo;
 
-	using FunctionContainer = FunctionInfo;
+	using FunctionContainer = FunctionInfo*;
 	using TypeContainer = PolicyBase*;
 
 
@@ -204,6 +204,7 @@ namespace LEX
 		//virtual IGlobal* FindGlobalPath(std::string_view path) overide { return nullptr; }
 
 	public:
+		~Environment() override;
 
 
 		//>------------------------------------------------------------------------------------------------------------

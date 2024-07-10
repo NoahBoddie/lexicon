@@ -2,6 +2,8 @@
 
 #include "Lexicon/Engine/ConcretePolicy.h"
 
+#include "Lexicon/Engine/Expression.h"
+
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 #include "Lexicon/Engine/ConcreteFunction.h"
 
