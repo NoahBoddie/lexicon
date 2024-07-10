@@ -5,10 +5,12 @@
 #include "OverloadFlag.h"
 #include "OverloadClause.h"
 
+#include "Lexicon/SignatureBase.h"
+
 namespace LEX
 {
 
-	struct Signature : public OverloadKey
+	struct Signature : public OverloadKey, public SignatureBase
 	{
 		//The match for this should be aimed to be as very little in terms of ambiguity as possible.
 		//Thus, the stated project, script, and of course, the path.
@@ -82,10 +84,18 @@ namespace LEX
 			return overload;
 		}
 
-		QualifiedType result;
-		QualifiedType target;
 
-		std::vector<QualifiedType> parameters;
+		void MoveSignature(SignatureBase& other)
+		{
+			result = std::move(other.result);
+			target = std::move(other.target);
+			parameters = std::move(other.parameters);
+		}
+
+		constexpr Signature() noexcept = default;
+
+		Signature(SignatureBase& other) { MoveSignature(other); }
+
 	};
 
 }
