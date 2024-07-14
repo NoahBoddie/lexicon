@@ -835,7 +835,7 @@ namespace LEX
 		{
 			virtual size_t GetSize() const = 0;
 
-			virtual std::pair<ITypePolicy**, size_t> GetPartArgument(size_t i) const = 0;
+			virtual ITypePolicy* GetPartArgument(size_t i) const = 0;
 
 			//TODO: Instead of all this, why not make a hash of each entry?
 
@@ -845,13 +845,13 @@ namespace LEX
 
 		struct ITemplateBody : public ITemplatePart
 		{
-			std::pair<ITypePolicy**, size_t> GetPartArgument(size_t i) const override final
+			ITypePolicy* GetPartArgument(size_t i) const override final
 			{
 				report::fault::critical("Cannot get Part Argument from a TemplateBody.");
 			}
 
 
-			virtual std::pair<AbstractTypePolicy**, size_t> GetBodyArgument(size_t i) const = 0;
+			virtual AbstractTypePolicy* GetBodyArgument(size_t i) const = 0;
 
 
 			ITemplateBody* TryPromoteTemplate() override
@@ -895,22 +895,22 @@ namespace LEX
 
 			size_t GetSize() const override { return _types.size(); }
 
-			std::pair<ITypePolicy**, size_t> GetPartArgument(size_t i) const override
+			ITypePolicy* GetPartArgument(size_t i) const override
 			{
-				auto& type = _types[i];
+				auto type = _types[i];
 
-				return { type.data(), type.size() };
+				return type;
 			}
 
 			void InsertType(ITypePolicy* part) override
 			{
-				_types.emplace_back(std::vector{ part });
+				_types.emplace_back(part);
 			}
 
 
 		
 
-			mutable std::vector<std::vector<ITypePolicy*>> _types;
+			mutable std::vector<ITypePolicy*> _types;
 		};
 
 		struct GenericBodyArray : public ITemplateBody, public ITemplateInsertBody
@@ -918,20 +918,20 @@ namespace LEX
 
 			size_t GetSize() const override { return _types.size(); }
 
-			std::pair<AbstractTypePolicy**, size_t> GetBodyArgument(size_t i) const override
+			AbstractTypePolicy* GetBodyArgument(size_t i) const override
 			{
 				auto& type = _types[i];
 
-				return { type.data(), type.size() };
+				return type;
 			}
 
 
 			void InsertType(AbstractTypePolicy* body) override
 			{
-				_types.emplace_back(std::vector{ body });
+				_types.emplace_back(body);
 			}
 
-			mutable std::vector<std::vector<AbstractTypePolicy*>> _types;
+			mutable std::vector<AbstractTypePolicy*> _types;
 		};
 
 
@@ -940,32 +940,27 @@ namespace LEX
 		using IGenericArgument = ITemplateBody;
 
 		
-		inline std::unique_ptr<ITemplatePart> temp_EncapTypes(std::vector<std::vector<ITypePolicy*>>& list)
+		inline std::unique_ptr<ITemplatePart> temp_EncapTypes(std::vector<ITypePolicy*>& list)
 		{
 			//The point of this function would be to accept a number of types turning them into a GenericParameter, or a generic argument.
 
-			std::vector<std::vector<AbstractTypePolicy*>> possible;
+			std::vector<AbstractTypePolicy*> possible;
 
 			auto size = list.size();
 
-			for (auto& outer : list)
+			for (auto& it : list)
 			{
-				auto& in = possible.emplace_back();
-
-				for (auto& inner : outer)
+				if (it->IsResolved() == false)
 				{
-					if (inner->IsResolved() == false)
-					{
-						GenericPartArray* _array = new GenericPartArray;
-						std::unique_ptr<ITemplatePart> result{ _array };
+					GenericPartArray* _array = new GenericPartArray;
+					std::unique_ptr<ITemplatePart> result{ _array };
 					
-						_array->_types = std::move(list);
+					_array->_types = std::move(list);
 
-						return result;
-					}
-
-					in.push_back(inner->GetTypePolicy((ITemplateBody*)nullptr));
+					return result;
 				}
+
+				possible.push_back(it->GetTypePolicy((ITemplateBody*)nullptr));
 			}
 
 			GenericBodyArray* _array = new GenericBodyArray;
@@ -976,6 +971,8 @@ namespace LEX
 
 			return result;
 		}
+
+
 
 		struct SpecialBase;
 		struct SpecialPart;
@@ -988,6 +985,8 @@ namespace LEX
 			virtual ~ISpecializable() = default;
 			
 			virtual GenericBase* GetGeneric() const = 0;
+
+			//virtual SpecialBase* GetPart(ITemplatePart* args) = 0;
 
 			virtual SpecialBody* ObtainBody(IGenericArgument* args) = 0;
 
@@ -1128,8 +1127,8 @@ namespace LEX
 
 				for (auto i = 0; i < size; i++)
 				{
-					auto pair = spec->GetPartArgument(i);
-					_types.emplace_back(pair.first, pair.first + pair.second);
+					auto arg = spec->GetPartArgument(i);
+					_types.emplace_back(arg);
 				}
 			}
 
@@ -1148,14 +1147,7 @@ namespace LEX
 					auto& l_type = gen_array._types[x];
 					auto& r_type = _types[x];
 
-					auto size = r_type.size();
-
-					l_type = std::remove_reference_t<decltype(l_type)>{ size };
-
-					for (int y = 0; y < size; y++)
-					{
-						l_type[y] = r_type[y]->CheckTypePolicy(ask, args);
-					}
+					l_type = r_type->CheckTypePolicy(ask, args);
 				}
 
 				return gen_array;
@@ -1176,14 +1168,7 @@ namespace LEX
 					auto& l_type = gen_array._types[x];
 					auto& r_type = _types[x];
 
-					auto size = r_type.size();
-
-					l_type = std::remove_reference_t<decltype(l_type)>{ size };
-
-					for (int y = 0; y < size; y++)
-					{
-						l_type[y] = r_type[y]->GetTypePolicy(args);
-					}
+					l_type = r_type->GetTypePolicy(args);
 				}
 
 				return gen_array;
@@ -1226,28 +1211,21 @@ namespace LEX
 				for (int i = 0; i < size; i++)
 				{
 					auto& lhs = _types[i];
-					std::pair<ITypePolicy**, size_t> rhs = args->GetPartArgument(i);
 
-					if (lhs.size() != rhs.second)
-						return false;
+					ITypePolicy* rhs = args->GetPartArgument(i);
 
-					if (std::memcmp(lhs.data(), rhs.first, rhs.second) != 0) {
+					if (lhs != rhs) {
 						return false;
 					}
 
 				}
 
 				return true;
-
-				for (auto& list : _types)
-				{
-
-				}
 			}
 
 			ITypePolicy* GetArgument(size_t i) const override final
 			{
-				return _types[i][0];
+				return _types[i];
 			}
 
 			virtual size_t GetSize() const override final
@@ -1256,7 +1234,7 @@ namespace LEX
 			}
 
 		private:
-			std::vector<std::vector<ITypePolicy*>> _types;
+			std::vector<ITypePolicy*> _types;
 		};
 
 
@@ -1270,8 +1248,8 @@ namespace LEX
 
 				for (auto i = 0; i < size; i++)
 				{
-					auto pair = spec->GetBodyArgument(i);
-					_types.emplace_back(pair.first, pair.first + pair.second);
+					auto type = spec->GetBodyArgument(i);
+					_types.emplace_back(type);
 				}
 			}
 
@@ -1299,12 +1277,9 @@ namespace LEX
 				for (int i = 0; i < size; i++)
 				{
 					auto& lhs = _types[i];
-					std::pair<AbstractTypePolicy**, size_t> rhs = args->GetBodyArgument(i);
+					AbstractTypePolicy* rhs = args->GetBodyArgument(i);
 
-					if (lhs.size() != rhs.second)
-						return false;
-
-					if (std::memcmp(lhs.data(), rhs.first, rhs.second) != 0) {
+					if (lhs != rhs) {
 						return false;
 					}
 
@@ -1316,7 +1291,7 @@ namespace LEX
 
 			ITypePolicy* GetArgument(size_t i) const override final
 			{
-				return _types[i][0];
+				return _types[i];
 			}
 
 			virtual size_t GetSize() const override final
@@ -1326,7 +1301,7 @@ namespace LEX
 
 		private:
 			//This isn't properly needed, what actually might be needed is just a hash of some kind.
-			std::vector<std::vector<AbstractTypePolicy*>> _types;
+			std::vector<AbstractTypePolicy*> _types;
 
 		};
 
@@ -1368,7 +1343,7 @@ namespace LEX
 		{
 			ITypePolicy* _self = nullptr;
 
-			SpecialTypePart(GenericBase* base, ITypePolicy* type, ITemplateBody* spec) : SpecialPart{ base, spec }, _self{ type }
+			SpecialTypePart(GenericBase* base, ITypePolicy* type, ITemplatePart* spec) : SpecialPart{ base, spec }, _self{ type }
 			{
 				report::info("NewBody {}", (uintptr_t)this);
 			}
@@ -1512,7 +1487,7 @@ namespace LEX
 
 
 
-
+			//This does nothing else but get specialized. All other uses should be reported.
 
 			virtual TypeID GetTypeID() const { throw nullptr; }
 
@@ -1578,7 +1553,7 @@ namespace LEX
 
 				for (int i = 0; i < size; i++)
 				{
-					ITypePolicy* type = args->GetPartArgument(i).first[0];
+					ITypePolicy* type = args->GetPartArgument(i);
 
 					UnpackImpl2(out, type);
 				}
@@ -1710,26 +1685,16 @@ namespace LEX
 
 		ITypePolicy* TemplateType::CheckTypePolicy(GenericBase* ask, ITemplatePart* args)
 		{
-			auto pair = args->GetPartArgument(index);
+			auto part = args->GetPartArgument(index);
 
-			//At a later point if this
-			if (pair.second == 1)
-				return pair.first[0];
-			else
-				return nullptr;
-
+			return part;
 		}
 
 		AbstractTypePolicy* TemplateType::GetTypePolicy(ITemplateBody* args)// override
 		{
-			auto pair = args->GetBodyArgument(index);
+			auto body = args->GetBodyArgument(index);
 
-			//At a later point if this
-			if (pair.second == 1)
-				return pair.first[0];
-			else
-				return nullptr;
-
+			return body;
 		}
 
 
@@ -1754,23 +1719,23 @@ namespace LEX
 			ITypePolicy* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
 			ITypePolicy* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
-			std::vector<std::vector<ITypePolicy*>> group1{ 3 };
-			std::vector<std::vector<ITypePolicy*>> group2{ 3 };
-			std::vector<std::vector<ITypePolicy*>> group3{ 3 };
+			std::vector<ITypePolicy*> group1{ 3 };
+			std::vector<ITypePolicy*> group2{ 3 };
+			std::vector<ITypePolicy*> group3{ 3 };
 
 
-			group1[0].push_back(floatSmall);
-			group1[1].push_back(stringB);
-			group1[2].push_back(&specifier1._template[0]);
+			group1[0] = floatSmall;
+			group1[1] = stringB;
+			group1[2] = &specifier1._template[0];
 			
 
-			group2[0].push_back(&specifier2._template[2]);
-			group2[1].push_back(&specifier2._template[0]);
-			group2[2].push_back(&specifier2._template[1]);
+			group2[0] = &specifier2._template[2];
+			group2[1] = &specifier2._template[0];
+			group2[2] = &specifier2._template[1];
 
-			group3[0].push_back(stringB);
-			group3[1].push_back(floatSmall);
-			group3[2].push_back(stringB);
+			group3[0] = stringB;
+			group3[1] = floatSmall;
+			group3[2] = stringB;
 
 
 
