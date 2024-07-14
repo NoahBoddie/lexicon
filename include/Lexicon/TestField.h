@@ -32,7 +32,7 @@
 #include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/InstructionType.h"
 #include "Lexicon/Engine/OperatorType.h"
-#include "Runtime.h"
+#include "Lexicon/Engine/Runtime.h"
 #include "RuntimeVariable.h"
 #include "IVariable.h"
 #include "Lexicon/Engine/GlobalVariable.h"
@@ -114,53 +114,6 @@ inline std::hash<std::vector<uint64_t>> hasher;
 
 namespace LEX
 {
-	struct SourceObject
-	{
-		//This is an object that is used to represent foreign C++ objects attempting to interface with
-		// the lexicon system
-
-		void* object = nullptr;
-		std::type_info* info = nullptr;
-
-
-		//Might these need to decay?
-		template <typename T>
-		SourceObject(T& self) : object{ &self }, info{ &typeid(T) }
-		{
-		}
-
-		template <typename T>
-		SourceObject(T&& self) : info{ &typeid(T) }
-		{
-		}
-	};
-
-
-	//I'll need to be able to tell a type by value (this is basically the vtable like side of things)
-	// and the return type which is the type you can see.
-
-	//So for example, nothing will ever be a MagicItem, literally does not exist so you'll get its variable type. BUT, you can get it's return type
-
-
-
-
-	struct CONCEPT__TypeID
-	{
-		//will be redesigning the new range based type id system that should allow for much less wasted space.
-
-		//Type ids will not be the raw id anymore
-	};
-
-	struct CONCEPT__TypeCode
-	{
-		//Type code will continue to exist, this is what is sent along with a name in order to actually find a proper type
-		// So that a proper object can be created.
-		//This is 16 bit when it comes to that. But hold off on.
-	};
-
-
-	using __TypeID = uint32_t;
-
 
 	/////////////////////////
 	//Implementations
@@ -236,87 +189,6 @@ namespace LEX
 	}
 	//*/
 	//TODO: This should be moved.
-	/*
-	AbstractTypePolicy* VariableType<Void>::operator()(const Void*)
-	{
-		return nullptr;
-	}
-
-
-	
-	AbstractTypePolicy* VariableType<Number>::operator()(const Number* it)
-	{
-		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(NUMBER_SET_NAME, !it ? 0 : it->GetOffset());
-
-		//Should already be specialized, so just sending it.
-		return policy->FetchTypePolicy(nullptr);
-	}
-	
-
-	AbstractTypePolicy* VariableType<String>::operator()(const String*)
-	{
-		ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset(STRING_SET_NAME, 1);
-
-		//Should already be specialized, so just sending it.
-		return policy->FetchTypePolicy(nullptr);
-	}
-
-
-	AbstractTypePolicy* VariableType<Delegate>::operator()(const Delegate*)
-	{
-		return nullptr;
-	}
-
-
-	AbstractTypePolicy* VariableType<Object>::operator()(const Object* it)
-	{
-		//Currently there is no type policy, but at a later point yes.
-		//it->GetType()
-
-		return nullptr;
-	}
-
-	AbstractTypePolicy* VariableType<FunctionHandle>::operator()(const FunctionHandle*)
-	{
-		return nullptr;
-	}
-
-
-	AbstractTypePolicy* VariableType<Array>::operator()(const Array*)
-	{
-		return nullptr;
-	}
-	
-	AbstractTypePolicy* VariableType<Variable>::operator()(const Variable* it)
-	{
-		if (it)
-		{
-			return it->Policy();
-		}
-
-		return nullptr;
-	}
-	
-	AbstractTypePolicy* VariableType<double>::operator()()
-	{
-		//I could just make this numeric
-		static AbstractTypePolicy* result = nullptr;
-
-		if (!result) {
-
-			//offset
-			constexpr auto setting = LEX::Number::Settings::CreateFromType<double>();
-
-			auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
-
-			result = buffer->FetchTypePolicy(nullptr);
-
-			logger::info("id? {}", (int)result->FetchTypeID());
-		}
-
-		return result;
-	}
-	//*/
 
 
 
@@ -332,15 +204,6 @@ namespace LEX
 	}
 
 	
-
-
-
-	void test()
-	{
-
-
-	}
-
 
 
 
@@ -516,6 +379,89 @@ namespace LEX
 			//void* _this = nullptr;
 			Variable _this;
 		};
+
+
+
+		//*
+
+	//std::convertible_to<Variable>//I want to use this, but I cannot because it doesn't yet account for pointer
+	// types. Readdress another time.
+		template <typename T, typename = void>
+		struct ThisHelper {};
+
+
+
+		//This is for value and references
+		template <typename T>
+		struct ThisHelper<T, std::enable_if_t<!PointerType<T>>> : public detail::ThisHelperImpl
+		{
+			using _Self = ThisHelper<T>;
+
+			//Should be convertible to a variable?
+
+			//This is only to fulfill what someone would normally use
+
+
+			ThisHelper(const T& t)
+			{
+
+			}
+
+			ThisHelper(const T&& t)
+			{
+
+			}
+		};
+
+		//this is for pointers
+		template <typename T>
+		struct ThisHelper<T, std::enable_if_t<PointerType<T>>> : private ThisHelperImpl
+		{
+			using TypeC = int;
+			using _Self = ThisHelper<T>;
+
+			_Base* operator->()
+			{
+				//This gets the TargetBase, the thing that actually has the run function, to resume the 
+				// syntax that you're accessing a member function (which you kinda are).
+
+				return this;
+			}
+
+
+			ThisHelper(const T& t)
+			{
+
+			}
+
+			ThisHelper(const T&& t)
+			{
+
+			}
+		};
+
+
+		template <typename T>
+		ThisHelper(T) -> ThisHelper<T>;
+
+
+
+		//this helper should be moved to something else.
+	//maybe name METHOD?
+#define METHOD(mc_tar) ThisHelper{ mc_tar }
+
+
+
+		void test_method()
+		{
+			std::string* string_thing;
+			std::vector testname{ string_thing };
+
+			METHOD(string_thing)->Call(nullptr, 1, 3, 4);
+
+		}
+#undef METHOD
+		//*/
 	}
 	
 	
@@ -587,86 +533,7 @@ namespace LEX
 	}
 
 
-	//*
-
-	//std::convertible_to<Variable>//I want to use this, but I cannot because it doesn't yet account for pointer
-	// types. Readdress another time.
-	template <typename T, typename = void>
-	struct ThisHelper {};
-
-
-
-	//This is for value and references
-	template <typename T>
-	struct ThisHelper<T, std::enable_if_t<!PointerType<T>>> : public detail::ThisHelperImpl
-	{
-		using _Self = ThisHelper<T>;
-
-		//Should be convertible to a variable?
-
-		//This is only to fulfill what someone would normally use
-
-
-		ThisHelper(const T& t)
-		{
-
-		}
-
-		ThisHelper(const T&& t)
-		{
-
-		}
-	};
-
-	//this is for pointers
-	template <typename T>
-	struct ThisHelper<T, std::enable_if_t<PointerType<T>>> : private detail::ThisHelperImpl
-	{
-		using TypeC = int;
-		using _Self = ThisHelper<T>;
-
-		_Base* operator->()
-		{
-			//This gets the TargetBase, the thing that actually has the run function, to resume the 
-			// syntax that you're accessing a member function (which you kinda are).
-
-			return this;
-		}
-
-
-		ThisHelper(const T& t)
-		{
-
-		}
-
-		ThisHelper(const T&& t)
-		{
-
-		}
-	};
-
-
-	template <typename T>
-	ThisHelper(T) -> ThisHelper<T>;
-
-
-
-	//this helper should be moved to something else.
-//maybe name METHOD?
-#define METHOD(mc_tar) ThisHelper{ mc_tar }
-
-
-
-	void test_method()
-	{
-		std::string* string_thing;
-		std::vector testname{ string_thing };
-
-		METHOD(string_thing)->Call(nullptr, 1, 3, 4);
-
-	}
-#undef METHOD
-	//*/
+	
 
 
 
@@ -889,6 +756,1077 @@ namespace LEX
 		}
 
 	}
+
+
+	namespace NewGenericV2
+	{
+		constexpr TypeID Trival = 0xDEADBEEF;
+		constexpr TypeID Tuple = 0xDEADBAAD;
+
+		struct ITemplateBody;
+		struct TemplateTuple;
+
+		struct TemplateType : public ITypePolicy, public HierarchyData
+		{
+			//GenericType is an ITypePolicy that largely should not exist with any HierarchyData. It's from this fact
+			// plus the fact HierarchyData is a lot that I think I should split the function between 2 parts.
+			//This type will use a seperate HierarchyData having type in order to answer questions it's questions about it.
+			
+			//But until I have a proper design for that I think having hierarchy data will be fine.
+			void Test()
+			{
+				IdentityManager::instance->GetIDFromName("TRIVAL");
+
+
+				ITypePolicy* test = nullptr;
+
+				HierarchyData* other = dynamic_cast<HierarchyData*>(test);
+			}
+
+			std::string name;
+			size_t index = -1;
+			TemplateTuple* _tupleData = nullptr;
+			TemplateType(std::string n, size_t i) : name{ n }, index{ i } {};
+
+
+
+			AbstractTypePolicy* GetTypePolicy(LEX::IGenericArgument* args) override
+			{
+				return nullptr;
+			}
+
+			virtual ITypePolicy* CheckTypePolicy(GenericBase* ask, ITemplatePart* args) override;
+
+			AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
+
+
+
+			virtual bool IsResolved() const { return false; }
+
+			virtual TypeID GetTypeID() const { return _tupleData ? Tuple : Trival; }
+
+			virtual DataType GetDataType() const { return DataType::Interface; }
+
+
+
+			virtual std::string_view GetName() const { return name; }
+
+
+			HierarchyData* GetHierarchyData() const override 
+			{ 
+				const HierarchyData* out = this;
+				return const_cast<HierarchyData*>(out);
+			}
+
+			ITypePolicy* GetHierarchyType() override
+			{
+				return this;
+			}
+
+		};
+
+
+
+
+
+		struct ITemplateBody;
+
+		struct ITemplatePart
+		{
+			virtual size_t GetSize() const = 0;
+
+			virtual std::pair<ITypePolicy**, size_t> GetPartArgument(size_t i) const = 0;
+
+			//TODO: Instead of all this, why not make a hash of each entry?
+
+			//Always try to promote before using. 
+			virtual ITemplateBody* TryPromoteTemplate() { return nullptr; }
+		};
+
+		struct ITemplateBody : public ITemplatePart
+		{
+			std::pair<ITypePolicy**, size_t> GetPartArgument(size_t i) const override final
+			{
+				report::fault::critical("Cannot get Part Argument from a TemplateBody.");
+			}
+
+
+			virtual std::pair<AbstractTypePolicy**, size_t> GetBodyArgument(size_t i) const = 0;
+
+
+			ITemplateBody* TryPromoteTemplate() override
+			{
+				return this;
+			}
+		};
+
+		
+		struct ITemplateInsertBody;
+
+		struct ITemplateInsertPart
+		{
+
+			virtual void InsertType(ITypePolicy* part) = 0;
+			
+			virtual ITemplateInsertBody* TryPromoteInserter() { return nullptr; }
+
+		};
+
+		struct ITemplateInsertBody : public ITemplateInsertPart
+		{
+
+			void InsertType(ITypePolicy* part) override
+			{
+				auto back = part->GetTypePolicy((ITemplateBody*)nullptr);
+
+				assert(back);
+
+				return InsertType(back);
+			}
+
+			virtual void InsertType(AbstractTypePolicy* body) = 0;
+
+			virtual ITemplateInsertBody* TryPromoteInserter() { return this; }
+		};
+
+
+		struct GenericPartArray : public ITemplatePart, public ITemplateInsertPart
+		{
+
+			size_t GetSize() const override { return _types.size(); }
+
+			std::pair<ITypePolicy**, size_t> GetPartArgument(size_t i) const override
+			{
+				auto& type = _types[i];
+
+				return { type.data(), type.size() };
+			}
+
+			void InsertType(ITypePolicy* part) override
+			{
+				_types.emplace_back(std::vector{ part });
+			}
+
+
+		
+
+			mutable std::vector<std::vector<ITypePolicy*>> _types;
+		};
+
+		struct GenericBodyArray : public ITemplateBody, public ITemplateInsertBody
+		{
+
+			size_t GetSize() const override { return _types.size(); }
+
+			std::pair<AbstractTypePolicy**, size_t> GetBodyArgument(size_t i) const override
+			{
+				auto& type = _types[i];
+
+				return { type.data(), type.size() };
+			}
+
+
+			void InsertType(AbstractTypePolicy* body) override
+			{
+				_types.emplace_back(std::vector{ body });
+			}
+
+			mutable std::vector<std::vector<AbstractTypePolicy*>> _types;
+		};
+
+
+
+		using IGenericParameter = ITemplatePart;
+		using IGenericArgument = ITemplateBody;
+
+		
+		inline std::unique_ptr<ITemplatePart> temp_EncapTypes(std::vector<std::vector<ITypePolicy*>>& list)
+		{
+			//The point of this function would be to accept a number of types turning them into a GenericParameter, or a generic argument.
+
+			std::vector<std::vector<AbstractTypePolicy*>> possible;
+
+			auto size = list.size();
+
+			for (auto& outer : list)
+			{
+				auto& in = possible.emplace_back();
+
+				for (auto& inner : outer)
+				{
+					if (inner->IsResolved() == false)
+					{
+						GenericPartArray* _array = new GenericPartArray;
+						std::unique_ptr<ITemplatePart> result{ _array };
+					
+						_array->_types = std::move(list);
+
+						return result;
+					}
+
+					in.push_back(inner->GetTypePolicy((ITemplateBody*)nullptr));
+				}
+			}
+
+			GenericBodyArray* _array = new GenericBodyArray;
+			
+			std::unique_ptr<ITemplatePart> result{ _array };
+
+			_array->_types = std::move(possible);
+
+			return result;
+		}
+
+		struct SpecialBase;
+		struct SpecialPart;
+		struct SpecialBody;
+		struct GenericBase;
+
+		struct ISpecializable
+		{
+			//I don't wanna do this but there's no dynamic cast without polymorphism so +8
+			virtual ~ISpecializable() = default;
+			
+			virtual GenericBase* GetGeneric() const = 0;
+
+			virtual SpecialBody* ObtainBody(IGenericArgument* args) = 0;
+
+
+
+		};
+
+		struct GenericBase : public ISpecializable
+		{
+			//This is the class that handles Generic stuff, old name ISpecializable
+
+
+
+			GenericBase* GetGeneric() const override
+			{
+				return const_cast<GenericBase*>(this);
+			}
+
+			SpecialPart* FindPart(GenericBase* tar, ITemplatePart* args);
+
+			SpecialBody* FindBody(ITemplateBody* args);
+
+
+
+			virtual std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) = 0;
+			virtual std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) = 0;
+
+			//Note that validation needs to happen around here for multiple parts.
+
+
+			//Might need to be override for this
+			virtual SpecialPart* ObtainPart(GenericBase* client, ITemplatePart* args)
+			{
+				auto result = client->FindPart(this, args);
+
+				if (!result) {
+					result = client->incomplete.emplace_back(CreatePart(args)).get();
+				}
+
+				return result;
+			}
+
+			SpecialBody* ObtainBody(ITemplateBody* args) override
+			{
+				auto result = FindBody(args);
+
+				if (!result) {
+					result = Specialize(args);
+				}
+
+				return result;
+			}
+
+			SpecialBody* Specialize(ITemplateBody* args)
+			{
+				SpecializeParts(args);
+
+				return complete.emplace_back(CreateBody(args)).get();
+
+			}
+
+			void SpecializeParts(ITemplateBody* args);
+
+			SpecialBase* ObtainSpecial(GenericBase* client, ITemplatePart* args);
+
+
+
+			//So try specialize is what you'll get when you try to specialize I guess?
+			//SpecialBase* TrySpecialize()
+
+			//SpecialBody* ObtainBody()
+
+
+			//I'm unsure if this would even bee needed honestly.
+			//void ResolveIncomplete(IGenericArgument*) {}
+
+
+
+
+			std::vector<TemplateType> _template;
+
+			std::vector<std::unique_ptr<SpecialPart>> incomplete;
+			std::vector<std::unique_ptr<SpecialBody>> complete;
+		};
+	
+
+		
+
+
+		struct SpecialBase : public ISpecializable
+		{
+			SpecialBase(GenericBase* b) : _base{ b } {}
+
+			//I don't wanna do this but there's no dynamic cast without polymorphism so +8
+
+
+			GenericBase* GetGeneric() const override
+			{
+				return _base;
+			}
+
+			virtual SpecialPart* AsPart() { return nullptr; }
+			virtual SpecialBody* AsBody() { return nullptr; }
+
+			
+			virtual bool TemplateMatches(ITemplatePart* args) = 0;
+
+			
+			virtual size_t GetSize() const = 0;
+
+
+			virtual ITypePolicy* GetArgument(size_t i) const = 0;
+
+
+		private:
+			mutable GenericBase* _base = nullptr;
+		};
+
+
+
+
+
+
+		//Maybe use spans instead of vectors.
+
+
+
+		//Both special part and special body will likely become ITemplate somethings. Thinking about it, if  I have a function or type that needs 
+		// to be specialized, it fits that this would be specializing it right?
+		//If that happens get argument will not be required any longer.
+
+		struct SpecialPart : public SpecialBase
+		{
+		public:
+			SpecialPart(GenericBase* type, ITemplatePart* spec) : SpecialBase{ type } 
+			{
+				auto size = spec->GetSize();
+
+				for (auto i = 0; i < size; i++)
+				{
+					auto pair = spec->GetPartArgument(i);
+					_types.emplace_back(pair.first, pair.first + pair.second);
+				}
+			}
+
+			GenericPartArray MakeGenericArray(GenericBase* ask, ITemplatePart* args)
+			{
+				//If no args, issue probably.
+
+				auto size = _types.size();
+
+				GenericPartArray gen_array;
+
+				gen_array._types = decltype(gen_array._types){ size };
+
+				for (int x = 0; x < size; x++)
+				{
+					auto& l_type = gen_array._types[x];
+					auto& r_type = _types[x];
+
+					auto size = r_type.size();
+
+					l_type = std::remove_reference_t<decltype(l_type)>{ size };
+
+					for (int y = 0; y < size; y++)
+					{
+						l_type[y] = r_type[y]->CheckTypePolicy(ask, args);
+					}
+				}
+
+				return gen_array;
+			}
+
+			GenericBodyArray MakeGenericArray(ITemplateBody* args)
+			{
+				//If no args, issue probably.
+
+				auto size = _types.size();
+
+				GenericBodyArray gen_array;
+
+				gen_array._types = decltype(gen_array._types){ size };
+
+				for (int x = 0; x < size; x++)
+				{
+					auto& l_type = gen_array._types[x];
+					auto& r_type = _types[x];
+
+					auto size = r_type.size();
+
+					l_type = std::remove_reference_t<decltype(l_type)>{ size };
+
+					for (int y = 0; y < size; y++)
+					{
+						l_type[y] = r_type[y]->GetTypePolicy(args);
+					}
+				}
+
+				return gen_array;
+			}
+
+
+			SpecialBase* ObtainSpec(GenericBase* ask, ITemplatePart* args)
+			{
+				//Purify arguments here, then send those args. Since this is par
+
+				GenericPartArray _array = MakeGenericArray(ask, args);
+
+				return GetGeneric()->ObtainSpecial(ask, &_array);
+			}
+
+
+			//This is still unhandled perhaps?
+			SpecialBody* ObtainBody(ITemplateBody* args) override
+			{
+				//Purify arguments here, then send those args. Since this is par
+
+				GenericBodyArray _array = MakeGenericArray(args);
+
+				return GetGeneric()->ObtainBody(&_array);
+			}
+
+			bool TemplateMatches(ITemplatePart* args) override
+			{
+				//This cannot have fully defined types, so if it can be promoted there's no match
+				if (args->TryPromoteTemplate() != nullptr)
+					return false;
+
+				auto size = _types.size();
+
+
+
+				if (args->GetSize() != size)
+					return false;
+
+				for (int i = 0; i < size; i++)
+				{
+					auto& lhs = _types[i];
+					std::pair<ITypePolicy**, size_t> rhs = args->GetPartArgument(i);
+
+					if (lhs.size() != rhs.second)
+						return false;
+
+					if (std::memcmp(lhs.data(), rhs.first, rhs.second) != 0) {
+						return false;
+					}
+
+				}
+
+				return true;
+
+				for (auto& list : _types)
+				{
+
+				}
+			}
+
+			ITypePolicy* GetArgument(size_t i) const override final
+			{
+				return _types[i][0];
+			}
+
+			virtual size_t GetSize() const override final
+			{
+				return _types.size();
+			}
+
+		private:
+			std::vector<std::vector<ITypePolicy*>> _types;
+		};
+
+
+		
+		struct SpecialBody : public SpecialBase//This can be an argument?
+		{
+		public:
+			SpecialBody(GenericBase* type, ITemplateBody* spec) : SpecialBase{ type }
+			{
+				auto size = spec->GetSize();
+
+				for (auto i = 0; i < size; i++)
+				{
+					auto pair = spec->GetBodyArgument(i);
+					_types.emplace_back(pair.first, pair.first + pair.second);
+				}
+			}
+
+			virtual SpecialBody* ObtainBody(IGenericArgument* args) override 
+			{ 
+				return this; 
+			}
+
+			bool TemplateMatches(ITemplatePart* part) override
+			{
+				//This cannot have fully defined types, so if it can be promoted there's no match
+				
+				ITemplateBody* args = part->TryPromoteTemplate();
+
+				if (!args)
+					return false;
+
+				auto size = _types.size();
+
+
+
+				if (args->GetSize() != size)
+					return false;
+
+				for (int i = 0; i < size; i++)
+				{
+					auto& lhs = _types[i];
+					std::pair<AbstractTypePolicy**, size_t> rhs = args->GetBodyArgument(i);
+
+					if (lhs.size() != rhs.second)
+						return false;
+
+					if (std::memcmp(lhs.data(), rhs.first, rhs.second) != 0) {
+						return false;
+					}
+
+				}
+
+				return true;
+			}
+
+
+			ITypePolicy* GetArgument(size_t i) const override final
+			{
+				return _types[i][0];
+			}
+
+			virtual size_t GetSize() const override final
+			{
+				return _types.size();
+			}
+
+		private:
+			//This isn't properly needed, what actually might be needed is just a hash of some kind.
+			std::vector<std::vector<AbstractTypePolicy*>> _types;
+
+		};
+
+
+
+		
+		struct GenericType : public PolicyBase, public GenericBase
+		{
+			//ITypePolicy* GetTypePolicy()
+
+
+
+			AbstractTypePolicy* GetTypePolicy(LEX::IGenericArgument* args)// override
+			{
+				return nullptr;
+			}
+
+			ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override
+			{
+				return dynamic_cast<ITypePolicy*>(ObtainSpecial(base, args));
+			}
+
+			AbstractTypePolicy* GetTypePolicy(ITemplateBody* args)// override
+			{
+				return dynamic_cast<AbstractTypePolicy*>(ObtainBody(args));
+			}
+
+			std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) override;
+			
+			std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) override;
+
+		};
+
+		
+		
+
+		//These 2 can largely be boiler place tbh.
+		struct SpecialTypePart : public ITypePolicy, public SpecialPart
+		{
+			ITypePolicy* _self = nullptr;
+
+			SpecialTypePart(GenericBase* base, ITypePolicy* type, ITemplateBody* spec) : SpecialPart{ base, spec }, _self{ type }
+			{
+				report::info("NewBody {}", (uintptr_t)this);
+			}
+
+			SpecialTypePart(GenericType* type, ITemplatePart* spec) : SpecialPart{ type, spec }, _self{ type }
+			{
+				report::info("NewPart {}", (uintptr_t)this);
+			}
+
+			
+
+			ITypePolicy* GetSelf()
+			{
+				return _self;
+			}
+			
+			const ITypePolicy* GetSelf() const
+			{
+				return _self;
+			}
+
+
+
+			AbstractTypePolicy* GetTypePolicy(LEX::IGenericArgument* args) override
+			{
+				return nullptr;
+			}
+
+
+			ITypePolicy* CheckTypePolicy(GenericBase* ask, ITemplatePart* args) override
+			{
+				return dynamic_cast<ITypePolicy*>(ObtainSpec(ask, args));
+			}
+
+			AbstractTypePolicy* GetTypePolicy(ITemplateBody* args)// override
+			{
+				return dynamic_cast<AbstractTypePolicy*>(ObtainBody(args));
+			}
+
+
+
+			virtual TypeID GetTypeID() const { return GetSelf()->GetTypeID(); }
+
+			virtual DataType GetDataType() const { return GetSelf()->GetDataType(); }
+
+
+
+			virtual std::string_view GetName() const { return GetSelf()->GetName(); }
+
+	
+			HierarchyData* GetHierarchyData() const override
+			{
+				return GetSelf()->GetHierarchyData();
+			}
+
+		};
+
+
+
+		struct SpecialTypeBody : public AbstractTypePolicy, public SpecialBody
+		{
+			ITypePolicy* _self = nullptr;
+			
+			SpecialTypeBody(GenericBase* base, ITypePolicy* type, ITemplateBody* spec) : SpecialBody{ base, spec }, _self{ type }
+			{
+				report::info("NewBody {}", (uintptr_t)this);
+			}
+
+			SpecialTypeBody(GenericType* type, ITemplateBody* spec) : SpecialBody{ type, spec }, _self{ type }
+			{
+				report::info("NewBody {}", (uintptr_t)this);
+			}
+
+			ITypePolicy* GetSelf()
+			{
+				return _self;
+			}
+
+			const ITypePolicy* GetSelf() const
+			{
+				return _self;
+			}
+
+			AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override
+			{
+				logger::info("HIT:");
+				return this;
+			}
+
+
+
+			virtual TypeID GetTypeID() const { return GetSelf()->GetTypeID(); }
+
+			virtual DataType GetDataType() const { return GetSelf()->GetDataType(); }
+
+
+
+			virtual std::string_view GetName() const { return GetSelf()->GetName(); }
+
+
+
+			HierarchyData* GetHierarchyData() const override
+			{
+				return GetSelf()->GetHierarchyData();
+			}
+
+
+			virtual Variable GetDefault() { throw nullptr; }
+
+	
+			virtual void SetDefault(Variable&) { throw nullptr; }
+
+			virtual AbstractTypePolicy* GetExtends() { throw nullptr; }
+
+		};
+
+
+		struct DynamicTupleElement : public ITypePolicy
+		{
+			size_t index = -1;
+			Operand operand;
+
+			AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override
+			{
+				//This is basically how I would do it.
+
+				auto runtime = dynamic_cast<Runtime*>(args);
+
+				assert(runtime);
+
+				auto tuple = dynamic_cast<SpecialTypeBody*>(runtime->GetArgAtIndex(index));
+
+				Number access = operand.GetVariable(runtime)->AsNumber();
+
+				assert(access._setting.IsInteger() && access < 0);
+
+				
+
+				return tuple->GetArgument(access)->GetTypePolicy((ITemplateBody*)nullptr);
+			}
+
+
+
+
+
+			virtual TypeID GetTypeID() const { throw nullptr; }
+
+			virtual DataType GetDataType() const { throw nullptr; }
+
+
+
+			virtual std::string_view GetName() const { throw nullptr; }
+
+
+
+			HierarchyData* GetHierarchyData() const override { throw nullptr; }
+
+
+			virtual Variable GetDefault() { throw nullptr; }
+
+
+			virtual void SetDefault(Variable&) { throw nullptr; }
+
+			virtual AbstractTypePolicy* GetExtends() { throw nullptr; }
+
+		};
+
+		struct TemplateTuple : public ITypePolicy, public GenericBase
+		{
+			TemplateType* parent = nullptr;
+			GenericBase* owner = nullptr;
+
+
+			//When searching for a part or a body, the find function will need to expand it first. I think actually, I may make those obtains virtual.
+			// Correction, they're intended to be virtual. So, what I'll do is expand the packs (but I guess only if I need to) and then use them to find
+			// what I'm looking for.
+
+
+
+			void UnpackImpl2(ITemplateInsertPart* out, ITypePolicy* tar)
+			{
+				if (tar->GetTypeID() == Tuple)//This means it's a tuple, we can use it for our aims.
+				{
+					//At this point it should be a special base somewhere, a lack of one is an error 100%.
+					SpecialBase* spec = dynamic_cast<SpecialBase*>(tar);
+					
+					assert(spec);
+
+					auto size = spec->GetSize();
+
+					for (int i = 0; i < size; i++)
+					{
+						auto type = spec->GetArgument(i);
+
+						out->InsertType(type);
+					}
+				}
+				else
+				{
+					out->InsertType(tar);
+				}
+			}
+			
+			void UnpackImpl1(ITemplateInsertPart* out, ITemplatePart* args)
+			{
+				auto size = args->GetSize();
+
+				for (int i = 0; i < size; i++)
+				{
+					ITypePolicy* type = args->GetPartArgument(i).first[0];
+
+					UnpackImpl2(out, type);
+				}
+			}
+
+
+			GenericPartArray Unpack(ITemplatePart* args)
+			{
+				GenericPartArray result;
+
+				UnpackImpl1(&result, args);
+
+				return result;
+			}
+
+			GenericBodyArray Unpack(ITemplateBody* args)
+			{
+				GenericBodyArray result;
+
+				UnpackImpl1(&result, args);
+
+				return result;
+			}
+
+
+			SpecialPart* ObtainPart(GenericBase* client, ITemplatePart* args) override
+			{
+				//Unpack here
+
+				auto pack = Unpack(args);
+
+				return __super::ObtainPart(client, &pack);
+			}
+
+			SpecialBody* ObtainBody(ITemplateBody* args) override
+			{
+				//Unpack here
+
+				auto pack = Unpack(args);
+
+				return __super::ObtainBody(&pack);
+			}
+
+
+
+
+			ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override
+			{
+				return dynamic_cast<ITypePolicy*>(ObtainSpecial(base, args));
+			}
+
+			AbstractTypePolicy* GetTypePolicy(ITemplateBody* args)// override
+			{
+				return dynamic_cast<AbstractTypePolicy*>(ObtainBody(args));
+			}
+
+
+			std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) override
+			{
+
+				return std::make_unique<SpecialTypePart>(this, this, args);
+			}
+
+			std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) override
+			{
+				return std::make_unique<SpecialTypeBody>(this, this, args);
+			}
+
+
+		};
+
+
+
+
+
+
+
+
+
+
+		SpecialBody* GenericBase::FindBody(ITemplateBody* args)
+		{
+			for (auto& spec : complete)
+			{
+				if (spec->TemplateMatches(args) == true)
+					return spec.get();
+			}
+
+			return nullptr;
+		}
+		void GenericBase::SpecializeParts(ITemplateBody* args)
+		{
+			for (auto& part : incomplete) {
+				report::info("thing {}", (uintptr_t)part.get());
+				part->ObtainBody(args);
+			}
+		}
+		SpecialPart* GenericBase::FindPart(GenericBase* tar, ITemplatePart* args)
+		{
+			for (auto& spec : incomplete)
+			{
+				//First compare target, then compare args.
+
+				if (spec->GetGeneric() == tar && spec->TemplateMatches(args) == true)
+					return spec.get();
+			}
+
+			return nullptr;
+		}
+		SpecialBase* GenericBase::ObtainSpecial(GenericBase* client, ITemplatePart* args)
+		{
+			if (auto temp = args->TryPromoteTemplate(); temp)
+				return ObtainBody(temp);
+			else
+				return ObtainPart(client, args);
+		}
+
+
+		std::unique_ptr<SpecialPart> GenericType::CreatePart(ITemplatePart* args) 
+		{
+			
+			return std::make_unique<SpecialTypePart>(this, args);
+		}
+
+		std::unique_ptr<SpecialBody> GenericType::CreateBody(ITemplateBody* args)
+		{
+			return std::make_unique<SpecialTypeBody>(this, args);
+		}
+
+		ITypePolicy* TemplateType::CheckTypePolicy(GenericBase* ask, ITemplatePart* args)
+		{
+			auto pair = args->GetPartArgument(index);
+
+			//At a later point if this
+			if (pair.second == 1)
+				return pair.first[0];
+			else
+				return nullptr;
+
+		}
+
+		AbstractTypePolicy* TemplateType::GetTypePolicy(ITemplateBody* args)// override
+		{
+			auto pair = args->GetBodyArgument(index);
+
+			//At a later point if this
+			if (pair.second == 1)
+				return pair.first[0];
+			else
+				return nullptr;
+
+		}
+
+
+		INITIALIZE()
+		{
+			report::info("starting. . . .");
+
+			GenericType to_spec;
+			
+			GenericType specifier1;//Will partially specialize
+			GenericType specifier2;//will completely partually specialize
+			GenericType specifier3;//will completely specialize.
+
+
+			to_spec._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+			specifier1._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+			specifier2._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+			specifier3._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+
+
+			ITypePolicy* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
+			ITypePolicy* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
+			ITypePolicy* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+
+			std::vector<std::vector<ITypePolicy*>> group1{ 3 };
+			std::vector<std::vector<ITypePolicy*>> group2{ 3 };
+			std::vector<std::vector<ITypePolicy*>> group3{ 3 };
+
+
+			group1[0].push_back(floatSmall);
+			group1[1].push_back(stringB);
+			group1[2].push_back(&specifier1._template[0]);
+			
+
+			group2[0].push_back(&specifier2._template[2]);
+			group2[1].push_back(&specifier2._template[0]);
+			group2[2].push_back(&specifier2._template[1]);
+
+			group3[0].push_back(stringB);
+			group3[1].push_back(floatSmall);
+			group3[2].push_back(stringB);
+
+
+
+			//auto 
+
+			auto part1 = temp_EncapTypes(group1);
+			auto part2 = temp_EncapTypes(group2);
+			auto part3 = temp_EncapTypes(group3);
+
+			//Nothing new was created in any of these, and all of these are the same object.
+
+			auto type1 = to_spec.CheckTypePolicy(&specifier1, part1.get());
+			auto type2 = to_spec.CheckTypePolicy(&specifier2, part2.get());
+			auto type3 = to_spec.CheckTypePolicy(&specifier3, part3.get());
+			specifier1.GetTypePolicy(part3->TryPromoteTemplate());
+			specifier2.GetTypePolicy(part3->TryPromoteTemplate());
+			report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
+
+
+
+			//This isn't supposed to make 3 new bodies
+
+			//auto a2 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+			//auto a3 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+
+			auto a1 = type1->GetTypePolicy(part3->TryPromoteTemplate());
+			auto a2 = type2->GetTypePolicy(part3->TryPromoteTemplate());
+			auto a3 = type3->GetTypePolicy(part3->TryPromoteTemplate());
+
+			auto a4 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+
+
+			report::info("exists? {} {} {} -> {}?", (uintptr_t)a1, (uintptr_t)a2, (uintptr_t)a3, (uintptr_t)a4);
+
+
+
+
+			report::info("ending. . . .");
+		}
+
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	struct TestingInheritance
 	{
