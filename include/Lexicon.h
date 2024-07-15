@@ -85,7 +85,7 @@ namespace LEX
 #include "Lexicon/QualifiedType.h"
 #include "Lexicon/Qualifier.h"
 #include "Lexicon/Report.h"
-#include "Lexicon/Runtime.h"
+#include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/RuntimeVariable.h"
 #include "Lexicon/String.h"
 #include "Lexicon/TestField.h"
@@ -106,6 +106,9 @@ namespace LEX
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
 #include "Lexicon/Interfaces/ProcedureHandler.h"
 #include "Lexicon/Interfaces/ProjectManager.h"
+
+
+#include "Lexicon/ProcedureData.h"
 
 
 #ifdef LEX_SOURCE

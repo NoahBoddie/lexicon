@@ -31,7 +31,10 @@ namespace LEX
 	{
 		//The interface for fields
 		virtual ~Field() = default;
-
+		
+		//Field sorta needs to remain a string because of the fact locals don't really have names. Despite this, it's a problem between plugins
+		// that string has different sizes. This needs to be solved.
+		//I think the info will have a name, but the field name will be basic
 		virtual std::string GetFieldName() const = 0;
 
 		virtual FieldType GetFieldType() const = 0;

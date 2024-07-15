@@ -1,14 +1,16 @@
 #include "Lexicon/Engine/ConcreteFunction.h"
 
-#include "Lexicon/Runtime.h"
+#include "Lexicon/Engine/Runtime.h"
+
+#include "Lexicon/ProcedureData.h"
 
 namespace LEX
 {
-	RuntimeVariable ConcreteFunction::Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
+	RuntimeVariable ConcreteFunction::Execute(std::vector<RuntimeVariable>& args, Runtime* runtime, RuntimeVariable* def)
 	{
 		//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
 
-		Runtime* runtime = nullptr;
+		
 		Variable* target = nullptr;
 
 		if (args.size() != parameters.size())
@@ -42,8 +44,8 @@ namespace LEX
 			ProcedureData data;
 
 			data.runtime = runtime;
-			data.def = def;
-			data.srcFunc = this;
+			data.defOption = def;
+			data.function = this;
 
 			auto begin = args.begin();
 			

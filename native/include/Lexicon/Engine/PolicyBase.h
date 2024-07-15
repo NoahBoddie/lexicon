@@ -12,7 +12,7 @@ namespace LEX
 	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public OverloadClause, public PolicyData
 	{//PolicyBase Might not even use clauses directly. We shall see.
 	public:
-		ITypePolicy* ToType() override { return this; }
+		ITypePolicy* AsType() override { return this; }
 
 
 	private:
@@ -59,8 +59,6 @@ namespace LEX
 		OverloadClause* GetClause() override { return nullptr; }
 
 		/*/
-		
-		OverloadClause* GetClause() override { return this; }
 
 		bool CanMatch(QualifiedType, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
@@ -86,15 +84,12 @@ namespace LEX
 		//*/
 		//~
 
-		PolicyBase* GetTypeBase() override
+		HierarchyData* GetHierarchyData() const override
 		{
-			return this;
+			const HierarchyData* out = this;
+			return const_cast<HierarchyData*>(out);
 		}
-		const PolicyBase* GetTypeBase() const
-		{
-			return this;
-		}
-		
+
 		ITypePolicy* GetHierarchyType() override
 		{
 			return this;
@@ -103,16 +98,7 @@ namespace LEX
 
 
 
-		const InheritData* GetInheritData(const ITypePolicy* type) const override
-		{
-			return HierarchyData::GetInheritData(type);
-
-		}
-		std::vector<InheritData> GetInheritData() const override
-		{
-			return inheritance;
-		}
-
+		
 
 
 		//This needs some form of conversion result.
@@ -182,7 +168,7 @@ namespace LEX
 			//By this point, please note that internal should not even be a thought here.
 			//Being able to get someone's inheritdata that belongs to a specific class might be valuable.
 			//*Might need to recant this.
-			const InheritData* access_data = scope->GetInheritData(other);
+			const InheritData* access_data = scope->GetHierarchyData()->GetInheritData(other);
 
 
 
@@ -230,7 +216,7 @@ namespace LEX
 
 	public:
 
-		void HandleInheritance();
+		void HandleInheritance() override;
 
 
 		//These doing this is kinda ill advised, but since the function is defined here, it's safe to do. Specially since

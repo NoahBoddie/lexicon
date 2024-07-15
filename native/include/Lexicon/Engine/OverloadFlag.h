@@ -13,6 +13,8 @@ namespace LEX
 
 		TargetOpt = 1 << 4,		//If using a target is optional this will be ticked.
 		AllAccess = 1 << 5,		//If all access is used, there are no rules about conversions.
+		
+		//Since these 2 are kinda the same I'm thinking of implementing 
 		Failure = 1 << 6,
 		Ambiguous = 1 << 7,
 	};

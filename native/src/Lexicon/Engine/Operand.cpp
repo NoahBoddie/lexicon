@@ -5,7 +5,7 @@
 #include "Lexicon/Engine/OperandType.h"
 
 
-#include "Lexicon/Runtime.h"
+#include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/RuntimeVariable.h"
 
 #include "Lexicon/Engine/Parser.h"

@@ -29,7 +29,7 @@ namespace LEX
 			SetData(view.data(), view.size());
 		}
 
-		String(std::string str)
+		String(std::string& str)
 		{
 			SetData(str.data(), str.size());
 		}

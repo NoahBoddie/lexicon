@@ -15,7 +15,7 @@
 
 #include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/InstructionType.h"
-#include "Lexicon/Runtime.h"
+#include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/Engine/ConcretePolicy.h"
 //Move me you idiot.
 
@@ -35,6 +35,9 @@
 #include "Lexicon/Engine/parse_strings.h"
 
 #include "Lexicon/Engine/FunctionInfo.h"
+
+#include "Lexicon/ProcedureData.h"
+
 namespace LEX
 {
 	struct InstructWorkShop
@@ -138,7 +141,7 @@ namespace LEX
 			
 			std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
 
-			ret = func->Call(args);
+			ret = func->Execute(args, runtime, nullptr);
 
 
 			//I may actually just include the decrement in here myself.
@@ -188,7 +191,7 @@ namespace LEX
 			}
 			
 			
-			ret = func->Call(from);
+			ret = func->Execute(from, runtime, nullptr);
 		}
 
 
@@ -372,7 +375,7 @@ namespace LEX
 
 		static void __GenericCtor(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data)
 		{
-			FunctionBase* base = const_cast<FunctionBase*>(dynamic_cast<const FunctionBase*>(data.srcFunc));
+			FunctionBase* base = const_cast<FunctionBase*>(dynamic_cast<const FunctionBase*>(data.function));
 
 			if (!base)
 				report::runtime::critical("No function base on source function");
@@ -1497,7 +1500,7 @@ namespace LEX
 
 			inline static Self* instance = &GetSingleton();
 
-			RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def) override
+			RuntimeVariable Execute(std::vector<RuntimeVariable>& args, Runtime*, RuntimeVariable*) override
 			{
 				return (double)args[0]->AsString().size();
 			}
@@ -1527,7 +1530,7 @@ namespace LEX
 
 				inline static Self* instance = &GetSingleton();
 
-				virtual RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
+				virtual RuntimeVariable Execute(std::vector<RuntimeVariable>& args, Runtime*, RuntimeVariable*)
 				{
 
 					//Convert should be real simple.
@@ -1776,7 +1779,8 @@ namespace LEX
 
 			static ConcretePolicy* NUMBER = new ConcretePolicy{ "NUMBER", 0 };
 
-		
+			//I'd like to make a trival ID. The trival id is a singular empty id for a type that cannot be searched for
+			// such as a function signature or 
 
 			static ConcretePolicy* float64 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
 			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating, Size::DWord, Signage::Signed, Limit::Infinite) };

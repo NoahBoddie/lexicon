@@ -7,7 +7,7 @@
 
 #include "Lexicon/AbstractFunction.h"
 #include "Lexicon/Dispatcher.h"
-
+#include "Lexicon/ProcedureData.h"
 namespace LEX
 {
 
@@ -54,7 +54,7 @@ namespace LEX
 		_dispatchList.emplace_back(std::unique_ptr<Dispatcher>{ dispatch });
 
 		auto reciever = [](RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) -> void {
-			auto p_data = data.srcFunc->GetProcedureData();
+			auto p_data = data.function->GetProcedureData();
 
 			//check data here.
 

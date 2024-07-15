@@ -2,6 +2,9 @@
 
 #include "Lexicon/QualifiedType.h"
 #include "Lexicon/Engine/OverloadEntry.h"
+#include "Lexicon/Engine/OverloadFlag.h"
+//*src
+#include "Lexicon/Engine/HierarchyData.h"
 
 namespace LEX
 {
@@ -34,6 +37,41 @@ namespace LEX
 
 		
 
+		static int CompareType(OverloadCode& left, OverloadCode& right, QualifiedType& left_type, QualifiedType& right_type)
+		{
+			//This should be using OverloadCode, but i'd need a given type to do it.
+
+			if (!left.initialized && !right.initialized)
+			{
+				left = left.FinalizeOld(left_type->GetHierarchyData(), right_type->GetHierarchyData());
+				right = right.FinalizeOld(right_type->GetHierarchyData(), left_type->GetHierarchyData());
+
+				//OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
+				//OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);
+			}
+
+			logger::info("left({}/{}), right({}/{})", left.hash[0], left.hash[1], right.hash[0], right.hash[1]);
+
+
+			if (left.hash[0] <= right.hash[1] && left.hash[1] >= right.hash[0]) {
+				return left.distance - right.distance;
+			}
+			if (left.hash[0] >= right.hash[1] && left.hash[1] <= right.hash[0]) {
+				return left.distance - right.distance;
+			}
+
+			return 0;
+		}
+
+		static int CompareType(QualifiedType& a_this, QualifiedType& a_lhs, QualifiedType& a_rhs)
+		{
+			OverloadCode left = a_this.policy->GetHierarchyData()->CreateCode(a_lhs);
+			OverloadCode right = a_this.policy->GetHierarchyData()->CreateCode(a_rhs);
+
+			return CompareType(left, right, a_lhs, a_rhs);
+		}
+
+
 
 		//TODO: the safe compares of Overload are not yet completely resolved. The main issue being it doesn't account for conversions.
 		// to expand on the above, detecting a conversion is grounds for prefering one over the other, then it depends which conversion has the value closer to zero.
@@ -51,7 +89,8 @@ namespace LEX
 			else if (prev_pure && !curr_pure)
 				return 1;
 			else if (!prev_pure && !curr_pure)
-				return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+				//return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+				return CompareType(tar.code, entry.code, tar.type, entry.type);
 			else
 				return (entry.convertType <=> tar.convertType)._Value;
 		}
@@ -73,7 +112,8 @@ namespace LEX
 
 			//No conversions exist, so direct is good.
 
-			return arg.CompareType(target, other);
+			//return arg.CompareType(target, other);
+			return CompareType(arg, target, other);
 
 			return 0;
 
@@ -127,7 +167,8 @@ namespace LEX
 			return _ConvertComp(tar, entry, arg);
 
 
-			return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+			//return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+			return CompareType(tar.code, entry.code, tar.type, entry.type);
 
 			return 0;
 
@@ -143,6 +184,35 @@ namespace LEX
 
 			return 0;
 		}
+	};
+
+
+
+
+	struct Overload_Revised
+	{
+		//This is now a container that shows the given options for an overload.
+
+		OverloadClause* clause;
+
+		QualifiedType target;//
+
+		std::vector<std::vector<ITypePolicy*>> specialization;
+
+
+		//These align perfectly with arguments given.
+		// This has to be loaded with a properly sorted default by this point.
+		// Defaults have to go here because 
+		std::vector<OverloadEntry> given;
+
+		
+		std::unordered_map<std::string, OverloadEntry> defaults;
+
+
+
+		OverloadEntry* failure = nullptr;//If there's a failure this will show where it is.
+
+		OverloadFlag flag;//Extra place to tell the end result, namely ambiguous
 	};
 
 }

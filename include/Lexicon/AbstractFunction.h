@@ -16,7 +16,7 @@ namespace LEX
 		//May make a GetAt by default but still allow overriding with virtual
 		//virtual std::vector<AbstractTypePolicy*> GetParameters() = 0;
 
-		virtual bool IsAbstract() const { return true; }
+		bool IsResolved() const override final { return true; }
 
 		virtual bool IsGeneric() const { return false; }
 		

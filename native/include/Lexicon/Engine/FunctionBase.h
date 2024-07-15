@@ -9,7 +9,7 @@ namespace LEX
 	class FunctionBase : public virtual IFunction, public SecondaryElement, public OverloadClause, public FunctionData
 	{
 	public:
-		virtual IFunction* ToFunction() { return this; }
+		virtual IFunction* AsFunction() { return this; }
 
 
 	private:
@@ -32,8 +32,7 @@ namespace LEX
 		// The same may be done for parameter. We shall see.
 		virtual void SetReturnType(QualifiedType type);
 
-		OverloadClause* GetClause() override { return this; }
-
+		
 #pragma region Clause
 
 		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override

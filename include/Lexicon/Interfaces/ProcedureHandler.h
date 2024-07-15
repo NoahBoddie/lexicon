@@ -9,6 +9,7 @@ namespace LEX
 {
 	struct Variable;
 	struct IFunction;
+	struct IRuntime;
 	struct Dispatcher;
 	struct ProcedureData;
 	struct RuntimeVariable;

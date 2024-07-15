@@ -13,10 +13,8 @@ namespace LEX
 
 		//void LoadFromRecord(Record&)
 
-		bool IsAbstract() const override { return false; }
-
 	
-		RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable*) override;
+		RuntimeVariable Execute(std::vector<RuntimeVariable>& args, Runtime* runtime, RuntimeVariable* def) override;
 
 
 	};

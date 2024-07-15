@@ -19,10 +19,13 @@ namespace LEX
 	bool RegisterInterface_Impl(Interface& ifc, std::string_view name)
 	{
 		auto& interfaceList = GetInterfaceList();
-		logger::info("registering. . .");
-		interfaceList[name] = &ifc;
+		
+		if (auto& entry = interfaceList[name])
+			return false;
+		else
+			entry = &ifc;
 
-		logger::info("Registered interface");
+		
 		return true;
 	}
 

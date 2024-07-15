@@ -63,14 +63,14 @@ namespace LEX
 
 
 
-		constexpr operator uint32_t()
+		constexpr operator uint32_t() const
 		{
 			return _value;
 		}
 
 
 
-
+		//constexpr auto operator <=> (const TypeID&) const = default;
 
 		bool IsValid() const
 		{

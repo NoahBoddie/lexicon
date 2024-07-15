@@ -64,7 +64,7 @@ namespace LEX
 		// I kinda don't really super want this though cause I'd have to define it twice, so maybe a const vector or something?
 		// I think an out vector might be the best solution. Idk.
 
-		return _extends->GetTypePolicy(nullptr);
+		return _extends->GetTypePolicy((IGenericArgument*)nullptr);
 	}
 
 	Variable ConcretePolicy::GetDefault()

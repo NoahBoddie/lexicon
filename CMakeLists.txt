@@ -52,8 +52,8 @@ include/Lexicon/Exception.h
 include/Lexicon/Field.h
 include/Lexicon/ICallableUnit.h
 include/Lexicon/IFunction.h
-include/Lexicon/IGenericArgument.h
-include/Lexicon/IGenericParameter.h
+"include/Lexicon/IGenericArgument.h"
+"include/Lexicon/IGenericParameter.h"
 include/Lexicon/ISpecial.h
 include/Lexicon/ITypePolicy.h
 include/Lexicon/IVariable.h
@@ -70,7 +70,7 @@ include/Lexicon/QualifiedField.h
 include/Lexicon/QualifiedType.h
 include/Lexicon/Qualifier.h
 include/Lexicon/Report.h
-include/Lexicon/Runtime.h
+"native/include/Lexicon/Engine/Runtime.h"
 include/Lexicon/RuntimeVariable.h
 include/Lexicon/String.h
 include/Lexicon/TestField.h
@@ -149,7 +149,7 @@ include/Lexicon/Interfaces/ProjectManager.h
 	native/include/Lexicon/Engine/TokenType.h
 	native/include/Lexicon/Engine/VariableInfo.h
 	native/include/Lexicon/Engine/VoidPolicy.h
- "include/Lexicon/Interfaces/IElement.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IScript.h" "include/Lexicon/Interfaces/IProject.h" "include/Lexicon/Interfaces/ProjectClient.h" "include/Lexicon/SignatureBase.h")
+ "include/Lexicon/Interfaces/IElement.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IScript.h" "include/Lexicon/Interfaces/IProject.h" "include/Lexicon/Interfaces/ProjectClient.h" "include/Lexicon/SignatureBase.h" "include/Lexicon/IRuntime.h" "include/Lexicon/ProcedureData.h" "include/Lexicon/InherentType.h")
 
 set(sources
 src/Lexicon/AbstractTypePolicy.cpp

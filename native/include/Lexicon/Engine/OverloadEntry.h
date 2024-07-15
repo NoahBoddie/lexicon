@@ -10,6 +10,8 @@ namespace LEX
 	//TODO:Delete me
 	struct FakeType;
 
+	struct HierarchyData;
+
 	struct OverloadCode
 	{
 		//Overload needs a place where it gets it's data for things like hashes, distance, and whether it's initialized or not.
@@ -23,7 +25,7 @@ namespace LEX
 
 		bool initialized = false;//If not initialized
 
-		OverloadCode FinalizeOld(PolicyBase* type, PolicyBase* other);
+		OverloadCode FinalizeOld(HierarchyData* type, HierarchyData* other);
 
 
 

@@ -5,16 +5,12 @@
 
 namespace LEX
 {
-	RuntimeVariable ICallableUnit::Call(std::vector<Variable>& args)
+
+	RuntimeVariable ICallableUnit::Invoke(std::vector<RuntimeVariable>& args, Variable*)
 	{
-		std::vector<RuntimeVariable> t_args{ args.begin(), args.end() };
-		return Invoke(t_args, nullptr);
+		return Execute(args, nullptr, nullptr);
 	}
 
-	RuntimeVariable ICallableUnit::Call(std::vector<RuntimeVariable>& args)
-	{
-		return Invoke(args, nullptr);
-	}
 
 
 }

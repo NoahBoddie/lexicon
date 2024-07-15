@@ -113,8 +113,5 @@ namespace LEX
 
 
 
-		int CompareType(OverloadCode& left, OverloadCode& right, QualifiedType& left_type, QualifiedType& right_type);
-
-		int CompareType(QualifiedType& a_lhs, QualifiedType& a_rhs);
 	};
 }

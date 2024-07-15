@@ -18,6 +18,8 @@ namespace LEX
 	struct AbstractTypePolicy;
 	class RuntimeVariable;
 	struct PolicyBase;
+	struct HierarchyData;
+
 	enum struct DataType : uint8_t;
 
 	struct InheritData;
@@ -45,7 +47,12 @@ namespace LEX
 
 	};
 
-
+	namespace NewGenericV2
+	{
+		struct GenericBase;
+		struct ITemplatePart;
+		struct ITemplateBody;
+	}
 	struct ITypePolicy : public ISpecial
 	{
 		constexpr static uint32_t NonGenericIndex = full_value<uint32_t>;
@@ -79,12 +86,17 @@ namespace LEX
 		//TODO:Make second interface for "AbstractTypePolicy" which GetType returns, and what stores all the type policy info.
 		virtual AbstractTypePolicy* GetTypePolicy(IGenericArgument* args) = 0;
 
+
+		virtual ITypePolicy* CheckTypePolicy(NewGenericV2::GenericBase* base, NewGenericV2::ITemplatePart* args) { return this; };
+
+		virtual AbstractTypePolicy* GetTypePolicy(NewGenericV2::ITemplateBody* args) { return nullptr; };
+
 		AbstractTypePolicy* FetchTypePolicy(IGenericArgument* args)
 		{
 			return this ? GetTypePolicy(args) : nullptr;
 		}
 
-		virtual bool IsAbstract() const { return false; }
+		virtual bool IsResolved() const { return false; }
 
 		virtual TypeID GetTypeID() const = 0;
 
@@ -108,7 +120,7 @@ namespace LEX
 			return IsConvertibleTo(rhs, scope) > ConvertResult::Failure || rhs->IsConvertibleTo(this, scope) > ConvertResult::Failure;
 		}
 
-		
+		//Scope should be an environment that turns itself into an ITypePolicy.
 		virtual ConvertResult IsConvertibleTo(const ITypePolicy* rhs, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const
 		{
 			//The function to tell if this is convertiable to the rhs. the out function is the required conversion
@@ -131,27 +143,14 @@ namespace LEX
 		}
 		//Make some safe functions for these.
 
-	INTERNAL:		
-		virtual PolicyBase* GetTypeBase() = 0;
-		virtual const PolicyBase* GetTypeBase() const = 0;
+
 	public:
 		virtual std::string_view GetName() const = 0;
-		
 
-	INTERNAL:
-		//this internal stuff is basically only really used for construction, as such, it's obscured from
-		// non-implementation versions.
-		//This should be const.
-		//I want to remove this. it should be handled by the new user I think.
-		//virtual std::vector<InheritData> GetInheritFrom(uint32_t hashMin, uint32_t idxInc) = 0;
-
-
-
-		//I'm just forking this shit over, no real reason to do it 
-		virtual const InheritData* GetInheritData(const ITypePolicy* type) const = 0;
-
-		virtual std::vector<InheritData> GetInheritData() const = 0;
-
+	INTERNAL:		
+		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
+		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.
+		virtual HierarchyData* GetHierarchyData() const = 0;
 	};
 
 }

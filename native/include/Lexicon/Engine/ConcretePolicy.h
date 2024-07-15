@@ -33,7 +33,7 @@ namespace LEX
 		}
 		//*/
 
-		bool IsAbstract() const override { return false; }
+		
 
 		//Move this
 		//virtual TypeEnum GetTypeEnum() = 0;

@@ -114,6 +114,9 @@ inline std::hash<std::vector<uint64_t>> hasher;
 
 namespace LEX
 {
+	
+
+
 
 	/////////////////////////
 	//Implementations
@@ -232,7 +235,7 @@ namespace LEX
 
 
 
-		RuntimeVariable Invoke(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
+		RuntimeVariable Execute(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
 		{
 			//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
 
@@ -355,7 +358,7 @@ namespace LEX
 
 
 
-			//bool Invoke(Variable& out, std::vector<RuntimeVariable> args)
+			//bool Execute(Variable& out, std::vector<RuntimeVariable> args)
 
 			Variable Call(ICallableUnit* call_unit, std::vector<Variable> args)
 			{
@@ -827,7 +830,8 @@ namespace LEX
 
 
 
-
+		struct ITemplateInsertBody;
+		struct ITemplateInsertPart;
 
 		struct ITemplateBody;
 
@@ -841,13 +845,26 @@ namespace LEX
 
 			//Always try to promote before using. 
 			virtual ITemplateBody* TryPromoteTemplate() { return nullptr; }
+
+			bool IsSpecialized() { return TryPromoteTemplate(); }
+
+
+
+
+
+			virtual std::unique_ptr<ITemplatePart> MakeGenericArray(GenericBase* ask, ITemplatePart* args);
+
+			virtual std::unique_ptr<ITemplateBody> MakeGenericArray(ITemplateBody* args);
+
+
+
 		};
 
 		struct ITemplateBody : public ITemplatePart
 		{
 			ITypePolicy* GetPartArgument(size_t i) const override final
 			{
-				report::fault::critical("Cannot get Part Argument from a TemplateBody.");
+				return GetBodyArgument(i);
 			}
 
 
@@ -862,7 +879,7 @@ namespace LEX
 
 		
 		struct ITemplateInsertBody;
-
+		struct ITemplateInsertPart;
 		struct ITemplateInsertPart
 		{
 
@@ -889,10 +906,10 @@ namespace LEX
 			virtual ITemplateInsertBody* TryPromoteInserter() { return this; }
 		};
 
-
+		
 		struct GenericPartArray : public ITemplatePart, public ITemplateInsertPart
 		{
-
+			GenericPartArray() { logger::info("fff"); }
 			size_t GetSize() const override { return _types.size(); }
 
 			ITypePolicy* GetPartArgument(size_t i) const override
@@ -935,6 +952,62 @@ namespace LEX
 		};
 
 
+		std::unique_ptr<ITemplatePart> ITemplatePart::MakeGenericArray(GenericBase* ask, ITemplatePart* args)
+		{
+			//If no args, issue probably.
+
+			auto size = GetSize();
+
+			size_t proper = 0;
+
+			GenericPartArray* gen_array = new GenericPartArray;
+
+			std::unique_ptr<ITemplatePart> result{ gen_array };
+
+
+			gen_array->_types.resize(size);
+
+			for (int x = 0; x < size; x++)
+			{
+				auto& l_type = gen_array->_types[x];
+				auto r_type = args->GetPartArgument(x);
+
+				l_type = r_type->CheckTypePolicy(ask, args);
+
+				proper += l_type->IsResolved();
+			}
+
+			if (proper == size)
+				return gen_array->MakeGenericArray(nullptr);
+
+			return result;
+		}
+
+		std::unique_ptr<ITemplateBody> ITemplatePart::MakeGenericArray(ITemplateBody* args)
+		{
+			//If no args, issue probably.
+
+			auto size = GetSize();
+
+			GenericBodyArray* gen_array = new GenericBodyArray;
+
+			std::unique_ptr<ITemplateBody> result{ gen_array };
+
+			gen_array->_types.resize(size);
+
+			for (int x = 0; x < size; x++)
+			{
+				auto type = args->GetPartArgument(x);
+
+				gen_array->_types[x] = type->GetTypePolicy(args);
+			}
+
+			return result;
+		}
+
+
+
+
 
 		using IGenericParameter = ITemplatePart;
 		using IGenericArgument = ITemplateBody;
@@ -960,7 +1033,8 @@ namespace LEX
 					return result;
 				}
 
-				possible.push_back(it->GetTypePolicy((ITemplateBody*)nullptr));
+				auto back = it->GetTypePolicy((ITemplateBody*)nullptr);
+				possible.push_back(back);
 			}
 
 			GenericBodyArray* _array = new GenericBodyArray;
@@ -990,6 +1064,8 @@ namespace LEX
 
 			virtual SpecialBody* ObtainBody(IGenericArgument* args) = 0;
 
+
+			virtual bool TemplateMatches(ITemplatePart* args) = 0;
 
 
 		};
@@ -1031,6 +1107,11 @@ namespace LEX
 
 			SpecialBody* ObtainBody(ITemplateBody* args) override
 			{
+				if (TemplateMatches(args) == false)
+				{
+					report::fault::error("cant handle args");
+				}
+
 				auto result = FindBody(args);
 
 				if (!result) {
@@ -1052,7 +1133,42 @@ namespace LEX
 
 			SpecialBase* ObtainSpecial(GenericBase* client, ITemplatePart* args);
 
+			bool TemplateMatches(ITemplatePart* args) override
+			{
+				//This expects a completed template btw.
 
+				auto size = _template.size();
+
+
+
+				if (args->GetSize() != size)
+					return false;
+
+				for (int i = 0; i < size; i++)
+				{
+					auto& param = _template[i];
+
+					//This would be the thing it should be trying to turn into
+					ITypePolicy* _param = &param;
+
+					ITypePolicy* arg = args->GetPartArgument(i);
+
+					Element* element = dynamic_cast<Element*>(this);
+
+					ITypePolicy* scope = element->FetchEnvironment()->ToType();
+
+					if constexpr (0)
+					{//For now it accepts all, so no real reason to do this.
+						auto conv = arg->IsConvertibleTo(_param, scope, nullptr);
+
+						if (conv <= ConvertResult::Failure) {
+							return false;
+						}
+					}
+				}
+
+				return true;
+			}
 
 			//So try specialize is what you'll get when you try to specialize I guess?
 			//SpecialBase* TrySpecialize()
@@ -1091,13 +1207,14 @@ namespace LEX
 			virtual SpecialPart* AsPart() { return nullptr; }
 			virtual SpecialBody* AsBody() { return nullptr; }
 
+			virtual ITemplatePart* AsTemplate() = 0;
 			
 			virtual bool TemplateMatches(ITemplatePart* args) = 0;
 
 			
 			virtual size_t GetSize() const = 0;
 
-
+			//Get rid of this, AsTemplate handles this.
 			virtual ITypePolicy* GetArgument(size_t i) const = 0;
 
 
@@ -1118,7 +1235,7 @@ namespace LEX
 		// to be specialized, it fits that this would be specializing it right?
 		//If that happens get argument will not be required any longer.
 
-		struct SpecialPart : public SpecialBase
+		struct SpecialPart : public SpecialBase, public ITemplatePart
 		{
 		public:
 			SpecialPart(GenericBase* type, ITemplatePart* spec) : SpecialBase{ type } 
@@ -1132,56 +1249,16 @@ namespace LEX
 				}
 			}
 
-			GenericPartArray MakeGenericArray(GenericBase* ask, ITemplatePart* args)
-			{
-				//If no args, issue probably.
 
-				auto size = _types.size();
-
-				GenericPartArray gen_array;
-
-				gen_array._types = decltype(gen_array._types){ size };
-
-				for (int x = 0; x < size; x++)
-				{
-					auto& l_type = gen_array._types[x];
-					auto& r_type = _types[x];
-
-					l_type = r_type->CheckTypePolicy(ask, args);
-				}
-
-				return gen_array;
-			}
-
-			GenericBodyArray MakeGenericArray(ITemplateBody* args)
-			{
-				//If no args, issue probably.
-
-				auto size = _types.size();
-
-				GenericBodyArray gen_array;
-
-				gen_array._types = decltype(gen_array._types){ size };
-
-				for (int x = 0; x < size; x++)
-				{
-					auto& l_type = gen_array._types[x];
-					auto& r_type = _types[x];
-
-					l_type = r_type->GetTypePolicy(args);
-				}
-
-				return gen_array;
-			}
 
 
 			SpecialBase* ObtainSpec(GenericBase* ask, ITemplatePart* args)
 			{
 				//Purify arguments here, then send those args. Since this is par
 
-				GenericPartArray _array = MakeGenericArray(ask, args);
+				auto _array = MakeGenericArray(ask, args);
 
-				return GetGeneric()->ObtainSpecial(ask, &_array);
+				return GetGeneric()->ObtainSpecial(ask, _array.get());
 			}
 
 
@@ -1190,9 +1267,9 @@ namespace LEX
 			{
 				//Purify arguments here, then send those args. Since this is par
 
-				GenericBodyArray _array = MakeGenericArray(args);
+				auto _array = MakeGenericArray(args);
 
-				return GetGeneric()->ObtainBody(&_array);
+				return GetGeneric()->ObtainBody(_array.get());
 			}
 
 			bool TemplateMatches(ITemplatePart* args) override
@@ -1228,7 +1305,17 @@ namespace LEX
 				return _types[i];
 			}
 
-			virtual size_t GetSize() const override final
+			virtual ITypePolicy* GetPartArgument(size_t i) const override final
+			{
+				return _types[i];
+			}
+
+			ITemplatePart* AsTemplate() override
+			{
+				return this;
+			}
+
+			size_t GetSize() const override final
 			{
 				return _types.size();
 			}
@@ -1239,7 +1326,7 @@ namespace LEX
 
 
 		
-		struct SpecialBody : public SpecialBase//This can be an argument?
+		struct SpecialBody : public SpecialBase, public ITemplateBody
 		{
 		public:
 			SpecialBody(GenericBase* type, ITemplateBody* spec) : SpecialBase{ type }
@@ -1292,6 +1379,17 @@ namespace LEX
 			ITypePolicy* GetArgument(size_t i) const override final
 			{
 				return _types[i];
+			}
+
+
+			virtual AbstractTypePolicy* GetBodyArgument(size_t i) const override final
+			{
+				return _types[i];
+			}
+
+			ITemplatePart* AsTemplate() override
+			{
+				return this;
 			}
 
 			virtual size_t GetSize() const override final
@@ -1665,6 +1763,11 @@ namespace LEX
 		}
 		SpecialBase* GenericBase::ObtainSpecial(GenericBase* client, ITemplatePart* args)
 		{
+			if (TemplateMatches(args) == false)
+			{
+				report::fault::error("cant handle args");
+			}
+
 			if (auto temp = args->TryPromoteTemplate(); temp)
 				return ObtainBody(temp);
 			else

@@ -108,12 +108,12 @@ namespace LEX
 
 		for (int x = 0; x < inheritance.size(); x++) {
 			auto& entry = inheritance[x];
-			logger::info("before {} {} {}", entry.memberIndex, count, entry.type->GetTypeBase()->members.size());
+			logger::info("before {} {} {}", entry.memberIndex, count, entry.type->GetHierarchyData()->members.size());
 
 			entry.memberIndex = count;
-			count += (uint32_t)entry.type->GetTypeBase()->members.size();
+			count += (uint32_t)entry.type->GetHierarchyData()->members.size();
 
-			logger::info("after {} {} {}", entry.memberIndex, count, entry.type->GetTypeBase()->members.size());
+			logger::info("after {} {} {}", entry.memberIndex, count, entry.type->GetHierarchyData()->members.size());
 		}
 	}
 
@@ -180,11 +180,11 @@ namespace LEX
 
 		//thread lock this, and remember a change of everything that set derived is processing.
 
-		PolicyBase* base = other->GetTypeBase();
+		HierarchyData* heir = other->GetHierarchyData();
 
 		uint32_t idxInc = (uint32_t)inheritance.size() + 1;
 
-		std::vector<InheritData> inherits = base->GetInheritFrom(hashRange + 1, idxInc);
+		std::vector<InheritData> inherits = heir->GetInheritFrom(hashRange + 1, idxInc);
 
 		bool second = false;
 
@@ -255,7 +255,7 @@ namespace LEX
 			auto old = memberCount;
 
 			data.memberIndex = old;  //This is the place where this starts.
-			memberCount += (uint32_t)data.type->GetTypeBase()->members.size();
+			memberCount += (uint32_t)data.type->GetHierarchyData()->members.size();
 			//logger::info("add {} {} {}", old, data.memberIndex, memberCount);
 			//This doesn't get hit at times. I need to inspect why.
 
@@ -267,7 +267,7 @@ namespace LEX
 	void HierarchyData::SetDerivesTo(ITypePolicy* other, Access a_access)
 	{
 		
-		PolicyBase* base = other->GetTypeBase();
+		HierarchyData* heir = other->GetHierarchyData();
 
 		ITypePolicy* self = GetHierarchyType();
 
@@ -275,7 +275,7 @@ namespace LEX
 		if (self == other)
 			report::compile::critical("Type '{}' cannot inherit from itself", self->GetName());
 
-		base->HandleInheritance();
+		heir->HandleInheritance();
 		
 		return SetInheritFrom(other, a_access);
 	}
@@ -337,7 +337,7 @@ namespace LEX
 
 			//I'm going to leave this because it needs a source file
 			logger::info("|	Name: {}, Hash: {}/{}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{})",
-				basis.type->GetName(), basis.hash[0], basis.hash[1], basis.distance, basis.ownerIndex, basis.IsInternal(), access, basis.memberIndex, basis.type->GetTypeBase()->members.size());
+				basis.type->GetName(), basis.hash[0], basis.hash[1], basis.distance, basis.ownerIndex, basis.IsInternal(), access, basis.memberIndex, basis.type->GetHierarchyData()->members.size());
 		}
 	}
 
@@ -347,8 +347,8 @@ namespace LEX
 		//This should be using OverloadCode, but i'd need a given type to do it.
 
 		if (!left.initialized && !right.initialized) {
-			left = left.FinalizeOld(left_type->GetTypeBase(), right_type->GetTypeBase());
-			right = right.FinalizeOld(right_type->GetTypeBase(), left_type->GetTypeBase());
+			left = left.FinalizeOld(left_type->GetHierarchyData(), right_type->GetHierarchyData());
+			right = right.FinalizeOld(right_type->GetHierarchyData(), left_type->GetHierarchyData());
 
 			//OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
 			//OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);

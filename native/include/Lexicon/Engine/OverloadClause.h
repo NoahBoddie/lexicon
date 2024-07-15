@@ -57,6 +57,7 @@ namespace LEX
 
 		virtual Overload Match(OverloadClause*, ITypePolicy* scope, Overload* prev, OverloadFlag& flag)
 		{
+			//This should use a similar type of match that signature uses.
 			flag |= OverloadFlag::Ambiguous;
 			return {};
 		}

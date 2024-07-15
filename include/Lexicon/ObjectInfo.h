@@ -155,7 +155,7 @@ namespace LEX
 		{
 			//By default a specialized class will be as normal. No additional work will need to be used.
 
-			return type->GetTypePolicy(nullptr);
+			return type->GetTypePolicy((IGenericArgument*)nullptr);
 		}
 
 

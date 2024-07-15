@@ -7,17 +7,14 @@
 
 #include "Lexicon/QualifiedType.h"
 
+
+
 namespace LEX
 {
 	struct ITypePolicy;
 	class ParameterInfo;
 	
-	struct ProcedureData
-	{
-		Runtime* runtime = nullptr;
-		RuntimeVariable* def = nullptr;
-		const AbstractFunction* srcFunc = nullptr;
-	};
+	struct ProcedureData;
 
 	//Definition is the name of the struct that holds either routine data, or caller data.
 	//Or maybe it should be an enum.

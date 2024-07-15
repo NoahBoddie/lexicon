@@ -15,12 +15,18 @@ namespace LEX
 
 		//TODO: ABSOLUTELY change the name "AbstractTypePolicy::IsAbstract". Perhaps "IsImplemented". Which this should never not be implemented.
 		// Also, probably base that off something like the interface this comes from.
-		virtual bool IsAbstract() const { return true; }
+		bool IsResolved() const override final { return true; }
 
 		AbstractTypePolicy* GetTypePolicy(IGenericArgument* args) override
 		{
 			return this;
 		}
+
+		AbstractTypePolicy* GetTypePolicy(NewGenericV2::ITemplateBody* args) override
+		{
+			return this;
+		}
+
 
 		ISpecializable* GetSpecializable() override
 		{

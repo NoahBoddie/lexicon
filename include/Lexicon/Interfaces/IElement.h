@@ -25,9 +25,13 @@ namespace LEX
 				virtual Record* GetSyntaxTree() = 0;
 				virtual Environment* GetEnvironment() = 0;
 
-				virtual ITypePolicy* ToType() { return nullptr; }
-				virtual IFunction* ToFunction() { return nullptr; }
-				virtual IGlobal* ToGlobal() { return nullptr; }
+				virtual ITypePolicy* AsType() { return nullptr; }
+				virtual IFunction* AsFunction() { return nullptr; }
+				virtual IGlobal* AsGlobal() { return nullptr; }
+
+				ITypePolicy* ToType() { return this ? AsType() : nullptr; }
+				IFunction* ToFunction() { return this ? AsFunction() : nullptr; }
+				IGlobal* ToGlobal() { return this ? AsGlobal() : nullptr; }
 			};
 
 		}

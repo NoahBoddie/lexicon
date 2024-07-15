@@ -5,7 +5,7 @@
 #include "Lexicon/RuntimeVariable.h"
 #include "Lexicon/Engine/RoutineBase.h"
 #include "Lexicon/Engine/Register.h"
-
+#include "Lexicon/IRuntime.h"
 //To be in impl probably.
 namespace LEX
 {
@@ -74,12 +74,50 @@ namespace LEX
 		Argument,
 		Runtime
 	};
-
-	struct Runtime : public GenericArgumentArray
+	
+	class Runtime : public IRuntime, public GenericArgumentArray
 	{
 		//TODO:Make sure RoutineProcess can be copied for testing the return value.
 		//Target could use variable instead of an object. Worth thinking about sorta?
 
+	public:
+
+		virtual IRuntime* GetPreviousRuntime() const
+		{
+			return _caller;
+		}
+
+
+		virtual const AbstractFunction* GetFunction() const
+		{
+			return _function;
+		}
+
+		virtual RuntimeVariable* GetDefault() const
+		{
+			return nullptr;
+		}
+
+
+		//These will honestly do nothing for a long time, but I'll make them at some point.
+		Column GetColumn() const override
+		{
+			return 0;
+		}
+		virtual Line GetLine() const override
+		{
+			return 0;
+		}
+		virtual std::string_view GetFile() const override
+		{
+			return "<No file found>";
+		}
+
+		Runtime* AsRuntime() const override
+		{
+			return const_cast<Runtime*>(this);
+		}
+	public:
 
 		//The idea is that the callable unit is given it's parameters
 		/*
@@ -138,6 +176,8 @@ namespace LEX
 		Runtime(RoutineBase& base, container<Variable> args = {}) : Runtime{ base,  container<RuntimeVariable>{args.begin(), args.end()} }
 		{}
 
+		//
+		AbstractFunction* _function = nullptr;
 
 		RoutineBase& _data;
 

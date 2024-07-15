@@ -144,7 +144,7 @@ namespace LEX
 		IFunction* GetFunctionFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, FuncElement); elem)
-				return elem->ToFunction();
+				return elem->AsFunction();
 
 			return nullptr;
 		}
@@ -152,7 +152,7 @@ namespace LEX
 		ITypePolicy* GetTypeFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, TypeElement); elem)
-				return elem->ToType();
+				return elem->AsType();
 
 			return nullptr;
 		}
@@ -160,7 +160,7 @@ namespace LEX
 		IGlobal* GetGlobalFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, GlobElement); elem)
-				return elem->ToGlobal();
+				return elem->AsGlobal();
 
 			return nullptr;
 		}

@@ -34,7 +34,8 @@ namespace LEX
 
 
 		virtual ITypePolicy* GetHierarchyType() = 0;
-
+		//TODO: This should come back at a later point I think.
+		virtual void HandleInheritance() {}
 
 		
 		InheritData* _InheritData(InheritData& data);
