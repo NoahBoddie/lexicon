@@ -8,13 +8,16 @@
 
 #include "Lexicon/Versioning.h"
 
+#include "Lexicon/InherentType.h"
+
 
 namespace LEX
 {
 	struct TypeID;
 	struct ITypePolicy;
 	struct PolicyBase;
-	
+
+
 	namespace Version
 	{
 		namespace _1
@@ -25,6 +28,8 @@ namespace LEX
 				virtual uint32_t GetIDFromIndex(TypeIndex index) = 0;
 				virtual TypeIndex GetIndexFromName(std::string_view name) = 0;
 				virtual TypeIdentity GetIdentityFromID(TypeID id) = 0;
+
+				virtual ITypePolicy* GetInherentType(InherentType type) = 0;
 			};
 		}
 
@@ -42,8 +47,10 @@ namespace LEX
 
 		uint32_t GetIDFromName(std::string_view name) { return GetIDFromIndex(GetIndexFromName(name)); }
 		ITypePolicy* GetTypeByOffset(std::string_view name, TypeOffset offset) { return GetTypeByID(GetIDFromName(name) + offset); }
-		
+		ITypePolicy* GetInherentType(InherentType type) override;
 	INTERNAL://These do not have any formal implementation outside of the source, and as such are privated and invalid outside of it.
+		
+		PolicyBase* GetInherentBase(InherentType type) INTERFACE_FUNCTION;
 		
 		PolicyBase* GetBaseByID(TypeID id) INTERFACE_FUNCTION;
 

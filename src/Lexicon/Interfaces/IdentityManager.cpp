@@ -9,6 +9,8 @@
 #include "Lexicon/ITypePolicy.h"
 #include "Lexicon/Engine/VoidPolicy.h"
 
+#include "Lexicon/InherentType.h"
+
 namespace LEX
 {
 	//KILLME
@@ -76,12 +78,29 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	//Policy list starts with an entry immediately. The void policy.
 	inline std::vector<PolicyBase*> policyList{ nullptr };
 
+	inline std::array<PolicyBase*, InherentType::kTotal> inherentTypes
+	{
+		new VoidPolicy{}, 
+	};
+
+
+
 	inline PolicyBase* _voidPolicy = new VoidPolicy{};
 
 	//Not needed now policy list exists.
-	inline uint32_t nextID = 1;
+	inline uint32_t nextID = InherentType::kTotal;
 
 
+	
+	PolicyBase* IdentityManager::GetInherentBase(InherentType type)
+	{
+		return inherentTypes[type];
+	}
+	
+	ITypePolicy* IdentityManager::GetInherentType(InherentType type)
+	{
+		return GetInherentBase(type);
+	}
 
 
 	uint32_t IdentityManager::GetIDFromIndex(TypeIndex index)
@@ -112,13 +131,22 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	{
 		auto size = dataList.size();
 
+		uint32_t res = -1;
+
 		for (uint32_t i = 0; i < size; i++)
 		{
-			auto& data = dataList[i];
+			if (dataList[i].startID < id)
+				continue;
+
+			if (!i)
+				break;
+
+			auto& data = dataList[--i];
 
 			if (data.startID <= id)
 				return TypeIdentity{ data.startID, i, id - data.startID };
 		}
+
 
 		return {};
 	}
@@ -160,7 +188,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		//Generates a grouped ID instead of a single one.
 		std::lock_guard<std::mutex> guard{ _lock };
 
-		uint32_t nextID = policyList.size();
+		//uint32_t nextID = policyList.size();
 
 		TypeIndex index = dataList.size();
 
@@ -168,7 +196,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 		dataList.emplace_back(name, nextID, ++range);
 
-
+		nextID += range;
 
 		policyList.resize(size + range);
 		//post resize, this should probably fill each entry with an index.
@@ -178,7 +206,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 	uint32_t IdentityManager::ObtainID(PolicyBase* policy)
 	{
-		uint32_t nextID = policyList.size();
+		//uint32_t nextID = policyList.size();
 
 		if (!policy) {
 			return 0;
@@ -195,6 +223,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		dataList.emplace_back("", nextID, 1);//shouldn't this be 1 since it's a size?
 		policyList.emplace_back(policy);
 
+		nextID++;
 		//assign policy id here.
 		policy->SetTypeID(id);
 
@@ -212,9 +241,8 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	PolicyBase* IdentityManager::GetBaseByID(TypeID id)
 	{
 		//TODO: The first type should be the void policy, it should already be generated.
-		if (id == 0) {
-			logger::info("void {}", !!_voidPolicy);
-			return _voidPolicy;
+		if (id < InherentType::kTotal) {
+			return GetInherentBase((InherentType)id.value());
 		}
 
 		return policyList[id];
