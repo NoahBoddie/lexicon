@@ -6,12 +6,12 @@ namespace LEX
 	// This includes types like void, object, trival, or trival tuple.
 
 	//A different name could be ReservedTypes.
-	ENUM(InheritType, uint8_t)
+	ENUM(InherentType, uint8_t)
 	{
 		kVoid,
-		kObject,
-		kTrival,
-		Tuple,
+		//kObject,//No Object, it may have a name as well as other elements.
+		//kTrival,
+		//kTuple,
 		kTotal,
 	};
 }
