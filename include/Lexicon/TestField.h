@@ -195,12 +195,11 @@ namespace LEX
 
 
 
-
 	//This is so temporary I hate that I'm doing it like this.
 	AbstractTypePolicy* Variable::_CheckVariableType()
 	{
 		AbstractTypePolicy* result = std::visit([&](auto&& lhs) {
-			return FetchVariableType(lhs);
+			return GetVariableType_(lhs);
 			}, _value);
 
 		return result;
@@ -2448,12 +2447,12 @@ namespace LEX
 
 	INITIALIZE()
 	{
-		FetchVariableType<Variable>();
-		FetchVariableType<Number>();
-		FetchVariableType<String>();
-		FetchVariableType<Variable>();
-		FetchVariableType<Variable>();
-		FetchVariableType<Variable>();
+		GetVariableType_<Variable>();
+		GetVariableType_<Number>();
+		GetVariableType_<String>();
+		GetVariableType_<Variable>();
+		GetVariableType_<Variable>();
+		GetVariableType_<Variable>();
 	}
 	
 	

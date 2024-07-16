@@ -59,7 +59,7 @@ namespace LEX
 
 			logger::info("increase? {}", parameters.size());
 
-			entry.policy = FetchVariableType<_Refless>();
+			entry.policy = GetVariableType_<_Refless>();
 
 
 			if constexpr (std::is_const_v<_Naked>) {

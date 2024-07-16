@@ -99,9 +99,9 @@ namespace LEX
 
 	//This is the non implemented version of GetStorageType
 	template<typename T>
-	detail::not_implemented GetVariableType(const accepts_all, detail::not_implemented = {})
+	detail::not_implemented FetchVariableType(const accepts_all, detail::not_implemented = {})
 	{
-		static_assert(!std::is_same_v<T, T>, "Unimplemented version of GetVariableType called.");
+		static_assert(!std::is_same_v<T, T>, "Unimplemented version of FetchVariableType called.");
 		return {};
 	}
 
@@ -110,7 +110,7 @@ namespace LEX
 
 
 	template<detail::subject_has_var_type T>
-	AbstractTypePolicy* GetVariableType(const T* arg = nullptr)
+	AbstractTypePolicy* FetchVariableType(const T* arg = nullptr)
 	{
 		if constexpr (detail::subject_has_var_type_Value<T>) {
 			return T::GetVariableType(arg);
@@ -147,11 +147,11 @@ namespace LEX
 	{
 		template<typename T> concept function_has_var_type_Value = requires(const T* t)
 		{
-			{ GetVariableType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
+			{ FetchVariableType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
 		};
 		template<typename T> concept function_has_var_type_Store = requires()
 		{
-			{ GetVariableType<T>() } -> std::same_as<AbstractTypePolicy*>;
+			{ FetchVariableType<T>() } -> std::same_as<AbstractTypePolicy*>;
 		};
 
 		template<typename T> concept function_has_var_type = function_has_var_type_Value<T> || function_has_var_type_Store<T>;
@@ -164,10 +164,10 @@ namespace LEX
 		AbstractTypePolicy* operator()(const T* arg)
 		{
 			if constexpr (detail::function_has_var_type_Value<T>) {
-				return GetVariableType<T>(arg);
+				return FetchVariableType<T>(arg);
 			}
 			else {
-				return GetVariableType<T>();
+				return FetchVariableType<T>();
 			}
 		}
 
@@ -220,7 +220,7 @@ namespace LEX
 
 
 	template <detail::call_class_has_var_type T>
-	AbstractTypePolicy* FetchVariableType()
+	AbstractTypePolicy* GetVariableType_()
 	{
 		using Decay_T = detail::custom_decay<T>;
 
@@ -236,7 +236,7 @@ namespace LEX
 	}
 
 	template <detail::call_class_has_var_type T>
-	AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>* arg)
+	AbstractTypePolicy* GetVariableType_(detail::custom_decay<T>* arg)
 	{
 		using Decay_T = detail::custom_decay<T>;
 
@@ -253,7 +253,7 @@ namespace LEX
 
 		if constexpr (detail::call_class_has_var_type_Store<T>) {
 			if (!type) {
-				type = FetchVariableType<Decay_T>();
+				type = GetVariableType_<Decay_T>();
 			}
 		}
 
@@ -263,12 +263,12 @@ namespace LEX
 
 
 	template <detail::call_class_has_var_type T>
-	AbstractTypePolicy* FetchVariableType(detail::custom_decay<T>& arg)
+	AbstractTypePolicy* GetVariableType_(detail::custom_decay<T>& arg)
 	{
 		using _T = detail::custom_decay<T>;
 
 
-		return FetchVariableType<_T>(&arg);
+		return GetVariableType_<_T>(&arg);
 	}
 
 
