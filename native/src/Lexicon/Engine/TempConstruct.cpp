@@ -1708,6 +1708,18 @@ namespace LEX
 		};
 
 
+		struct CoreType : public ConcretePolicy
+		{
+			//Core types basically will just not have manual types loaded.
+
+			using ConcretePolicy::ConcretePolicy;
+
+			std::vector<ITypePolicy*> GetPostAffixedTypes() const override
+			{
+				return {};
+			}
+		};
+
 
 		INITIALIZE()
 		{
@@ -1766,9 +1778,17 @@ namespace LEX
 			
 
 			//IDENTITY MANAGER TEST
+			
+			//Core contains all fundemental "auto" types. Types that indicate something as being an object, an external object, an interface, a struct,
+			// a class, etc etc. largely these are all
+
+
+			IdentityManager::instance->GenerateID("CORE", 0);
+
+
 			IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length);
 			IdentityManager::instance->GenerateID("STRING", 0);
-			
+
 
 			constexpr auto offset = Number::Settings::GetOffset(NumeralType::Floating);
 
@@ -1782,11 +1802,16 @@ namespace LEX
 			//I'd like to make a trival ID. The trival id is a singular empty id for a type that cannot be searched for
 			// such as a function signature or 
 
+			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
+
+
 			static ConcretePolicy* float64 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
 			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating, Size::DWord, Signage::Signed, Limit::Infinite) };
 			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound) };
 			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound) };
-			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
+
+			
+			static ConcretePolicy* _coreObject = new CoreType{ "CORE", 0 };
 
 
 			float64->EmplaceDefault(static_cast<double>(0));
@@ -1802,7 +1827,7 @@ namespace LEX
 
 
 			
-			RGL_LOG(info, "{} float64?", (uint32_t)IdentityManager::instance->GetTypeByID(offset + 1)->GetTypeID());
+			//RGL_LOG(info, "{} float64?", (uint32_t)IdentityManager::instance->GetTypeByID(offset + 1)->GetTypeID());
 			//Read some shit here.
 		};
 
