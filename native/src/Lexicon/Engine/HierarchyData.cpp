@@ -5,7 +5,7 @@
 #include "Lexicon/ITypePolicy.h"
 #include "Lexicon/Engine/PolicyBase.h"
 #include "Lexicon/Engine/OverloadEntry.h"
-
+#include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {
@@ -78,6 +78,13 @@ namespace LEX
 	{
 		//std::sort(inheritance.begin(), inheritance.end(), std::less<InheritData>());return;
 
+		for (auto& affix : GetPostAffixedTypes()){
+			SetInheritFrom(affix, Access::Public, true);
+		}
+
+		if (inheritance.size() == 0)
+			return;
+
 		for (int x = 0; x < inheritance.size(); x++) {
 			InheritData& left = inheritance[x];
 
@@ -108,12 +115,12 @@ namespace LEX
 
 		for (int x = 0; x < inheritance.size(); x++) {
 			auto& entry = inheritance[x];
-			logger::info("before {} {} {}", entry.memberIndex, count, entry.type->GetHierarchyData()->members.size());
+			//logger::info("before {} {} {}", entry.memberIndex, count, entry.type->GetHierarchyData()->members.size());
 
 			entry.memberIndex = count;
 			count += (uint32_t)entry.type->GetHierarchyData()->members.size();
 
-			logger::info("after {} {} {}", entry.memberIndex, count, entry.type->GetHierarchyData()->members.size());
+			//logger::info("after {} {} {}", entry.memberIndex, count, entry.type->GetHierarchyData()->members.size());
 		}
 	}
 
@@ -138,7 +145,7 @@ namespace LEX
 
 		//self.memberIndex = members
 
-		self.distance = 1;
+		self.distance = 1;// +(self.type->GetName() == "Object");
 
 		//We'll want to make a copy, because we're gonna rehash it by the index.
 		for (InheritData data : inheritance) {
@@ -169,7 +176,7 @@ namespace LEX
 
 
 	
-	void HierarchyData::SetInheritFrom(ITypePolicy* other, Access a_access)
+	void HierarchyData::SetInheritFrom(ITypePolicy* other, Access a_access, bool post_affixed)
 	{
 		//I need to carry around a set of types not allowed to be submitted for this when things need to handle their own inheritance.
 		//Basically, for every item that SetDerivesTo is used on, that's another entry that SetDerives shouldn't be used on.
@@ -209,12 +216,12 @@ namespace LEX
 
 			InheritData* prev_data = _InheritData(data);
 
-			if (prev_data && data.distance == 1 && data.ownerIndex == 0) {
-				report::compile::critical("Type '{}' inherits {} directly multiple times", self->GetName(), prev_data->type->GetName());
+			if (prev_data && prev_data->distance == 1 && prev_data->ownerIndex == 1 && data.distance == 1 && data.ownerIndex == 0) {
+				report::compile::critical("Type '{}' inherits {} directly multiple times.", self->GetName(), prev_data->type->GetName());
 			}
 
 
-
+			
 
 			if (data.GetAccess() > access) {
 				data.SetAccess(access);
@@ -222,6 +229,14 @@ namespace LEX
 
 			if (intern_) {
 				data.SetInternal(true);
+			}
+
+
+			if (post_affixed) {
+				//if (_second)
+				//	data.distance++;
+
+				data.SetAffixed(true);
 			}
 
 			if (data.IsInternal() == false) {
@@ -232,8 +247,15 @@ namespace LEX
 					//having these use the hash of 0 makes it valid for comparison for nothing else (if not corrected by it's comparison) other than
 					// the derived class.
 
+					bool both_affixed = prev_data->IsAffixed() && data.IsAffixed();
+
+
+
 					prev_data->hash[0] = 0;
-					prev_data->hash[1] = 0;
+					prev_data->hash[1] = both_affixed ? -1 : 0;
+					//^This will ensure literally anything will count toward this, only until it's manually inherited. This may fuck
+					// with entries that aren't compatible with it, but this shit is bottom of the barrel in terms of coversion, it's the least prefered.
+					
 					prev_data->ownerIndex = 0;
 					prev_data->virtInherited = true;
 
@@ -242,12 +264,20 @@ namespace LEX
 						prev_data->SetAccess(data_access);
 					}
 
-					//I think the distance will actually be 2 if it's not the first.
-					prev_data->distance = 1 + _second;
+
+					if (both_affixed) {
+						if (prev_data->distance < data.distance)
+							prev_data->distance = data.distance;
+					}
+					else
+						//I think the distance will actually be 2 if it's not the first.
+						prev_data->distance = 1 + _second;
 
 					continue;
 				}
 			}
+
+			
 
 			if (data.hash[1] > hashRange)
 				hashRange = data.hash[1];
@@ -271,6 +301,7 @@ namespace LEX
 
 		ITypePolicy* self = GetHierarchyType();
 
+		CheckDeriveFrom(other);
 
 		if (self == other)
 			report::compile::critical("Type '{}' cannot inherit from itself", self->GetName());
@@ -336,8 +367,9 @@ namespace LEX
 			}
 
 			//I'm going to leave this because it needs a source file
-			logger::info("|	Name: {}, Hash: {}/{}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{})",
-				basis.type->GetName(), basis.hash[0], basis.hash[1], basis.distance, basis.ownerIndex, basis.IsInternal(), access, basis.memberIndex, basis.type->GetHierarchyData()->members.size());
+			logger::info("|	Name: {}, Hash: {}/{}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{}), postfix: {}",
+				basis.type->GetName(), basis.hash[0], basis.hash[1], basis.distance, basis.ownerIndex, basis.IsInternal(), 
+				access, basis.memberIndex, basis.type->GetHierarchyData()->members.size(), basis.IsAffixed());
 		}
 	}
 
@@ -389,4 +421,10 @@ namespace LEX
 
 		return intern->IsInternal() && intern->ownerIndex == 0;
 	}
+
+	std::vector<ITypePolicy*> HierarchyData::GetPostAffixedTypes() const
+	{
+		return { IdentityManager::instance->GetBaseByOffset("CORE", 0) };
+	}
+
 }
