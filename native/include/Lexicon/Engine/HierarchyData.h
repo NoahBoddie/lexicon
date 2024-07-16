@@ -10,9 +10,10 @@ namespace LEX
 	struct QualifiedType;
 	struct OverloadCode;
 
-
 	struct HierarchyData
 	{
+
+
 		//FakeType will become a part of something called Hierarchy data. TypeBases have this, but so do Specializations of generic types.
 
 		//Id like it if in a test of ambiguity this always wins, but that might not be possible in this set up.
@@ -49,11 +50,14 @@ namespace LEX
 		std::vector<InheritData> GetInheritFrom(uint32_t hashMin, uint32_t idxInc);
 
 		//One of these is for inheriting proper, the other is for manual setting. I would like to order these proper.
-		void SetInheritFrom(ITypePolicy* other, Access a_access = Access::Public);
+		void SetInheritFrom(ITypePolicy* other, Access a_access = Access::Public, bool post_affixed = false);
 		
+		virtual void CheckDeriveFrom(ITypePolicy* other) {};
+
 		void SetDerivesTo(ITypePolicy* other, Access a_access = Access::Public);
 		
-		
+		//Should be hierarcy data when the change
+		virtual std::vector<ITypePolicy*> GetPostAffixedTypes() const;
 
 
 		OverloadCode CreateCode(ITypePolicy* target);

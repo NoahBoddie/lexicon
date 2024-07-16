@@ -15,9 +15,9 @@ namespace LEX
 
 		//Distance is -1 if virtually inherited
 		uint32_t distance = 0;
+		uint32_t _id = 0;
 		ITypePolicy* type = nullptr;
 
-		uint32_t _id = 0;
 
 		//This can possibly be unionized, with the sign bit being able to tell if one or the other.
 		uint32_t ownerIndex = 0;
@@ -26,7 +26,7 @@ namespace LEX
 
 		Access access;//
 		//I think I'll store internal access outside of this.
-
+		bool postAffixed = false;
 		bool isGeneric = false;//This differs if the id is an instance id or a type id.
 		bool virtInherited = false;
 
@@ -68,6 +68,17 @@ namespace LEX
 				access &= ~Access::Internal;
 			}
 		}
+
+		void SetAffixed(bool v)
+		{
+			postAffixed = v;
+		}
+
+		bool IsAffixed() const
+		{
+			return postAffixed;
+		}
+
 
 		bool IsInternal() const
 		{
