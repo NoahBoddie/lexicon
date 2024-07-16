@@ -68,6 +68,11 @@ namespace LEX
 			return _value;
 		}
 
+		constexpr uint32_t value() const
+		{
+			return _value;
+		}
+
 
 
 		//constexpr auto operator <=> (const TypeID&) const = default;
