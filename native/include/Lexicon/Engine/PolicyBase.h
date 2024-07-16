@@ -183,7 +183,7 @@ namespace LEX
 			return ConvertResult::TypeDefined;//Should have access
 		}
 
-
+		void CheckDeriveFrom(ITypePolicy* other) override;
 
 		Flag& GetFlags() const
 		{

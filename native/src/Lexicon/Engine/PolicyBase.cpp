@@ -29,6 +29,35 @@ namespace LEX
 		IdentityManager::instance->ClaimID(this, name, offset);
 	}
 
+
+	void PolicyBase::CheckDeriveFrom(ITypePolicy* other)
+	{
+		auto l_type = GetDataType();
+		auto r_type = other->GetDataType();
+
+		get_switch (GetDataType())
+		{
+		case DataType::Invalid:
+			report::compile::error("{} has an invalid data type", GetName());
+
+		case DataType::Class:
+		case DataType::Struct:
+			if (r_type == DataType::Interface) {
+				return;
+			}
+			[[fallthrough]];
+		case DataType::Interface:
+			if (l_type == r_type){
+				return;
+			}
+			break;
+		}
+
+		report::compile::error("{} as a {} cannot derive from {} a {}.",
+			GetName(), magic_enum::enum_name(l_type),
+			other->GetName(), magic_enum::enum_name(r_type));
+	}
+
 	void PolicyBase::HandleInheritance()
 	{
 		if (IsInheritHandled() == true)
@@ -73,12 +102,12 @@ namespace LEX
 				SetDerivesTo(type, access);
 			}
 
-			FinalizeAndSort();
-
-			PrintInheritance();
-
 
 		}
+
+		FinalizeAndSort();
+
+		PrintInheritance();
 
 	}
 }
