@@ -6,9 +6,12 @@ namespace LEX
 	enum struct DataType : uint8_t
 	{
 		Invalid,
+		//Typename,//Reserved for template types, and forward declared
 		Class,
 		Struct,
 		Interface,
+		//Enum,
+		//Concept
 	};
 
 

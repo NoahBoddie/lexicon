@@ -105,7 +105,7 @@ namespace LEX
 				Record& category = attach_data.GetFront();
 				TypeOffset index = RecordToInt(category.GetFront());
 				result = LookUpOrMake(category.GetTag(), index, lookup);
-				logger::info("looked up {}", (int)result->FetchTypeID());
+				logger::debug("looked up {}", (int)result->FetchTypeID());
 				break;
 
 			}

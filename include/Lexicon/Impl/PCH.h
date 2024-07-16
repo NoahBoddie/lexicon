@@ -123,7 +123,7 @@
 //#include <spdlog/sinks/msvc_sink.h>
 //#include <spdlog/sinks/stdout_sinks.h>
 #include "spdlog/sinks/stdout_color_sinks.h"
-
+#include "magic_enum.hpp"
 namespace logger
 {
 	//Apparently this has issues with clang, but I don't use clang (atm) so I'm free (for now)

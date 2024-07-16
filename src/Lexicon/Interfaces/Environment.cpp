@@ -236,7 +236,7 @@ namespace LEX
 			}
 
 			if (last)
-				ret = *last;
+				ret = *last;//this should move
 
 			return last;
 		}
