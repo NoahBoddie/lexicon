@@ -82,6 +82,7 @@ namespace LEX::Impl
 			"long",
 			"bool",
 			"int",
+			"object",
 			"float",
 			"string",
 			"double",

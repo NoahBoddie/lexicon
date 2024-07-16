@@ -76,6 +76,7 @@ namespace LEX
 		headerGuide[KeywordType::TypeSpec]["void"] = { HeaderFlag::Primary, HeaderFlag::All };
 		headerGuide[KeywordType::TypeSpec]["string"] = { HeaderFlag::Primary, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["char"] = { HeaderFlag::Primary, HeaderFlag::None };//char doesn't exist yet.
+		headerGuide[KeywordType::TypeSpec]["object"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };//char doesn't exist yet.
 
 		//These are searched in perfect order, among keywords submitted to it.
 

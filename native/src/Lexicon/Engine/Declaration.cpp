@@ -10,6 +10,78 @@
 
 namespace LEX
 {
+	/*
+
+	auto _run = [&](Record& entry)
+		{
+			std::string& name = entry.GetTag();
+
+			switch (Hash(name))
+			{
+			case "signed"_h:
+				settings.sign = Signage::Signed;
+				break;
+
+			case "unsigned"_h:
+				settings.sign = Signage::Unsigned;
+				break;
+
+			case "short"_h:
+				settings.size = Size::Word;
+				break;
+
+			case "long"_h:
+				settings.size = Size::QWord;
+				break;
+
+			case "int"_h:
+				settings.type = NumeralType::Integral;
+				break;
+
+			case "bool"_h:
+				settings.type = NumeralType::Integral;
+				settings.size = Size::Bit;
+				break;
+
+				//Double is going to have to use other things.
+			case "double"_h:
+			case "float"_h://Right now, float IS double.
+
+				settings.type = NumeralType::Floating;
+				if (settings.size == Size::Invalid)
+					settings.size = Size::QWord;
+				if (settings.sign == Signage::Invalid)
+					settings.sign = Signage::Signed;
+				if (settings.limit == Limit::Invalid)
+					settings.limit = Limit::Infinite;
+				break;
+
+			case "float_"_h:
+				settings.type = NumeralType::Floating;
+				if (settings.size == Size::Invalid)
+					settings.size = Size::DWord;
+				if (settings.sign == Signage::Invalid)
+					settings.sign = Signage::Signed;
+				if (settings.limit == Limit::Invalid)
+					settings.limit = Limit::Infinite;
+
+				break;
+
+			case "void"_h:
+				return IdentityManager::instance->GetInherentBase(InherentType::kVoid);
+
+			case "string"_h:
+				return IdentityManager::instance->GetBaseByOffset("STRING", 0);
+
+			default://typename
+				type_name = &entry;
+				search_name = name; break;
+			}
+		};
+
+	//*/
+
+
 	PolicyBase* GetPolicyFromSpecifiers(Record& node, Environment* env)
 	{
 		PolicyBase* result = nullptr;
@@ -22,73 +94,6 @@ namespace LEX
 			std::string search_name;
 
 			//For now this only really registers for numbers.
-
-			auto _run = [&](Record& entry)
-			{
-				std::string& name = entry.GetTag();
-
-				switch (Hash(name))
-				{
-				case "signed"_h:
-					settings.sign = Signage::Signed;
-					break;
-
-				case "unsigned"_h:
-					settings.sign = Signage::Unsigned;
-					break;
-
-				case "short"_h:
-					settings.size = Size::Word;
-					break;
-
-				case "long"_h:
-					settings.size = Size::QWord;
-					break;
-
-				case "int"_h:
-					settings.type = NumeralType::Integral;
-					break;
-
-				case "bool"_h:
-					settings.type = NumeralType::Integral;
-					settings.size = Size::Bit;
-					break;
-
-					//Double is going to have to use other things.
-				case "double"_h:
-				case "float"_h://Right now, float IS double.
-
-					settings.type = NumeralType::Floating;
-					if (settings.size == Size::Invalid)
-						settings.size = Size::QWord;
-					if (settings.sign == Signage::Invalid)
-						settings.sign = Signage::Signed;
-					if (settings.limit == Limit::Invalid)
-						settings.limit = Limit::Infinite;
-					break;
-
-				case "float_"_h:
-					settings.type = NumeralType::Floating;
-					if (settings.size == Size::Invalid)
-						settings.size = Size::DWord;
-					if (settings.sign == Signage::Invalid)
-						settings.sign = Signage::Signed;
-					if (settings.limit == Limit::Invalid)
-						settings.limit = Limit::Infinite;
-
-					break;
-
-				case "void"_h:
-					return IdentityManager::instance->GetBaseByID(0);
-
-				case "string"_h:
-					return IdentityManager::instance->GetBaseByOffset("STRING", 0);
-
-				default://typename
-					type_name = &entry;
-					search_name = name; break;
-				}
-			};
 
 			//This needs to work differently in the future, but this works for now.
 			//switch (node.SYNTAX().type)
@@ -160,7 +165,12 @@ namespace LEX
 					break;
 
 				case "void"_h:
-					return IdentityManager::instance->GetBaseByID(0);
+					return IdentityManager::instance->GetInherentBase(InherentType::kVoid);
+
+
+				case "object"_h:
+					return IdentityManager::instance->GetBaseByOffset("CORE", 0);
+
 
 				case "string"_h:
 					return IdentityManager::instance->GetBaseByOffset("STRING", 0);
@@ -185,6 +195,8 @@ namespace LEX
 				logger::critical(" faf???");
 				//result = LEX::IdentityManager::GetTypeByID(offset + 1);
 				result = LEX::IdentityManager::instance->GetBaseByOffset("NUMBER", offset);
+				assert(result);
+				
 			}
 		}
 		return result;
