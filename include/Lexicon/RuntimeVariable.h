@@ -239,7 +239,7 @@ namespace LEX
 			if (other.IsEmpty() == true)
 				report::runtime::error("Assigning undefined to a non-undefined?");
 
-			Ref().CheckAssign(GetVariableType_(*other));
+			Ref().CheckAssign(GetVariableType(*other));
 
 			//Conversion must be a type conversion.
 			//if (other->IsConvertibleTo(_type) == false)

@@ -1169,7 +1169,32 @@ namespace LEX
 		InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
 	};
 
+    template <numeric T>
+    struct VariableType<T>
+    {
 
+        AbstractTypePolicy* operator()()
+        {
+            //I could just make this numeric
+            static AbstractTypePolicy* result = nullptr;
+
+            if (!result) {
+
+                //offset
+                constexpr auto setting = LEX::Number::Settings::CreateFromType<T>();
+
+                auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
+
+                result = buffer->FetchTypePolicy(nullptr);
+
+                logger::info("id? {}", (int)result->FetchTypeID());
+            }
+
+            return result;
+        }
+    };
+
+    //static_assert(std::assignable_from<VariableType<double>, VariableType<double>>, "false");
     /*
     template<numeric T>
     AbstractTypePolicy* GetVariableType()
@@ -1284,7 +1309,7 @@ struct formatter<LEX::Limit, Char>
     };
     //*/
 	template <>
-    struct fmt::formatter<LEX::Number>
+    struct formatter<LEX::Number>
 	{
 		template <class ParseContext>
 		constexpr auto parse(ParseContext& a_ctx)

@@ -143,7 +143,7 @@ namespace LEX
 #define OBJECT_SET_NAME "OBJECT"
 #define DELEGATE_SET_NAME "DELEGATE"
 
-	//*
+	/*
 	AbstractTypePolicy* VariableType<double>::operator()()
 	{
 		//I could just make this numeric
@@ -163,12 +163,13 @@ namespace LEX
 
 		return result;
 	}
-	AbstractTypePolicy* VariableType<Void>::operator()(const Void*)
-	{
-		return nullptr;
-	}
 	//*/
+
+
 	
+	//*/
+
+
 
 	/*
 	template<numeric T>
@@ -199,7 +200,7 @@ namespace LEX
 	AbstractTypePolicy* Variable::_CheckVariableType()
 	{
 		AbstractTypePolicy* result = std::visit([&](auto&& lhs) {
-			return GetVariableType_(lhs);
+			return LEX::GetVariableType(lhs);
 			}, _value);
 
 		return result;
@@ -2447,12 +2448,12 @@ namespace LEX
 
 	INITIALIZE()
 	{
-		GetVariableType_<Variable>();
-		GetVariableType_<Number>();
-		GetVariableType_<String>();
-		GetVariableType_<Variable>();
-		GetVariableType_<Variable>();
-		GetVariableType_<Variable>();
+		GetVariableType<Variable>();
+		GetVariableType<Number>();
+		GetVariableType<String>();
+		GetVariableType<Variable>();
+		GetVariableType<Variable>();
+		GetVariableType<Variable>();
 	}
 	
 	

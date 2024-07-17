@@ -7,6 +7,9 @@
 
 //Revision. I want to change the name (again). Maybe TypeInterface, idk
 
+#include "Lexicon/Interfaces/IdentityManager.h"
+#include "Lexicon/ITypePolicy.h"
+
 namespace LEX
 {
 	class ITypePolicy;
@@ -47,6 +50,11 @@ namespace LEX
 			{
 				return {};
 			}
+
+
+
+
+
 		};
 	}
 
@@ -94,37 +102,7 @@ namespace LEX
 		}
 		//*/
 	};
-
-
-
-	//This is the non implemented version of GetStorageType
-	template<typename T>
-	detail::not_implemented FetchVariableType(const accepts_all, detail::not_implemented = {})
-	{
-		static_assert(!std::is_same_v<T, T>, "Unimplemented version of FetchVariableType called.");
-		return {};
-	}
-
-	//This is the implemented version of these functions. They need to pass a concept that states
-	// the function itself implements what's required.
-
-
-	template<detail::subject_has_var_type T>
-	AbstractTypePolicy* FetchVariableType(const T* arg = nullptr)
-	{
-		if constexpr (detail::subject_has_var_type_Value<T>) {
-			return T::GetVariableType(arg);
-		}
-		else {
-			return T::GetVariableType();
-		}
-	}
-
-	///////////////////////////////////////////////
-
-
-	//To be defined later, this should be a concept that declares GetStorageType and GetValueType need to have an implementation
-	// for each to be used.
+	
 	struct TBDL {};
 
 
@@ -141,7 +119,116 @@ namespace LEX
 		{
 
 		}
+
+
+		static VariableType<TBDL>& ObtainVariableType() {
+			static VariableType<TBDL> same_old;
+			return same_old;
+		}
 	};
+	
+	//This should be focused on there being a subject definition
+	template <detail::subject_has_var_type T>
+	struct VariableType<T>
+	{
+		AbstractTypePolicy* operator()(const T* arg)
+		{
+			if constexpr (detail::subject_has_var_type_Value<T>) {
+				return T::GetVariableType(arg);
+			}
+			else {
+				return T::GetVariableType();
+			}
+		}
+
+		//Can likely remove this
+		AbstractTypePolicy* operator()()
+		{
+			return this->operator()(nullptr);
+		}
+
+	};
+
+
+
+
+	//These are spotty right now. Please redo.
+	namespace detail
+	{
+		template <typename T>
+		auto ObtainVariableType()
+		{
+			return VariableType<T>{};
+		}
+		//*
+		//This shit is so ugly it makes me want to cry.
+		template <typename T> requires(requires () { { VariableType<T>::ObtainVariableType() } ; } 
+		&& std::is_same_v<std::remove_reference_t<decltype(VariableType<T>::ObtainVariableType())>, VariableType<T>>)
+		decltype(auto) ObtainVariableType()
+		{
+			//This is used in the event someone really wants it to make reference to the home object, such as in the case of an interface
+			// manager.
+			return VariableType<T>::ObtainVariableType();
+		}
+		//*/
+
+		template<typename T> concept call_class_has_var_type_Store = !std::is_base_of_v<not_implemented, VariableType<T>>&&
+			//!std::is_same_v<StorageType<example>, StorageType<T>> && 
+			requires()
+		{
+			{ ObtainVariableType<T>()() } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
+
+		template<typename T> concept call_class_has_var_type_Value = !std::is_base_of_v<not_implemented, VariableType<T>>&&
+			//!std::is_same_v<ValueType<example>, ValueType<T>> && 
+			requires(const T* t)
+		{
+			{ ObtainVariableType<T>()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+		};
+
+
+		template<typename T> concept call_class_has_var_type = call_class_has_var_type_Store<T> || call_class_has_var_type_Value<T>;
+
+
+		template<typename T>
+		using custom_decay = T;//std::decay_t<T>;//
+	}
+
+
+
+
+
+
+
+
+	//This is the non implemented version of GetStorageType
+	template<typename T>
+	detail::not_implemented FetchVariableType(const accepts_all, detail::not_implemented = {})
+	{
+		static_assert(!std::is_same_v<T, T>, "Unimplemented version of FetchVariableType called.");
+		return {};
+	}
+
+	//This is the implemented version of these functions. They need to pass a concept that states
+	// the function itself implements what's required.
+
+	//This should be in detail too.
+	template<detail::call_class_has_var_type T>
+	AbstractTypePolicy* FetchVariableType(const T* arg = nullptr)
+	{
+		//Do not do this, it cannot handle references
+		decltype(auto) type_getter = detail::ObtainVariableType<T>();
+
+		if constexpr (detail::call_class_has_var_type_Value<T>) {
+			return type_getter(arg);
+		}
+		else {
+			return type_getter();
+		}
+	}
+
+	///////////////////////////////////////////////
+
 
 	namespace detail
 	{
@@ -158,55 +245,7 @@ namespace LEX
 	}
 
 
-	template <detail::function_has_var_type T>
-	struct VariableType<T>
-	{
-		AbstractTypePolicy* operator()(const T* arg)
-		{
-			if constexpr (detail::function_has_var_type_Value<T>) {
-				return FetchVariableType<T>(arg);
-			}
-			else {
-				return FetchVariableType<T>();
-			}
-		}
 
-		//Can likely remove this
-		AbstractTypePolicy* operator()()
-		{
-			return this->operator()(nullptr);
-		}
-
-	};
-
-
-
-
-
-	//These are spotty right now. Please redo.
-	namespace detail
-	{
-		template<typename T> concept call_class_has_var_type_Store = !std::is_base_of_v<not_implemented, VariableType<T>>&&
-			//!std::is_same_v<StorageType<example>, StorageType<T>> && 
-			requires()
-		{
-			{ VariableType<T>{}.operator()() } -> pointer_derived_from<AbstractTypePolicy*>;
-		};
-
-		template<typename T> concept call_class_has_var_type_Value = !std::is_base_of_v<not_implemented, VariableType<T>>&&
-			//!std::is_same_v<ValueType<example>, ValueType<T>> && 
-			requires(const T* t)
-		{
-			{ VariableType<T>{}.operator()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
-		};
-
-
-		template<typename T> concept call_class_has_var_type = call_class_has_var_type_Store<T> || call_class_has_var_type_Value<T>;
-
-
-		template<typename T>
-		using custom_decay = T;//std::decay_t<T>;//
-	}
 
 
 
@@ -219,24 +258,24 @@ namespace LEX
 
 
 
-	template <detail::call_class_has_var_type T>
-	AbstractTypePolicy* GetVariableType_()
+	template <detail::function_has_var_type T>
+	AbstractTypePolicy* GetVariableType()
 	{
 		using Decay_T = detail::custom_decay<T>;
 
-		if constexpr (detail::call_class_has_var_type_Value<T>) {
-			return VariableType<Decay_T>{}(nullptr);
+		if constexpr (detail::function_has_var_type_Value<T>) {
+			return FetchVariableType<Decay_T>(nullptr);
 		}
 		else {
-			return VariableType<Decay_T>{}();
+			return FetchVariableType<Decay_T>();
 		}
 
 		
 
 	}
 
-	template <detail::call_class_has_var_type T>
-	AbstractTypePolicy* GetVariableType_(detail::custom_decay<T>* arg)
+	template <detail::function_has_var_type T>
+	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>* arg)
 	{
 		using Decay_T = detail::custom_decay<T>;
 
@@ -245,15 +284,15 @@ namespace LEX
 
 		//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
 
-		if constexpr (detail::call_class_has_var_type_Value<T>) {
+		if constexpr (detail::function_has_var_type_Value<T>) {
 			if (arg) {
-				return VariableType<Decay_T>{}(arg);
+				return FetchVariableType<Decay_T>(arg);
 			}
 		}
 
-		if constexpr (detail::call_class_has_var_type_Store<T>) {
+		if constexpr (detail::function_has_var_type_Store<T>) {
 			if (!type) {
-				type = GetVariableType_<Decay_T>();
+				type = FetchVariableType<Decay_T>();
 			}
 		}
 
@@ -262,18 +301,18 @@ namespace LEX
 	}
 
 
-	template <detail::call_class_has_var_type T>
-	AbstractTypePolicy* GetVariableType_(detail::custom_decay<T>& arg)
+	template <detail::function_has_var_type T>
+	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>& arg)
 	{
 		using _T = detail::custom_decay<T>;
 
 
-		return GetVariableType_<_T>(&arg);
+		return GetVariableType<_T>(&arg);
 	}
 
 
 
-
+	//Please put these in a struct so it stops stuff from getting confused between the 2 of them.
 
 
 
@@ -294,18 +333,18 @@ namespace LEX
 	template <>
 	struct VariableType<Void>
 	{
-		AbstractTypePolicy* operator()(const Void*);
+		AbstractTypePolicy* operator()(const Void*)
+		{
+			return IdentityManager::instance->GetInherentType(InherentType::kVoid)->FetchTypePolicy(nullptr);
+		}
 	};
 
 
-	
-
-	template <>
-	struct VariableType<double>
-	{
-
-		AbstractTypePolicy* operator()();
-	};
+	//template <>
+	//struct VariableType<double>
+	//{
+	//	AbstractTypePolicy* operator()();
+	//};
 
 	//This is how I'll prefer to get variable types.
 	// GetVariableType becomes FetchVariableType, vice versa

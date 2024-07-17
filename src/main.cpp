@@ -337,8 +337,6 @@ int main(int argc, char** argv) {
     }
 #endif
     Initializer::Execute();
- 
-
 
     Funckle({ 1, 2, 4, 5 });
 
