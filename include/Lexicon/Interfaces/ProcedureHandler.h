@@ -46,7 +46,7 @@ namespace LEX
 	INTERNAL:
 
 		//Only internal stuff can use this version of the function.
-		template <typename R, typename... Args>
+		template <detail::function_has_var_type R, typename... Args>
 		bool RegisterFunction(R(*prod)(Args...), IFunction* func)
 		{
 			//Currently, the only way to properly handle the system is by making a unique lambda each time a new template is created. But needless to say,

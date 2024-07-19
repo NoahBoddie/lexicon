@@ -17,7 +17,7 @@ constexpr T max_value = std::numeric_limits<T>::max();
 //*/
 
 //I can do both of these at the same time.
-#define LEX_SOURCE 1
+//#define LEX_SOURCE 1
 #define LEX_API_SOURCE "test.dll"
 
 //These don't really work for me, Id like some more order to these.
@@ -74,6 +74,7 @@ namespace LEX
 #include "Lexicon/IVariable.h"
 #include "Lexicon/MemberPointer.h"
 #include "Lexicon/Number.h"
+#include "Lexicon/SignatureBase.h"
 #include "Lexicon/Object.h"
 #include "Lexicon/ObjectData.h"
 #include "Lexicon/ObjectInfo.h"
@@ -81,14 +82,11 @@ namespace LEX
 #include "Lexicon/ObjectPolicyHandle.h"
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 #include "Lexicon/ObjectPoolData.h"
-#include "Lexicon/QualifiedField.h"
 #include "Lexicon/QualifiedType.h"
 #include "Lexicon/Qualifier.h"
 #include "Lexicon/Report.h"
-#include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/RuntimeVariable.h"
 #include "Lexicon/String.h"
-#include "Lexicon/TestField.h"
 #include "Lexicon/TypeAliases.h"
 #include "Lexicon/TypeID.h"
 #include "Lexicon/Unvariable.h"

@@ -10,6 +10,9 @@ namespace LEX
 
 	struct AbstractTypePolicy : public virtual ITypePolicy
 	{	
+		//This might come with hierarchy data automatically.
+
+
 		//less of the idea of a type policy, and more an actual type policy. While this class cannot be instantiated, but the functionality of this
 		// object is equal to that of a type policy, whatever it actually is.
 

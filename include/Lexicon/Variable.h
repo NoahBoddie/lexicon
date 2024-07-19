@@ -634,8 +634,8 @@ namespace LEX
         void CheckAssign(AbstractTypePolicy* other)
         {
             //Conversion must be a type conversion.
-            //if (other->IsConvertibleTo(_type) == false)
-            //    report::runtime::error("No type conversion between values.");
+            if (other->IsConvertibleTo(_type, nullptr) == false)
+                report::runtime::error("No type conversion between types {} and {}.", other->GetName(), _type->GetName());
         }
 
         

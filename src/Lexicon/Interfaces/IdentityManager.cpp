@@ -118,7 +118,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		for (int i = 0; i < size; i++)
 		{
 			auto& entry_name = dataList[i].name;
-
+			logger::debug("{} vs {}, size {} ", name, entry_name, size);
 			if (!entry_name.empty() && entry_name == name)
 				return i;
 		}

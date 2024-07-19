@@ -221,7 +221,7 @@ namespace LEX
 	{
 		for (auto& node : target.GetChildren())
 		{
-			switch (node.SYNTAX().type)
+			get_switch (node.SYNTAX().type)
 			{
 
 			case SyntaxType::Project://No fucking idea why this is even here.
@@ -266,7 +266,7 @@ namespace LEX
 			case SyntaxType::Directive:
 
 			default:
-				report::compile::critical("Syntax not valid for script"); break;
+				report::compile::critical("Syntax {} not valid for script", magic_enum::enum_name(switch_value)); break;
 			}
 		}
 	}

@@ -120,7 +120,7 @@ namespace LEX
 
 			index = ObjectPolicyManager::instance->GetIndexFromName(name);
 		}
-
+		
 		return index;
 	}
 

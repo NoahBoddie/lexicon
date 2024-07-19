@@ -13,10 +13,6 @@
 namespace LEX
 {
 
-	using Syntax = Impl::Syntax;
-	using SyntaxType = Impl::SyntaxType;
-
-
 	struct Scope;
 	struct FunctionData;
 	class RoutineCompiler;

@@ -81,24 +81,24 @@ namespace LEX
 
 
 
-		std::string ToString() const
+		std::string string() const
 		{
 			return { _ptr, _size };
 		}
 
-		std::string_view ToView() const
+		std::string_view view() const
 		{
 			return { _ptr, _size };
 		}
 
 		operator std::string() const
 		{
-			return ToString();
+			return string();
 		}
 
 		operator std::string_view() const
 		{
-			return ToView();
+			return view();
 		}
 
 

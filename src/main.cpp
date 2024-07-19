@@ -5,7 +5,7 @@
 //*
 
 #include "Lexicon.h"
-
+#include "Lexicon/Engine/TestField.h"
 //#include "spdlog/spdlog.h"
 //#include "spdlog/sinks/stdout_color_sinks.h"
 //#include <spdlog/sinks/basic_file_sink.h>
@@ -25,6 +25,11 @@
 using namespace RGL;
 using namespace LEX;
 using namespace LEX::Impl;
+
+namespace logger
+{
+
+}
 
 
 
@@ -55,7 +60,7 @@ void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variab
 
 double size_backend(String a_this)
 {
-	logger::info("size of \"{}\"", a_this.ToView());
+	logger::info("size of \"{}\"", a_this.view());
 	return a_this.size();
 }
 
@@ -158,7 +163,7 @@ void LexTesting(std::string formula)
 	Component::Link(LinkFlag::External);
 
     //return;
-
+    //ProjectManager::instance->GetFunctionFromPath("Shared::Commons::size");
     if (1)
     {
         auto funcs = script->FindFunctions("size");
@@ -221,7 +226,7 @@ void LexTesting(std::string formula)
         //A conversion is supposed to happen here.
         Variable result = function->Call(69.0, 1.0, 2.0, 3.0, 4.0, 5.0);
 
-        std::string number = result.AsNumber().ToString();
+        std::string number = result.AsNumber().string();
 
         logger::info("result of {} = {}", formula, number);
     }
@@ -241,7 +246,7 @@ void LexTesting(std::string formula)
             
             Variable result = function->Call();
 
-            std::string number = result.AsNumber().ToString();
+            std::string number = result.AsNumber().string();
 
             logger::info("result of Test = {}", number);
         }
@@ -320,7 +325,7 @@ void SafeInvoke(std::function<void()> func)
 
 
 int main(int argc, char** argv) {
-    
+    //logger::InitializeLogging(true);
 #ifdef _DEBUG
     //Need a way to only have this happen when holding down a key
     if (GetKeyState(VK_RCONTROL) & 0x800) {
@@ -332,10 +337,11 @@ int main(int argc, char** argv) {
 
         do
         {
-            input = MessageBox(NULL, !input ? text1 : text2, caption, MB_OKCANCEL);
+            input = MessageBoxA(NULL, !input ? text1 : text2, caption, MB_OKCANCEL);
         } while (!IsDebuggerPresent() && input != IDCANCEL);
     }
 #endif
+
     Initializer::Execute();
 
     Funckle({ 1, 2, 4, 5 });
@@ -357,6 +363,7 @@ int main(int argc, char** argv) {
         LexTesting("GetValueTest");
     });
     
+
     std::system("pause");
 	return 0;
 }

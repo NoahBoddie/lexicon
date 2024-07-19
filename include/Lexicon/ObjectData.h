@@ -174,7 +174,7 @@ namespace LEX
 		{
 			static_assert(storage_match, "Declared storage is value, but type structure requires pointer.");
 
-			reinterpret_cast<_Type&>(data) = load;
+			reinterpret_cast<_Type&>(data) = std::move(*load);
 		}
 		else
 		{
@@ -209,7 +209,7 @@ namespace LEX
 	template <typename T>
 	void FillObjectData(ObjectData& data, T& load)
 	{
-		return FillObjectData(data, &load);
+		return FillObjectData<T>(data, &load);
 	}
 
 	//This function takes the type id or instance id of the created object as information how to qualify it's given type.
@@ -234,8 +234,9 @@ namespace LEX
 		//ALSO
 
 		//Take this section. I think this is how I'll fill data, least mess this way.	
+		T in;
 
-		FillObjectData<T>(data, nullptr);
+		FillObjectData<T>(data, std::addressof(in));
 		
 		BuildQualifier<T>(data, id);
 

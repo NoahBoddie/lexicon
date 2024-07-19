@@ -67,7 +67,7 @@ namespace LEX
 			{ T::GetVariableType() } -> pointer_derived_from<AbstractTypePolicy*>;
 		};
 
-		template<typename T> concept subject_has_var_type_Value = requires(const T * t)
+		template<typename T> concept subject_has_var_type_Value = requires(const std::remove_pointer_t<T>* t)
 		{
 			{ T::GetVariableType(t) } -> pointer_derived_from<AbstractTypePolicy*>;
 		};
@@ -84,7 +84,7 @@ namespace LEX
 	template <typename T, typename = void>
 	struct VariableType : public detail::not_implemented
 	{
-
+		constexpr static bool not_implemented = true;
 		//This should never be used manually, so private so just in case it actually is used it will throw 
 		// a compiler error.
 
@@ -131,7 +131,7 @@ namespace LEX
 	template <detail::subject_has_var_type T>
 	struct VariableType<T>
 	{
-		AbstractTypePolicy* operator()(const T* arg)
+		AbstractTypePolicy* operator()(const std::remove_pointer_t<T>* arg)
 		{
 			if constexpr (detail::subject_has_var_type_Value<T>) {
 				return T::GetVariableType(arg);
@@ -181,7 +181,7 @@ namespace LEX
 
 		template<typename T> concept call_class_has_var_type_Value = !std::is_base_of_v<not_implemented, VariableType<T>>&&
 			//!std::is_same_v<ValueType<example>, ValueType<T>> && 
-			requires(const T* t)
+			requires(const std::remove_pointer_t<T>* t)
 		{
 			{ ObtainVariableType<T>()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
 		};
@@ -214,7 +214,7 @@ namespace LEX
 
 	//This should be in detail too.
 	template<detail::call_class_has_var_type T>
-	AbstractTypePolicy* FetchVariableType(const T* arg = nullptr)
+	AbstractTypePolicy* FetchVariableType(const std::remove_pointer_t<T>* arg = nullptr)
 	{
 		//Do not do this, it cannot handle references
 		decltype(auto) type_getter = detail::ObtainVariableType<T>();
@@ -232,7 +232,7 @@ namespace LEX
 
 	namespace detail
 	{
-		template<typename T> concept function_has_var_type_Value = requires(const T* t)
+		template<typename T> concept function_has_var_type_Value = requires(const std::remove_pointer_t<T>* t)
 		{
 			{ FetchVariableType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
 		};
@@ -310,6 +310,41 @@ namespace LEX
 		return GetVariableType<_T>(&arg);
 	}
 
+
+	template <detail::function_has_var_type T> requires (!std::is_pointer_v<T>)
+		AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
+	{
+		using _T = detail::custom_decay<T>;
+
+
+		return GetVariableType<_T>(&arg);
+	}
+
+	template <detail::function_has_var_type T> requires (std::is_pointer_v<T>)
+	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
+	{
+		using Decay_T = detail::custom_decay<T>;
+
+
+		AbstractTypePolicy* type = nullptr;
+
+		//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
+
+		if constexpr (detail::function_has_var_type_Value<T>) {
+			if (arg) {
+				return FetchVariableType<Decay_T>(arg);
+			}
+		}
+
+		if constexpr (detail::function_has_var_type_Store<T>) {
+			if (!type) {
+				type = FetchVariableType<Decay_T>();
+			}
+		}
+
+		return type;
+
+	}
 
 
 	//Please put these in a struct so it stops stuff from getting confused between the 2 of them.

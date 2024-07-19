@@ -9,7 +9,69 @@ namespace LEX
 {
 	struct AbstractTypePolicy;
 
+	struct Object;
+
 	inline Void temp_objectExcept{};
+
+	//NOTE: Create object and some others will possibly be moved to be a class, due to lack of partial specialization.
+	template <typename T>
+	decltype(auto) ToObject(T& obj)
+	{
+
+
+		//Should create object not be implemented properly, it will send this.
+		// Having some way to immediately implement a certain type might be nice. Some sort of concept that's easy to 
+		// have objects flagged for implemented.
+		
+		if constexpr (has_object_info<T>)
+			//If the given object has been seen as a type that has an object policy
+			return obj;
+		else
+			return LEX::detail::not_implemented{};
+		
+	}
+	
+
+
+	template <typename T, typename = void>
+	struct ObjectTranslator
+	{
+		//TODO: Get rid of R value checks. Literally pointless. The top level function needs to deal with that.
+		using _Type = std::invoke_result_t<decltype(ToObject<T>), T&>;
+
+		//No const for now, but later yes.
+
+		//The gist is, if the 
+
+		//TODO: A concept here, if a function that matches the exact rules of ToObject exists within the ObjectInfo function
+		// and is static, allow it to use that instead. This is just to reduce the space taken up by different types all over.
+
+
+		decltype(auto) operator()(T& val)
+		{
+			//This bit is actually not needed at all.
+			if constexpr (std::is_same_v<_Type, LEX::detail::not_implemented>) {
+				return LEX::detail::not_implemented{};
+			}
+			else {
+				return ToObject(val);
+			}
+
+		}
+	};
+
+	//TODO: Use a different constraint for this, it may not need to actually take a reference, for pointer
+	// types that'd be a bit silly.
+	//Also, ToObject and the object translator need to switch types.
+	template<typename T>
+	using obj_trans_type = std::invoke_result_t<ObjectTranslator<T>, T&>;
+
+	template<typename T>
+	concept object_type = has_object_info<obj_trans_type<T>> && !std::is_same_v<obj_trans_type<T>, detail::not_implemented>;
+
+	template <object_type T>// requires(has_object_info<obj_trans_type<T>> && !std::is_same_v<obj_trans_type<T>, detail::not_implemented>)
+	Object MakeObject(T& var);
+
 
 	struct Object
 	{
@@ -45,6 +107,19 @@ namespace LEX
 
 			Transfer(other, true);
 		}
+
+		template <object_type T>
+		Object(T& other)
+		{
+			*this = MakeObject(other);
+		}
+
+		template <object_type T>
+		Object(T&& other)
+		{
+			*this = MakeObject(other);
+		}
+
 
 		Object& operator=(const Object& other)
 		{
@@ -133,6 +208,9 @@ namespace LEX
 					policy->DecPoolRef(data.idxVal);
 				}
 				return;
+
+			default:
+				break;
 			}
 		}
 		
@@ -181,9 +259,10 @@ namespace LEX
 		{//This assumes there's precious data to be transfered.
 			
 			//Transfers delete what data existed, so this needs to be reinitialized
-			if (type == ObjectDataType::kNone)
-				data = policy->CreateData();
-			
+			if (type == ObjectDataType::kNone) {
+				report::debug("other? {}", other.policy.index());
+				data = other.policy->CreateData();
+			}
 			if (move) {
 				other.policy->Move(data, other.data);
 				other.data.Clear();
@@ -395,59 +474,8 @@ namespace LEX
 
 
 
-
-	//NOTE: Create object and some others will possibly be moved to be a class, due to lack of partial specialization.
-	template <typename T>
-	decltype(auto) ToObject(T& obj)
-	{
-
-
-		//Should create object not be implemented properly, it will send this.
-		// Having some way to immediately implement a certain type might be nice. Some sort of concept that's easy to 
-		// have objects flagged for implemented.
-		
-		if constexpr (has_object_info<T>)
-			//If the given object has been seen as a type that has an object policy
-			return obj;
-		else
-			return LEX::detail::not_implemented{};
-		
-	}
-	
-
-
-	template <typename T>
-	struct ObjectTranslator
-	{
-		//TODO: Get rid of R value checks. Literally pointless. The top level function needs to deal with that.
-		using _Type = std::invoke_result_t<decltype(ToObject<T>), T&>;
-
-		//No const for now, but later yes.
-
-		//The gist is, if the 
-
-		//TODO: A concept here, if a function that matches the exact rules of ToObject exists within the ObjectInfo function
-		// and is static, allow it to use that instead. This is just to reduce the space taken up by different types all over.
-
-
-		decltype(auto) operator()(T& val)
-		{
-			//This bit is actually not needed at all.
-			if constexpr (std::is_same_v<_Type, LEX::detail::not_implemented>) {
-				return LEX::detail::not_implemented{};
-			}
-			else {
-				return ToObject(val);
-			}
-
-		}
-	};
-
-
-	template<typename T>
-	using obj_trans_type = std::invoke_result_t<ObjectTranslator<T>, T&>;
-
-	template <typename T> requires(has_object_info<obj_trans_type<T>> && !std::is_same_v<obj_trans_type<T>, detail::not_implemented>)
+	//This likely can be relocated within object as create, with MakeObject being an external function.
+	template <object_type T>
 	Object MakeObject(T& var)
 	{
 		//Name this ToObject, and the other MakeObject. This one creates the object, the other makes an argument into a thing convertible to an object.
@@ -507,7 +535,7 @@ namespace LEX
 
 		ObjectData to{};
 
-		FillObjectData(to, data);
+		FillObjectData<_Type>(to, data);
 
 
 		if (policy->IsPooled(to) == true) {

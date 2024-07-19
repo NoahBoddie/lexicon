@@ -788,7 +788,7 @@ namespace LEX
 		}
 
 
-		std::string ToString() const
+		std::string string() const
 		{
 			switch (infinite)
 			{
@@ -1068,7 +1068,7 @@ namespace LEX
 
 
 			RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
-				ToString(),
+				string(),
 				_setting.sign, _setting.size, _setting.type, _setting.limit);
 		}
 
@@ -1082,7 +1082,7 @@ namespace LEX
 
 
 			RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
-				ToString(),
+				string(),
 				_setting.sign, _setting.size, _setting.type, _setting.limit);
 		}
 
@@ -1098,7 +1098,7 @@ namespace LEX
 			*this = inf;
 
 			RGL_LOG(trace, "Number<infinity?> ctor {}, sets: sign {} size {} num {} lim {}",
-				ToString(),
+				string(),
 				_setting.sign, _setting.size, _setting.type, _setting.limit);
 		}
 
@@ -1321,7 +1321,7 @@ struct formatter<LEX::Limit, Char>
 		// Forwards the formatting by casting the enum to it's underlying type
 		auto format(const LEX::Number& num, format_context& ctx) const
 		{
-			return fmt::format_to(ctx.out(), "{}", num.ToString());;
+			return fmt::format_to(ctx.out(), "{}", num.string());;
 		}
 	};
 }

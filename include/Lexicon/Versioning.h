@@ -129,7 +129,7 @@ namespace detail
 #define IMPL_DATA_PREV(mc_name) mc_name{}; namespace hide { struct mc_name; } struct hide::mc_name
 
 //A macro that prevents implemented data from being used on non-source files. Currently hides data.
-#define IMPL_DATA() struct hidden_data : public detail::uninstantiable_data
+#define IMPL_DATA() struct hidden_data : public ::detail::uninstantiable_data
 #endif
 
 namespace name { struct f; }

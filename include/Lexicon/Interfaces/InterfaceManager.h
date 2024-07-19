@@ -6,7 +6,7 @@ namespace LEX
 {
 	struct Interface;
 	
-	
+	//Both of these should be in a source file some where.
 	extern "C" __declspec(dllexport) bool RegisterInterface_Impl(Interface& ifc, std::string_view name);
 
 	//This should be an external function.
@@ -14,9 +14,14 @@ namespace LEX
 
 	struct InterfaceManager
 	{
+		//I'll sort this shit out later.
+#ifdef LEX_SOURCE
+
 #define TEMP__EXPECTED_MODULE() "Lexicon_Test.exe"
 
-
+#else
+	#define TEMP__EXPECTED_MODULE() "LexiconSKSE.dll"
+#endif
 
 		static bool RegisterInterface(Interface& ifc, std::string_view name);
 

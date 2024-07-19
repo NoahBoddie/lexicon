@@ -1,4 +1,4 @@
-#pragma once
+#include "Lexicon/Engine/TempConstruct.h"
 
 
 
@@ -37,6 +37,11 @@
 #include "Lexicon/Engine/FunctionInfo.h"
 
 #include "Lexicon/ProcedureData.h"
+
+void TestFunction()
+{
+
+}
 
 namespace LEX
 {
@@ -1723,6 +1728,7 @@ namespace LEX
 
 		INITIALIZE()
 		{
+			logger::debug("test");
 			//I would like something to make this assign a fuck ton easier
 
 			generatorList[SyntaxType::Return] = ReturnProcess;
@@ -1813,7 +1819,7 @@ namespace LEX
 			
 			static ConcretePolicy* _coreObject = new CoreType{ "CORE", 0 };
 
-
+			
 			float64->EmplaceDefault(static_cast<double>(0));
 			float32->EmplaceDefault(static_cast<float>(0));
 			uBoolean->EmplaceDefault(static_cast<bool>(0));
@@ -1826,8 +1832,8 @@ namespace LEX
 			string8->EmplaceDefault("");
 
 
+			logger::debug("Loaded constructs");
 			
-			//RGL_LOG(info, "{} float64?", (uint32_t)IdentityManager::instance->GetTypeByID(offset + 1)->GetTypeID());
 			//Read some shit here.
 		};
 

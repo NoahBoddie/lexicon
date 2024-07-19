@@ -8,8 +8,6 @@
 namespace LEX
 {
 	struct Literal;
-	using Syntax = Impl::Syntax;
-	using SyntaxType = Impl::SyntaxType;
 
 
 	inline bool CreateNum(const std::string& value, bool is_int, Number& number) try

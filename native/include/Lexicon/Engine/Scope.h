@@ -4,7 +4,7 @@
 
 //*src?
 #include "Lexicon/Engine/VariableInfo.h"//InfoBase
-#include "Lexicon/QualifiedField.h"
+#include "Lexicon/Engine/QualifiedField.h"
 
 namespace LEX
 {

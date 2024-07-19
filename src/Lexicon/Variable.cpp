@@ -29,4 +29,14 @@ namespace LEX
 
         return {};
     }
+    
+    AbstractTypePolicy* Variable::_CheckVariableType()
+    {
+        AbstractTypePolicy* result = std::visit([&](auto&& lhs) {
+            return LEX::GetVariableType(lhs);
+            }, _value);
+
+        return result;
+    }
+
 }

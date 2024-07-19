@@ -34,15 +34,15 @@ namespace LEX
 				switch (result)
 				{
 				case Update::Invalid:
-					report::fault::fatal("fix name mismatch");
+					report::fault::critical("fix name mismatch");
 					break;//mention the name is probably wrong
 
 				case Update::Library:
-					report::fault::fatal("update library");
+					report::fault::critical("update library");
 					break;//Library is out of date, developer fault.
 
 				case Update::Engine:
-					report::fault::fatal("update engine");
+					report::fault::critical("update engine");
 					break;//Engine is out of date, user fault.
 
 				case Update::Match:

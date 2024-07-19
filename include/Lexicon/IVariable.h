@@ -7,7 +7,7 @@ namespace LEX
 	struct IVariable : public Variable
 	{
 		//Class basically does nothing, serves only as the polymorphic base
-		~IVariable() = default;
+		virtual ~IVariable() = default;
 
 		IVariable()
 		{

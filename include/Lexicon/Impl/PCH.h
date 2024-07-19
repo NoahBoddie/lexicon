@@ -1,7 +1,8 @@
 #pragma once
 #define __STOP_USING__ 1
 #ifdef __STOP_USING__
-
+//Need a way to turn this shit off.
+//*
 #include <cassert>
 #include <cctype>
 #include <cerrno>
@@ -101,6 +102,7 @@
 #include <ShlObj_core.h>
 #include <Windows.h>
 #include <Psapi.h>
+//*/
 #undef cdecl // Workaround for Clang 14 CMake configure error.
 
 
@@ -115,6 +117,41 @@
 
 //This logger is meant to only be used in this project, not to leak this definition into another.
 // Move this bit into a src file.
+
+
+
+
+//move this please.
+inline HMODULE GetCurrentModule()
+{
+    //Make this static in that it stores teh result it gets the first time so it never needs to search it again.
+    // NB: XP+ solution!
+    static HMODULE hModule = NULL;
+
+    if (hModule == NULL) {
+        GetModuleHandleEx(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+            (LPCTSTR)GetCurrentModule,
+            &hModule);
+    }
+
+    return hModule;
+}
+
+inline std::string GetModuleName(HMODULE mdl)
+{
+    //Make this static in that it stores teh result it gets the first time so it never needs to search it again.
+    // NB: XP+ solution!
+    static HMODULE hModule = NULL;
+
+    std::vector<char> buffer;
+    buffer.resize(MAX_PATH);
+
+    GetModuleFileNameA(mdl, &buffer.at(0), MAX_PATH);
+
+    return std::string{ buffer.begin(), buffer.end() };
+}
+
 
 
 //>src
@@ -155,6 +192,10 @@ namespace logger
 	template <class... Args>                                                          \
 	a_func(fmt::format_string<Args...>, Args&&...) -> a_func<Args...>;
 
+    
+    
+
+#define DEFAULT_LOGGER() extern "C" __declspec(dllexport) void SetDefaultLogger()
 
     inline void InitializeLogging();
 
@@ -165,38 +206,26 @@ namespace logger
 	SOURCE_LOGGER(warn, warn);
 	SOURCE_LOGGER(error, err);
 	SOURCE_LOGGER(critical, critical);
-
+    
     inline void InitializeLogging()
     {
+
         static bool _initialized = false;
 
         if (_initialized)
             return;
 
         _initialized = true;
-        /*
-        auto log =
-        auto path = log_directory();
-        if (!path) {
-            report_and_fail("Unable to lookup SKSE logs directory.");
-        }
-        *path /= PluginDeclaration::GetSingleton()->GetName();
-        *path += L".log";
 
+        //_logger<void>{}();
+        auto default_logger = GetProcAddress(GetCurrentModule(), "SetDefaultLogger");
 
-        std::shared_ptr<spdlog::logger> log;
-
-
-        if (IsDebuggerPresent()) {
-            log = std::make_shared<spdlog::logger>(
-                "Global", std::make_shared<spdlog::sinks::msvc_sink_mt>());
-        }
-        else {
-            log = std::make_shared<spdlog::logger>(
-                "Global", std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true));
+        if (auto default_logger = GetProcAddress(GetCurrentModule(), "SetDefaultLogger"); default_logger) {
+            using func_t = void(*)();
+            func_t func = (func_t)default_logger;
+            return func();
         }
 
-        //*/
 
         std::shared_ptr<spdlog::logger> log = spdlog::stdout_color_mt("console");
 
@@ -232,7 +261,9 @@ namespace logger
         }
 
         //void set_color(spdlog::level::level_enum::trace, spdlog::yellow);
-    }
+
+        logger::info("No default logger set, using standard.");
+        }
 }
 
 
@@ -277,6 +308,8 @@ struct Initializer
         if (executeList.empty() == true)
             return;
 
+        logger::debug("executing");
+
         for (auto func : executeList) {
             func();
         }
@@ -296,7 +329,7 @@ struct Initializer
 inline static int test = 0;
 //Initializes something on the spot.
 #define INITIALIZE__COUNTED(mc_counter) inline static void CONCAT(__init_func_,mc_counter)();\
-inline static Initializer CONCAT(__init_var_,mc_counter) = CONCAT(__init_func_,mc_counter);\
+volatile inline static Initializer CONCAT(__init_var_,mc_counter) = CONCAT(__init_func_,mc_counter);\
 void CONCAT(__init_func_,mc_counter)()
 
 #define INITIALIZE(...) __VA_OPT__(/)##__VA_OPT__(*) __VA_ARGS__ __VA_OPT__(*)##__VA_OPT__(/) \
@@ -459,22 +492,6 @@ namespace LEX::detail
 }
 
 
-inline HMODULE GetCurrentModule()
-{
-    //Make this static in that it stores teh result it gets the first time so it never needs to search it again.
-    // NB: XP+ solution!
-    static HMODULE hModule = NULL;
-
-    if (hModule == NULL) {
-        GetModuleHandleEx(
-            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-            (LPCTSTR)GetCurrentModule,
-            &hModule);
-    }
-
-    return hModule;
-}
-
 
 
 template <typename T>
@@ -492,6 +509,47 @@ T ReturnDefaultOrFailure()
 	}
 }
 
+
+
+template<typename T, typename... Args>
+std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name, Args&&... args)
+{
+    using _Ret = std::invoke_result_t<T, Args...>;
+
+    using _Func = T*;//_Ret(*)(Args...);
+
+
+    _Func func = (_Func)GetProcAddress(a_module, func_name);
+
+    
+
+    if (func) {
+        static bool once = false;
+
+        if (!once) {
+            RGL_LOG(debug, "Found {} in {}.", func_name, GetModuleName(a_module));
+            once = true;
+        }
+    }
+    else {
+        static bool once = false;
+
+        if (!once) {
+            RGL_LOG(critical, "Extern call failed. Function {} not found in {}.", func_name, GetModuleName(a_module));
+            once = true;
+        }
+
+        return ReturnDefaultOrFailure<_Ret>();
+    }
+    
+
+    return func(std::forward<Args>(args)...);
+
+}
+
+
+
+
 template<typename T, typename... Args>
 std::invoke_result_t<T, Args...> ExternCall(LPCSTR module_name, LPCSTR func_name, Args&&... args)
 {
@@ -499,48 +557,22 @@ std::invoke_result_t<T, Args...> ExternCall(LPCSTR module_name, LPCSTR func_name
 
     using _Func = T*;//_Ret(*)(Args...);
 
+    HINSTANCE a_module = GetModuleHandleA(module_name);
 
-	static _Func func = nullptr;
+    if (a_module == nullptr) {
+        static bool once = false;
 
-    if (!func)
-    {
-        HINSTANCE API = GetModuleHandle(module_name);
-
-        if (API == nullptr) {
-            static bool once = false;
-
-            if (!once) {
-                RGL_LOG(debug, "Extern Call failed. Module {} not found.", module_name);
-                once = true;
-            }
-
-            return ReturnDefaultOrFailure<_Ret>();
+        if (!once) {
+            RGL_LOG(debug, "Extern Call failed. Module {} not found.", module_name);
+            once = true;
         }
 
-        func = (_Func)GetProcAddress(API, func_name);
-
-
-        if (func) {
-            static bool once = false;
-
-            if (!once) {
-                RGL_LOG(debug, "Found {} in {}.", func_name, module_name);
-                once = true;
-            }
-        }
-        else {
-            static bool once = false;
-
-            if (!once) {
-                RGL_LOG(critical, "Extern call failed. Function {} not found in {}.", func_name, module_name);
-                once = true;
-            }
-
-            return ReturnDefaultOrFailure<_Ret>();
-        }
+        return ReturnDefaultOrFailure<_Ret>();
     }
 
-	return func(std::forward<Args>(args)...);
+
+    return ExternCall<T, Args...>(a_module, func_name, std::forward<Args>(args)...);
+
 
 }
 
@@ -550,32 +582,34 @@ std::invoke_result_t<decltype(T), Args...> ExternCall(LPCSTR module_name, LPCSTR
 	return ExternCall<decltype(T), Args...>(module_name, func_name, std::forward<Args>(args)...);
 }
 
-namespace stl
+namespace LEX
 {
-    template< class _From, class _To >
-    concept convertible_to = std::convertible_to<_From, _To>;
-
-    
-    template< class To, class From >
-    concept convertible_from = convertible_to<From, To>;
+    namespace stl
+    {
+        template< class _From, class _To >
+        concept convertible_to = std::convertible_to<_From, _To>;
 
 
+        template< class To, class From >
+        concept convertible_from = convertible_to<From, To>;
 
-    template< class _From, class _To >
-    concept castable_to = requires { static_cast<_To>(::std::declval<_From>()); };;
 
-    template< class _To, class _From >
-    concept castable_from = castable_to<_From, _To>;
 
+        template< class _From, class _To >
+        concept castable_to = requires { static_cast<_To>(::std::declval<_From>()); };;
+
+        template< class _To, class _From >
+        concept castable_from = castable_to<_From, _To>;
+
+    }
 }
-
 
 
 
 //I need to undeclare these macros when I get the chance.
 //OBJECT_POLICY
 
-#define LEX_SOURCE 1
+//#define LEX_SOURCE 1
 
 //Makes virtual functions final outside of the lexicon source executable
 #ifdef LEX_SOURCE
@@ -607,7 +641,7 @@ namespace stl
 #define INTERNAL_PUBLIC INTERNAL_(public)
 
 #define INTERNAL_DEFAULT default
-
+#define ACCESS_OR(mc_l, mc_r) mc_l
 #else
 #define INTERNAL private
 #define INTERNAL_(mc_access) private
@@ -615,6 +649,8 @@ namespace stl
 #define INTERNAL_PUBLIC private
 
 #define INTERNAL_DEFAULT delete
+
+#define ACCESS_OR(mc_l, mc_r) mc_r
 
 #endif // LEX_SOURCE
 

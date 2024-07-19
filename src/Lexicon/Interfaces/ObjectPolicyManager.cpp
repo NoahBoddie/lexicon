@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 
 namespace LEX
@@ -18,8 +16,7 @@ namespace LEX
 		auto it = aliasList.find(name);
 
 		if (it == end) {
-			report::compile::critical("AliasNotFound");
-			throw nullptr;
+			report::compile::critical("Object Policy '{}' not found.", name);
 		}
 
 		return it->second;
@@ -43,7 +40,7 @@ namespace LEX
 
 	OBJECT_POLICY* ObjectPolicyManager::GetObjectPolicy(uint32_t index)
 	{
-		assert(policyList.size() >= index);
+		assert(policyList.size() > index);
 
 		if (policyList.size() <= index) {
 			return nullptr;
@@ -56,7 +53,7 @@ namespace LEX
 	OBJECT_POLICY* ObjectPolicyManager::RegisterObjectType(std::vector<std::string_view> aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source)
 	{
 		//Change parameters of this, include a main name. Maybe a category. But maybe not.
-
+		report::message::info("adding category {}", category);
 		auto index = IdentityManager::instance->GenerateID(category, range);
 
 		//Crashing is unlikely and most likely will want to be unhandled. So letting it through.

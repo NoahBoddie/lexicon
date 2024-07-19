@@ -33,8 +33,8 @@
 #include "Lexicon/Engine/InstructionType.h"
 #include "Lexicon/Engine/OperatorType.h"
 #include "Lexicon/Engine/Runtime.h"
-#include "RuntimeVariable.h"
-#include "IVariable.h"
+#include "Lexicon/RuntimeVariable.h"
+#include "Lexicon/IVariable.h"
 #include "Lexicon/Engine/GlobalVariable.h"
 #include "Lexicon/Engine/Literal.h"
 #include "Lexicon/Engine/LiteralManager.h"
@@ -45,13 +45,13 @@
 #include "Lexicon/Engine/Operand.h"
 #include "Lexicon/Engine/OperandType.h"
 #include "Lexicon/Engine/Target.h"
-#include "RuntimeVariable.h"
-#include "MemberPointer.h"
+#include "Lexicon/RuntimeVariable.h"
+#include "Lexicon/MemberPointer.h"
 #include "Lexicon/Engine/RoutineCompiler.h"
 
 
 
-#include "TypeID.h"
+#include "Lexicon/TypeID.h"
 
 
 #include "Lexicon/Engine/ConcretePolicy.h"
@@ -66,15 +66,15 @@
 
 
 
-#include "Object.h"
-#include "ObjectData.h"
-#include "ObjectInfo.h"
-#include "ObjectPolicy.h"
-#include "ObjectPolicyHandle.h"
+#include "Lexicon/Object.h"
+#include "Lexicon/ObjectData.h"
+#include "Lexicon/ObjectInfo.h"
+#include "Lexicon/ObjectPolicy.h"
+#include "Lexicon/ObjectPolicyHandle.h"
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 
 
-#include "ObjectPoolData.h"
+#include "Lexicon/ObjectPoolData.h"
 
 
 
@@ -83,18 +83,18 @@
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceManager.h"
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
-#include "Versioning.h"
+#include "Lexicon/Versioning.h"
 
-#include "DeclareSpecifier.h"
+#include "Lexicon/DeclareSpecifier.h"
 
 #include "Lexicon/Engine/OverloadInput.h"
 
 #include "Lexicon/Engine/Declaration.h"
 
 #include "Lexicon/Interfaces/ProcedureHandler.h"
-#include "Dispatcher.h"
+#include "Lexicon/Dispatcher.h"
 
-#include "String.h"
+#include "Lexicon/String.h"
 
 #include "Lexicon/Engine/Signature.h"
 
@@ -197,14 +197,7 @@ namespace LEX
 
 
 	//This is so temporary I hate that I'm doing it like this.
-	AbstractTypePolicy* Variable::_CheckVariableType()
-	{
-		AbstractTypePolicy* result = std::visit([&](auto&& lhs) {
-			return LEX::GetVariableType(lhs);
-			}, _value);
-
-		return result;
-	}
+	
 
 	
 
@@ -519,17 +512,17 @@ namespace LEX
 			Number test_inf = infinity::ufloat64();
 
 
-			report::debug("inf test {}", test_inf.ToString());
+			report::debug("inf test {}", test_inf.string());
 
 			unsigned_int8.Assign(testB);
-			report::debug("uint8 {}", unsigned_int8.ToString());
+			report::debug("uint8 {}", unsigned_int8.string());
 
-			report::debug("{} + {} = {} ?", testA.ToString(), testB.ToString(), testResult.ToString());
+			report::debug("{} + {} = {} ?", testA.string(), testB.string(), testResult.string());
 			constexpr auto fill = std::numeric_limits<int8_t>::max();
 
 			unsigned_int8.Visit([](auto& it) { it += 1; });
 
-			report::debug("uint8 later {}", unsigned_int8.ToString());
+			report::debug("uint8 later {}", unsigned_int8.string());
 		}
 
 
@@ -2068,6 +2061,8 @@ namespace LEX
 	}
 
 
+	//Possible concept for logger implementation
+	
 
 
 	
@@ -2152,6 +2147,10 @@ namespace LEX
 	};
 
 
+	//The idea of these structs are to present as tags to be used when having a centralized object class.
+	struct use_unvariable {};
+	struct use_variable_type {};
+	struct use_obj_translator {};
 
 
 
@@ -2284,7 +2283,7 @@ namespace LEX
 
 	};
 
-	void function(any_value<std::string> t)
+	void function_nil(any_value<std::string> t)
 	{
 
 	}

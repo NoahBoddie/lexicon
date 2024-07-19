@@ -25,7 +25,7 @@
 
 #include "Lexicon/Engine/OverloadInput.h"
 
-#include "Lexicon/QualifiedField.h"
+#include "Lexicon/Engine/QualifiedField.h"
 
 #include "Lexicon/Interfaces/ProjectManager.h"
 

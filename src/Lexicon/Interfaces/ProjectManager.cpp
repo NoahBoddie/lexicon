@@ -256,8 +256,10 @@ namespace LEX
 
 	IElement* ProjectManager::GetElementFromPath(std::string_view path, Enum elem)
 	{
+		return nullptr;
+
 		//right now, linking isn't really set up so you know.
-		if (1 || Component::HasLinked(LinkFlag::Declaration) == false) {
+		if (Component::HasLinked(LinkFlag::Declaration) == false) {
 			//Tell that this is too early to be valid.
 			return nullptr;
 		}

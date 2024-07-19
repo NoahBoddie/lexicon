@@ -34,9 +34,6 @@ namespace LEX::Impl
 
 namespace LEX
 {
-	using Syntax = Impl::Syntax;
-	using SyntaxType = Impl::SyntaxType;
-
 	class TypeInfo;
 
 	class Variable;
