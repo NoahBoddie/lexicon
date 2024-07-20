@@ -239,6 +239,7 @@ namespace LEX
 			if (other.IsEmpty() == true)
 				report::runtime::error("Assigning undefined to a non-undefined?");
 
+			//This should only be checking if this has a type.
 			Ref().CheckAssign(GetVariableType(*other));
 
 			//Conversion must be a type conversion.
@@ -347,7 +348,7 @@ namespace LEX
 		//Used to use is void, but this checks if the ref is void too.
 		bool IsVoid() { return !index() || Ref().IsVoid(); }
 
-		bool IsEmpty() { return !index(); }
+		bool IsEmpty() const { return !index(); }
 
 
 		bool IsValue() const

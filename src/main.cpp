@@ -39,7 +39,7 @@ static void PrintAST(Record& tree, std::string indent = "")
     const static std::string __dent = "|  ";
 
     std::string log = tree.PrintAs<Syntax>();
-
+    
     RGL_LOG(info, "{}{}", indent, log);
 
     indent += __dent;

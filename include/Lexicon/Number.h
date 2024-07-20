@@ -291,6 +291,7 @@ namespace LEX
         Negative = -1,
         Finite = 0,
         Positive = 1,
+        //NaN = 2,
     };
 
 
