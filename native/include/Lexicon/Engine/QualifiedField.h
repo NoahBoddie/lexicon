@@ -13,6 +13,7 @@
 
 namespace LEX
 {
+	struct Solution;
 
 	struct QualifiedField : public Field
 	{
@@ -31,7 +32,7 @@ namespace LEX
 		};
 
 		//The qualified type could be anything qualifiable, but type seems to be the most likely to pull (well solution, but solutions are type qualified).
-		QualifiedField(InfoBase* field, QualifiedType type = nullptr) : _target{ field }
+		QualifiedField(Field* field, QualifiedType type = nullptr) : _target{ field }
 		{
 			//By this point, it's expected that the calling has already emplaced it's rules on what this is.
 
@@ -65,13 +66,14 @@ namespace LEX
 			}
 		}
 
-		QualifiedField(InfoBase& field, QualifiedType type = nullptr) : QualifiedField{ &field, type }
+		QualifiedField(Field& field, QualifiedType type = nullptr) : QualifiedField{ &field, type }
 		{			
+		
 		}
+		
 
 
-
-		InfoBase* _target = nullptr;
+		Field* _target = nullptr;
 
 		Constness _constLevel = Constness::kNone;
 
@@ -158,7 +160,8 @@ namespace LEX
 
 		operator bool() const
 		{
-			return _target && _target->operator bool();
+			return _target;
+			//return _target && _target->operator bool();
 		}
 	};
 

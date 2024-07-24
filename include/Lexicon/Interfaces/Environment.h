@@ -26,11 +26,6 @@
 
 //#include "GlobalVariable.h"
 
-namespace LEX::Impl
-{
-	enum struct SyntaxType;
-	struct Syntax;
-}
 
 namespace LEX
 {
@@ -39,6 +34,7 @@ namespace LEX
 	class Variable;
 
 	struct Global;
+	struct GlobalBase;
 
 	struct PolicyBase;
 	class FunctionBase;
@@ -56,6 +52,10 @@ namespace LEX
 	struct QualifiedField;
 	struct ITypePolicy;
 	struct IFunction;
+
+
+	enum struct SyntaxType;
+	struct Syntax;
 
 
 	enum struct SearchResult
@@ -137,7 +137,7 @@ namespace LEX
 			//>-------------------------
 			//This is for environment
 			std::map<std::string, TypeContainer> typeMap;
-			std::vector<Global*> variables;//should be global variables
+			std::vector<GlobalBase*> variables;//should be global variables
 
 
 
@@ -219,7 +219,7 @@ namespace LEX
 		virtual void AddFunction(FunctionBase* tar);
 
 
-		virtual void AddVariable(Global* tar);
+		virtual void AddVariable(GlobalBase* tar);
 
 		
 		void AddType(PolicyBase* policy);
@@ -234,7 +234,7 @@ namespace LEX
 
 
 		//TODO: Change name to find field, and use a variableInfo for this.
-		virtual VariableInfo* FindVariable(std::string name);
+		virtual GlobalBase* FindVariable(std::string& name);
 
 		virtual std::vector<PolicyBase*> FindTypes(std::string name);
 
@@ -338,7 +338,7 @@ namespace LEX
 		// largely, it'd serve as a good wrapper for type aliases or other types such as generic arguments.
 
 		
-		std::vector<Global*> variables;//should be global variables
+		std::vector<GlobalBase*> variables;//should be global variables
 			
 
 

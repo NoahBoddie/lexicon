@@ -200,6 +200,13 @@ namespace LEX::Impl
 
 				return {};
 			}
+
+
+			std::string FailureMessage() const override
+			{
+				return "Expected ; punctuation.";
+			}
+
 		};
 		
 		struct ScriptParser : ParseModule//public ParseSingleton<ScriptParser, false>
@@ -890,7 +897,7 @@ namespace LEX::Impl
 					else if (size == 1)
 						result = children[0];
 					else
-						result.EmplaceChildren(children);
+						result.EmplaceChildren(std::move(children));
 				}
 
 				return result;
@@ -903,6 +910,7 @@ namespace LEX::Impl
 				// But I'm kinda lazy ngl
 				return !context->IsContextType("Statement");
 			}
+
 
 			bool IsAtomic() const override { return true; }
 		};
@@ -969,9 +977,17 @@ namespace LEX::Impl
 						try {
 							//Should crash if the value isn't valid. the actual value doesn't matter too much, that will get sorted later.
 							// All the matters is it passes the transfer.
-							auto test = std::stod(tag);
-
-							return parser->CreateExpression(next, SyntaxType::Number);
+							
+							try
+							{
+								auto test = std::stoll(tag);
+								return parser->CreateExpression(next, SyntaxType::Integer);
+							}
+							catch (std::invalid_argument in_arg) {
+								auto test = std::stod(tag);
+								return parser->CreateExpression(next, SyntaxType::Number);
+							}
+							
 						} catch (std::invalid_argument in_arg) {
 							//TODO:Fix Format #3
 							parser->croak("invalid string detected");  //std::format("invalid string {} detected. ({})", next.GetTag(), in_arg.what()));
@@ -1439,6 +1455,99 @@ namespace LEX::Impl
 			}
 		};
 
+		struct IfParser : public AutoParser<IfParser>
+		{
+			//The idea of this should be the lowest priority possible. It expects an identifier and if nothing else claims it then it's a field.
 
+
+			//uint32_t GetPriority() const override
+			//{
+			//	return ModulePriority::None;
+			//}
+
+			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			{
+				return !target && parser->IsType(TokenType::Keyword, "if");
+			}
+
+
+
+			void HandleBlock(Record& block, Parser* parser)
+			{
+				if (parser->SkipIfType(TokenType::Punctuation, ":") == true)
+				{
+					//This really shouldn't allow encasulate parser to go in. But for now this will handle.
+					Record body = parser->ParseExpression();
+					
+
+					if (body.SYNTAX().type == SyntaxType::StateBlock)
+						block.EmplaceChildren(std::move(body.GetChildren()));
+					else if (body)
+						block.EmplaceChildren(std::move(body));
+
+					ParseModule::TryModule<EndParser>(parser, nullptr);
+				}
+				else if (parser->IsType(TokenType::Punctuation, "{") == true)
+				{
+					Record body = ParseModule::TryModule<EncapsulateParser>(parser, nullptr);
+
+					auto& children = body.GetChildren();
+
+
+					if (body.SYNTAX().type == SyntaxType::StateBlock)
+						block.EmplaceChildren(std::move(children));
+					else if (body)
+						block.EmplaceChildren(std::move(body));
+
+					//if it's empty the statement block remains empty.
+				}
+				else
+				{
+					//croak
+					parser->croak("invalid token found proceeding if statement.");
+				}
+
+			}
+
+
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				//if:conditional
+				//<express>
+				//expression here
+				//<state>
+				//statement here
+				//<else>
+				//statement here
+
+				Record result = Parser::CreateExpression(parser->next(), SyntaxType::If);
+				
+
+				
+
+				parser->SkipType(TokenType::Punctuation, "(");
+
+				Record& express_block = result.EmplaceChild(Parser::CreateExpression(parse_strings::expression_block, SyntaxType::None));
+
+				express_block.EmplaceChild(parser->ParseExpression());
+
+				parser->SkipType(TokenType::Punctuation, ")");
+
+				Record& statement_block = result.EmplaceChild(Parser::CreateExpression(parse_strings::statement_block, SyntaxType::None));
+
+			
+				HandleBlock(statement_block, parser);
+
+				if (parser->SkipIfType(TokenType::Keyword, "else") == true)
+				{
+					Record& else_block = result.EmplaceChild(Parser::CreateExpression(parse_strings::alternate_block, SyntaxType::None));
+					HandleBlock(else_block, parser);
+				}
+
+				return result;
+			}
+
+		};
 	
 }

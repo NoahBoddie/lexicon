@@ -5,7 +5,7 @@
 namespace LEX
 {
 	class Variable;
-	struct IGenericArgument;
+	struct ITemplateBody;
 	
 
 	struct AbstractTypePolicy : public virtual ITypePolicy
@@ -20,12 +20,7 @@ namespace LEX
 		// Also, probably base that off something like the interface this comes from.
 		bool IsResolved() const override final { return true; }
 
-		AbstractTypePolicy* GetTypePolicy(IGenericArgument* args) override
-		{
-			return this;
-		}
-
-		AbstractTypePolicy* GetTypePolicy(NewGenericV2::ITemplateBody* args) override
+		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override
 		{
 			return this;
 		}

@@ -633,8 +633,17 @@ namespace LEX
     
         void CheckAssign(AbstractTypePolicy* other)
         {
+            //For now, fuck accountability.
+       
+
+            return;
+            
+            //This variable has no reason to be accountable if it has no type and is void.
+            if (!_type)
+                return;
+
             //Conversion must be a type conversion.
-            if (other->IsConvertibleTo(_type, nullptr) == false)
+            if (other->IsConvertibleTo(_type, nullptr) <= ConvertResult::Failure)
                 report::runtime::error("No type conversion between types {} and {}.", other->GetName(), _type->GetName());
         }
 
@@ -652,6 +661,8 @@ namespace LEX
 
             _SetDefined(true);
             _SetChanged(true);
+
+            
 
             return *this;
         }
@@ -753,7 +764,8 @@ namespace LEX
             return GetVariableType(lhs);
             }, temp);
 
-        //AbstractTypePolicy* policy = GetValueType(other);
+        //AbstractTypePolicy* policy = GetVariableType(other);
+        assert(policy);
 
         Variable result{ other, policy };
 

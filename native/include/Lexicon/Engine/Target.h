@@ -118,7 +118,7 @@ namespace LEX
 		}
 
 
-	private:
+	public:
 		union
 		{
 			int64_t raw = full_value<int64_t>;

@@ -129,7 +129,7 @@ namespace LEX
 				case "long"_h:
 					settings.size = Size::QWord;
 					break;
-
+				
 				case "int"_h:
 					settings.type = NumeralType::Integral;
 					break;
@@ -192,7 +192,7 @@ namespace LEX
 				settings.sign = settings.sign == Signage::Invalid ? Signage::Signed : settings.sign;
 
 				auto offset = settings.GetOffset();
-				logger::critical(" faf???");
+				
 				//result = LEX::IdentityManager::GetTypeByID(offset + 1);
 				result = LEX::IdentityManager::instance->GetBaseByOffset("NUMBER", offset);
 				assert(result);
@@ -251,7 +251,7 @@ namespace LEX
 				//bool post = child.SYNTAX().type == SyntaxType::Declare;
 
 				HeaderEntry entry;
-				logger::info("{} ???", ExpressionToString(child.SYNTAX().type));
+				logger::info("{} ???", magic_enum::enum_name(child.SYNTAX().type));
 
 				auto it = headerGuide[type].find(name);
 

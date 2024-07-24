@@ -15,7 +15,7 @@ namespace LEX
 
 		//I don't think I'd even want to do this.
 		//using ConcretePolicy::ConcretePolicy;
-
+		std::vector<ITypePolicy*> GetPostAffixedTypes() const override { return {}; }
 		//Should do nothing.
 		VoidPolicy();
 	};

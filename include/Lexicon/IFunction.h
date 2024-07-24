@@ -5,7 +5,7 @@
 namespace LEX
 {
 	struct AbstractFunction;
-	struct IGenericArgument;
+	struct ITemplateBody;
 
 	struct IFunction : public ISpecial
 	{
@@ -14,7 +14,7 @@ namespace LEX
 		virtual bool IsMethod() const { return false; }
 		bool IsResolved() const override { return false; }
 		virtual std::string_view GetName() const = 0;
-		virtual AbstractFunction* GetFunction(IGenericArgument* args) = 0;
+		virtual AbstractFunction* GetFunction(ITemplateBody* args) = 0;
 	INTERNAL:
 		//This shouldn't be internal should it? P
 		virtual uint64_t GetProcedureData() const = 0;

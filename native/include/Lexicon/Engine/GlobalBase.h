@@ -2,24 +2,35 @@
 
 #include "Lexicon/IGlobal.h"
 #include "Lexicon/Interfaces/Element.h"
-
+#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Declaration.h"
 
 namespace LEX
 {
 	struct ICallableUnit;
+	struct RoutineBase;
 
-	struct GlobalData
+	struct GlobalData_
 	{
 		std::string _name;
-		
+
+		//Variable stores this sure, but each special global will have a different variable, so I might as well use this
+		// for interface
+		Declaration _declared;
+
 		//This is the default for a given global. Call to reset value. But, do note, this should be a formula, not a callable unit.
-		ICallableUnit* _init = nullptr;
+		//For this I may need something that can be specialized.
 		
+		
+		//This is the initialization for the function. Should be tied to a function called reset that can be used on
+		// globals.
+		std::unique_ptr<RoutineBase> _init;
+
 	};
 
+	
 
-
-	class GlobalBase : public virtual IGlobal, public SecondaryElement, public GlobalData
+	struct GlobalBase : public virtual IGlobal, public SecondaryElement, public GlobalData_
 	{
 	public:
 		IGlobal* AsGlobal() override { return this; }
@@ -38,6 +49,48 @@ namespace LEX
 
 		virtual LinkFlag GetLinkFlags() override;
 
+
+
+		std::string_view GetName() const override
+		{
+			return _name;
+		}
+
+		virtual std::string GetFieldName() const override
+		{
+			return _name;
+		}
+
+		virtual FieldType GetFieldType() const override
+		{
+			return FieldType::Variable;
+		}
+
+		virtual uint32_t GetFieldIndex() const override
+		{
+			return -1;
+		}
+
+
+		virtual Qualifier GetQualifiers() const override
+		{
+			return _declared.flags;
+		}
+
+		virtual Specifier GetSpecifiers() const override
+		{
+			return _declared.declare | Specifier::Static;
+		}
+
+		virtual ITypePolicy* GetType() const
+		{
+			return _declared.policy;
+		}
+
+
+
+
+		
 	};
 
 }

@@ -81,7 +81,7 @@ namespace LEX
 
 			case SyntaxType::Integer:
 				free_value = 1;
-				break;
+				[[fallthrough]];
 
 			case SyntaxType::Number:
 			{

@@ -9,6 +9,9 @@ namespace LEX
 	struct AbstractFunction;
 	struct RuntimeVariable;
 	class Runtime;
+	struct ITemplateBody;
+
+
 	namespace Version
 	{
 		namespace _1
@@ -28,8 +31,7 @@ namespace LEX
 				virtual Line GetLine() const = 0;
 				virtual std::string_view GetFile() const = 0;
 
-				virtual IGenericArgument* AsBody() { return nullptr; }
-
+				virtual ITemplateBody* AsBody() { return nullptr; }
 			INTERNAL:
 				virtual Runtime* AsRuntime() const = 0;
 			};

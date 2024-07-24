@@ -8,12 +8,11 @@ namespace LEX
 {
 	struct RuntimeVariable;
 
-	struct AbstractGlobal : public virtual IGlobal, ACCESS_OR(public, protected) IVariable
+	struct AbstractGlobal : public virtual IGlobal, public IVariable
 	{
 		bool IsResolved() const override final { return true; }
 
-		AbstractGlobal* GetGlobal(IGenericArgument* args) override { return this; };
-		AbstractGlobal* GetGlobal(NewGenericV2::ITemplateBody* args) override { return this; };
+		AbstractGlobal* GetGlobal(ITemplateBody* args) override { return this; };
 
 
 		virtual RuntimeVariable GetValue()

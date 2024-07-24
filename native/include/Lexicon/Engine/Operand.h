@@ -12,6 +12,8 @@ namespace LEX
 
 	struct Operand : public Target
 	{
+		
+
 		//private;
 		Target& data()
 		{
@@ -86,6 +88,10 @@ namespace LEX
 		RuntimeVariable ObtainVariable(Runtime* runtime);
 		RuntimeVariable& ObtainAsVariable(Runtime* runtime);
 
+		constexpr static Operand None()
+		{
+			return Operand{ 0, OperandType::None };
+		}
 
 		constexpr Operand() = default;
 		constexpr Operand(Target d, OperandType t) : Target{ d }, type{ t }

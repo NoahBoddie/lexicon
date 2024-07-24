@@ -21,6 +21,7 @@ namespace LEX
 		Local,
 		Parameter,
 		Variable,
+		Member,
 		Function,//Doesn't differentiate between method or function
 	};
 

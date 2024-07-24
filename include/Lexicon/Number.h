@@ -150,6 +150,54 @@ namespace LEX
     }
     
     
+    template <numeric T>
+    constexpr uint8_t GetNumberOffsetFromType()
+    {
+        NumeralType type = NumeralType::Invalid;
+        Size size = Size::Invalid;
+        Signage sign = Signage::Invalid;
+        Limit limit = Limit::Invalid;
+
+        //Type & Limit
+        if constexpr (std::is_floating_point_v<T>) {
+            type = NumeralType::Floating;
+            limit = Limit::Infinite;
+        }
+        else {
+            type = NumeralType::Integral;
+            limit = Limit::Overflow;
+        }
+
+        //Size
+        if constexpr (!std::is_same_v<T, bool>) {
+            switch (sizeof(T))
+            {
+                //Literally impossible but hey, never know in the future.
+            default: return 0;
+            case 8: size = Size::QWord; break;
+            case 4: size = Size::DWord; break;
+            case 2: size = Size::Word; break;
+            case 1: size = Size::Byte; break;
+
+            }
+        }
+        else {
+            size = Size::Bit;
+            //Might have bools specifically lock for this sort of thing.
+            limit = Limit::Bound;
+        }
+
+        //Signage
+        if constexpr (std::is_unsigned_v<T>) {
+            sign = Signage::Unsigned;
+        }
+        else {
+            sign = Signage::Signed;
+        }
+
+        return GetNumberOffset(type, size, sign, limit);
+    }
+
 
 
     enum struct NumberDataType
@@ -393,7 +441,7 @@ namespace LEX
 
 
 
-            //It's 7 bits long. Want to use GetOffset but it's 
+            
             static constexpr TypeOffset length = GetNumberOffset(NumeralType::Last, Size::Last, Signage::Last, Limit::Last);
 
 

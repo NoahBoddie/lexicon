@@ -6,26 +6,28 @@
 
 namespace LEX
 {
-	namespace NewGenericV2
-	{
-		struct GenericBase;
-		struct ITemplatePart;
-		struct ITemplateBody;
-	}
+	struct GenericBase;
+	struct ITemplatePart;
+	struct ITemplateBody;
+	
 	struct AbstractGlobal;
 
 
-	struct IGlobal : public ISpecial
+	struct IGlobal : public ISpecial, public Field
 	{
 
-	virtual IGlobal* CheckGlobal(NewGenericV2::GenericBase* base, NewGenericV2::ITemplatePart* args) { return this; };
+	virtual IGlobal* CheckGlobal(GenericBase* base, ITemplatePart* args) { return this; };
 
-	virtual AbstractGlobal* GetGlobal(IGenericArgument* args) { return nullptr; };
-	virtual AbstractGlobal* GetGlobal(NewGenericV2::ITemplateBody* args) { return nullptr; };
+	virtual AbstractGlobal* GetGlobal(ITemplateBody* args) = 0;
 
 	virtual std::string_view GetName() const = 0;
 
-	AbstractGlobal* FetchGlobal(IGenericArgument* args)
+	//Attempts to revert value. If the global is const or a special part, it will fail to revert.
+	// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
+	// information. Will not throw.
+	virtual bool Revert(bool just_default) = 0;
+
+	AbstractGlobal* FetchGlobal(ITemplateBody* args)
 	{
 		return this ? GetGlobal(args) : nullptr;
 	}

@@ -129,35 +129,40 @@ namespace LEX
 		//ITypePolicy* policy = nullptr;
 
 
-
-		operator bool() const
+		
+		bool FilterHasValue() const
 		{
 			//compare the rest of this shit. This is a struct, you should be able to do whatever the fuck you want to do, BUT, be careful.
-			return flags || declare || policy || _filterByte;
+			return (flags || declare || policy || _filterByte);
+		}
+
+		Declaration Filter(Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		{
+			//static_assert(false, "This filter is not correct, it's supposed to remove stuff, and move it into a different header. this just moves the left overs into the new one.");
+
+			Declaration filter{};
+			filter._filterByte = !policy;
+			filter.flags = flags & ~qual;
+			filter.declare = declare & ~decl;
+
+			return filter;
 		}
 
 		//Make some combination functions for these.
 		Declaration Filter(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
 		{
-			//static_assert(false, "This filter is not correct, it's supposed to remove stuff, and move it into a different header. this just moves the left overs into the new one.");
+			return Filter(qual, decl);
+		}
 
-			Declaration filter{};
-
-			if (type)//If expecting a policy, 
-				filter.policy = policy ? nullptr : policy;
-			else//If not expecting a policy
-				filter._filterByte = policy ? true : false;
-
-			filter.flags = flags & qual;
-			filter.declare = decl & declare;
-
-			return filter;
+		bool Matches(Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		{
+			return !Filter(qual, decl).FilterHasValue();
 		}
 
 
 		bool Matches(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
 		{
-			return !Filter(type, qual, decl);
+			return !Filter(type, qual, decl).FilterHasValue();
 		}
 
 

@@ -6,7 +6,7 @@
 namespace LEX
 {
 	struct RoutineBase;
-	struct IGenericArgument;
+	struct ITemplateBody;
 	struct AbstractTypePolicy;
 
 	struct AbstractFunction : public virtual IFunction, public ICallableUnit
@@ -23,7 +23,7 @@ namespace LEX
 		
 
 		//Change this when generic gets into the picture
-		AbstractFunction* GetFunction(IGenericArgument* args) override
+		AbstractFunction* GetFunction(ITemplateBody* args) override
 		{
 			return this;
 		}

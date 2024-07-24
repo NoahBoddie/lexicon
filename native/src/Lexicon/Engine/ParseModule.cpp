@@ -57,7 +57,7 @@ namespace LEX::Impl
 		//Try module will try to use use try module, and if it's unsuccessful, it will croak.
 		// Basically a checked ParseAtomic for specific modules.
 		if (_QueryModule(mdl, parser, result, target) == false)
-			parser->GetInput()->croak("Module failed to parse");
+			parser->GetInput()->croak(mdl->FailureMessage());
 
 		return result;
 	}

@@ -170,6 +170,11 @@ namespace LEX::Impl
 		return tok && tok.GetEnum<Token>().type == type && (str == "" || tok.GetTag() == str);
 	}
 
+	bool Parser::WasType(TokenType type, std::string str) {
+		RecordData tok = tokenizer.prev();
+		return tok && tok.GetEnum<Token>().type == type && (str == "" || tok.GetTag() == str);
+	}
+
 
 	RecordData Parser::ConsumeType(TokenType type, std::string str)
 	{
@@ -299,10 +304,17 @@ namespace LEX::Impl
 		return result;
 	}
 
-	Record Parser::EndExpression(Record rec)
+	Record Parser::EndExpression(Record& rec)
 	{
 		ParseModule::ExecuteModule<EndParser>(this, nullptr);
-		return rec;
+		return std::move(rec);
+	}
+
+
+	Record Parser::EndExpression(Record&& rec)
+	{
+		ParseModule::ExecuteModule<EndParser>(this, nullptr);
+		return std::move(rec);
 	}
 
 	TokenStream* Parser::GetTokenizer()
@@ -341,7 +353,7 @@ namespace LEX::Impl
 		expr.line = tok.line;
 		expr.column = tok.column;
 
-		return Record{ data.GetTag(), expr, children };
+		return Record{ data.GetTag(), expr, std::move(children) };
 	}
 
 

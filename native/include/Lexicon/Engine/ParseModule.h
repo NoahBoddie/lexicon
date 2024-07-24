@@ -150,6 +150,10 @@ namespace LEX::Impl
 			return _QuestionModule(mdl, parser, target, flag);
 		}
 		
+		virtual std::string FailureMessage() const
+		{
+			return "Module failed to parse";
+		}
 
 		//Should actually be pure but it's defined for ease of use right now.
 		std::string_view GetContext() override

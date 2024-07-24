@@ -23,7 +23,7 @@ namespace LEX
 		
 		External			= 1 << 7,
 
-		All = max_value<std::underlying_type_t<DeclareSpecifier>>,
+		All = static_cast<std::underlying_type_t<DeclareSpecifier>>(-1),
 	};
 
 	using Specifier = DeclareSpecifier;

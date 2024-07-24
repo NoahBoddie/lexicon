@@ -21,6 +21,7 @@
 #include "Lexicon/Engine/ConcreteFunction.h"
 
 #include "Lexicon/Engine/GlobalVariable.h"
+#include "Lexicon/Engine/GlobalBase.h"
 
 
 #include "Lexicon/Engine/OverloadInput.h"
@@ -74,7 +75,7 @@ namespace LEX
 		}
 
 
-		void Environment::AddVariable(Global* tar)
+		void Environment::AddVariable(GlobalBase* tar)
 		{
 			//This won't have an issue yet, because no abstraction.
 
@@ -111,13 +112,13 @@ namespace LEX
 
 
 		
-		VariableInfo* Environment::FindVariable(std::string name)
+		GlobalBase* Environment::FindVariable(std::string& name)
 		{
-			report::fault::critical("Not implemented yet");
+			
 			auto end = variables.end();
 
 			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
-				//return *it;
+				return *it;
 				return nullptr;
 			}
 			else {
@@ -146,7 +147,6 @@ namespace LEX
 		void Environment::GetRecursiveIncluded(std::set<Environment*>& cache)
 		{
 			if (!this || !cache.emplace(this).second) {
-				logger::critical("CCCCCCCCCCCCCCCC");
 				return;
 
 			}
@@ -167,7 +167,16 @@ namespace LEX
 		{
 			std::set<Environment*> cache;
 
+
 			GetRecursiveIncluded(cache);
+
+			auto commons = GetCommons();
+
+			if (this != commons)
+				commons->GetRecursiveIncluded(cache);
+
+
+
 
 			return { cache.begin(), cache.end() };
 
@@ -291,7 +300,7 @@ namespace LEX
 		QualifiedField Environment::SearchFieldImpl(std::string name, OverloadKey* key)
 		{
 			//No overload key means it has is expected to have no generic, if so it has one.
-			TargetObject;
+			
 
 			std::vector<Environment*> query;
 
@@ -307,14 +316,17 @@ namespace LEX
 
 
 				//There's no situation where multiple can be observed, so it only needs the one.
-				VariableInfo* var = env->FindVariable(name);
+				GlobalBase* var = env->FindVariable(name);
 
 				if (var)
 				{
-					//return global;
-					return QualifiedField{ var, NULL_OP(key)->GetTarget() };
-				}
+					//possible specialization here.
 
+					//return global;
+					return QualifiedField{ var };
+				}
+				//This isn't needed to qualify this because it doesn't matter what the target is for a global.
+				//NULL_OP(key)->GetTarget();
 			}
 
 			//Environment* commons = 

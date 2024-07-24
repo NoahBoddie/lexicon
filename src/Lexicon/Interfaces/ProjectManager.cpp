@@ -111,9 +111,9 @@ namespace LEX
 
 	static void PrintAST(Record& tree, std::string indent = "")
 	{
-		const static std::string __dent = "  ";
+		const static std::string __dent = "| ";
 
-		std::string log = tree.PrintAs<LEX::Impl::Syntax>();
+		std::string log = tree.PrintAs<LEX::Syntax>();
 
 		RGL_LOG(info, "{}{}", indent, log);
 

@@ -39,7 +39,7 @@ namespace LEX
 		If = Conditional,
 		While = Conditional,
 		For = Conditional,
-
+		
 
 
 		//Individual operators will not be used, I can just have something hash into an

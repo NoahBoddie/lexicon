@@ -33,7 +33,14 @@ namespace LEX
 			// Rather, variables created within the if statements line should count.
 
 			//Needs a 
-			Scope a_scope{ this, ScopeType::Required };//Is this supposed to be the one doing this?
+
+			//Scope a_scope { this, ScopeType::Required };
+			std::unique_ptr<Scope> a_scope;
+
+			//This just prevents it from doing this on whatever, but it'd be better to just do it manually.
+			if (GetScope() == nullptr)
+				a_scope = std::make_unique<Scope>(this, ScopeType::Required);
+
 
 			//In that case, scopes are objects that are manually created, and require at least a RoutineCompiler (meaning expressions can't create new scopes)
 			//, allowing for something that can be created in one function, kept alive until it's end, and then destroyed once no longer needed. Thus, my worries of maintaining
@@ -101,11 +108,19 @@ namespace LEX
 
 		//Exists only to declare scope so I can deal with the lack of a return before the end of the function.
 		{
+			_current = &operations;
+
 			Scope a_scope{ this, ScopeType::Header };
 
+			/*
 			std::vector<ParameterInfo> params = _targetFunc->GetParameters();
+			
+			std::vector<ITypePolicy*> types;
+			
+			std::transform(params.begin(), params.end(), std::back_inserter(types), [&](ParameterInfo& it) {return it.GetType(); });
 
-			size_t size = params.size();
+			ModParamCount(types.size(), types);
+			//*/
 
 			bool method = false;
 
@@ -121,37 +136,9 @@ namespace LEX
 				method = true;
 			}
 			
-			if (1 != 1)
-			{//I think this is the stuff I can cut out.
-				std::vector<std::string> names{ size + method };
-				std::vector<ITypePolicy*> policies{ size + method };
-
-				if (method) {
-					names[0] = "<this>";
-					policies[0] = solution.policy;
-				}
-
-				for (int i = 0; i < size; i++) {
-					auto& param = params[i];
-					names[i + method] = param.GetFieldName();
-					policies[i + method] = param.GetType();
-				}
-
-				auto old = _current;
-				_current = &operations;
-
-
-				//logger::debug("Parameter Size: {}", size + method);
-				//a_scope.CreateVariables(names, policies);
-
-
-				_current = old;
-
-			}
-			else
-			{
-				varCount[0] = varCount[1] = _targetFunc->GetParamAllocSize();
-			}
+			
+			varCount[0] = varCount[1] = _targetFunc->GetParamAllocSize();
+			
 
 			auto end = operations.end();
 
@@ -163,15 +150,49 @@ namespace LEX
 				break;
 			}
 
-			case SyntaxType::Return:
+			default: {//case SyntaxType::Return:
 				//operations = CompileLine(funcRecord, Register::Result);
-				operations.insert_range(end, CompileLine(funcRecord, Register::Result));
+				_current = &operations;
+				
+				
+				implicitReturn = true;
+				//operations.insert_range(end, CompileLine(funcRecord, Register::Result, result));
+				Solution result = PushExpression(funcRecord, Register::Result);
+				
+
+
+				QualifiedType return_policy = GetReturnType();
+				
+				if (return_policy && return_policy != IdentityManager::instance->GetInherentType(InherentType::kVoid))
+				{
+					//This is a hacky way of ensuring how 1 liner stuff works
+					
+					Conversion out;
+
+					auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
+
+					if (convert_result <= convertFailure)
+					{
+						report::compile::critical("Expression not convertible to return type.");
+					}
+
+					_current = &operations;
+
+					CompUtil::HandleConversion(this, out, result, convert_result);
+				}
+
 				break;
 
-			default:
-				report::runtime::error("Unsupported syntax type.");
+			}
+				//report::runtime::error("Unsupported syntax type.");
 			}
 			
+			if (operations.empty() == false && operations.back()._instruct != InstructionType::Return) {
+				//If there is nothing, needs to emplace a return back
+				operations.emplace_back(InstructionType::Return);
+			}
+
+
 			PopTargetObject();
 			
 			operations.shrink_to_fit();

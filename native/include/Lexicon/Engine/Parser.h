@@ -72,6 +72,9 @@ namespace LEX::Impl
 
 		//Would like something called required type which fulfills the role of next and istype
 
+		bool WasType(TokenType type, std::string str = "");
+
+
 
 		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func);
 
@@ -140,7 +143,8 @@ namespace LEX::Impl
 		Record ParseAtomic();
 		
 
-		Record EndExpression(Record rec);
+		Record EndExpression(Record& rec);
+		Record EndExpression(Record&& rec);
 
 		
 

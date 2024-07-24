@@ -211,11 +211,13 @@ namespace LEX
 		static void IncVarStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 
-			logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
+			auto dif = a_lhs.Get<Differ>();
+
+			logger::critical("increment by {}", dif);
 			//std::system("pause");
 
 			//Pretty simple honestly. Increase by the amount.
-			runtime->AdjustStackPointer(StackPointer::Variable, a_lhs.Get<Differ>());
+			runtime->AdjustStackPointer(StackPointer::Variable, dif);
 			logger::critical("exit out");
 		}
 		
@@ -224,6 +226,7 @@ namespace LEX
 		{ 
 			//logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
 			
+			logger::critical(" index of set {}", a_lhs.Get<Index>());
 			RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
 			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
 			
@@ -232,7 +235,7 @@ namespace LEX
 				report::compile::critical("no policy found.");
 			}
 
-			logger::critical(" index of set {}", a_lhs.Get<Index>());
+			
 
 			var = policy->GetDefault();
 
@@ -322,27 +325,33 @@ namespace LEX
 			RGL_LOG(trace, "Ret done");
 		}
 
-		static void DropStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void DropStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType type, Runtime* runtime)
 		{
 			//Drop should converge with a climb as well.
 
-			//Rename to drop runtime pointer
-			int64_t mode = a_rhs.Get<Differ>();
+			if (a_rhs.type != OperandType::None) {
+				Number num = a_rhs.GetVariable(runtime)->AsNumber();
+				
+				bool be_true;
 
+				switch (type)
+				{
+				case InstructType::DropStack:
+					be_true = true; break;
+				
+				case InstructType::DropStackN:
+					be_true = false; break;
+				}
 
-			//If mode is 0 flag is required to be 0,
-			// if 1 flag is required to be 1,
-			// if any other value, flag is not required.
-			// though, what drop wouldn't be conditional? A while loop probably that's broken by an out.
-			if (mode <= 1)
-			{
-				bool flag = runtime->GetFlags().Get(RuntimeFlag::TestBit);
-
-				if (mode && flag || !mode && !flag)
+				if (num.Visit([be_true](auto it) { return be_true ? it == 0 : it != 0; }) == true)
 					return;
 			}
 
-			runtime->AdjustStackPointer(StackPointer::Runtime, a_lhs.Get<Index>());
+			//Rename to drop runtime pointer
+			int64_t move = a_lhs.Get<Differ>();
+
+
+			runtime->AdjustStackPointer(StackPointer::Runtime, move);
 		}
 
 		static void JumpStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
@@ -718,6 +727,8 @@ namespace LEX
 			Number::Settings l_settings = Number::Settings::CreateFromID(lhs.policy->GetTypeID());
 			Number::Settings r_settings = Number::Settings::CreateFromID(rhs.policy->GetTypeID());
 
+			constexpr auto bool_settings = Number::Settings::CreateFromType<bool>();
+
 			//for certain types like boolean, this will not fly. But for most, this works.
 			switch (op)
 			{
@@ -732,11 +743,12 @@ namespace LEX
 			case InstructType::NotEqualTo:
 			case InstructType::LogicalOR:
 			case InstructType::LogicalAND:
-				policy = nullptr;
+				policy = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset());
 				break;
 
 			default:
 				policy = l_settings < r_settings ? lhs.policy : rhs.policy;
+				break;
 			}
 
 			//confirm here that the choosen thing is proper.
@@ -941,12 +953,135 @@ namespace LEX
 		}
 
 
+
+
+
+
+
+
+		struct CondProcessors 
+		{
+			static void IfElseProcess(RoutineCompiler* compiler, Record& target)
+			{
+				//'if' <Syntax: Conditional (col: 5/ line: 84>
+				//    '<:express:>' <Syntax: Header>
+				//        'true' <Syntax: Boolean (col: 9/ line: 84>
+				//    '<:statement:>' <Syntax: Header>
+				//        '' <Syntax: Script (col: 0/ line: 0>
+				//    '<:alt:>' <Syntax: Header>
+				//        'false' <Syntax: Boolean (col: 11/ line: 88>
+
+				//For the period of while each statement exists, that is a new scope that will exist.
+				//This one exists for the possibility of making new variables within the if, but that isn't supported right now.
+				//Scope a_scope{ compiler, ScopeType::Conditional };
+				
+				static ITypePolicy* boolean = nullptr;
+				
+				if (!boolean){
+					//This may use a different boolean type eventually.
+					boolean = IdentityManager::instance->GetTypeByOffset("NUMBER", GetNumberOffsetFromType<bool>());
+				}
+				
+				Solution query = compiler->CompileExpression(target.FindChild(parse_strings::expression_block)->GetFront(), compiler->GetPrefered());
+
+				Conversion out;
+
+				auto convert = query.IsConvertToQualified(QualifiedType{ boolean }, nullptr, &out);
+
+				if (convert <= ConvertResult::Failure) {
+					report::compile::critical("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+				}
+
+				CompUtil::HandleConversion(compiler, out, query, convert);
+
+
+
+				auto& list = compiler->GetOperationList();
+
+				std::vector<Operation> back_list;
+
+
+				//This order is no longer an important thing, arrange at leisure.
+
+				if (auto else_block = target.FindChild(parse_strings::alternate_block); else_block)
+				{
+					
+					std::vector<Operation> ops;
+					{
+						//This set up will allow for us to include the deallocations included in the death of a scope.
+						Scope a_scope{ compiler, ScopeType::Depedent };
+
+						//Allow for some variation here, if it's detected the else was an expression it should parse it like an expression,
+						// if not, it should parse it like a block.
+						ops = compiler->CompileBlock(*else_block);
+					}
+					//This is to skip over the else, this will not care about anything.
+
+					auto back_size = (int64_t)ops.size();
+
+					if (back_size) {
+
+						back_size++;
+
+						back_list.emplace_back(InstructType::DropStack, Operand{ back_size, OperandType::Differ }, Operand::None());
+
+						back_list = std::move(ops);
+
+					
+					}
+				}
+
+				std::vector<Operation> ops;
+				{
+					Scope a_scope{ compiler, ScopeType::Conditional };
+
+					ops = compiler->CompileBlock(*target.FindChild(parse_strings::statement_block));
+				}
+					
+
+				auto size = ops.size();
+
+				if (size) {
+					//We'll only place these if there's actually somethin
+
+					list.emplace_back(InstructType::DropStackN, Operand{ (int64_t)size + 1, OperandType::Differ }, query);
+						
+					list.insert_range(list.end(), std::move(ops));
+				}
+				
+				if (back_list.empty() == false)
+					list.insert_range(list.end(), std::move(back_list));
+
+				
+			}
+		};
+
+
+		void ConditionalProcess(RoutineCompiler* compiler, Record& target)
+		{
+			switch (Hash(target.GetTag()))
+			{
+				case "if"_h:
+				//case "else"_h:
+					return CondProcessors::IfElseProcess(compiler, target);
+				default:
+					report::compile::error("invalid conditional tag '{}' unable to be processed", target.GetTag());
+			}
+		}
+
+
+
+
+
+
+
+
+
+
 		Solution LiteralProcess(ExpressionCompiler* compiler, Record& target)
 		{
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
-
-			result = LiteralManager::ObtainLiteral(target);
 
 
 			Solution sol{ result->Policy(), OperandType::Literal, result };
@@ -980,65 +1115,8 @@ namespace LEX
 		}
 
 
-
-		bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result)
-		{
-
-			if (out) {
-				//If out exists, this means there's something that can be used to convert it. 
-				// however, this does NOT work when this conversion needs to be baked into the function.
-
-				//Now granted, because this is in real time, I can just make an instruction handle this.
-				// But that instruction would have to do it over and over and over again.
-
-				bool fall = false;
-
-				switch (convert_result)
-				{
-				case ConvertResult::ImplDefined:
-					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.implDefined, OperandType::Callable }, value);
-					break;
-
-				case ConvertResult::UserDefined:
-				resume:
-
-					compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.userDefined, OperandType::Function }, value);
-
-
-					if (!fall)
-						break;
-
-					[[fallthrough]];
-
-				case ConvertResult::UserToImplDefined:
-					if (!fall) {
-						fall = true;
-						goto resume;
-					}
-
-					compiler->GetOperationList().emplace_back(
-						InstructionType::Convert,
-						compiler->GetPrefered(),
-						Operand{ out.userToImpl, OperandType::Callable },
-						Operand{ compiler->GetPrefered(), OperandType::Register });
-
-					break;
-
-				default:
-					return false;
-				}
-
-
-				//This shouldn't really be using the previous policy, but I kinda don't care for now.
-				//TODO: This should be using CompUtil::Mutate
-				value = Solution{ value.policy, OperandType::Register, compiler->GetPrefered() };
-
-				return true;
-			}
-
-			return false;
-		}
-
+	
+		
 
 
 		Solution HandleCall_V2(ExpressionCompiler* compiler, Record& target)
@@ -1161,7 +1239,7 @@ namespace LEX
 
 				list.append_range(std::move(ops));
 
-				HandleConversion(compiler, o_entry.convert, arg, o_entry.convertType);
+				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.convertType);
 
 				list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
 			}
@@ -1376,10 +1454,10 @@ namespace LEX
 				auto convert = result.IsConvertToQualified(header, nullptr, &out);
 
 				if (convert <= ConvertResult::Failure) {
-					report::compile::critical("Cannot initialize. Error {}", (int)convert);
+					report::compile::critical("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				}
 
-				HandleConversion(compiler, out, result, convert);
+				CompUtil::HandleConversion(compiler, out, result, convert);
 
 
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
@@ -1395,6 +1473,7 @@ namespace LEX
 
 		void StatementProcess(RoutineCompiler* compiler, Record& target)
 		{
+			Scope _{ compiler, ScopeType::Required };
 			compiler->CompileBlock(target);
 		}
 
@@ -1446,10 +1525,10 @@ namespace LEX
 					report::compile::critical("Expression not convertible to return type.");
 				}
 
-				HandleConversion(compiler, out, result, convert_result);
+				CompUtil::HandleConversion(compiler, out, result, convert_result);
 
 			}
-			else if (return_policy)
+			else if (return_policy && return_policy != IdentityManager::instance->GetInherentType(InherentType::kVoid))
 			{
 				report::compile::critical("Expecting return expression");
 			}
@@ -1679,7 +1758,11 @@ namespace LEX
 
 		struct NumberType : public ConcretePolicy
 		{
-			using ConcretePolicy::ConcretePolicy;
+			NumberType(std::string_view name, Number::Settings settings) : ConcretePolicy{ name, settings.GetOffset() }, _settings{settings}
+			{}
+
+			//please, make this with a setting attached.
+
 
 			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
 			{
@@ -1697,19 +1780,34 @@ namespace LEX
 
 					auto index = IdentityManager::instance->GetIndexFromName("NUMBER");
 
-					if (identity.index == index)
+
+
+					if (identity.index == index )
 					{
-						if (identity.offset >= Number::Settings::length)
-							report::fault::critical("Offset greater than number type length.");
 
-						out->implDefined = convertMap[--identity.offset];
+						//With this, I might as well just be able to convert it and ignore the rest of this shit innit?
+						const NumberType* other_num = dynamic_cast<const NumberType*>(other);
 
-						result = ConvertResult::ImplDefined;
+						if (other_num && (!other_num->_settings.IsInteger() || _settings.IsInteger()))
+						{
+							logger::info("would {} && {} , {} {}", other_num->_settings.IsInteger(), _settings.IsInteger(), other_num->_settings.GetOffset(), _settings.GetOffset());
+
+
+							if (identity.offset >= Number::Settings::length)
+								report::fault::critical("Offset greater than number type length.");
+
+							out->implDefined = convertMap[--identity.offset];
+
+							result = ConvertResult::ImplDefined;
+						}
 					}
 				}
 
 				return result;
 			}
+
+
+			const Number::Settings _settings;
 		};
 
 
@@ -1749,6 +1847,7 @@ namespace LEX
 			generatorList[SyntaxType::Variable] = VariableProcess;
 			generatorList[SyntaxType::Field] = FieldProcess;
 			generatorList[SyntaxType::Call] = CallProcess;
+			generatorList[SyntaxType::Conditional] = ConditionalProcess;
 
 
 
@@ -1767,12 +1866,16 @@ namespace LEX
 			instructList[InstructType::DefineVariable] = InstructWorkShop::DefineVar;
 			instructList[InstructType::DefineParameter] = InstructWorkShop::DefineParam;
 			instructList[InstructType::DropStack] = InstructWorkShop::DropStack;
+			instructList[InstructType::DropStackN] = InstructWorkShop::DropStack;
 
 
 			instructList[InstructType::Addition] = InstructWorkShop::BinaryMath<std::plus<>, false>;
 			instructList[InstructType::Subtract] = InstructWorkShop::BinaryMath<std::minus<>, false>;
 			instructList[InstructType::Multiply] = InstructWorkShop::BinaryMath<std::multiplies<>, false>;
 			instructList[InstructType::Division] = InstructWorkShop::BinaryMath<std::divides<>, false>;
+			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
+
+			instructList[InstructType::EqualTo] = InstructWorkShop::BinaryCompare<std::equal_to<>>;
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
 			//We not ready for this one.
 			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;
@@ -1811,10 +1914,14 @@ namespace LEX
 			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
 
 
-			static ConcretePolicy* float64 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating) };
-			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Floating, Size::DWord, Signage::Signed, Limit::Infinite) };
-			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound) };
-			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings::GetOffset(NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound) };
+			//For the love of god, automate making these. I beg.
+			static ConcretePolicy* float64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<double>() };
+			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<float>() };
+			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
+			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
+			static ConcretePolicy* sInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int32_t>() };
+			static ConcretePolicy* sInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int64_t>() };
+			static ConcretePolicy* uInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint64_t>() };
 
 			
 			static ConcretePolicy* _coreObject = new CoreType{ "CORE", 0 };
@@ -1823,6 +1930,11 @@ namespace LEX
 			float64->EmplaceDefault(static_cast<double>(0));
 			float32->EmplaceDefault(static_cast<float>(0));
 			uBoolean->EmplaceDefault(static_cast<bool>(0));
+			
+			sInt32->EmplaceDefault(static_cast<int32_t>(0));
+			sInt64->EmplaceDefault(static_cast<int64_t>(0));
+			uInt64->EmplaceDefault(static_cast<uint64_t>(0));
+			
 			sBoolean->EmplaceDefault(Number{ Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} });
 		
 			float64->SetInheritFrom(NUMBER);

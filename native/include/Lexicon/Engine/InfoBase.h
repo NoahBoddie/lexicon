@@ -5,7 +5,7 @@
 
 namespace LEX
 {
-	struct Solution;
+	
 
 
 	struct InfoBase : public Field
@@ -39,7 +39,7 @@ namespace LEX
 			return _index;
 		}
 		//This isn't super needed actually.
-		Solution AsSolution();
+		
 
 		virtual operator bool() const = 0;
 	};

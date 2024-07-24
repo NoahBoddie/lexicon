@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/IGenericArgument.h"
+#include "Lexicon/ITemplateBody.h"
 #include "Lexicon/ICallableUnit.h"
 #include "Lexicon/RuntimeVariable.h"
 #include "Lexicon/Engine/RoutineBase.h"
@@ -75,7 +75,7 @@ namespace LEX
 		Runtime
 	};
 	
-	class Runtime : public IRuntime, public GenericArgumentArray
+	class Runtime : public IRuntime, public ITemplateBody
 	{
 		//TODO:Make sure RoutineProcess can be copied for testing the return value.
 		//Target could use variable instead of an object. Worth thinking about sorta?
@@ -117,6 +117,19 @@ namespace LEX
 		{
 			return const_cast<Runtime*>(this);
 		}
+
+
+		virtual size_t GetSize() const
+		{
+			return 0;
+		}
+
+
+		virtual AbstractTypePolicy* GetBodyArgument(size_t i) const
+		{
+			return nullptr;
+		}
+
 	public:
 
 		//The idea is that the callable unit is given it's parameters
@@ -228,8 +241,8 @@ namespace LEX
 				//		var.Clear();//Clears the runtime var instead of the value it targets
 				//}
 				//return _vsp += step;
-				//Does this shit actually work???
-				for (auto i = _vsp; i >= _vsp + step; i++) {
+				
+				for (auto i = _vsp; i >= _vsp + step; i--) {
 					if (auto& var = _varStack[i]; var.IsVoid() == false) {
 						//var->Clear();
 						var.Clear();//Clears the runtime var instead of the value it targets
@@ -307,7 +320,7 @@ namespace LEX
 		RuntimeVariable& GetVariable(size_t i)
 		{
 			if (i >= _vsp) {
-				report::runtime::critical("Variable stack index larger than current stack size.");
+				report::runtime::critical("Variable stack index larger than current stack size. ({}/{})", i, _vsp);
 			}
 
 			return _varStack[i];
@@ -399,8 +412,8 @@ namespace LEX
 					}
 
 					//Probably want to do a try catch around here.
-					Operate(_data[_rsp]);
-					
+					//Operate(_data[_rsp]);
+					//TODO: I want to make a break point here to simulate walking through the system, but enable and disable it somehow.
 					_data[_rsp].Execute(this);
 					
 
@@ -423,6 +436,8 @@ namespace LEX
 
 				_rsp = max_value<size_t>;
 			}
+
+			//TODO: As is, this can possibly return garbage. This is a behaviour that needs to be curbed.
 
 			//return _registers[Register::Reg0];
 			return _registers[0];

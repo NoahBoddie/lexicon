@@ -7,6 +7,7 @@
 #include "Lexicon/Engine/ConcretePolicy.h"
 #include "Lexicon/Engine/ConcreteFunction.h"
 #include "Lexicon/Engine/GlobalVariable.h"
+#include "Lexicon/Engine/ConcreteGlobal.h"
 #include "Lexicon/Engine/parse_strings.h"
 
 #include "Lexicon/Engine/Expression.h"
@@ -259,7 +260,7 @@ namespace LEX
 			case SyntaxType::Variable:
 			{
 				//This is very incorrect btw
-				AddVariable(Component::Create<Global>(node));
+				AddVariable(Component::Create<ConcreteGlobal>(node));
 				break;
 			}
 			//These 2 are script exclusives

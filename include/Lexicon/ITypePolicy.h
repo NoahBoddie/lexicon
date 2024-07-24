@@ -25,6 +25,11 @@ namespace LEX
 	struct InheritData;
 	struct OverloadCode;
 
+
+	struct GenericBase;
+	struct ITemplatePart;
+	struct ITemplateBody;
+
 	//Using this will allow manual conversions to other types that ordinarily cannot convert, even without a explicitly declared conversion.
 	//using Conversion = std::function<RuntimeVariable(RuntimeVariable)>;
 	
@@ -47,12 +52,6 @@ namespace LEX
 
 	};
 
-	namespace NewGenericV2
-	{
-		struct GenericBase;
-		struct ITemplatePart;
-		struct ITemplateBody;
-	}
 	struct ITypePolicy : public ISpecial
 	{
 		constexpr static uint32_t NonGenericIndex = full_value<uint32_t>;
@@ -84,14 +83,12 @@ namespace LEX
 		//I may still go with interface because I don't think I want something where I derive a specializaton from TypePolicy, it'd be a waste of space, literal repeat.
 		// I KNOW, instead, I could make an implementation policy
 		//TODO:Make second interface for "AbstractTypePolicy" which GetType returns, and what stores all the type policy info.
-		virtual AbstractTypePolicy* GetTypePolicy(IGenericArgument* args) = 0;
+		virtual AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) = 0;
 
+		//This should be hidden.
+		virtual ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) { return this; };
 
-		virtual ITypePolicy* CheckTypePolicy(NewGenericV2::GenericBase* base, NewGenericV2::ITemplatePart* args) { return this; };
-
-		virtual AbstractTypePolicy* GetTypePolicy(NewGenericV2::ITemplateBody* args) { return nullptr; };
-
-		AbstractTypePolicy* FetchTypePolicy(IGenericArgument* args)
+		AbstractTypePolicy* FetchTypePolicy(ITemplateBody* args)
 		{
 			return this ? GetTypePolicy(args) : nullptr;
 		}

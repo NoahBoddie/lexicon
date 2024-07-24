@@ -19,7 +19,7 @@ namespace LEX
 		Conditional,	//The parent scope may not run the contents of this scope when encountered
 		Depedent,		//Whether the parent scope runs the contents of this scope are dependent on another scope.
 		Header,			//The header scope, the only things that go here would be parameters and such. Cannot have a parent.
-
+		Temporary,
 
 		//Header is the default scope,
 		//Required is any scope that will be encountered (say {..})
@@ -44,6 +44,8 @@ namespace LEX
 
 		~Scope()
 		{
+			if (!process)
+				return;
 			//When the scope of the function using scope decays, it will set its parent scope back to being the main scope, as well as
 			// adding a decrement value to the variable count.
 
@@ -55,7 +57,7 @@ namespace LEX
 			//Here's what I can do. There's a wrapper to the compile function calls, similar to try module and such
 
 			//If current exception is happening fuck this shit, the entire thing is ending.
-			if (IsTopLevel() && std::current_exception() != nullptr)
+			if (IsTopLevel() && std::uncaught_exceptions() != 0)
 				return;
 
 
@@ -64,7 +66,7 @@ namespace LEX
 
 			//if (!parent)//if it's top level, that instead decides if it even removes anything.
 			if (IsTopLevel() == false)
-				process->ModVarCount(-vars.size());
+				process->ModVarCount(-(int64_t)vars.size());
 
 			process->currentScope = parent;
 
@@ -112,7 +114,8 @@ namespace LEX
 				report::compile::critical("Variable name '{}' already taken", name);
 			}
 
-			auto index = !header ? process->ModVarCount(type.policy) : process->ModParamCount(type.policy);
+			//auto index = !header ? process->ModVarCount(type.policy) : process->ModParamCount(type.policy);
+			auto index = process->ModVarCount(type.policy);
 
 
 			RGL_LOG(debug, "Attempting to create {} at index {}", name, index);
@@ -175,7 +178,7 @@ namespace LEX
 
 			if (IsHeader() == true) {
 
-				if (!_return && process->GetReturnType()->FetchTypeID() != -1)
+				if (!process->implicitReturn && !_return && process->GetReturnType()->FetchTypeID() != -1)
 					report::compile::critical("Explicit return expected. {}", name());
 
 				return;

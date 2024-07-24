@@ -69,6 +69,7 @@ namespace LEX
 		Construct,				//Constructs the default uninitialized object.
 		ReturnDefault,
 		DropStack,
+		DropStackN,//This will drop if positive instead of if negative.
 		JumpStack,
 		Return,					//
 		Total,

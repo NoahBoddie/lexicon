@@ -1,14 +1,17 @@
 #pragma once
 
-#include "Solution.h"
-#include "Operation.h"
+#include "Lexicon/Engine/Solution.h"
+#include "Lexicon/Engine/Operation.h"
 
 namespace LEX
 {
+	struct ExpressionCompiler;
+
 
 	struct CompUtil
 	{
 		//A set convenience functions.
+
 
 	private:
 		static Operation _Transfer(Operand& left, Operand& right, bool is_ref)
@@ -99,6 +102,10 @@ namespace LEX
 
 			return result;
 		}
+
+
+		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result);
+
 
 	};
 

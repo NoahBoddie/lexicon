@@ -3,7 +3,7 @@
 #include "Lexicon/TypeAliases.h"
 #include "Lexicon/Engine/ExpressionType.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 	struct Syntax
 	{
@@ -17,7 +17,7 @@ namespace LEX::Impl
 			if (type == SyntaxType::Total)
 				return "Syntax: Header";
 			else
-				return std::format("Syntax: {} (col: {}/ line: {}", ExpressionToString(type), column, line);
+				return std::format("Syntax: {} (col: {}/ line: {}", magic_enum::enum_name(type), column, line);
 		}
 
 		operator std::string() { return Print(); }
@@ -33,6 +33,6 @@ namespace LEX::Impl
 	static_assert(sizeof(Syntax) == 0x8);
 
 //Short hand to get syntax from an AST. Made so it can only be used on records to prevent mistakes.
-#define SYNTAX() GetEnumFromRecord<LEX::Impl::Syntax>()
+#define SYNTAX() GetEnumFromRecord<LEX::Syntax>()
 
 }

@@ -18,7 +18,7 @@ namespace LEX
 		
 		try
 		{
-			RGL_LOG(debug, "start {}, ops l {} r {}", _instruct, _ltype, _rtype);
+			RGL_LOG(debug, "start {}, ops l {} r {}", magic_enum::enum_name(_instruct), magic_enum::enum_name(_ltype), magic_enum::enum_name(_rtype));
 			//It's possible that this should possibly return.
 			instructList[_instruct].Operate(result, runtime, Operand{ _lhs, _ltype }, Operand{ _rhs, _rtype }, _instruct);
 			RGL_LOG(trace, "end");

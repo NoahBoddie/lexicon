@@ -147,7 +147,9 @@ void LexTesting(std::string formula)
 {
 
 
-    constexpr auto testeetet =  GetNumberOffset(NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound);
+    constexpr auto testeetet1 = GetNumberOffset(NumeralType::Integral, Size::QWord, Signage::Signed, Limit::Overflow);
+    constexpr auto testeetet2 = GetNumberOffset(NumeralType::Integral, Size::QWord, Signage::Unsigned, Limit::Overflow);
+    constexpr auto testeetet3 =  GetNumberOffset(NumeralType::Integral, Size::DWord, Signage::Signed, Limit::Overflow);
 
     TestParse();
 
@@ -177,7 +179,6 @@ void LexTesting(std::string formula)
             {
 				if (ProcedureHandler::instance->RegisterFunction(size_backend, function) == false) {
 					logger::debug("failure");
-					std::system("pause");
 				}
                 //function->_procedure = TestProcedure;
             }
@@ -224,7 +225,7 @@ void LexTesting(std::string formula)
         
         //function->_procedure = TestProcedure;
         //A conversion is supposed to happen here.
-        Variable result = function->Call(69.0, 1.0, 2.0, 3.0, 4.0, 5.0);
+        Variable result = function->Call(68.0, 1.0, 2.0, 3.0, 4.0, 5.0);
 
         std::string number = result.AsNumber().string();
 

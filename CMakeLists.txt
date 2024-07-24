@@ -108,6 +108,8 @@ if(LEXICON_SOURCE)
 	set(master_sources
 	
 		"native/src/Lexicon/Engine/QualifiedField.cpp"
+		native/src/Lexicon/Engine/CompileUtility.cpp
+		native/src/Lexicon/Engine/GenericBase.cpp
 		native/src/Lexicon/Engine/ConcreteFunction.cpp
 		native/src/Lexicon/Engine/ConcretePolicy.cpp
 		native/src/Lexicon/Engine/Declaration.cpp
@@ -215,7 +217,7 @@ set(headers
 	 "include/Lexicon/IRuntime.h"
 	 "include/Lexicon/ProcedureData.h" 
 	 "include/Lexicon/InherentType.h"
-	 ${master_headers})
+	 ${master_headers} "native/include/Lexicon/Engine/SpecialBase.h" "native/include/Lexicon/Engine/SpecialPart.h" "native/include/Lexicon/Engine/SpecialBody.h" "native/include/Lexicon/Engine/SpecialTypeBody.h" "native/include/Lexicon/Engine/SpecialTypePart.h" "native/include/Lexicon/Engine/GenericType.h" "native/include/Lexicon/Engine/DynamicTupleElement.h" "native/include/Lexicon/Engine/TemplateTuple.h" "include/Lexicon/ITemplateInsertPart.h" "include/Lexicon/ITemplateInsertBody.h" "include/Lexicon/GenericPartArray.h" "include/Lexicon/GenericBodyArray.h")
 
 
 set(sources
@@ -232,7 +234,7 @@ set(sources
 	src/Lexicon/TypeID.cpp
 	src/Lexicon/Variable.cpp
 	src/Lexicon/VariableType.cpp
-	${master_sources})
+	${master_sources} "native/src/Lexicon/Engine/GenericType.cpp" "native/src/Lexicon/Engine/TemplateType.cpp" "native/src/Lexicon/Engine/SpecialPart.cpp" "src/Lexicon/ITemplatePart.cpp")
 
 
 

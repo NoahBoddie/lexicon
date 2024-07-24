@@ -119,7 +119,7 @@ namespace LEX
 
 		Script* FetchCommons()
 		{
-			return !this ? GetCommons() : nullptr;
+			return this ? GetCommons() : nullptr;
 		}
 
 		virtual void SetSyntaxTree(Record&) = 0;//This is to be made on the abstract classes.

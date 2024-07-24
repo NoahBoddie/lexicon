@@ -201,11 +201,13 @@ namespace LEX
 					report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
 					throw nullptr;
 				}
-
+				logger::info("XXXX {}", varCount[0]);
 
 				if ((varCount[0] += inc) > varCount[1])
 					varCount[1] = varCount[0];
 				
+				logger::info("YYYY {}", varCount[0]);
+
 				auto& op_list = GetOperationList();
 				
 				op_list.emplace_back(InstructionType::IncrementVarStack, Operand{ inc , OperandType::Differ });
@@ -220,6 +222,8 @@ namespace LEX
 						// have an instruction intend to specialize.
 
 						size_t index = count + i;
+						logger::info("MMMM {}", index);
+
 						ITypePolicy* policy = policies[i];
 						op_list.emplace_back(InstructionType::DefineVariable, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 					}
@@ -286,6 +290,8 @@ namespace LEX
 
 		//Solution* _target = nullptr;//to be deprecated
 		TargetObject* _object = nullptr;
+
+		bool implicitReturn = false;
 
 		Register _prefered = Register::Invalid;
 	};
@@ -428,7 +434,7 @@ namespace LEX
 
 			if (generatorList.end() == it)
 			{
-				report::compile::critical("SyntaxType unaccounted for whatever whatever. Type: {}", ExpressionToString(node.SYNTAX().type));
+				report::compile::critical("SyntaxType unaccounted for whatever whatever. Type: {}", magic_enum::enum_name(node.SYNTAX().type));
 			}
 
 			if (false)//Confirm that the factory is actually made for expressions
@@ -436,7 +442,7 @@ namespace LEX
 				report::compile::critical("Syntax is not a expression");
 			}
 
-			logger::debug("RoutineCompiler::CompileExpression: Processing {} . . .", ExpressionToString(node.SYNTAX().type));
+			logger::debug("RoutineCompiler::CompileExpression: Processing {} . . .", magic_enum::enum_name(node.SYNTAX().type));
 
 
 			//result from expressions are discarded
@@ -493,7 +499,7 @@ namespace LEX
 				report::compile::critical("Syntax is not a statement");
 			}
 
-			logger::debug("RoutineCompiler::CompileStatement: Processing {} . . .", ExpressionToString(node.SYNTAX().type));
+			logger::debug("RoutineCompiler::CompileStatement: Processing {} . . .", magic_enum::enum_name(node.SYNTAX().type));
 
 			//result from expressions are discarded
 			_InteralProcess(it->second, node, out);
@@ -521,7 +527,7 @@ namespace LEX
 
 
 		//This is probably going to be private. Rule is you set a new prefered with it, then do your business.
-		std::vector<Operation> CompileLine(Record& node, Register pref)
+		std::vector<Operation> CompileLine(Record& node, Register pref, Solution& out)
 		{
 			//NEW NAME: ProcessNode
 
@@ -542,16 +548,24 @@ namespace LEX
 
 			if (generatorList.end() == it)
 			{
-				report::compile::critical("SyntaxType unaccounted for whatever whatever {}", (uint8_t)node.SYNTAX().type);
+				report::compile::critical("SyntaxType unaccounted for whatever whatever {}", magic_enum::enum_name(node.SYNTAX().type));
 			}
 
 			//result from expressions are discarded
-			_InteralProcess(it->second, node, result);
+			out = _InteralProcess(it->second, node, result);
 
 			_prefered = prev;
 
 			return result;
 		}
+
+		std::vector<Operation> CompileLine(Record& node, Register pref)
+		{
+			Solution trash;
+
+			return CompileLine(node, pref, trash);
+		}
+
 		//I will begin passing the result vector through this as well.
 
 		std::vector<Operation> CompileBlock(Record& data);

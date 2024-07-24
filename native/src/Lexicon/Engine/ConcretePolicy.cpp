@@ -12,6 +12,7 @@
 #include "Lexicon/Engine/Declaration.h"
 
 #include "Lexicon/Engine/parse_strings.h"
+#include "Lexicon/Engine/ConcreteGlobal.h"
 #include "Lexicon/Engine/GlobalVariable.h"
 namespace LEX
 {
@@ -64,7 +65,7 @@ namespace LEX
 		// I kinda don't really super want this though cause I'd have to define it twice, so maybe a const vector or something?
 		// I think an out vector might be the best solution. Idk.
 
-		return _extends->GetTypePolicy((IGenericArgument*)nullptr);
+		return _extends->GetTypePolicy((ITemplateBody*)nullptr);
 	}
 
 	Variable ConcretePolicy::GetDefault()
@@ -176,7 +177,7 @@ namespace LEX
 
 			case SyntaxType::Variable:
 				//This is incorrect, this is in policy.
-				AddVariable(Component::Create<Global>(node));
+				AddVariable(Component::Create<ConcreteGlobal>(node));
 				break;
 
 
