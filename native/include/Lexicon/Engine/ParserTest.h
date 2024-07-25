@@ -1474,7 +1474,9 @@ namespace LEX::Impl
 
 			void HandleBlock(Record& block, Parser* parser)
 			{
-				if (parser->SkipIfType(TokenType::Punctuation, ":") == true)
+
+
+				if (auto is_if = parser->IsType(TokenType::Keyword, "if"); is_if || parser->SkipIfType(TokenType::Punctuation, ":") == true)
 				{
 					//This really shouldn't allow encasulate parser to go in. But for now this will handle.
 					Record body = parser->ParseExpression();
@@ -1485,7 +1487,8 @@ namespace LEX::Impl
 					else if (body)
 						block.EmplaceChildren(std::move(body));
 
-					ParseModule::TryModule<EndParser>(parser, nullptr);
+					if (!is_if)
+						ParseModule::TryModule<EndParser>(parser, nullptr);
 				}
 				else if (parser->IsType(TokenType::Punctuation, "{") == true)
 				{
