@@ -533,6 +533,9 @@ namespace LEX
         
         std::strong_ordering operator<=>(const Variable& a_rhs) const
         {
+            //The type doesn't matter in this.
+            return _value <=> a_rhs._value;
+
             //This is bogus, doesn't really properly test inequivalency
             if (auto result = _type <=> a_rhs._type; result != std::strong_ordering::equal)
                 return result;
