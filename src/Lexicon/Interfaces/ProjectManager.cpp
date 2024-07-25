@@ -111,7 +111,7 @@ namespace LEX
 
 	static void PrintAST(Record& tree, std::string indent = "")
 	{
-		const static std::string __dent = "| ";
+		constexpr std::string_view __dent = "| ";
 
 		std::string log = tree.PrintAs<LEX::Syntax>();
 
@@ -121,11 +121,10 @@ namespace LEX
 
 		for (auto& child_rec : tree.GetChildren())
 		{
-			PrintAST(child_rec, indent + __dent);
+			PrintAST(child_rec, indent);
 		}
 	}
-
-
+	
 
 
 
