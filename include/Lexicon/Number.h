@@ -507,12 +507,19 @@ namespace LEX
 
             static Settings CreateFromID(TypeID id)
             {
+                if (!id)
+                    return {};
                 //This could be constexpr, though no point innit?
+
+                static TypeIndex index = -1;;
+
+                if (index == -1)
+                    index = IdentityManager::instance->GetIndexFromName("NUMBER");
 
                 TypeIdentity identity = IdentityManager::instance->GetIdentityFromID(id);
 
                 //make create from offset.
-                if (auto offset = identity.offset; id != 0 && id <= offset)
+                if (auto offset = identity.offset; index == identity.index)
                 {
                     //This gets rid of the spot for number in the offset.
                     offset--;
@@ -552,6 +559,11 @@ namespace LEX
 
             constexpr std::strong_ordering operator <=> (const Settings& rhs) const = default;
 
+
+            constexpr operator bool() const
+            {
+                return type != NumeralType::Invalid && size != Size::Invalid && sign != Signage::Invalid && limit != Limit::Invalid;
+            }
             /*
             {
                 //The conversion rules follow the same rules as the code range for it's type, that it is the combined value (via OR) of all its settings.
