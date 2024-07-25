@@ -2,10 +2,19 @@ cmake_minimum_required(VERSION 3.21)
 
 # ---- Project ----
 
+set(PARENT_NAME "${PROJECT_NAME}")
+
 project(
 	Lexicon
 	LANGUAGES CXX
 )
+
+if (NOT PARENT_NAME)
+	set(PARENT_NAME "${PROJECT_NAME}")
+endif()
+
+
+
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -101,7 +110,19 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/TokenType.h
 		native/include/Lexicon/Engine/VariableInfo.h
 		native/include/Lexicon/Engine/VoidPolicy.h
-		native/include/Lexicon/Engine/GlobalInfo.h)
+		native/include/Lexicon/Engine/GlobalInfo.h
+		"native/include/Lexicon/Engine/SpecialBase.h"
+		"native/include/Lexicon/Engine/SpecialPart.h"
+		"native/include/Lexicon/Engine/SpecialBody.h" 
+		"native/include/Lexicon/Engine/SpecialTypeBody.h" 
+		"native/include/Lexicon/Engine/SpecialTypePart.h" 
+		"native/include/Lexicon/Engine/GenericType.h" 
+		"native/include/Lexicon/Engine/DynamicTupleElement.h" 
+		"native/include/Lexicon/Engine/TemplateTuple.h" 
+		"include/Lexicon/ITemplateInsertPart.h" 
+		"include/Lexicon/ITemplateInsertBody.h" 
+		"include/Lexicon/GenericPartArray.h" 
+		"include/Lexicon/GenericBodyArray.h")
 
 
 	
@@ -146,7 +167,11 @@ if(LEXICON_SOURCE)
 		src/Lexicon/Interfaces/IdentityManager.cpp
 		src/Lexicon/Interfaces/InterfaceManager.cpp
 		src/Lexicon/Interfaces/ProcedureHandler.cpp
-		src/Lexicon/Interfaces/ProjectManager.cpp)
+		src/Lexicon/Interfaces/ProjectManager.cpp
+		"native/src/Lexicon/Engine/GenericType.cpp"
+		"native/src/Lexicon/Engine/TemplateType.cpp" 
+		"native/src/Lexicon/Engine/SpecialPart.cpp" 
+		"src/Lexicon/ITemplatePart.cpp")
 else()
 	set (master_headers )
 	set (master_sources )
@@ -217,7 +242,7 @@ set(headers
 	 "include/Lexicon/IRuntime.h"
 	 "include/Lexicon/ProcedureData.h" 
 	 "include/Lexicon/InherentType.h"
-	 ${master_headers} "native/include/Lexicon/Engine/SpecialBase.h" "native/include/Lexicon/Engine/SpecialPart.h" "native/include/Lexicon/Engine/SpecialBody.h" "native/include/Lexicon/Engine/SpecialTypeBody.h" "native/include/Lexicon/Engine/SpecialTypePart.h" "native/include/Lexicon/Engine/GenericType.h" "native/include/Lexicon/Engine/DynamicTupleElement.h" "native/include/Lexicon/Engine/TemplateTuple.h" "include/Lexicon/ITemplateInsertPart.h" "include/Lexicon/ITemplateInsertBody.h" "include/Lexicon/GenericPartArray.h" "include/Lexicon/GenericBodyArray.h")
+	 ${master_headers}  "include/Lexicon/Interfaces/ReportManager.h" "include/Lexicon/Impl/common_type.h")
 
 
 set(sources
@@ -234,7 +259,7 @@ set(sources
 	src/Lexicon/TypeID.cpp
 	src/Lexicon/Variable.cpp
 	src/Lexicon/VariableType.cpp
-	${master_sources} "native/src/Lexicon/Engine/GenericType.cpp" "native/src/Lexicon/Engine/TemplateType.cpp" "native/src/Lexicon/Engine/SpecialPart.cpp" "src/Lexicon/ITemplatePart.cpp")
+	${master_sources} "src/Lexicon/Interfaces/ReportManager.cpp")
 
 
 
@@ -282,15 +307,8 @@ endif()
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-if (LEXICON_SOURCE)
-    target_compile_definitions(
-	"${PROJECT_NAME}"
-	PUBLIC
-		LEX_SOURCE=1
-	)
 
-    #when this gets ported out, please use it to also determine what the primary source is as well
-endif()
+
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -492,6 +510,31 @@ install(
 
 
 
+get_target_property(BINARY_TYPE ${PARENT_NAME} TYPE)
+#message(${CHECK_TYPE})
+if (${BINARY_TYPE} STREQUAL EXECUTABLE)
+	set(BINARY_TYPE exe)
+elseif (${BINARY_TYPE} STREQUAL MODULE_LIBRARY)
+	set(BINARY_TYPE dll)
+else()
+	#This is an error option, lib should never find its way into this.
+	# IE, if there's no test build version, this shit has to find its way out of here.
+	set(BINARY_TYPE lib)
+endif()
+
+if (LEXICON_SOURCE)
+    target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_SOURCE=1
+		LEX_BINARY_MODULE=\"${PARENT_NAME}.${BINARY_TYPE}\"
+	)
+
+    #when this gets ported out, please use it to also determine what the primary source is as well
+endif()
+
+
+
 #///Executable Test
 #add_executable (${PROJECT_NAME}_Test ${sources})
 if(LEXICON_SOURCE)
@@ -542,7 +585,20 @@ if(LEXICON_SOURCE)
 		PRIVATE
 			include/Lexicon/Impl/PCH.h
 	)
+
+	#This should be specifically for test builds I guess.
+	target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_BINARY_MODULE=\"${PARENT_NAME}_Test.exe\"
+	)
 endif()
 
 
-#//#
+
+#get_target_property(CHECK_TYPE ${PARENT_NAME} TYPE)
+#message(${CHECK_TYPE})
+#if (${CHECK_TYPE} STREQUAL MODULE_LIBRARY)
+#message("TestThing")
+#endif()
+

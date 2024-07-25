@@ -63,7 +63,7 @@ namespace LEX
 
 		//If this is the source, it should just directly use the implemetation.
 		using _Self = bool(Interface&, std::string_view);
-		return ExternCall<_Self>(TEMP__EXPECTED_MODULE(), "RegisterInterface_Impl", ifc, name);
+		return ExternCall<_Self>(LEX_BINARY_MODULE, "RegisterInterface_Impl", ifc, name);
 	}
 
 	Update InterfaceManager::RequestInterface(Interface*& out, std::string_view name, uintptr_t version)
@@ -73,7 +73,7 @@ namespace LEX
 #endif
 
 		using _Self = Update(Interface*&, std::string_view, uintptr_t);
-		return ExternCall<_Self>(TEMP__EXPECTED_MODULE(), "RequestInterface_Impl", out, name, version);
+		return ExternCall<_Self>(LEX_BINARY_MODULE, "RequestInterface_Impl", out, name, version);
 	}
 
 }

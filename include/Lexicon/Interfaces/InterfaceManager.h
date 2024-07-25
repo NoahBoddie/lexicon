@@ -14,24 +14,12 @@ namespace LEX
 
 	struct InterfaceManager
 	{
-		//I'll sort this shit out later.
-#ifdef LEX_SOURCE
-
-#define TEMP__EXPECTED_MODULE() "Lexicon_Test.exe"
-
-#else
-	#define TEMP__EXPECTED_MODULE() "LexiconSKSE.dll"
-#endif
-
 		static bool RegisterInterface(Interface& ifc, std::string_view name);
-
 
 
 		static Update RequestInterface(Interface*& out, std::string_view name, uintptr_t version);
 
-//#undef TEMP__EXPECTED_MODULE
 
-		//*
 		template<std::derived_from<Interface> T>
 		static bool RegisterInterface(T& ifc)
 		{
@@ -55,8 +43,6 @@ namespace LEX
 
 			return result;
 		}
-		//*/
-
 	};
 
 }
