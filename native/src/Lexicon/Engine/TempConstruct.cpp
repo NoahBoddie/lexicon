@@ -38,6 +38,8 @@
 
 #include "Lexicon/ProcedureData.h"
 
+#include "Lexicon/Impl/common_type.h"
+
 void TestFunction()
 {
 
@@ -75,8 +77,8 @@ namespace LEX
 
 			//Why do I do this again?
 			// ANSWER: because it literally will crash if I do not.
-			a_rhs = Variable{ result, back.GetOffset() > front.GetOffset() ? nullptr : nullptr };
-			
+			//a_rhs = Variable{ result, back.GetOffset() > front.GetOffset() ? a_lhs->Policy() : a_rhs->Policy() };
+			a_rhs = Variable{ result };
 
 			if constexpr (Assign) {
 				//Whichever one is used is based on the measuring of numbers
@@ -99,7 +101,8 @@ namespace LEX
 			//The below needs to curb "class std::" from the below
 			RGL_LOG(trace, "{} on {} = {}", typeid(Operatable).name(), back, result);
 
-			a_rhs = Variable{ result,  nullptr };
+
+			a_rhs = Variable{ result };
 
 			return a_rhs;
 		}
@@ -111,18 +114,18 @@ namespace LEX
 			//Don't really need a unary compare much, it's basically just '!'. So I could use an std::conditional for it.
 
 			//This covers basically most of the below stuff.
-			Number back = a_lhs->AsNumber();
-			Number front = a_rhs->AsNumber();
+			//Number back = a_lhs->AsNumber();
+			//Number front = a_rhs->AsNumber();
 
 			Operatable op{};
 
-			bool result = op(back, front);
+			//bool result = op(back, front);
+			bool result = op(a_lhs.Ref(), a_rhs.Ref());
 			//The below needs to curb "class std::" from the below
-			RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
+			//RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
 
 			//a_rhs = Variable{ result, back.Cmp(front) > 0 ? nullptr : nullptr };
-			a_rhs = Variable{ result, back.GetOffset() > front.GetOffset() ? nullptr : nullptr };
-
+			a_rhs = Variable{ result };
 
 			return a_rhs;
 		}
@@ -727,7 +730,9 @@ namespace LEX
 			Number::Settings l_settings = Number::Settings::CreateFromID(lhs.policy->GetTypeID());
 			Number::Settings r_settings = Number::Settings::CreateFromID(rhs.policy->GetTypeID());
 
-			constexpr auto bool_settings = Number::Settings::CreateFromType<bool>();
+
+
+			//constexpr auto bool_settings = Number::Settings::CreateFromType<bool>();
 
 			//for certain types like boolean, this will not fly. But for most, this works.
 			switch (op)
@@ -743,16 +748,37 @@ namespace LEX
 			case InstructType::NotEqualTo:
 			case InstructType::LogicalOR:
 			case InstructType::LogicalAND:
-				policy = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset());
+				
+				//I will make no checks here for now, but I want this to make sure that the two things are convertible.
+				// a helper function should help with this.
+				
+				policy = common_type::boolean();
+				break;
+
+			case InstructType::Modulo:
+				if (l_settings.IsInteger() == false || r_settings.IsInteger() == false) {
+					report::compile::error("Both operands must be a number.", "Left", lhs->GetName());
+				}
+				
+				policy = common_type::integer64();
 				break;
 
 			default:
-				policy = l_settings < r_settings ? lhs.policy : rhs.policy;
+				
+
+				if (!l_settings) {
+					report::compile::error("{} operand must be a number, '{}' found. ({}", "Left", lhs->GetName());
+				}
+				if (!r_settings) {
+					report::compile::error("{} operand must be a number, '{}' found.", "Right", rhs->GetName());
+				}
+
+				policy = l_settings > r_settings ? lhs.policy : rhs.policy;
 				break;
 			}
 
 			//confirm here that the choosen thing is proper.
-
+			
 
 			//The problem with this is if the comparison between the 2 solutions uses registers.
 			// I can't reach that.
@@ -837,7 +863,7 @@ namespace LEX
 
 
 				RGL_LOG(debug, "<%>binary: end");
-
+				
 				//Do operation here. Needs solutions, outputs solution.
 				//return operatorCtorList[op](compiler, op, lhs, rhs, prefered);
 				return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered);
@@ -1009,10 +1035,11 @@ namespace LEX
 					std::vector<Operation> ops;
 					{
 						//This set up will allow for us to include the deallocations included in the death of a scope.
-						Scope a_scope{ compiler, ScopeType::Depedent };
+						Scope a_scope{ compiler, ScopeType::Depedent, ops };
 
 						//Allow for some variation here, if it's detected the else was an expression it should parse it like an expression,
 						// if not, it should parse it like a block.
+						//This needs to create a new scope to end, a place to place the 
 						ops = compiler->CompileBlock(*else_block);
 					}
 					//This is to skip over the else, this will not care about anything.
@@ -1021,9 +1048,7 @@ namespace LEX
 
 					if (back_size) {
 
-						back_size++;
-
-						back_list.emplace_back(InstructType::DropStack, Operand{ back_size, OperandType::Differ }, Operand::None());
+						back_list.emplace_back(InstructType::DropStack, Operand{ back_size + 1, OperandType::Differ }, Operand::None());
 
 						back_list = std::move(ops);
 
@@ -1033,7 +1058,7 @@ namespace LEX
 
 				std::vector<Operation> ops;
 				{
-					Scope a_scope{ compiler, ScopeType::Conditional };
+					Scope a_scope{ compiler, ScopeType::Conditional, ops };
 
 					ops = compiler->CompileBlock(*target.FindChild(parse_strings::statement_block));
 				}
@@ -1876,6 +1901,7 @@ namespace LEX
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
 
 			instructList[InstructType::EqualTo] = InstructWorkShop::BinaryCompare<std::equal_to<>>;
+			instructList[InstructType::NotEqualTo] = InstructWorkShop::BinaryCompare<std::not_equal_to<>>;
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
 			//We not ready for this one.
 			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;

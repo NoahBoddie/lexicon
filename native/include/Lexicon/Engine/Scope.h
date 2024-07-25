@@ -65,8 +65,12 @@ namespace LEX
 
 
 			//if (!parent)//if it's top level, that instead decides if it even removes anything.
-			if (IsTopLevel() == false)
+			if (IsTopLevel() == false && vars.size() != 0)
 				process->ModVarCount(-(int64_t)vars.size());
+
+			_out->insert_range(_out->end(), operationList);
+			process->_current = _prev;
+
 
 			process->currentScope = parent;
 
@@ -82,7 +86,13 @@ namespace LEX
 		}
 
 
-		[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s) :process{ static_cast<RoutineCompiler*>(compiler) }, _type{ s }
+		//So the out is where all the information goes, and the previous is the previous operation list.
+
+		[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s, std::vector<Operation>* out = nullptr) :
+			process{ compiler }, 
+			_type{ s },
+			_prev { &process->GetOperationList() },
+			_out { out ? out : &process->GetOperationList() }
 		{
 			//When created, it will set itself as the main scope, and record the old scope.
 
@@ -90,10 +100,17 @@ namespace LEX
 
 			parent = process->currentScope;
 			process->currentScope = this;
+			
+			process->_current = &operationList;
 
 			if (parent && s == ScopeType::Header) {
 				report::compile::critical("invalid header scope with parent detected.");
 			}
+		} 
+		
+		[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s, std::vector<Operation>& out) :Scope{ compiler, s, &out }
+		{
+			
 		}
 
 
@@ -165,8 +182,17 @@ namespace LEX
 		RoutineCompiler* process = nullptr;//Will turn statement compiler into a routinecompiler.
 
 
-		const ScopeType _type;
 
+
+		std::vector<Operation>* _out = nullptr;
+		std::vector<Operation>* _prev = nullptr;
+		
+
+		std::vector<Operation> operationList;
+
+
+		const ScopeType _type;
+		
 
 
 		ReturnType _return{};
