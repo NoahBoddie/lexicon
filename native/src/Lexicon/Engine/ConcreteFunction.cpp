@@ -25,6 +25,8 @@ namespace LEX
 			int j = i + IsMethod();
 
 			AbstractTypePolicy* expected = parameters[i].GetType()->FetchTypePolicy(runtime);
+			
+			
 			if (!expected)
 				throw nullptr;
 			RuntimeVariable check = args[j]->Convert(expected);
@@ -42,7 +44,7 @@ namespace LEX
 		if (Procedure prod = GetProcedure(); prod)
 		{
 			ProcedureData data;
-
+			
 			data.runtime = runtime;
 			data.defOption = def;
 			data.function = this;
@@ -50,20 +52,20 @@ namespace LEX
 			auto begin = args.begin();
 			
 			std::vector<Variable*> send_args;
-
+			
 			send_args.reserve(parameters.size());
-
+			
 			if (IsMethod() == true)
 			{
 				target = args[0].Ptr();
 				begin++;
 			}
-
+			
 			std::transform(begin, args.end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
 			
 			logger::critical("size check {} {}, {}", args.size(), parameters.size(), send_args.size());
 
-
+			report _{ IssueType::Runtime };
 			prod(result, target, send_args, data);
 		}
 		else

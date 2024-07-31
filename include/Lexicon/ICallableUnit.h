@@ -72,6 +72,7 @@ namespace LEX
 		template<std::convertible_to<RuntimeVariable>... Ts>
 		RuntimeVariable Call(Ts&&... args)
 		{
+			report _{ IssueType::Apply };
 			std::vector<RuntimeVariable> t_args{ args... };
 			auto value = Execute(t_args, nullptr, nullptr);
 			return value;
@@ -81,6 +82,7 @@ namespace LEX
 		template<std::convertible_to<RuntimeVariable>... Ts>
 		RuntimeVariable Call(Default def, Ts&&... args)
 		{
+			report _{ IssueType::Apply };
 			std::vector<RuntimeVariable> t_args{ args... };
 			auto value = Execute(t_args, &def.value);
 			return value;
