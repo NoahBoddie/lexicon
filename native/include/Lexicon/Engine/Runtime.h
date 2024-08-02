@@ -392,6 +392,8 @@ namespace LEX
 		//TODO:Make a static function do Run and construct, no need to wait right? Doing so means I can also make a function called "Test"
 		RuntimeVariable Run()
 		{
+			report _{ IssueType::Runtime };
+
 			size_t _limit = _data.GetOperativeCapacity();
 			
 			if (_limit == 0)

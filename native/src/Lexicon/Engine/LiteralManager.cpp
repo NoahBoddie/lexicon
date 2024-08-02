@@ -14,7 +14,7 @@ namespace LEX
 		auto begin = _LiteralList().begin();
 		auto end = _LiteralList().end();
 
-		auto it = std::find_if(begin, end, [&](auto& arg) { return arg == entry; });
+		auto it = std::find_if(begin, end, [&](auto& arg) { return arg.Policy() == entry.Policy() ? arg == entry : false; });
 
 		size_t result = max_value<size_t>;
 

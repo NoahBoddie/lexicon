@@ -14,6 +14,10 @@
 #include "Lexicon/Engine/parse_strings.h"
 #include "Lexicon/Engine/ConcreteGlobal.h"
 #include "Lexicon/Engine/GlobalVariable.h"
+
+#include "Lexicon/Interfaces/Project.h"
+#include "Lexicon/Interfaces/ProjectClient.h"
+
 namespace LEX
 {
 
@@ -225,8 +229,34 @@ namespace LEX
 
 			category = cat_name.GetTag();
 
+
+			if (cat_name.size())
+			{
+				//this should more be if it's not number.
+				if (auto& args = cat_name.GetFront(); args.GetView() == "args")
+				{
+					auto& children = args.GetChildren();
+
+					std::vector<std::string_view> string_args{ children.size() };
+
+					std::transform(children.begin(), children.end(), string_args.begin(), [](Record& it) { return it.GetView(); });
+
+					offset = GetProject()->GetClient()->GetOffsetFromArgs(cat_name.GetView(), string_args.data(), string_args.size());
+					logger::info("offset from args = {}", offset);
+				}
+				else
+				{
+					offset = _RecordToInt(args);
+				}
+
+
+			}
+			else
+			{
+				offset = 0;
+			}
 			//category name is completely optional.
-			offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
+			//offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
 
 			logger::info("searching {}, our location {}", category, offset);
 

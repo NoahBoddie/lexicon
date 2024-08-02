@@ -4,6 +4,7 @@
 #include "Lexicon/Engine/Declaration.h"
 #include "Lexicon/Engine/RoutineCompiler.h"
 
+#include "Lexicon/Engine/SyntaxRecord.h"
 namespace LEX
 {
 
@@ -18,7 +19,9 @@ namespace LEX
 
 	void GlobalBase::OnAttach()
 	{
+        reinterpret_cast<SyntaxRecord*>(GetSyntaxTree())->Note("New Global {}", GetName());
 
+        std::system("pause");
 	}
 
 	LinkResult GlobalBase::OnLink(LinkFlag flags)

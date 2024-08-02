@@ -2,11 +2,17 @@
 
 namespace LEX
 {
-	inline static std::vector<OBJECT_POLICY*> policyList{};
+	//inline static std::vector<ObjectPolicyImpl*> _policyList{};
 
 	//I actually may want these storing the pointers. Just need to access the index from there for the handles.
 	inline static std::map<std::string_view, uint32_t> aliasList{};
 
+
+	std::vector<ObjectPolicyImpl*>& GetPolicyList()
+	{
+		static std::vector<ObjectPolicyImpl*> _policyList{};
+		return _policyList;
+	}
 
 	uint32_t ObjectPolicyManager::GetIndexFromName(std::string_view name)
 	{
@@ -25,6 +31,8 @@ namespace LEX
 
 	uint32_t ObjectPolicyManager::GetIndexFromCategory(std::string_view category)
 	{
+		auto& policyList = GetPolicyList();
+
 		auto size = policyList.size();
 
 		for (int i = 0; i < size; i++)
@@ -40,6 +48,8 @@ namespace LEX
 
 	OBJECT_POLICY* ObjectPolicyManager::GetObjectPolicy(uint32_t index)
 	{
+		auto& policyList = GetPolicyList();
+
 		assert(policyList.size() > index);
 
 		if (policyList.size() <= index) {
@@ -69,6 +79,7 @@ namespace LEX
 		//Right now, and possibly in the future I don't think I actually want to have individual offsets register 
 		// themselves as objects. Instead, the entire category is an object. That's better in general.
 
+		auto& policyList = GetPolicyList();
 
 		auto policyID = policyList.size();
 
@@ -81,7 +92,7 @@ namespace LEX
 			auto it = aliasList.find(alias);
 
 			if (it != end) {
-				throw nullptr;
+				report::fault::critical("alias {} taken", alias);
 			}
 
 

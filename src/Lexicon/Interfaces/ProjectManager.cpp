@@ -10,7 +10,7 @@
 #include "Lexicon/Interfaces/Script.h"
 #include "Lexicon/Engine/Parser.h"
 #include "Lexicon/Engine/Expression.h"
-
+#include "Lexicon/Engine/DefaultClient.h"
 namespace LEX
 {
 
@@ -31,6 +31,10 @@ namespace LEX
 
 	//constexpr std::string_view core_path = "Data/Lexicon";
 	constexpr std::string_view core_path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon";
+
+
+
+
 
 
 
@@ -205,7 +209,7 @@ namespace LEX
 		project->SetName(name);
 
 		//todo - Set client
-
+		project->_client = client;
 		if (out) {
 			*out = project;
 		}
@@ -308,7 +312,7 @@ namespace LEX
 		Project* project = nullptr;
 
 		//Shared has no client, mainly because without a client errors are sent here, and there's never a situation where it will want to use format.
-		auto result = CreateProject("Shared", nullptr, &project);
+		auto result = CreateProject("Shared", DefaultClient::GetInstance(), &project);
 
 		_shared = project;
 

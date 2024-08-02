@@ -78,6 +78,10 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	//Policy list starts with an entry immediately. The void policy.
 	inline std::vector<PolicyBase*> policyList{ nullptr };
 
+	//TODO: Instead of having to search every identity list, I think I may make a second list that basically points to what index it goes to. 
+	// This is easier to do, but also with the advent of so many different generated object types, it will become more performant to just do this.
+
+
 	inline std::array<PolicyBase*, InherentType::kTotal> inherentTypes
 	{
 		new VoidPolicy{}, 
@@ -118,7 +122,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		for (int i = 0; i < size; i++)
 		{
 			auto& entry_name = dataList[i].name;
-			logger::debug("{} vs {}, size {} ", name, entry_name, size);
+			
 			if (!entry_name.empty() && entry_name == name)
 				return i;
 		}

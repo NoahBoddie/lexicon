@@ -68,7 +68,10 @@ namespace LEX
 		// But probably JUST it's commons.
 
 
-
+		ProjectClient* GetClient()
+		{
+			return _client;
+		}
 
 		std::string_view GetName() const override
 		{

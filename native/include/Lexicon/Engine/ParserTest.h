@@ -972,19 +972,48 @@ namespace LEX::Impl
 
 				case TokenType::Number:
 					{
+						//This will need a different way to handle this.
+						//How do you invalidate this?
+						// Too many periods
+						//unknown letters
+						
+						//Here's how I'll handle it. The amount of characters processed must equal the number of characters possible. if not, various errors
+						// will occur based on what's found.
+						// period, too many periods.
+						// unknown character
 
+						//Only time unknown character is allowed is if it's a float.
+					
 					report::parse::info("thing? {}", tag);
 						try {
 							//Should crash if the value isn't valid. the actual value doesn't matter too much, that will get sorted later.
 							// All the matters is it passes the transfer.
 							
+
+
+
 							try
 							{
-								auto test = std::stoll(tag);
+								size_t processed = 0;
+
+								
+								auto test = std::stoll(tag, &processed);
+
+								if (tag.size() > processed)
+									throw std::invalid_argument{ "Nothing to say" };
+
 								return parser->CreateExpression(next, SyntaxType::Integer);
 							}
 							catch (std::invalid_argument in_arg) {
-								auto test = std::stod(tag);
+								size_t processed = 0;
+								
+								auto test = std::stod(tag, &processed);
+
+								auto remains = tag.size() - processed;
+								//I'm going to be real, I don't know how to reverse this and I'm tired b.
+								if (remains == 1 && tag[processed] == 'f' || !remains) {}
+								else throw std::invalid_argument{ "Nothing to say" };
+
 								return parser->CreateExpression(next, SyntaxType::Number);
 							}
 							
@@ -1126,7 +1155,7 @@ namespace LEX::Impl
 				//	return false;
 				//RGL_LOG(info, "TEST {} {}", BinaryParser::GetSingleton()->GetContext() != context->GetContext(), NULL_OP(parser)->);
 				//And if the parser isn't binary OR is a member access. (This is done to get all member accesses out of the way before it shoves it in it's body.
-				return parser->GetBuiltModule<BinaryParser>()->GetContext() != context->GetContext() || (NULL_OP(parser)->IsType(TokenType::Operator, "."));
+				return parser->GetBuiltModule<BinaryParser>()->GetContext() != context->GetContext() || parser->IsType(TokenType::Operator, ".");
 			}
 
 			//Precedence mostly follows the thing that's closest to the body, with subscript being the highest of them,
@@ -1201,7 +1230,17 @@ namespace LEX::Impl
 				Record index = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::None);
 
 				if (parser->SkipIfType(TokenType::Punctuation, "::") == true) {
-					index.PushBackChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Number), SyntaxType::Number));
+					if (parser->IsType(TokenType::Punctuation, "{") == true)
+					{
+						auto& parent = index.EmplaceChild(Parser::CreateExpression("args", SyntaxType::None));
+					
+						//if it wants to use brackets to define it easier basically.
+						auto children = parser->Delimited("{", "}", ",", [](Parser* parser) { return Parser::CreateExpression(parser->next(), SyntaxType::None); });
+						parent.EmplaceChildren(std::move(children));
+					}
+					else {
+						index.PushBackChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Number), SyntaxType::Number));
+					}
 				} else {
 					index.PushBackChild(Parser::CreateExpression("0", SyntaxType::Number));
 				}

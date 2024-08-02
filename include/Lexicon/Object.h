@@ -82,7 +82,7 @@ namespace LEX
 		Object(ObjectData d, uint32_t i, ObjectDataType t)
 		{
 			//Make this intrinsic or whatever.
-			data = d;
+			_data = d;
 			policy = i;
 			type = t;
 		}
@@ -140,8 +140,18 @@ namespace LEX
 		}
 		
 
-		static AbstractTypePolicy* GetVariableType(const Object*)
+		static AbstractTypePolicy* GetVariableType(const Object* obj)
 		{
+			if (obj)
+			{
+				auto type = obj->policy->GetTypeResolved(obj->data());
+				
+				return type;	
+			}
+				//_data()
+			//SpecializeType(ObjectData&, ITypePolicy * type) override
+			
+			//return core type instead.
 			return nullptr;
 		}
 
@@ -165,15 +175,15 @@ namespace LEX
 
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
-				policy->Destroy(data);
-				data = policy->CreateData();
+				policy->Destroy(_data);
+				_data = policy->CreateData();
 				return;
 
 			case ObjectDataType::kRef:
 				type = ObjectDataType::kNone;
-				policy->DestroyPool(data.idxVal);
-				policy->DecPoolRef(data.idxVal);
-				data.Clear();
+				policy->DestroyPool(_data.idxVal);
+				policy->DecPoolRef(_data.idxVal);
+				_data.Clear();
 				return;
 			}
 		}
@@ -197,7 +207,7 @@ namespace LEX
 				if (other && policy == other->policy && type == other->type)
 					return;
 
-				return policy->Destroy(data);
+				return policy->Destroy(_data);
 
 			case ObjectDataType::kRef:
 				//If they have the same policy, have the same type, and are both pooled to the same object, unhandle
@@ -205,7 +215,7 @@ namespace LEX
 				//-Problem is I need to condition the other side too.
 				//Create an equals operator for this.
 				if (!other || *this != *other){
-					policy->DecPoolRef(data.idxVal);
+					policy->DecPoolRef(_data.idxVal);
 				}
 				return;
 
@@ -246,10 +256,10 @@ namespace LEX
 		Object& _SimpleTransfer(Object& other, bool move) 
 		{
 			//The assumption is that other isn't valid, and thus, no care needs to be taken in transfering information.
-			data = other.data;
+			_data = other._data;
 
 			if (move)
-				other.data.Clear();
+				other._data.Clear();
 
 			return _BasicTransfer(other, move);
 		}
@@ -260,15 +270,14 @@ namespace LEX
 			
 			//Transfers delete what data existed, so this needs to be reinitialized
 			if (type == ObjectDataType::kNone) {
-				report::debug("other? {}", other.policy.index());
-				data = other.policy->CreateData();
+				_data = other.policy->CreateData();
 			}
 			if (move) {
-				other.policy->Move(data, other.data);
-				other.data.Clear();
+				other.policy->Move(_data, other._data);
+				other._data.Clear();
 			}
 			else {
-				other.policy->Copy(data, other.data);
+				other.policy->Copy(_data, other._data);
 			}
 
 			
@@ -279,7 +288,7 @@ namespace LEX
 
 		Object& Transfer(Object& other, bool move)
 		{
-			logger::info("transfer, move {}", move);
+			logger::debug("transfer, move {}", move);
 			_ClearCheck();
 			other._ClearCheck();
 
@@ -291,7 +300,7 @@ namespace LEX
 					return *this;
 				}
 				if (!move)//If it's not a move, both retain their data, as such this is a new reference.
-					other.policy->IncPoolRef(other.data.idxVal);
+					other.policy->IncPoolRef(other._data.idxVal);
 
 				[[fallthrough]];
 			case ObjectDataType::kNone:
@@ -376,7 +385,7 @@ namespace LEX
 
 
 		//Switch _data and data.
-		ObjectData& _data()
+		ObjectData& data()
 		{
 			switch (type)
 			{
@@ -386,10 +395,10 @@ namespace LEX
 
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
-				return data;
+				return _data;
 
 			case ObjectDataType::kRef:
-				return *policy->RequestPool(data.idxVal);
+				return *policy->RequestPool(_data.idxVal);
 
 			default:
 				logger::info("object data type not found");
@@ -397,6 +406,11 @@ namespace LEX
 			}
 
 			//Use this function more plz.
+		}
+
+		ObjectData& data() const
+		{
+			return const_cast<Object*>(this)->data();
 		}
 
 
@@ -419,10 +433,10 @@ namespace LEX
 
 				case ObjectDataType::kVal:
 				case ObjectDataType::kPtr:
-					return data.get<T>();
+					return _data.get<T>();
 
 				case ObjectDataType::kRef:
-					return policy->RequestPool(data.idxVal)->get<T>();
+					return policy->RequestPool(_data.idxVal)->get<T>();
 
 				default:
 					logger::info("object data type not found");
@@ -448,10 +462,10 @@ namespace LEX
 
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
-				return data.ptr<T>();
+				return _data.ptr<T>();
 
 			case ObjectDataType::kRef:
-				return policy->RequestPool(data.idxVal)->ptr<T>();
+				return policy->RequestPool(_data.idxVal)->ptr<T>();
 
 			default:
 				logger::info("object data type not found");
@@ -462,7 +476,7 @@ namespace LEX
 
 
 
-		ObjectData data{};
+		ObjectData _data{};
 
 		ObjectPolicyHandle policy{};
 
@@ -539,11 +553,11 @@ namespace LEX
 
 
 		if (policy->IsPooled(to) == true) {
-			result.data = policy->InitializePool(to, stor);
+			result._data = policy->InitializePool(to, stor);
 			result.type = ObjectDataType::kRef;
 		}
 		else {
-			result.data = to;
+			result._data = to;
 			result.type = stor ? ObjectDataType::kVal : ObjectDataType::kPtr;
 		}
 

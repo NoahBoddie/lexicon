@@ -104,6 +104,8 @@
 #include "Lexicon/GenericBodyArray.h"
 #include "Lexicon/Engine/GenericType.h"
 
+#include "Lexicon/Interfaces/ReportManager.h"
+
 namespace std
 {
 	template <class _Elem, class _Alloc>
@@ -122,32 +124,11 @@ namespace LEX
 {
 	
 
-
-
 	/////////////////////////
 	//Implementations
 	////////////////////////
 
 
-
-	struct CoreOffset
-	{
-		//CORE isn't a thing yet, but when it is this is what it'd be using.
-		constexpr static TypeOffset Void = 0;
-		constexpr static TypeOffset Number = 0;
-		constexpr static TypeOffset String = 0;
-		constexpr static TypeOffset Array = 0;
-		constexpr static TypeOffset Function = 0;//FunctionHandle
-		constexpr static TypeOffset Object = 0;//ExternalHandle
-		constexpr static TypeOffset Delegate = 0;
-	};
-
-#define NUMBER_SET_NAME "NUMBER"
-#define STRING_SET_NAME "STRING"
-#define ARRAY_SET_NAME "ARRAY"
-#define FUNCTION_SET_NAME "FUNCTION"
-#define OBJECT_SET_NAME "OBJECT"
-#define DELEGATE_SET_NAME "DELEGATE"
 
 	/*
 	AbstractTypePolicy* VariableType<double>::operator()()
@@ -203,8 +184,6 @@ namespace LEX
 
 
 	//This is so temporary I hate that I'm doing it like this.
-	
-
 	
 
 
@@ -1024,7 +1003,7 @@ namespace LEX
 
 		Object first = MakeObject(vars);
 
-		logger::info("index {}", first.data.idxVal);
+		logger::info("index {}", first._data.idxVal);
 		Object second = first;
 
 		first = second;

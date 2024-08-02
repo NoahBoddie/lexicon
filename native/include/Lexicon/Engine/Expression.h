@@ -12,12 +12,17 @@ namespace LEX
 		Line line{ 0 };
 
 
-		std::string Print()
+		std::string Print() const
 		{
 			if (type == SyntaxType::Total)
 				return "Syntax: Header";
 			else
-				return std::format("Syntax: {} (col: {}/ line: {}", magic_enum::enum_name(type), column, line);
+				return std::format("Syntax: {} (col: {}/ line: {})", magic_enum::enum_name(type), column, line);
+		}
+
+		std::string location() const
+		{
+			return std::format("(line: {}, col: {})", line, column);
 		}
 
 		operator std::string() { return Print(); }

@@ -33,6 +33,12 @@ endif()
 #TODO: use this and a build setting to determine if this is trying to make a source plugin or if it's an interface
 message("Options:")
 option(LEXICON_SOURCE "Marks project as source binary for Lexicon." ON)
+option(TEST_BUILD "Tries to use test build for lexicon." ON)#if project is self, allow test builds.
+
+if (PARENT_NAME STREQUAL PROJECT_NAME)
+	set(TEST_BUILD ON)
+endif()
+
 
 
 # ---- Dependencies ----
@@ -242,7 +248,7 @@ set(headers
 	 "include/Lexicon/IRuntime.h"
 	 "include/Lexicon/ProcedureData.h" 
 	 "include/Lexicon/InherentType.h"
-	 ${master_headers}  "include/Lexicon/Interfaces/ReportManager.h" "include/Lexicon/Impl/common_type.h")
+	 ${master_headers}  "include/Lexicon/Interfaces/ReportManager.h" "include/Lexicon/Impl/common_type.h" "native/include/Lexicon/Engine/DefaultClient.h" "native/include/Lexicon/Engine/SyntaxRecord.h")
 
 
 set(sources
@@ -259,7 +265,7 @@ set(sources
 	src/Lexicon/TypeID.cpp
 	src/Lexicon/Variable.cpp
 	src/Lexicon/VariableType.cpp
-	${master_sources} "src/Lexicon/Interfaces/ReportManager.cpp")
+	${master_sources} "src/Lexicon/Interfaces/ReportManager.cpp" "src/Lexicon/ObjectInfo.cpp" "include/Lexicon/Report.cpp")
 
 
 
@@ -511,10 +517,10 @@ install(
 
 
 get_target_property(BINARY_TYPE ${PARENT_NAME} TYPE)
-#message(${CHECK_TYPE})
+message(${BINARY_TYPE})
 if (${BINARY_TYPE} STREQUAL EXECUTABLE)
 	set(BINARY_TYPE exe)
-elseif (${BINARY_TYPE} STREQUAL MODULE_LIBRARY)
+elseif (${BINARY_TYPE} STREQUAL SHARED_LIBRARY)
 	set(BINARY_TYPE dll)
 else()
 	#This is an error option, lib should never find its way into this.
@@ -522,7 +528,7 @@ else()
 	set(BINARY_TYPE lib)
 endif()
 
-if (LEXICON_SOURCE)
+#if (LEXICON_SOURCE)
     target_compile_definitions(
 	"${PROJECT_NAME}"
 	PUBLIC
@@ -531,13 +537,13 @@ if (LEXICON_SOURCE)
 	)
 
     #when this gets ported out, please use it to also determine what the primary source is as well
-endif()
+#endif()
 
 
 
 #///Executable Test
 #add_executable (${PROJECT_NAME}_Test ${sources})
-if(LEXICON_SOURCE)
+if(LEXICON_SOURCE AND TEST_BUILD)
 	add_executable (${PROJECT_NAME}_Test 
 	native/src/Lexicon/Engine/TempConstruct.cpp
 	"src/main.cpp")

@@ -941,7 +941,21 @@ namespace LEX
 
 
 
+
 				Solution from = compiler->CompileExpression(right, reg2, to, TargetObject::Assign);
+
+
+				Conversion out;
+
+				auto convert = from.IsConvertToQualified(to, nullptr, &out);
+
+				if (convert <= ConvertResult::Failure) {
+					report::compile::critical("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+				}
+
+				CompUtil::HandleConversion(compiler, out, from, convert);
+
+
 
 				//compiler->GetOperationList().push_back(CompUtil::MutateCopy(from, to));
 
@@ -1946,10 +1960,11 @@ namespace LEX
 			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
 			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
 			static ConcretePolicy* sInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int32_t>() };
+			static ConcretePolicy* uInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint32_t>() };
 			static ConcretePolicy* sInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int64_t>() };
 			static ConcretePolicy* uInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint64_t>() };
-
 			
+
 			static ConcretePolicy* _coreObject = new CoreType{ "CORE", 0 };
 
 			
@@ -1957,6 +1972,7 @@ namespace LEX
 			float32->EmplaceDefault(static_cast<float>(0));
 			uBoolean->EmplaceDefault(static_cast<bool>(0));
 			
+			sInt32->EmplaceDefault(static_cast<uint32_t>(0));
 			sInt32->EmplaceDefault(static_cast<int32_t>(0));
 			sInt64->EmplaceDefault(static_cast<int64_t>(0));
 			uInt64->EmplaceDefault(static_cast<uint64_t>(0));

@@ -149,7 +149,7 @@ inline std::string GetModuleName(HMODULE mdl)
 
     GetModuleFileNameA(mdl, &buffer.at(0), MAX_PATH);
 
-    return std::string{ buffer.begin(), buffer.end() };
+    return std::string{ buffer.data() };
 }
 
 
@@ -263,7 +263,7 @@ namespace logger
         //void set_color(spdlog::level::level_enum::trace, spdlog::yellow);
 
         logger::info("No default logger set, using standard.");
-        }
+    }
 }
 
 
@@ -302,6 +302,10 @@ struct Initializer
 
     inline static std::vector<def> executeList;
 
+    static bool Finished()
+    {
+        return _done;
+    }
     static void Execute()
     {
         //Should be run when there's nothing more to initialize.
@@ -310,11 +314,14 @@ struct Initializer
 
         logger::debug("executing");
 
+
         for (auto func : executeList) {
             func();
         }
 
         executeList.clear();
+        
+        _done = true;
     }
 
 
@@ -325,6 +332,8 @@ struct Initializer
             //func();
             executeList.push_back(func);
     }
+private:
+    inline static bool _done = false;
 };
 inline static int test = 0;
 //Initializes something on the spot.
@@ -527,7 +536,8 @@ std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name
         static bool once = false;
 
         if (!once) {
-            RGL_LOG(debug, "Found {} in {}.", func_name, GetModuleName(a_module));
+            //RGL_LOG(debug, "Found {} in {}.", func_name, GetModuleName(a_module));
+            RGL_LOG(debug, "Found {}.", func_name);
             once = true;
         }
     }
@@ -535,7 +545,8 @@ std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name
         static bool once = false;
 
         if (!once) {
-            RGL_LOG(critical, "Extern call failed. Function {} not found in {}.", func_name, GetModuleName(a_module));
+            //RGL_LOG(critical, "Extern call failed. Function {} not found in {}.", func_name, GetModuleName(a_module));
+            RGL_LOG(critical, "Extern call failed. Function {}.", func_name);
             once = true;
         }
 
@@ -676,3 +687,5 @@ namespace LEX
 //*/
 
 #endif
+
+#define NULLCHECK(mc_condition) if (!mc_condition) report::critical("Condition '{}' is invalid, throwing fatal exception.", STRINGIZE(mc_condition))

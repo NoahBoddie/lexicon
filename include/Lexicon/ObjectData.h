@@ -97,10 +97,10 @@ namespace LEX
 			//This has no safeties. The user should know what they're doing.
 
 			if  constexpr (object_storage_v<T> == value_storage){	//Value Type
-				return reinterpret_cast<const T&>(fstVal);
+				return reinterpret_cast<T&>(fstVal);
 			}
 			else {													//Pointer type.
-				return *reinterpret_cast<const T*>(ptrVal);
+				return *reinterpret_cast<T*>(ptrVal);
 			}
 		}
 

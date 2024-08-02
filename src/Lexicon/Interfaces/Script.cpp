@@ -12,6 +12,8 @@
 
 #include "Lexicon/Engine/Expression.h"
 
+#include "Lexicon/Interfaces/ProjectClient.h"
+
 namespace LEX
 {
 	//TODO: ObtainPolicy needs to be moved else where at some point.
@@ -37,7 +39,10 @@ namespace LEX
 	}
 
 
-	inline PolicyBase* ObtainPolicy(Record& ast)
+
+
+
+	inline PolicyBase* Script::tempObtainPolicy(Record& ast)
 	{
 		Record& settings = ast.GetChild(0);
 
@@ -104,7 +109,25 @@ namespace LEX
 			{
 				//Handle error, I can't fucking be bothered.
 				Record& category = attach_data.GetFront();
-				TypeOffset index = RecordToInt(category.GetFront());
+				TypeOffset index;
+
+				//this should more be if it's not number.
+				if (auto& args = category.GetFront(); args.GetView() == "args")
+				{
+					auto& children = args.GetChildren();
+
+					std::vector<std::string_view> string_args{ children.size() };
+
+					std::transform(children.begin(), children.end(), string_args.begin(), [](Record& it) { return it.GetView(); });
+
+					index = GetProject()->GetClient()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
+					logger::info("offset from args = {}", index);
+				}
+				else
+				{
+					index = RecordToInt(category.GetFront());
+				}
+
 				result = LookUpOrMake(category.GetTag(), index, lookup);
 				logger::debug("looked up {}", (int)result->FetchTypeID());
 				break;
@@ -184,6 +207,7 @@ namespace LEX
 			return;
 		//This ast likely has no interest, move resources.
 		_syntaxTree = std::move(rec);
+		
 	}
 
 
@@ -254,7 +278,7 @@ namespace LEX
 
 				//AddType(policy);
 				
-				AddType(ObtainPolicy(node));
+				AddType(tempObtainPolicy(node));
 				break;
 			}
 			case SyntaxType::Variable:

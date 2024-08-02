@@ -342,7 +342,7 @@ int main(int argc, char** argv) {
         } while (!IsDebuggerPresent() && input != IDCANCEL);
     }
 #endif
-
+    
     Initializer::Execute();
 
     Funckle({ 1, 2, 4, 5 });

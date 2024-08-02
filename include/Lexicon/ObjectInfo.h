@@ -6,6 +6,8 @@
 //*src
 #include "ITypePolicy.h"
 
+#include "Lexicon/Interfaces/IdentityManager.h"
+
 namespace LEX
 {
 	struct Object;
@@ -87,22 +89,21 @@ namespace LEX
 		virtual AbstractTypePolicy* SpecializeType(ObjectData&, ITypePolicy*) = 0;
 
 		//This can be defined in a source
-		virtual uint32_t GetTypeID(ObjectData&) const = 0;
+		virtual uint32_t GetTypeID(ObjectData&) = 0;
 
 		//Non-virtual
-		ITypePolicy* GetType(ObjectData& object)
+		ITypePolicy* GetTypeInterface(ObjectData& object)
 		{
-			throw nullptr;
 			//Note, not real code (yet)
 			auto id = GetTypeID(object);
-			//return IdentityManager::GetTypeFromID(type);
-			return nullptr;
+
+			return IdentityManager::instance->GetTypeByID(id);
 		}
 
-		AbstractTypePolicy* GetAbstractType(ObjectData& object)
+		AbstractTypePolicy* GetTypeResolved(ObjectData& object)
 		{
-			throw nullptr;
-			auto type = GetType(object);
+			auto type = GetTypeInterface(object);
+
 			return SpecializeType(object, type);
 		}
 
@@ -122,9 +123,9 @@ namespace LEX
 		uintptr_t GetVTableVersion() const override { return 0; }
 
 		
-		virtual bool IsCompatible(const IObjectVTable*) { return true; }
+		virtual bool IsCompatible(const IObjectVTable*) override { return true; }
 		
-		virtual bool Exists(ObjectData&)
+		virtual bool Exists(ObjectData&) override
 		{
 			//By default, this will be true most times, this is u
 			return true;
@@ -144,23 +145,21 @@ namespace LEX
 			return true;
 		}
 
-		uint32_t GetTypeID(ObjectData&) const override API_FINAL
-		{
-			throw nullptr;
-			//auto id = GetObjectPolicy()->GetTypeID(GetTypeOffset(object));
-			return 0;
-		}
+		uint32_t GetTypeID(ObjectData& data) override API_FINAL;
 
 		AbstractTypePolicy* SpecializeType(ObjectData&, ITypePolicy* type) override
 		{
 			//By default a specialized class will be as normal. No additional work will need to be used.
+
+			if (!type)
+				report::critical("Cannot specialize null type");
 
 			return type->GetTypePolicy((ITemplateBody*)nullptr);
 		}
 
 
 		//*/
-	private:
+	INTERNAL:
 		//This policy is the only 
 		mutable ObjectPolicy* _policy = nullptr;
 	};
@@ -178,6 +177,8 @@ namespace LEX
 	template <typename T>
 	struct QualifiedObjectInfo : public ObjectVTable
 	{
+		using Type = T;
+
 		//A qualified version of object info for your object info to derive from. Autofill some type based virtual functions, making it easier to deal with.
 
 		//A few of these should be final
@@ -242,7 +243,8 @@ namespace LEX
 			}
 		}
 
-
+		//it would be neat if this would make it so object data no longer had to be used by obscuring the old versions of the functions
+		// and calling new ones. 
 	};
 
 

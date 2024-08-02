@@ -47,6 +47,7 @@ namespace LEX
 
 		uint32_t GetIDFromName(std::string_view name) { return GetIDFromIndex(GetIndexFromName(name)); }
 		ITypePolicy* GetTypeByOffset(std::string_view name, TypeOffset offset) { return GetTypeByID(GetIDFromName(name) + offset); }
+		ITypePolicy* GetTypeByOffset(TypeIndex index, TypeOffset offset) { return GetTypeByID(GetIDFromIndex(index) + offset); }
 		ITypePolicy* GetInherentType(InherentType type) override;
 	INTERNAL://These do not have any formal implementation outside of the source, and as such are privated and invalid outside of it.
 		

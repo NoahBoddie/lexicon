@@ -10,6 +10,9 @@ namespace LEX
 	concept is_not = !std::is_same_v<std::remove_reference_t<std::remove_pointer_t<This>>, Not>;
 
 
+	using IssueCode = uint16_t;  //lynchpin this by removing it.
+
+
 	ENUM(IssueType, uint8_t)
 	{
 		Parse,    //A fundemental syntax issue possibly preventing the rest from being read properly.
@@ -22,7 +25,8 @@ namespace LEX
 		Total
 	};
 
-	ENUM(IssueLevel, uint8_t){
+	//This has no reason to exist, please just use spdlog::level
+	ENUM(IssueLevel, uint8_t) {
 		Trace,
 		Info,
 		Debug,
@@ -31,7 +35,7 @@ namespace LEX
 		Critical,  //Functionally the same as error, but in some situations where error won't send n exception this will
 		Total
 	};
-	using IssueCode = uint16_t;  //lynchpin this by removing it.
+
 
 	using LChar = char;
 	using LString = std::basic_string<LChar>;
@@ -142,6 +146,32 @@ namespace LEX
 			else
 				return spdlog::level::level_enum::trace;
 		}
+		//------------------------
+		static constexpr spdlog::level::level_enum get_spdlog_level(IssueLevel lvl)
+		{
+			switch (lvl)
+			{
+			case IssueLevel::Critical:
+				return spdlog::level::level_enum::critical;
+			case IssueLevel::Debug:
+				return spdlog::level::level_enum::debug;
+			case IssueLevel::Error:
+				return spdlog::level::level_enum::err;
+			case IssueLevel::Info:
+				return spdlog::level::level_enum::info;
+			case IssueLevel::Warning:
+				return spdlog::level::level_enum::warn;
+
+				//case IssueLevel::Trace:
+			default:
+				return spdlog::level::level_enum::trace;
+
+
+			}
+
+		}
+
+
 
 		template <IssueLevel Level>
 		static void RaiseMessage(LString& message, std::source_location& loc)
@@ -160,6 +190,26 @@ namespace LEX
 							loc.function_name() },
 				spdlog_level, a_fmt, std::forward<LString>(message));
 		}
+
+
+		static void RaiseMessage(LString& message, IssueLevel level, std::source_location& loc)
+		{
+			constexpr fmt::format_string<std::string> a_fmt{ "{}" };
+
+			logger::InitializeLogging();
+
+			//logging level should depend on what this is.
+
+			spdlog::level::level_enum spdlog_level = get_spdlog_level(level);
+
+			spdlog::log(spdlog::source_loc{
+							loc.file_name(),
+							static_cast<int>(loc.line()),
+							loc.function_name() },
+							spdlog_level, a_fmt, std::forward<LString>(message));
+		}
+
+
 
 		template <typename... Ts>
 		static void ValidateMessage(LString& message, Ts&... args)
@@ -237,14 +287,61 @@ namespace LEX
 			message.insert(0, result);
 		}
 
-		template <IssueLevel Level, is_not<std::source_location>... Ts>
-		static void LogBase(LString& message, IssueCode code, IssueType type, std::source_location& loc, Ts&... args)
+		static void LogBase(IssueCode code, std::string& message, IssueType type, IssueLevel level, std::source_location& loc);
+
+		static std::string_view GetIssueMessage(IssueCode code);
+
+	public:
+
+		//THIS
+		//*
+		template <is_not<std::source_location>... Ts>
+		static void Log_(LString& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
+			ValidateMessage(message, args...);
+			
+			return LogBase(0, message, type, level, loc);
+			
+
+			HeaderMessage(message, type, level, 0);
 		}
+
+		template <is_not<std::source_location>... Ts>
+		static void Log_(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		{
+			LString result;
+
+			std::string_view message = GetIssueMessage(code);
+
+			//LString argSlots;
+
+			if (message.empty() == true) {
+				result = "MISSING_ISSUE";
+
+				constexpr auto size = sizeof...(Ts);
+
+				if constexpr (size != 0) {
+					result += " Args("s + CreateArgSlots(size) + ").";
+				}
+
+			}
+			else {
+				result = message;
+			}
+
+			ValidateMessage(result, args...);
+
+			return LogBase(code, message, type, level, loc);
+		}
+
+		//----------------------*/
+
 
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
 		static void Log(LString& message, std::source_location& loc, IssueType type, Ts&... args)
 		{
+			return Log_(message, loc, type, Level, args...);
+
 			ValidateMessage(message, args...);
 
 			HeaderMessage(message, type, Level, 0);
@@ -257,6 +354,8 @@ namespace LEX
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
 		static void Log(IssueCode code, std::source_location& loc, IssueType type, Ts&... args)
 		{
+			return report::Log_(code, loc, type, Level, args...);
+
 			LString result;
 
 			const LChar* message = IssueTable::GetIssueMessage(code);
@@ -286,6 +385,9 @@ namespace LEX
 		}
 
 	public:
+
+
+
 
 #define DECLARE_LOGGER_LEVEL(mc_name, mc_level,...)													\
 	template <is_not<std::source_location>... Ts>													\
@@ -339,7 +441,7 @@ namespace LEX
 		DECLARE_LOGGER_TYPE(runtime, Runtime)
 		DECLARE_LOGGER_TYPE(parse, Parse)
 
-#undef DECLARE_LOGGER_LEVEL
+//#undef DECLARE_LOGGER_LEVEL
 #undef DECLARE_LOGGER_TYPE
 #undef DECLARE_ALL_LOGGER_LEVELS
 		
@@ -355,9 +457,10 @@ namespace LEX
 
 	private:
 		//loose type should be named some common ground that will make it easier to use for macros.
+		//This shouldn't need to exist for external stuff probably, wouldn't want this getting around a lot.
 		static inline thread_local std::optional<IssueType> Type = std::nullopt;
 
-		static IssueType GetIssueType() { return Type.value_or(IssueType::Message); }
+		static IssueType GetIssueType();
 
 		std::optional<IssueType> _prev;
 

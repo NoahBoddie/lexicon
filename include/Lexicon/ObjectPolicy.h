@@ -4,6 +4,9 @@
 #include "Lexicon/ObjectPoolData.h"
 #include "Lexicon/ObjectInfo.h"
 
+//*src
+#include "Lexicon/Interfaces/IdentityManager.h"
+
 namespace LEX
 {
 
@@ -40,7 +43,8 @@ namespace LEX
 		
 		virtual uint32_t GetPolicyID() const = 0;
 
-
+		virtual TypeIndex GetCategoryIndex() const = 0;
+		virtual std::string_view GetCategoryName() const = 0;
 		//*/
 	};
 
@@ -67,8 +71,8 @@ namespace LEX
 
 
 
-	//Should be final.
-	struct ObjectPolicyImpl : public ObjectPolicy//, public ObjectVTable
+	//Should be final. And should also be outside of this file
+	struct ObjectPolicyImpl : public ObjectPolicy
 	{
 
 #pragma region ObjectVTable
@@ -174,7 +178,7 @@ namespace LEX
 			return base->SpecializeType(self, type);
 		}
 		
-		uint32_t GetTypeID(ObjectData& self) const override
+		uint32_t GetTypeID(ObjectData& self) override
 		{
 			return base->GetTypeID(self);
 		}
@@ -453,8 +457,7 @@ namespace LEX
 
 		uint32_t GetTypeIDFromOffset(TypeOffset offset) const override
 		{
-			//return IdentityManager::GetIDFromIndex(index) + offset;
-			throw nullptr;
+			return IdentityManager::instance->GetIDFromIndex(index) + offset;
 		}
 
 		ObjectData CreateData(uint32_t = 0) const override
@@ -466,6 +469,15 @@ namespace LEX
 		uint32_t GetPolicyID() const override
 		{
 			return policyID;
+		}
+
+		TypeIndex GetCategoryIndex() const override
+		{
+			return index;
+		}
+		std::string_view GetCategoryName() const override
+		{
+			return category;
 		}
 
 
