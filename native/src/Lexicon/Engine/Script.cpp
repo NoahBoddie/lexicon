@@ -1,5 +1,5 @@
-#include "Lexicon/Interfaces/Script.h"
-#include "Lexicon/Interfaces/Project.h"
+#include "Lexicon/Engine/Script.h"
+#include "Lexicon/Engine/Project.h"
 
 //#include "Lexicon/Engine/TestField.h"
 
@@ -120,7 +120,7 @@ namespace LEX
 
 					std::transform(children.begin(), children.end(), string_args.begin(), [](Record& it) { return it.GetView(); });
 
-					index = GetProject()->GetClient()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
+					index = GetProject()->client()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
 					logger::info("offset from args = {}", index);
 				}
 				else
@@ -182,7 +182,7 @@ namespace LEX
 
 
 
-	Script* Script::GetScript()
+	IScript* Script::GetScriptI()
 	{
 		return this;
 	}
@@ -318,21 +318,21 @@ namespace LEX
 	}
 
 
-	Script* Script::FindRelationship(std::string name, bool shared, Relationship bond)
+	Script* Script::FindRelationship(std::string name, bool shared, RelateType bond)
 	{
 		//The shared is because between shared, 2 scripts can have the same name.
-		if (bond == Relationship::None)
+		if (bond == RelateType::None)
 			return nullptr;
 
 		return nullptr;
 	}
 
 
-	Script::Relationship Script::AddRelationship(Script*, Script::Relationship bond)
+	RelateType Script::AddRelationship(Script*, RelateType bond)
 	{
 		//Return the relationship it's been assigned or the relationship it has previously been assign if it
 		// can't the relationship.
-		return Relationship::None;
+		return RelateType::None;
 	}
 
 

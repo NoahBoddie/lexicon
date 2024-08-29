@@ -61,7 +61,9 @@ namespace LEX
 		Disposable,
 		Identifier,
 		Declare,
-
+		//Preprocessor
+		Preprocessor,
+		Requirement,
 		
 
 		//Aliases- Short hand that makes my job a bit easier.

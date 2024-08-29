@@ -57,7 +57,6 @@ namespace LEX
 #include "Lexicon/AbstractTypePolicy.h"
 #include "Lexicon/AccessModifier.h"
 #include "Lexicon/Array.h"
-#include "Lexicon/Component.h"
 #include "Lexicon/Conversion.h"
 #include "Lexicon/DataType.h"
 #include "Lexicon/DeclareSpecifier.h"
@@ -94,10 +93,7 @@ namespace LEX
 #include "Lexicon/VariableType.h"
 #include "Lexicon/VersionDeclareSpace.h"
 #include "Lexicon/Versioning.h"
-#include "Lexicon/Interfaces/Element.h"
-#include "Lexicon/Interfaces/Environment.h"
-#include "Lexicon/Interfaces/Project.h"
-#include "Lexicon/Interfaces/Script.h"
+
 #include "Lexicon/Interfaces/IdentityManager.h"
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceManager.h"
@@ -107,6 +103,8 @@ namespace LEX
 
 
 #include "Lexicon/ProcedureData.h"
+
+#include "Lexicon/Formula.h"
 
 
 #ifdef LEX_SOURCE

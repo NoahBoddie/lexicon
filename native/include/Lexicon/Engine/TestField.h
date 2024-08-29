@@ -9,8 +9,8 @@
 #include "Lexicon/Engine/Operand.h"
 
 
-#include "Lexicon/Interfaces/Script.h"
-#include "Lexicon/Interfaces/Project.h"
+#include "Lexicon/Engine/Script.h"
+#include "Lexicon/Engine/Project.h"
 #include "Lexicon/Interfaces/ProjectManager.h"
 
 #include "Lexicon/Exception.h"
@@ -106,6 +106,15 @@
 
 #include "Lexicon/Interfaces/ReportManager.h"
 
+#include "Lexicon/Engine/SyntaxRecord.h"
+
+#include "Lexicon/RelateType.h"
+
+
+#include "Lexicon/Engine/SettingManager.h"
+
+#include "Lexicon/Formula.h"
+
 namespace std
 {
 	template <class _Elem, class _Alloc>
@@ -129,6 +138,78 @@ namespace LEX
 	////////////////////////
 
 
+	namespace _1
+	{
+		namespace _2
+		{
+			struct Test
+			{
+				void foo()
+				{
+
+				}
+
+
+			};
+		}
+
+		namespace _3
+		{
+			struct Test 
+			{
+				void foo()
+				{
+
+				}
+
+
+			};
+		}
+	}
+
+	struct Test : public _1::_2::Test, public _1::_3::Test
+	{
+
+
+	};
+
+	namespace _A
+	{
+		namespace _B
+		{
+			namespace _C
+			{
+				int test;
+			}
+		}
+
+		namespace _B1
+		{
+			namespace _B
+			{
+				namespace _C
+				{
+					int test;
+				}
+			}
+		}
+
+		namespace _A1
+		{
+			void Foo()
+			{
+				_B::_C::test;
+			}
+		}
+	}
+
+
+
+	void TFunc()
+	{
+		Test test;
+		test._1::_2::Test::foo();
+	}
 
 	/*
 	AbstractTypePolicy* VariableType<double>::operator()()
@@ -187,74 +268,39 @@ namespace LEX
 	
 
 
+//#requires /:Option
 
-	class IFormula : public ICallableUnit
+
+
+
+
+	void TestForm()
 	{
-		//IFormula simply should provide some clarification that this indeed is a formula
+		float $ = 1;
 
-	};
-	
-	template <typename T>
-	struct BasicFormula : public IFormula
-	{
-		//The idea of this is you cast an IFormula into this forcibly, and this type will then manage all of the function calls for the type.
-		// Basically, think of this as a std::function. it should then translate all the rest of the bullshit around it.
-	};
+		$ += 1;
 
 
-	class Formula : public IFormula, public BasicCallableData
-	{
-		//This version is obscured for the user. It should help inline functions and such into the code, or that can be given to others to run.
-		//Formula rules. 
-		// They don't have default parameters, 
-		// they don't have procedures. 
-		// They don't have names.
-		// They don't have targets
-
-
-
-		RuntimeVariable Execute(std::vector<RuntimeVariable>& args, RuntimeVariable* def)
 		{
-			//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
+			std::string_view routine = "a + b + print_str.size()";
 
-			Runtime* runtime = nullptr;
-			Variable* target = nullptr;
+			auto formula = Formula<double(double, double, String)>::Create("a", "b", "print_str", routine);
 
-			if (args.size() != parameters.size())
-				report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
-
-			size_t size = parameters.size();
-
-			
-			for (int i = 0; i < size; i++) {
-				//Cancelling this for now.
-				break;
-				int j = i;
-
-				AbstractTypePolicy* expected = parameters[i].GetType()->FetchTypePolicy(runtime);
-				if (!expected)
-					throw nullptr;
-				RuntimeVariable check = args[j]->Convert(expected);
-
-				if (check.IsVoid() == true)
-					report::apply::critical("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
-
-				args[i] = check;
+			if (!formula) {
+				logger::critical("Formula didn't take");
+				return;
 			}
+
+			logger::info("{} = {}", routine, formula(15.0, 10.0, "fifth"));
 			
-			{
-				RuntimeVariable result;
-
-				Runtime runtime{ *GetRoutine(), args };
-
-				result = runtime.Run();
-
-				return result;
-			}
+			logger::info("2nd: {} = {}", routine, formula(15, 15, "fifthfourth"));
 		}
 
+		Formula<void(void)>::Create("otherTest() => otherTest() => otherTest() => otherTest()")();
+		
+		Formula<void>::Run("otherTest() => otherTest() => otherTest()");
+	}
 
-	};
 
 
 	namespace FunctionalInlining
@@ -1217,77 +1263,653 @@ namespace LEX
 
 	constexpr bool is_thing = std::is_polymorphic_v < std::function<void()>>;
 	
-	/*
-	struct TargetEnvironment_nixed
+	
+	
+
+
+}
+
+
+#include "Lexicon/Engine/ConcreteGlobal.h"
+
+namespace LEX
+{
+
+	//the associated should maybe be a bool or just reject any other than include and import.
+
+	static SyntaxRecord& GetPath(Record& path, bool right)
 	{
-		enum Flag : uint8_t
+		Record* ret = path.FindChild(right ? parse_strings::rhs : parse_strings::rhs);
+
+		if (!ret)
+			ret = &path.GetFront();
+
+		return SyntaxRecord::To(*ret);
+	}
+
+
+
+	static std::vector<Environment*> GetAssociates(Element* a_this, RelateType = {})
+	{
+		return {};
+	}
+
+
+
+	static Environment* GetEnvironmentTMP(Environment* a_this, Record* path, bool& search_scripts)
+	{
+		Environment* result;
+		get_switch(path->SYNTAX().type)
 		{
-			None = 0 << 0,
-			Explicit = 1 << 0,
+		case SyntaxType::Scopename:
+		case SyntaxType::Typename:
+		{
+			result = nullptr;
+			//Script name means nothing basically.
+
+			if (result) {
+				search_scripts = false;
+				break;
+			}
+		}
+
+		if (switch_value == SyntaxType::Typename)
+			break;
+
+		[[fallthrough]];
+		case SyntaxType::Scriptname://This should be script name.
+			if (search_scripts)
+			{
+				result = nullptr;
+				//Script name means nothing basically.
+
+				break;
+			}
+
+		default:
+			result = nullptr; break;
+		}
+
+
+		return result;
+	}
+
+	static Environment* WalkEnvironmentPath(Environment* a_this, SyntaxRecord*& path, bool search_scripts = true)
+	{
+		//If record is empty afterwords, this means that it has completed iteration.
+		if (path->IsPath() == false) {
+			path = nullptr;
+			return a_this;
+		}
+		auto left = path->FindChild(parse_strings::lhs);
+
+		if (!left) {
+
+			auto result = GetEnvironmentTMP(a_this, &path->GetFront(), search_scripts);
+
+			path = nullptr;
+
+			return result;
+		}
+
+		if constexpr (1 == 1)//If not generic.
+		{
+			Environment* _this = GetEnvironmentTMP(a_this, left, search_scripts);
+
+			path = SyntaxRecord::To(path->FindChild(parse_strings::rhs));
+
+			return WalkEnvironmentPath(a_this, path, search_scripts);
+		}
+		else
+		{
+
+		}
+	}
+
+	static Environment* SpecializeEnvironments(std::vector<Environment*>& generics)
+	{
+		//Specialize environment brings everything down to a single point.
+		return {};
+	}
+
+	static std::vector<Environment*> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched)
+	{
+		/*
+		make variable that stores temp environment here.
+		overloop here
+		for each environment in the temp var:
+
+		Check for environ being in the set.
+		Add environ to the set.
+		Call function.
+		move temp var restart overloop.
+
+		Overloop keeps going until absolutely nothing is created from GetAssociate
+		//*/
+
+		//This could be cleaner, but it works for now.
+
+		std::vector<Environment*> result{ };
+
+		std::vector<Environment*> out{ a_this->GetEnvironment() };
+
+		//maybe there's a better way to do this, but whatever innit.
+		while (out.size() != 0)//Overloop
+		{
+			std::vector<Environment*> buffer{};
+
+
+			for (auto env : out)
+			{
+				if (!env || !searched.emplace(env).second) {
+					continue;
+				}
+				buffer.emplace_back(env);
+
+				if (a != RelateType::None)
+					buffer.insert_range(buffer.end(), GetAssociates(env, a));
+			}
+			result.insert_range(result.end(), buffer);
+			out = std::move(buffer);
+		}
+
+		bool specialize = false;
+
+		if (step)
+		{
+			//out.clear();
+			//out.reserve(result.size());
+
+			for (auto& env : result)
+			{
+				auto _step = step;
+				env = WalkEnvironmentPath(env, _step);
+
+				if (_step)
+					specialize = true;
+			}
+
+			result.erase(std::remove(std::begin(result), std::end(result), nullptr), std::end(result));
+		}
+
+		if (specialize) {
+			auto new_this = SpecializeEnvironments(result);
+
+			if (new_this)
+				return GetEnvironments(new_this, step, a, searched);
+
+			return {};
+		}
+		else
+		{
+			return result;
+		}
+	}
+
+
+	using ElementSearch = bool(std::vector<Environment*>&);
+
+	bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched)
+	{
+		if (!focus)
+			return false;
+
+
+		RelateType ship = RelateType::Imported;
+
+		Environment* target = focus->GetEnvironment();
+
+		if (focus != target) {
+			target = focus->GetCommons();
+		}
+
+
+		for (; ship != RelateType::None; ship--)
+		{
+
+
+			std::vector<Environment*> query = GetEnvironments(target, rec, ship, searched);
+
+
+			bool success = func(query);
+
+			if (success)
+				return true;
+		}
+
+		return false;
+	}
+
+
+
+
+	//Move this out, I'd like a way to force project state. What it is would be determined if it's run on an element or not.
+		// So that actually means this version of the function stays, to make it less confusing.
+		// or is getting moved to the project manager
+	enum ProjectState
+	{
+		kNone,
+		kFind,
+		kShared,
+		kCurrent,
+	};
+
+	//I think the reutnr of this function should probably be why it failed if anything.
+	static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
+	{
+		//Needs a function to handle these.
+		/*
+		this element
+		up element until none (loop)
+		Search from project
+		Move onto commons
+		move onto shared commons
+		search for script in current project
+		search for project
+		//*/
+
+		//So there has to be something that prevents it from using the main one, notably if someone is incredibly specific about which version they're using.
+
+		//This needs to be proper at some point.
+		SyntaxRecord* path = SyntaxRecord::To(rec.FindChild(parse_strings::path));
+
+		auto left = path ? path->FindChild(parse_strings::lhs) : nullptr;
+		auto right = left ? path->FindChild(parse_strings::rhs) : nullptr;
+
+		//This is what should be submitted to functions
+		auto next = right ?
+			&GetPath(*right, true) : path ?
+			&path->GetFront() : &rec;
+
+
+
+		Element* target = a_this;
+
+		std::set<Element*> searched{};
+
+		bool is_shared = true;
+
+		ProjectState path_state;
+
+
+		if (path)
+		{
+			switch (path->GetFront().SYNTAX().type)
+			{
+			case SyntaxType::ProjectName:
+				path_state = kFind;
+				break;
+			case SyntaxType::Scriptname:
+				target = nullptr;
+				[[fallthrough]];
+			default:
+				path_state = kCurrent;
+				break;
+			}
+		}
+
+		ProjectState state = a_this ? path_state : kFind;//Force to be find depending on what heads path.
+
+
+
+		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
+		// path is.
+
+
+		while (target || state != kNone)
+		{
+			auto _next = next;
+
+			if (!target)// && left) //Must have a left side
+			{
+				Project* project = nullptr;
+
+				Record* tar = left ? left : &path->GetFront();
+
+				switch (state)
+				{
+				case kCurrent:
+					project = a_this->GetProject();
+					goto _find;
+
+				case kShared:
+					project = ProjectManager::instance->GetShared();
+					goto _find;
+
+				case kFind:
+					//Find is when project has to be found first, so move the finding of the script down here.
+					if (!right)
+						break;
+
+					project = ProjectManager::instance->GetProject(tar->GetFront().GetView());
+
+					tar = &GetPath(*right, false);
+					//Revert to this to test for a crash
+					//_next->GetView() == parse_strings::rhs || _next->GetView() == parse_strings::lhs
+					if (_next->SYNTAX().type != SyntaxType::Path) {
+						_next = nullptr;
+					}
+
+
+
+					if (!tar)
+					{
+						return false;
+						state = kNone;
+						//If target is no longer able to be found.
+						//We break, nothing to do.
+						break;
+					}
+					//_next = nullptr;//Unsure how to deal with this bit.
+				_find:
+					//state--;
+					if (project) {
+						bool is_path = tar->SYNTAX().type == SyntaxType::Path;
+
+						if (auto script = project->FindScript(is_path ? tar->GetFront().GetView() : tar->GetView()); script) {
+							target = script;
+							break;
+						}
+					}
+
+				case kNone:
+					break;
+				}
+			}
+
+
+			bool success = HandlePath(target, SyntaxRecord::To(_next), func, searched);
+
+			if (success)
+				return true;
+
+			if (state == kCurrent)
+				target = target->FetchParent();
+
+			if (!target)
+				state--;
+
+		}
+
+		//ProjectManager::
+
+
+		return false;
+	}
+
+
+
+	static PolicyBase* SearchTypePath(Environment* a_this, Record& _path)
+	{
+		PolicyBase* result = nullptr;
+
+		SearchPathBase(a_this, SyntaxRecord::To(_path), [&](std::vector<Environment*>& query) -> bool
+			{
+				for (auto env : query)
+				{
+
+					std::vector<PolicyBase*> types = env->FindTypes(_path.GetView());
+
+					//There's no situation where multiple can be observed, so it only needs the one.
+
+					auto size = types.size();
+
+
+
+					//TODO: VERY temporary idea. No pattern matching, no checking. This is basically the same that we did before
+					if (size > 1) {
+						report::compile::critical("mulitple types of same name detected.");
+						throw nullptr;
+					}
+					else if (size)
+					{
+						if (!result)
+						{
+							result = types[0];
+						}
+						else
+						{
+							report::error("path no work. Make better error later");
+						}
+
+						return true;
+					}
+
+				}
+
+				return false;
+			});
+
+
+		return result;
+	}
+
+
+	PolicyBase* SearchTypePath(/*Environment* this,*/ Record& path)
+	{
+		return nullptr;
+	}
+	
+	PolicyBase* SearchTypePath(/*IElement* this,*/ std::string_view path)
+	{
+		return nullptr;
+	}
+
+	static void PrintAST_(Record& tree, std::string indent = "")
+	{
+		constexpr std::string_view __dent = "| ";
+
+		std::string log = tree.PrintAs<LEX::Syntax>();
+
+		RGL_LOG(info, "{}{}", indent, log);
+
+		indent += __dent;
+
+		for (auto& child_rec : tree.GetChildren())
+		{
+			PrintAST_(child_rec, indent);
+		}
+	}
+
+	namespace control
+	{
+		struct PathParser : public LEX::Impl::ParseModule, public LEX::Impl::IdenDeclBoilerPlate
+		{
+			//The idea of this is it's a simple parser that acts like the identifier parser, but will handle this in a way that can handle
+			bool CanHandle(LEX::Impl::Parser* parser, Record* target, LEX::Impl::ParseFlag flag) const override
+			{
+				return true;
+			}
+
+			bool IsAtomic() const override
+			{
+				return true;
+			}
+
+
+			Record _HandleThis(LEX::Impl::Parser* parser)
+			{
+				RecordData next = parser->next();
+				next.GetTag() = parse_strings::this_word;
+				return LEX::Impl::Parser::CreateExpression(next, SyntaxType::Field);
+			}
+
+
+			Record HandleToken(LEX::Impl::Parser* parser, Record*) override
+			{
+
+				return _HandlePath(parser, SyntaxType::ProjectName);
+
+			}
+			// Need some boilerplate resolver.
+			std::string_view GetModuleName() override
+			{
+				return typeid(PathParser).name();
+			}
+
+			bool ContextAllowed(LEX::Impl::ProcessContext*, LEX::Impl::ProcessChain*) override
+			{
+				//This prevents anything from following it up for the most part. This shit is a one man show!
+				// If this causes any issues with parsers I may use later, feel free to make a variable to help handle when this is allowed be handled.
+				return false;
+			}
 		};
 
 
-		//Size isn't used to its fullest
-
-		//So issue, this actually used to use a solution, and rightfully so. Target object
-		// as itself 
+	}
 
 
 
 
+	void TestRun()
+	{
+		bool exit = false;
 
-		Environment* target = nullptr;
-		TargetObject* prev = nullptr;
-		Flag			flag = Flag::Explicit;
+		IElement* element = nullptr;
 
-		//Purges the use of assigning TargetObjects. This is used when returning or when assigning for implicit
-		// constuction knowledge.
-		TargetObject* GetCallTarget()
+		do
 		{
-			if (this) {
-				return flag & Flag::Assign ? prev->GetCallTarget() : this;
+			std::string path;
+
+			logger::info("\nEnter the path of an element. \nUse glob/type/func to specify which type.\nUse @ to use the previous element. \nUse ~elem to view last element. \nUse ~exit to leave.");
+
+			std::cin >> path;
+
+			
+
+			if (path == "~exit"){
+				break;
 			}
 
-			return nullptr;
-		}
+			if (path == "~elem") {
+				if (element)
+					logger::info("Current element is {}.", element->GetFullName());
+				else
+					logger::info("No element currently loaded.");
 
-		//Reverse of call target, this gets the target of an assignment or return. Useful for ternary statements
-		TargetObject* GetAssignTarget()
-		{
-			if (this) {
-				return flag & Flag::Assign ? this : prev->GetAssignTarget();
+				continue;
 			}
 
-			return nullptr;
-		}
 
-		TargetObject(Solution& t, TargetObject* p, Flag f) : target{ &t }, prev{ p }, flag{ f }
+			ElementType  elem_type;
+
+			if (std::strncmp(path.c_str(), "type", 4) == 0)
+			{
+				elem_type = kTypeElement;
+			}
+			else if (std::strncmp(path.c_str(), "func", 4) == 0)
+			{
+				elem_type = kFuncElement;
+			}
+			else if (std::strncmp(path.c_str(), "glob", 4) == 0)
+			{
+				elem_type = kGlobElement;
+			}
+			else
+			{
+				elem_type = kNoneElement;
+			}
+
+			IElement* result;
+
+			if (path.contains("@::") == true)
+			{
+				if (!element) {
+					logger::error("No element currently loaded.");
+					continue;
+				}
+
+				path = path.substr(3);
+
+
+				result = element->GetElementFromPath(path, elem_type);
+
+
+				path = std::format("{}::{}", element->GetFullName(), path);
+			}
+			else
+			{
+				result = ProjectManager::instance->GetElementFromPath(path, kTypeElement);
+			}
+			
+
+			logger::info("{} -> {}", path, !!result);
+
+			if (result) {
+				logger::info("Full name: {}", result->GetFullName());
+				element = result;
+			}
+
+
+		} while (true);
+
+		return;
+
+		auto path = "Shared::Commons::__float32";
+
+		if constexpr (1)
 		{
+			IElement* floatType = ProjectManager::instance->GetElementFromPath(path, kTypeElement);
+			logger::info("Testing -> {}", !!floatType);
 
+			if (floatType)
+			{
+				logger::info("Full name: {}", floatType->GetFullName());
+
+				auto testType = floatType->GetElementFromPath("::OtherScript::TestType", kTypeElement);
+
+
+
+				logger::info("Testing -> {}", !!testType);
+
+				if (testType)
+					logger::info("Full name: {}", testType->GetFullName());
+
+			}
+
+
+
+			//std::cin << 
+
+
+			return;
 		}
 
-		TargetObject(Solution& t, TargetObject* p = nullptr, bool b = false) : target{ &t }, prev{ p }, flag{ b ? Explicit : None }
+		Record record = LEX::Impl::Parser__::CreateSyntax<control::PathParser>(path);
+
+		PrintAST_(record);
+
+
+		auto test = SearchTypePath(nullptr, record);
+
+
+		logger::info("Testing -> {}", !!test);
+		if (test)
 		{
+			logger::info("Full name: {}", test->GetFullName());
+
+
+			Record record = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>("OtherScript::TestType");
+
+			PrintAST_(record);
+
+
+			auto test2 = SearchTypePath(test, record);
+
+
+			logger::info("Testing -> {}", !!test2);
+
+			if (test2)
+				logger::info("Full name: {}", test2->GetFullName());
 
 		}
-	};
-	//*/
+	}
 
-
-	
 
 	INITIALIZE()
 	{
-		GetVariableType<Variable>();
-		GetVariableType<Number>();
-		GetVariableType<String>();
-		GetVariableType<Variable>();
-		GetVariableType<Variable>();
-		GetVariableType<Variable>();
+		logger::info("Name {}", SettingManager::GetSingleton()->language);
 	}
-	
-	
-
 
 }
 

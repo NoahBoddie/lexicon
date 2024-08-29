@@ -1,14 +1,19 @@
 #pragma once
 
+#include "Lexicon/RelateType.h"
+
 //Temp
 #include "Lexicon/TypeAliases.h"
 
 
-#include "Lexicon/Interfaces/Environment.h"
-
+#include "Lexicon/Engine/Environment.h"
+#include "Lexicon/Interfaces/IScript.h"
 //
 #include "Lexicon/AbstractTypePolicy.h"
 #include "Lexicon/AbstractFunction.h"
+
+
+
 
 namespace LEX
 {
@@ -17,29 +22,25 @@ namespace LEX
 	struct PolicyBase;
 
 
-	class Script : public Environment
+	class Script : public Environment, public IScript
 	{
 	public:
 
 		//Scripts have functions/globals(vars)/types/(parents/projects)
+	public:
+		
 	private:
-		enum struct Relationship
-		{
-			None,
-			Required,
-			Imported,
-			Included,
-		};
-
 
 		//Not needed,
 		//bool _defined = false;
+		
+		std::filesystem::path _filePath;
 
 		Record _syntaxTree;
 
 		//This is where scripts are refered
-		std::unordered_map<Relationship, std::vector<Script*>> _relationMap2;
-		std::unordered_map<Script*, Relationship> _relationMap;
+		std::unordered_map<RelateType, std::vector<Script*>> _relationMap2;
+		std::unordered_map<Script*, RelateType> _relationMap;
 	public:
 
 
@@ -48,7 +49,13 @@ namespace LEX
 		Script* GetCommons() override;
 
 
-		Script* GetScript() override;
+		IScript* GetScriptI() override;
+
+
+		Script* Promote() override { return this; }
+
+		const Script* Promote() const override { return this; }
+
 
 
 		ComponentType GetComponentType() override;
@@ -83,10 +90,10 @@ namespace LEX
 		std::vector<Environment*> GetImport() override;
 
 
-		Script* FindRelationship(std::string name, bool shared, Relationship bond);
+		Script* FindRelationship(std::string name, bool shared, RelateType bond);
 
 
-		Relationship AddRelationship(Script*, Relationship bond);
+		RelateType AddRelationship(Script*, RelateType bond);
 
 
 		virtual bool IsCommons() const { return false; }

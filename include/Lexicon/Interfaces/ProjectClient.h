@@ -27,10 +27,13 @@ namespace LEX
 				
 				virtual HMODULE GetParentModule() const = 0;
 
+				//returns an empty string view when it reaches the end.
+				virtual std::string_view GetCompileOptions(size_t index) const = 0;
+
 				Project* GetProject() { return _project; }
 
 			INTERNAL:
-				Project* _project = nullptr;
+				Project* _project = nullptr;//This should be Iproject
 			};
 		}
 
@@ -50,6 +53,8 @@ namespace LEX
 	struct ProjectClient : IProjectClient
 	{
 		HMODULE GetParentModule() const override final { return GetCurrentModule(); }
+
+		std::string_view GetCompileOptions(size_t index) const override { return {}; }
 	};
 
 	/*

@@ -38,6 +38,14 @@ namespace LEX
 		constexpr static auto format_start = "format";
 		constexpr static auto format_end = "end_format";
 
+
+		constexpr static auto preprocessor = "<:prep:>";
+
+		constexpr static auto script_req = "<:scr:>";
+		constexpr static auto option_req = "<:opt:>";
+		constexpr static auto project_req = "<:prj:>";
+		constexpr static auto directory_req = "<:dir:>";
+
 	};
 
 }

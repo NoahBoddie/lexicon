@@ -460,10 +460,10 @@ namespace LEX
 			return IdentityManager::instance->GetIDFromIndex(index) + offset;
 		}
 
-		ObjectData CreateData(uint32_t = 0) const override
+		ObjectData CreateData(uint32_t id = 0) const override
 		{
 			//Currently, no data used. Later? Either Instance ID, or Type ID. One should know which they use.
-			return ctor(0);
+			return ctor(id);
 		}
 
 		uint32_t GetPolicyID() const override

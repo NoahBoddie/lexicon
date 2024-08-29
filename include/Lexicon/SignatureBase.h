@@ -57,7 +57,7 @@ namespace LEX
 				result : T == SignatureEnum::Target ?
 				target : parameters.emplace_back();
 
-			logger::info("increase? {}", parameters.size());
+			logger::info("increase? {} {}", parameters.size(), next_size);
 
 
 			entry.policy = GetVariableType<_Refless>();

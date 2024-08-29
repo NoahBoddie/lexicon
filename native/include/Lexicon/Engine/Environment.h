@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Lexicon/Component.h"
+#include "Lexicon/Engine/Component.h"
 
 #include "Lexicon/Exception.h"
 
-#include "Lexicon/Interfaces/Element.h"
+#include "Lexicon/Engine/Element.h"
 
 #include "Lexicon/TypeID.h"
 #include "Lexicon/MemberPointer.h"
@@ -161,14 +161,14 @@ namespace LEX
 	struct IEnvironment_only : public Element
 	{
 		//This part of an environment can only find other things. I
-		virtual std::vector<FunctionInfo*> FindFunctions(std::string name) = 0;
+		virtual std::vector<FunctionInfo*> FindFunctions(std::string_view name) = 0;
 
 
 
 		//TODO: Change name to find field, and use a variableInfo for this.
-		virtual VariableInfo* FindVariable(std::string name) = 0;
+		virtual VariableInfo* FindVariable(std::string_view name) = 0;
 
-		virtual std::vector<PolicyBase*> FindTypes(std::string name) = 0;
+		virtual std::vector<PolicyBase*> FindTypes(std::string_view name) = 0;
 
 
 	};
@@ -177,6 +177,12 @@ namespace LEX
 
 	struct Environment : public Element, public IEnvironment
 	{
+	public:
+
+		Environment* Promote() override { return this; }
+
+		const Environment* Promote() const override { return this; }
+
 
 		//virtual names and fancy names. Virtuals are the ones that are implemented by class, fancy names are embelished ones that call the virtual ones and are safe on nullptrs.
 		// Add/Emplace
@@ -229,14 +235,14 @@ namespace LEX
 		// ITypePolicy. Main reason why is because of member and method requires being higher priority
 		// and the exclusive place to check from when there's a parenthesis. Actually, this is a search thing,
 		// not a find issue.
-		virtual std::vector<FunctionInfo*> FindFunctions(std::string name);
+		virtual std::vector<FunctionInfo*> FindFunctions(std::string_view name);
 
 
 
 		//TODO: Change name to find field, and use a variableInfo for this.
-		virtual GlobalBase* FindVariable(std::string& name);
+		virtual GlobalBase* FindVariable(std::string_view name);
 
-		virtual std::vector<PolicyBase*> FindTypes(std::string name);
+		virtual std::vector<PolicyBase*> FindTypes(std::string_view name);
 
 		//These return Environment instead of scripts because I really only need script from it. That, and it might allow me to use maybe scripts too. 
 		// and there's no need for IScript to be used.
@@ -308,10 +314,10 @@ namespace LEX
 
 
 
-		Environment* GetEnvironment() override;
+		IEnvironment* GetEnvironmentI() override;
 
 		//source file type shit
-		Element* GetParent() override;
+		IElement* GetParentI() override;
 
 		void SetParent(Element* par) override;
 

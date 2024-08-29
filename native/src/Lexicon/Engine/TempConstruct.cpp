@@ -700,6 +700,11 @@ namespace LEX
 				logger::debug("construct symbol \'=\'");
 				return InstructType::Assign;
 
+			case "=>"_h:
+			case "then"_h:
+				logger::debug("construct symbol \'=\'");
+				return InstructType::Then;
+
 			default:
 				//ARTHMETIC_LOGGER(info, "Failure to handle operator, value \'{}\'", data->view[0]);
 				return InstructType::Invalid;
@@ -967,6 +972,22 @@ namespace LEX
 			}
 
 
+
+
+			static Solution ThenProcess(ExpressionCompiler* compiler, Record& target)
+			{
+				Register prefered = compiler->GetPrefered();
+
+				//This is thrown away.
+				Solution waste = compiler->CompileExpression(target.FindChild(parse_strings::lhs)->GetFront(), prefered);
+
+				Solution result = compiler->CompileExpression(target.FindChild(parse_strings::rhs)->GetFront(), prefered);
+
+				return result;
+			}
+
+
+
 		};
 
 
@@ -986,7 +1007,9 @@ namespace LEX
 
 			case InstructType::Assign:
 				return OpProcessors::AssignProcess(compiler, target);
-
+			
+			case InstructType::Then:
+				return OpProcessors::ThenProcess(compiler, target);
 			default:
 				return OpProcessors::GenericProcess(compiler, target, op);
 			}

@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/Scope.h"
 
-#include "Lexicon/Interfaces/Environment.h"
+#include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/OverloadInput.h"
 #include "Lexicon/Engine/Declaration.h"
 #include "Lexicon/Engine/PolicyBase.h"
@@ -49,7 +49,7 @@ namespace LEX
 				return parent->SearchFieldPath(_path, key);
 			}
 
-			if (ParameterInfo* field = process->_targetFunc->FindParameter(name); field) {
+			if (ParameterInfo* field = process->FindParameter(name); field) {
 				return field;
 			}
 		}
@@ -67,8 +67,4 @@ namespace LEX
 
 
 
-	std::string Scope::name()
-	{
-		return process->_targetFunc->_name;
-	}
 }

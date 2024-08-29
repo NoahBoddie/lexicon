@@ -63,8 +63,8 @@ namespace LEX::Impl
 				croak(std::format("empty string found in parse results {}", std::string(it, end)));
 
 
-			if (result.GetTag()[0] == '\n')
-				croak("The unforseen hath occured.");
+			//if (result.GetTag()[0] == '\n')
+			//	croak("The unforseen hath occured.");
 
 			if (auto new_it = what[0].second; is_iterating) {
 				_CalcColumnLine(new_it, _column, _line);
@@ -139,7 +139,7 @@ namespace LEX::Impl
 
 	
 
-	InputStream::InputStream(std::string n, std::string p, std::string s, Line l, Column c)
+	InputStream::InputStream(std::string n, std::string p, std::string s, ParseMode mode, Line l, Column c)
 	{
 		auto _1 = c;
 		auto _2 = l;
@@ -147,7 +147,7 @@ namespace LEX::Impl
 		//Will croak without outputting line and column at this point.
 
 	
-		std::string kinda_basic = TokenHandler::GetRegex();
+		std::string kinda_basic = TokenHandler::GetRegex(mode == ParseMode::kPreprocess);
 		
 		_regex = boost::regex{ kinda_basic };
 		_project = p;

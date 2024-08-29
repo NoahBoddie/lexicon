@@ -74,7 +74,7 @@ namespace LEX
 		{
 			report _{ IssueType::Apply };
 			std::vector<RuntimeVariable> t_args{ args... };
-			auto value = Execute(t_args, nullptr, nullptr);
+			auto value = Invoke(t_args, nullptr);
 			return value;
 		}
 
@@ -84,7 +84,7 @@ namespace LEX
 		{
 			report _{ IssueType::Apply };
 			std::vector<RuntimeVariable> t_args{ args... };
-			auto value = Execute(t_args, &def.value);
+			auto value = Invoke(t_args, def.value.Ptr());
 			return value;
 		}
 

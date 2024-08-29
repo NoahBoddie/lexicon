@@ -68,8 +68,8 @@ namespace LEX
 	{
 		size_t raw = 0;
 
-		uintptr_t fstVal;		// If the value is small enough, the data can be stored directly onto the data without needing to handle a heap pointer.
-		void* ptrVal;			// If the object is too large, it will either be carried around by a pointer given, or by a copy made
+		mutable uintptr_t fstVal;		// If the value is small enough, the data can be stored directly onto the data without needing to handle a heap pointer.
+		mutable void* ptrVal;			// If the object is too large, it will either be carried around by a pointer given, or by a copy made
 		uint32_t idxVal;		//smaller fast value, used with references.
 
 
@@ -95,7 +95,8 @@ namespace LEX
 		decltype(auto) get() const
 		{
 			//This has no safeties. The user should know what they're doing.
-
+			//This should probably be making sure not to give someone the const ref of it OR
+			// just give them a new object that isn't a const but isn't a ref.
 			if  constexpr (object_storage_v<T> == value_storage){	//Value Type
 				return reinterpret_cast<T&>(fstVal);
 			}
@@ -234,7 +235,7 @@ namespace LEX
 		//ALSO
 
 		//Take this section. I think this is how I'll fill data, least mess this way.	
-		T in;
+		T in{};
 
 		FillObjectData<T>(data, std::addressof(in));
 		

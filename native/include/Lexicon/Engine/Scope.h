@@ -197,15 +197,13 @@ namespace LEX
 
 		ReturnType _return{};
 
-		std::string name();
-
 		void _CheckExit()
 		{
 
 			if (IsHeader() == true) {
 
 				if (!process->implicitReturn && !_return && process->GetReturnType()->FetchTypeID() != -1)
-					report::compile::critical("Explicit return expected. {}", name());
+					report::compile::critical("Explicit return expected. {}", process->name());
 
 				return;
 			}

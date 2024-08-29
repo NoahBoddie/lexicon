@@ -1,6 +1,12 @@
 #pragma once
 
 
+enum struct ParseMode
+{
+	kBasic,
+	kPreprocess,
+};
+
 
 namespace LEX::Impl
 {

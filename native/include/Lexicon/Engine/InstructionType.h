@@ -43,7 +43,7 @@ namespace LEX
 		Access,
 
 		Assign, 
-
+		Then, 
 		//Directives (Instructions created don't match 1 to 1 the operator used)	
 		Push,
 		Move, 

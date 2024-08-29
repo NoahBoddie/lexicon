@@ -1,11 +1,23 @@
-#include "Lexicon/Interfaces/Project.h"
-#include "Lexicon/Interfaces/Script.h"
+#include "Lexicon/Engine/Project.h"
+#include "Lexicon/Engine/Script.h"
 
 namespace LEX
 {
-	Script* Project::FindScript(std::string name)
+
+	void  Project::AddFormat(std::string& name, std::string& content, Script* source)
 	{
+		AddFormat(std::string_view{ name }, std::string_view{ content }, source);
+	}
+
+
+	Script* Project::FindScript(std::string_view name)
+	{
+		if (name == "Commons") {
+			return _commons;
+		}
+
 		auto end = _scripts.end();
+
 
 		//Proper version of Script not implement
 		auto it = std::find_if(_scripts.begin(), end, [&](Script* search) { return search->GetName() == name; });
@@ -41,9 +53,13 @@ namespace LEX
 
 	}
 
+	IScript* Project::GetCommonsI()
+	{
+		return _commons;
+	}
 
 	Script* Project::GetCommons()
 	{
-		return _commons;
+		return GetCommonsI()->TryPromote();
 	}
 }

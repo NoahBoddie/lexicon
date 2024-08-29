@@ -4,6 +4,8 @@
 
 namespace LEX
 {
+	class Script;
+
 	namespace Version
 	{
 		namespace _1
@@ -12,6 +14,13 @@ namespace LEX
 			struct INTERFACE_VERSION(IScript)
 			{
 				//Relationship information
+
+
+
+				virtual Script* Promote() = 0;
+				virtual const Script* Promote() const = 0;
+
+
 			};
 
 		}
@@ -20,5 +29,11 @@ namespace LEX
 		CURRENT_VERSION(IScript, 1);
 	}
 
-	using IScript = Version::Current::IScript;
+	struct IMPL_VERSION(IScript)
+	{
+
+		Script* TryPromote() { return this ? Promote() : nullptr; }
+		const Script* TryPromote() const { return this ? Promote() : nullptr; }
+
+	};
 }

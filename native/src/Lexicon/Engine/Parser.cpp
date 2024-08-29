@@ -165,35 +165,35 @@ namespace LEX::Impl
 
 
 
-	bool Parser::IsType(TokenType type, std::string str) {
+	bool Parser::IsType(TokenType type, std::string_view str) {
 		RecordData tok = tokenizer.peek();
 		return tok && tok.GetEnum<Token>().type == type && (str == "" || tok.GetTag() == str);
 	}
 
-	bool Parser::WasType(TokenType type, std::string str) {
+	bool Parser::WasType(TokenType type, std::string_view str) {
 		RecordData tok = tokenizer.prev();
 		return tok && tok.GetEnum<Token>().type == type && (str == "" || tok.GetTag() == str);
 	}
 
 
-	RecordData Parser::ConsumeType(TokenType type, std::string str)
+	RecordData Parser::ConsumeType(TokenType type, std::string_view str)
 	{
 		//TODO:Fix Format #1
 		//TokenToString
 		if (IsType(type, str) == false) {
 			auto token = peek();
-			tokenizer.croak(std::format("Expecting {}, recieved {} from \"{}\"", TokenToString(type, false), TokenToString(token.TOKEN().type, false), token.GetTag()));
+			tokenizer.croak(std::format("Expecting {}, recieved {} from \"{}\"", magic_enum::enum_name(type), magic_enum::enum_name(token.TOKEN().type), token.GetTag()));
 		}
 
 		return tokenizer.next(); 
 	}
 
-	void Parser::SkipType(TokenType type, std::string str)
+	void Parser::SkipType(TokenType type, std::string_view str)
 	{
 		ConsumeType(type, str);
 	}
 
-	bool Parser::SkipIfType(TokenType type, std::string str)
+	bool Parser::SkipIfType(TokenType type, std::string_view str)
 	{
 		bool result = IsType(type, str);
 		
@@ -203,7 +203,7 @@ namespace LEX::Impl
 		return result;
 	}
 
-	std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<ParseFunc> func) {
+	std::vector<Record> Parser::Delimited(std::string_view start, std::string_view stop, std::function<void()> separator, std::function<ParseFunc> func) {
 		//I would like a delimit that expects the seperator to be the second to last, and another that prevents it from being second to last.
 		//Having a version of this with no parameters or just parser would be ideal, that way I can use member functions.
 
@@ -251,7 +251,7 @@ namespace LEX::Impl
 
 
 	//Make a version of this that can take a parser and record, and a version that can take nothing at all.
-	std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func) {
+	std::vector<Record> Parser::Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<ParseFunc> func) {
 		return Parser::Delimited(start, stop, [&]() { SkipType(TokenType::Punctuation, separator); }, func);
 	}
 
@@ -260,7 +260,7 @@ namespace LEX::Impl
 	void Parser::unexpected() {
 		//want this to look prettier at some point.
 		//TODO:Fix Format #2
-		tokenizer.croak(std::format("Unexpected token: {} ({})", tokenizer.peek().GetTag(), TokenToString(tokenizer.peek().TOKEN().type)));//"Unexpected token");//
+		tokenizer.croak(std::format("Unexpected token: {} ({})", tokenizer.peek().GetTag(), magic_enum::enum_name(tokenizer.peek().TOKEN().type)));//"Unexpected token");//
 	}
 
 
@@ -362,7 +362,7 @@ namespace LEX::Impl
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.
 
-		InputStream inp_stream{ "<untitled>", "<loose>", text, line, column};
+		InputStream inp_stream{ "<untitled>", "<loose>", text, ParseMode::kBasic, line, column};
 
 		TokenStream tok_stream{ inp_stream };
 
@@ -394,17 +394,20 @@ namespace LEX::Impl
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.
 
-		InputStream inp_stream{ name, project, text, line, column };
-
-		TokenStream tok_stream{ inp_stream };
-
-		
 		std::unique_ptr<ParseModule> new_mod;
 
 		if (!mdl) {
 			new_mod = std::make_unique<ScriptParser>();
 			mdl = new_mod.get();
 		}
+
+
+		InputStream inp_stream{ name, project, text, mdl->GetParseMode(), line, column };
+
+		TokenStream tok_stream{ inp_stream };
+
+
+
 		Parser par_stream{ tok_stream,	mdl };
 
 		try

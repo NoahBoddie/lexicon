@@ -55,6 +55,8 @@ namespace LEX
 
 		headerGuide[KeywordType::DeclSpec]["const"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["static"] = { HeaderFlag::Storage, HeaderFlag::None };
+		headerGuide[KeywordType::DeclSpec]["abstract"] = { HeaderFlag::Storage, HeaderFlag::None };
+		//headerGuide[KeywordType::DeclSpec]["virtual"] = { HeaderFlag::Storage, HeaderFlag::None };
 		headerGuide[KeywordType::DeclSpec]["external"] = { HeaderFlag::None, HeaderFlag::None };//Extern doesn't really have any enemies other than maybe abstract?
 		headerGuide[KeywordType::DeclSpec]["mutable"] = { HeaderFlag::DeclMute, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["readonly"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
@@ -62,6 +64,8 @@ namespace LEX
 		headerGuide[KeywordType::DeclSpec]["private"] = { HeaderFlag::Access1st, HeaderFlag::None };
 		headerGuide[KeywordType::DeclSpec]["protected"] = { HeaderFlag::Access1st, HeaderFlag::None };
 		headerGuide[KeywordType::DeclSpec]["internal"] = { HeaderFlag::Access2nd, HeaderFlag::None };
+		
+		
 
 		headerGuide[KeywordType::TypeSpec]["typename"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };
 		headerGuide[KeywordType::TypeSpec]["signed"] = { HeaderFlag::Signable, HeaderFlag::None };

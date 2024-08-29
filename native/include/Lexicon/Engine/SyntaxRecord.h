@@ -3,7 +3,7 @@
 #include "Lexicon/Report.h"
 #include "Lexicon/Interfaces/ReportManager.h"
 
-#include "Lexicon/Interfaces/Script.h"
+#include "Lexicon/Engine/Script.h"
 
 #include "Lexicon/Engine/Expression.h"
 
@@ -12,6 +12,13 @@ namespace LEX
 
 	struct SyntaxRecord : public Record
 	{
+		//I would like to make an over version of syntax record that basically copies all the functions and makes it into a new version, that way find
+		// and the rest of that stuff doesn't have so many issues.
+
+		//Actually, pause, I think I'll make a "basic_record" that takes what type of record it is. Largely, the concept would be there'd be no difference
+		// but it would help determine what returns there are. The template record is what would do all the accessing and such maybe?
+
+
 		using Record::Record;
 
 		//What I basically want of this it accumulate messages, and their source locations and such. So it will handle that sort of this.
@@ -42,6 +49,11 @@ namespace LEX
 		Syntax& GetSyntax()
 		{
 			return SYNTAX();
+		}
+
+		bool IsPath()
+		{
+			return GetSyntax().type == SyntaxType::Path;
 		}
 
 
@@ -190,8 +202,15 @@ namespace LEX
 
 		//*/
 
+#define SYNTAX_REC_TO(mc_qual, mc_t) static SyntaxRecord mc_qual To(Record mc_qual it) { return reinterpret_cast<std::add_##mc_t##value_reference_t<SyntaxRecord mc_qual>>(it); }
 
+		//This is stupid don't do this.
+		SYNTAX_REC_TO(&, l);
+		SYNTAX_REC_TO(*&, l);
+		SYNTAX_REC_TO(*&&, r);
 
+#undef SYNTAX_REC_TO
+		//This should disable things like copy constructors and such, basically preventing it from being copied and forcing it to be referenced.
 	};
 
 }

@@ -5,23 +5,27 @@
 #include "Lexicon/Engine/ParserTest.h"
 #include "Lexicon/Exception.h"//May move to src
 
-#include "Lexicon/Component.h"
-#include "Lexicon/Interfaces/Project.h"
-#include "Lexicon/Interfaces/Script.h"
+
+#include "Lexicon/ElementType.h"
+
+
+#include "Lexicon/Engine/Component.h"
+#include "Lexicon/Engine/Project.h"
+#include "Lexicon/Engine/Script.h"
 #include "Lexicon/Engine/Parser.h"
 #include "Lexicon/Engine/Expression.h"
 #include "Lexicon/Engine/DefaultClient.h"
+
+#include "Lexicon/Engine/SettingManager.h"
 namespace LEX
 {
-
-	using Enum = ProjectManager::Enum;
 
 
 	inline static Project* _shared;
 	inline static std::vector<Project*> _projects;
 
 
-	inline static std::unordered_map<size_t, std::pair<Element*, Enum>> _lookupMap;
+	inline static std::unordered_map<size_t, std::pair<IElement*, ElementType>> _lookupMap;
 
 
 	constexpr std::string_view cmpExtension = "lex";//This is prefered
@@ -87,7 +91,7 @@ namespace LEX
 
 
 
-	static Element* LookupElement(size_t hash, Enum type)
+	static IElement* LookupElement(size_t hash, ElementType type)
 	{
 		auto it = _lookupMap.find(hash);
 
@@ -97,7 +101,7 @@ namespace LEX
 		return it->second.first;
 	}
 
-	static void SaveElement(Element* elem, size_t hash, Enum type)
+	static void SaveElement(IElement* elem, size_t hash, ElementType type)
 	{
 
 		_lookupMap[hash] = std::make_pair(elem, type);
@@ -133,7 +137,7 @@ namespace LEX
 
 
 
-	Project* ProjectManager::GetProject(std::string_view name)
+	IProject* ProjectManager::INT_NAME(GetProject)(std::string_view name)
 	{
 		if (stricmp("Shared", name.data()) == 0)
 			return _shared;
@@ -149,7 +153,34 @@ namespace LEX
 		return nullptr;
 	}
 
-	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out)
+	bool tmp_CheckCompileOptions(std::string_view tag)
+	{
+		logger::critical("tag {}", tag);
+		return tag == "Test";
+	}
+
+	void tmp_AddCompileOptions(std::vector<std::string_view>& options, Project* project)
+	{
+		if (project && project->client())
+		{
+			auto client = project->client();
+
+			if (client) {
+				int i = 0;
+
+				std::string_view new_opt;
+
+				while (new_opt = client->GetCompileOptions(i++), new_opt.empty() == false)
+				{
+					options.push_back(new_opt);
+				}
+			}
+		}
+
+
+	}
+
+	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out, const std::vector<std::string_view>* opts)
 	{
 		//Might break this down into a function that knows it's path and one that doesn't, mostly for scripts created via function.
 		std::string script_path = std::format("{}/{}.lsi", path, name);
@@ -165,6 +196,47 @@ namespace LEX
 		file_input.close();//Don't really need to do this, seeing as the destructor does, but eh
 
 
+		std::vector<std::string_view> options = opts ? *opts : std::vector<std::string_view>{};
+
+
+		tmp_AddCompileOptions(options, project);
+
+		if (project->IsShared() == false)
+		{
+			tmp_AddCompileOptions(options, GetShared());
+		}
+
+
+		{
+			Impl::PreprocessorParser direct_parse;
+			Record tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+
+
+
+			if (tmp_directives.size() != 0) {
+				auto begin = options.begin();
+				auto end = options.end();
+
+				for (auto& directive : tmp_directives.GetChildren()) {
+					if (directive.SYNTAX().type == SyntaxType::Requirement && directive.GetView() == parse_strings::option_req) {
+						auto& front = directive.GetFront();
+						
+						//if (tmp_CheckCompileOptions(front.GetView()) == false) {
+						if (std::find(begin, end, front.GetView()) == end) {
+							logger::break_warn("Requirement '{}' was not present for {} to load.", front.GetView(), name);
+							return APIResult::MissingRequirement;
+						}
+					}
+				}
+				std::stringstream result;
+
+				//const boost::regex regex(R"((?<=\A|\n)\s*#[^\n]*)");
+				const boost::regex regex(R"((?<=\A)|(?<=\n)\s*#[^\n]*)");
+				boost::regex_replace(std::ostream_iterator<char>(result), contents.begin(), contents.end(), regex, "");
+				contents = result.str();
+			}
+		}
+		
 
 		Record ast = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents);
 
@@ -218,7 +290,8 @@ namespace LEX
 		}
 
 		//If the name doesn't exist, this should just use the core path (this is how we detect the commons.
-		std::string path = std::string(core_path);
+		//std::string path = std::string(core_path);
+		std::string path = std::string(SettingManager::GetSingleton()->scriptDir);
 
 		if (name != "Shared") {
 			path += "/";
@@ -257,12 +330,12 @@ namespace LEX
 	}
 
 
-	IElement* ProjectManager::GetElementFromPath(std::string_view path, Enum elem)
+	IElement* ProjectManager::GetElementFromPath(std::string_view path, ElementType elem)
 	{
-		return nullptr;
+		
 
 		//right now, linking isn't really set up so you know.
-		if (Component::HasLinked(LinkFlag::Declaration) == false) {
+		if (1!=1 && Component::HasLinked(LinkFlag::Declaration) == false) {
 			//Tell that this is too early to be valid.
 			return nullptr;
 		}
@@ -270,28 +343,30 @@ namespace LEX
 
 		auto hash = HashPath(path);
 
-		auto element = LookupElement(hash, elem);
+		IElement* element = LookupElement(hash, elem);
 
 
 		if (!element)
 		{
-			Record record = LEX::Impl::Parser__::CreateSyntax<PathParser>(std::string{ path });
+			//Record record = LEX::Impl::Parser__::CreateSyntax<PathParser>(std::string{ path });
+			Record record = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(std::string{ path });
 
 			//<!> After parsing is done, the top most type needs to be set to the standards of what it's expecting.
 
 			//From here, use the path functions that are in environment.
 			// The project should be found from the first part, and from there we should just keep the environ search should finish it out.
 			
-			report::critical("Function not implemented yet. Do not call.");
-
 			switch (elem)
 			{
 				//Do the search for each type here.
-			case Enum::FuncElement:
-			case Enum::TypeElement:
-			case Enum::GlobElement:
+			case kFuncElement:
+			case kTypeElement:
+			case kGlobElement:
+				element = Element::GetElementFromPath(nullptr, path, elem); 
+				break;
 			default:
-				element = nullptr; break;
+				report::critical("Unknown element type {} requested, and cannot be processed.", (int)elem);
+				break;
 			}
 
 

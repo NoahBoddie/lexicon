@@ -2,7 +2,7 @@
 
 
 #include "Lexicon/ITypePolicy.h"
-#include "Lexicon/Interfaces/Environment.h"
+#include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/PolicyData.h"
 #include "Lexicon/Engine/OverloadClause.h"
 

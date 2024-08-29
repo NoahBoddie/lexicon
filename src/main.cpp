@@ -5,7 +5,7 @@
 //*
 
 #include "Lexicon.h"
-#include "Lexicon/Engine/TestField.h"
+#include "Lexicon/Engine/TestFieldB.h"
 //#include "spdlog/spdlog.h"
 //#include "spdlog/sinks/stdout_color_sinks.h"
 //#include <spdlog/sinks/basic_file_sink.h>
@@ -62,6 +62,14 @@ double size_backend(String a_this)
 {
 	logger::info("size of \"{}\"", a_this.view());
 	return a_this.size();
+}
+
+void otherTest(StaticTargetTag)
+{
+    static int _inc = 0;
+    
+    
+    logger::info("other test {}", _inc++);   
 }
 
 
@@ -131,7 +139,9 @@ void TestParse()
         return;
     }
 
-    Record ast = Parser__::CreateSyntaxTree("Fake", "Script", contents);
+    PreprocessorParser parser;
+
+    Record ast = Parser__::CreateSyntaxTree("Fake", "Script", contents, &parser);
 
     PrintAST(ast);
 
@@ -191,6 +201,15 @@ void LexTesting(std::string formula)
     {
         logger::trace("_a");
 
+    }
+
+
+    if  constexpr (1)
+    {
+        if (ProcedureHandler::instance->RegisterFunction(otherTest, "Shared::Commons::otherTest") == false)
+        {
+            logger::info("Function couldn't be set");
+        }
     }
 
     ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
@@ -256,6 +275,11 @@ void LexTesting(std::string formula)
             logger::info("Function couldn't be found in script");
         }
     }
+
+
+    TestForm();
+    TestRun();
+
     //END OF THE CONTROLLED ENVIRONMENT
     return;
     //END OF THE CONTROLLED ENVIRONMENT
@@ -354,6 +378,8 @@ int main(int argc, char** argv) {
     
 
 
+
+
     //using input causes a crash for some reason.
     std::string formula;
     //std::cin >> formula;
@@ -362,6 +388,7 @@ int main(int argc, char** argv) {
         //std::getline(std::cin >> std::ws, formula);
 
         LexTesting("GetValueTest");
+
     });
     
 

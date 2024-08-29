@@ -20,8 +20,9 @@ namespace LEX::Impl
 
 		//Op codes are codes that are the strings of various operators. Their sorting requires that the longer operators are first, while the smaller later.
 		// This ensures that a smaller operator doesn't consume a bigger one.
-		inline static std::vector<std::string> _opCodes
+		inline static std::vector<std::string_view> _opCodes
 		{ 
+			"=>",
 			"+", 
 			"-", 
 			"*", 
@@ -36,7 +37,7 @@ namespace LEX::Impl
 			"||",
 			"&", 
 			"&&", 
-			".", 
+			".",
 			"^", 
 			"**", 
 			"++", 
@@ -44,6 +45,7 @@ namespace LEX::Impl
 			"<<", 
 			">>", 
 			"==", 
+			"+=",
 			"!=",
 			">=",
 			"<=",
@@ -59,10 +61,10 @@ namespace LEX::Impl
 
 		//TODO: use (?:...) more, this is a non-capturing group, and most of the time this is what I actually want.
 
-		inline static std::vector<std::string> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::" };//?
+		inline static std::vector<std::string_view> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::", "...", "/:", "#"};//?
 		
 		//This shoult be handled externally I think, or should be able to be added to.
-		inline static std::vector<std::string> _keyCodes
+		inline static std::vector<std::string_view> _keyCodes
 		{ 
 			"if", 
 			"else", 
@@ -96,30 +98,33 @@ namespace LEX::Impl
 			"private",
 			"protected",
 			"internal",
+			"requires"
 		};
 
 		inline static std::string _compRegex;
 		inline static std::string _constRegex;
 		//
 		//The para's should come predone
-		constexpr static std::string_view format = R"((format[\s\S]*end_format))";//((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
-		constexpr static std::string_view digits = R"(((?:0[x|X][0-9|A-F|a-f]*)|(?:\.*\d(\d|\.)*f?)))";//(\.*\d(\d|\.)*f?) //((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
-		constexpr static std::string_view identifiers = R"(([_A-z][\w]*))";
-		constexpr static std::string_view quotes = R"((('''[^']{0,}'{0,3})|("""[^"]{0,}"{0,3})|('[^'\n]{0,}'?)|("[^"\n]{0,}"?)))";
-		constexpr static std::string_view comments = R"((\/\/[^\n]{0,})|(\/\*([^*]|\*(?!\/)){0,}(\*\/)?))";
-		constexpr static std::string_view objects = R"((:{[^}\n]{0,}}?))";//Currently objects aren't used, but I'm thinking about maybe not having these as a literal.
-		constexpr static std::string_view remains = R"((\w|\S))";//Last to be sub, appended to the compiled regex.
+		constexpr static std::string_view format = R"((?:format[\s\S]*end_format))";//((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
+		constexpr static std::string_view digits = R"((?:(?:0[x|X][0-9|A-F|a-f]*)|(?:\.*\d(\d|\.)*f?)))";//(\.*\d(\d|\.)*f?) //((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
+		constexpr static std::string_view identifiers = R"((?:[_A-z][\w]*))";
+		constexpr static std::string_view quotes = R"((?:(?:'''[^']{0,}'{0,3})|(?:"""[^"]{0,}"{0,3})|(?:'[^'\n]{0,}'?)|(?:"[^"\n]{0,}"?)))";
+		constexpr static std::string_view comments = R"((?:\/\/[^\n]{0,})|(?:\/\*([^*]|\*(?!\/)){0,}(?:\*\/)?))";
+		constexpr static std::string_view objects = R"((?::{[^}\n]{0,}}?))";//Currently objects aren't used, but I'm thinking about maybe not having these as a literal.
+		constexpr static std::string_view remains = R"((?:\w|\S))";//Last to be sub, appended to the compiled regex.
+		
+		constexpr static std::string_view preprocessor = R"((?:\n))";
 
 		static void _CheckCompiled();
 
 		static void _CheckConstant();
 	public:
 		
-		static std::vector<std::string> GetKeywords();
-		static std::vector<std::string> GetOperators();
-		static std::vector<std::string> GetPuncutation();
+		static std::vector<std::string_view> GetKeywords();
+		static std::vector<std::string_view> GetOperators();
+		static std::vector<std::string_view> GetPuncutation();
 
-		static std::string GetRegex();
+		static std::string GetRegex(bool prep);
 
 	};
 }

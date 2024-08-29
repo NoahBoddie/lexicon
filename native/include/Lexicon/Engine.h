@@ -59,3 +59,9 @@
 
 //Sort
 #include "Lexicon/Engine/DefaultClient.h"
+
+#include "Lexicon/Engine/Component.h"
+#include "Lexicon/Engine/Element.h"
+#include "Lexicon/Engine/Environment.h"
+#include "Lexicon/Engine/Project.h"
+#include "Lexicon/Engine/Script.h"

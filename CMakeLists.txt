@@ -55,9 +55,11 @@ find_package(spdlog REQUIRED CONFIG)
 
 if(LEXICON_SOURCE)
 	set(master_headers
+		
 		native/include/Lexicon/Engine.h
 		native/include/Lexicon/Engine/TempConstruct.h
 		"native/include/Lexicon/Engine/TestField.h"
+		"native/include/Lexicon/Engine/TestFieldB.h"
 		"native/include/Lexicon/Engine/QualifiedField.h"
 		native/include/Lexicon/Engine/CompileUtility.h
 		native/include/Lexicon/Engine/ConcreteGlobal.h
@@ -117,6 +119,10 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/VariableInfo.h
 		native/include/Lexicon/Engine/VoidPolicy.h
 		native/include/Lexicon/Engine/GlobalInfo.h
+		"native/include/Lexicon/Engine/Element.h"
+		"native/include/Lexicon/Engine/Environment.h"
+		"native/include/Lexicon/Engine/Project.h"
+		"native/include/Lexicon/Engine/Script.h"
 		"native/include/Lexicon/Engine/SpecialBase.h"
 		"native/include/Lexicon/Engine/SpecialPart.h"
 		"native/include/Lexicon/Engine/SpecialBody.h" 
@@ -125,10 +131,12 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/GenericType.h" 
 		"native/include/Lexicon/Engine/DynamicTupleElement.h" 
 		"native/include/Lexicon/Engine/TemplateTuple.h" 
-		"include/Lexicon/ITemplateInsertPart.h" 
+		"include/Lexicon/ITemplateInsertPart.h" #These don't belong here
 		"include/Lexicon/ITemplateInsertBody.h" 
 		"include/Lexicon/GenericPartArray.h" 
-		"include/Lexicon/GenericBodyArray.h")
+		"include/Lexicon/GenericBodyArray.h"
+		"native/include/Lexicon/Engine/Component.h"
+		"native/include/Lexicon/Engine/SettingManager.h")
 
 
 	
@@ -164,12 +172,12 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/VoidPolicy.cpp
 		native/src/Lexicon/Engine/InfoBase.cpp
 		native/src/Lexicon/Engine/GlobalBase.cpp
-		src/Lexicon/Interfaces/Script.cpp
-		src/Lexicon/Interfaces/Element.cpp
-		src/Lexicon/Interfaces/Environment.cpp	
+		native/src/Lexicon/Engine/Script.cpp
+		native/src/Lexicon/Engine/Element.cpp
+		native/src/Lexicon/Engine/Environment.cpp	
 		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
-		
-		src/Lexicon/Interfaces/Project.cpp
+		"native/src/Lexicon/Engine/Component.cpp"
+		native/src/Lexicon/Engine/Project.cpp
 		src/Lexicon/Interfaces/IdentityManager.cpp
 		src/Lexicon/Interfaces/InterfaceManager.cpp
 		src/Lexicon/Interfaces/ProcedureHandler.cpp
@@ -177,7 +185,7 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/GenericType.cpp"
 		"native/src/Lexicon/Engine/TemplateType.cpp" 
 		"native/src/Lexicon/Engine/SpecialPart.cpp" 
-		"src/Lexicon/ITemplatePart.cpp")
+		src/Lexicon/Interfaces/FormulaManager.cpp)
 else()
 	set (master_headers )
 	set (master_sources )
@@ -186,11 +194,11 @@ endif()
 set(headers
 	include/Lexicon.h
 	include/Lexicon/AbstractGlobal.h
+	include/Lexicon/Formula.h
 	include/Lexicon/AbstractFunction.h
 	include/Lexicon/AbstractTypePolicy.h
 	include/Lexicon/AccessModifier.h
 	include/Lexicon/Array.h
-	include/Lexicon/Component.h
 	include/Lexicon/Conversion.h
 	include/Lexicon/DataType.h
 	include/Lexicon/DeclareSpecifier.h
@@ -229,10 +237,6 @@ set(headers
 	include/Lexicon/VersionDeclareSpace.h
 	include/Lexicon/Versioning.h
 	include/Lexicon/Impl/PCH.h
-	include/Lexicon/Interfaces/Element.h
-	include/Lexicon/Interfaces/Environment.h
-	include/Lexicon/Interfaces/Project.h
-	include/Lexicon/Interfaces/Script.h
 	include/Lexicon/Interfaces/IdentityManager.h
 	include/Lexicon/Interfaces/Interface.h
 	include/Lexicon/Interfaces/InterfaceManager.h
@@ -248,12 +252,11 @@ set(headers
 	 "include/Lexicon/IRuntime.h"
 	 "include/Lexicon/ProcedureData.h" 
 	 "include/Lexicon/InherentType.h"
-	 ${master_headers}  "include/Lexicon/Interfaces/ReportManager.h" "include/Lexicon/Impl/common_type.h" "native/include/Lexicon/Engine/DefaultClient.h" "native/include/Lexicon/Engine/SyntaxRecord.h")
+	 ${master_headers}  "include/Lexicon/Interfaces/ReportManager.h" "include/Lexicon/Impl/common_type.h" "native/include/Lexicon/Engine/DefaultClient.h" "native/include/Lexicon/Engine/SyntaxRecord.h" "include/Lexicon/ElementType.h" "include/Lexicon/RelateType.h" "include/Lexicon/IFormula.h" "include/Lexicon/Interfaces/FormulaManager.h" "include/Lexicon/FormulaHandler.h" "native/include/Lexicon/Engine/BasicFormula.h")
 
 
 set(sources
 	src/Lexicon/AbstractTypePolicy.cpp
-	src/Lexicon/Component.cpp
 	src/Lexicon/Dispatcher.cpp
 
 	src/Lexicon/Field.cpp
@@ -265,7 +268,8 @@ set(sources
 	src/Lexicon/TypeID.cpp
 	src/Lexicon/Variable.cpp
 	src/Lexicon/VariableType.cpp
-	${master_sources} "src/Lexicon/Interfaces/ReportManager.cpp" "src/Lexicon/ObjectInfo.cpp" "include/Lexicon/Report.cpp")
+	src/Lexicon/ITemplatePart.cpp
+	${master_sources} "src/Lexicon/Interfaces/ReportManager.cpp" "src/Lexicon/ObjectInfo.cpp" "include/Lexicon/Report.cpp" "native/src/Lexicon/Engine/SettingManager.cpp" "native/src/Lexicon/Engine/FunctionData.cpp" "src/Lexicon/FormulaHandler.cpp")
 
 
 

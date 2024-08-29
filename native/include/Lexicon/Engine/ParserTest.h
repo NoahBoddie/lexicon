@@ -187,6 +187,9 @@ namespace LEX::Impl
 			str = str.substr(left, shift);
 		}
 
+
+
+
 		struct EndParser : public AutoParser<EndParser>
 		{
 			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
@@ -209,6 +212,11 @@ namespace LEX::Impl
 
 		};
 		
+
+
+
+
+
 		struct ScriptParser : ParseModule//public ParseSingleton<ScriptParser, false>
 		{
 			//Script parser n
@@ -257,6 +265,30 @@ namespace LEX::Impl
 
 		};
 
+		struct LineParser : ParseModule
+		{
+
+			bool CanHandle(Parser*, Record*, ParseFlag) const override { return false; }
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				auto result = parser->ParseExpression();
+
+				if (parser->eof() == false)
+					report::parse::error("End of line not met after line finished parsing. line and column later");
+
+
+				return result;
+			}
+
+
+			//Need some boilerplate resolver.
+			std::string_view GetModuleName() override
+			{
+				return typeid(LineParser).name();
+			}
+
+		};
 
 
 		struct IdenDeclBoilerPlate
@@ -649,8 +681,7 @@ namespace LEX::Impl
 			{
 				//Invalid if target is not present.
 				// maybe enforce VarDeclare
-				if (target)
-					logger::critical("{} {}", target->GetTag(), (int)target->SYNTAX().type);
+
 				return target && target->SYNTAX().type == SyntaxType::Declaration && parser->IsType(TokenType::Punctuation, "(");
 			}
 
@@ -780,6 +811,7 @@ namespace LEX::Impl
 				//Just making pretend right now.
 				//TODO:Need to make an class to manage precedence
 				static std::map<std::string, int> PRECEDENCE{
+					{ "=>", 0},//then has the lowest priority of all.
 					{ "=", 1 },
 					{ "||", 2 },
 					{ "&&", 3 },
@@ -832,7 +864,7 @@ namespace LEX::Impl
 			Record HandleToken(Parser* parser, Record* target) override
 			{
 				//TODO:Make BinaryParser work without a target for the equals use. (Or make that the rule of assign?)
-				return _HandleBinary(parser, *target, 0);
+				return _HandleBinary(parser, *target, -1);
 			}
 			bool ContextAllowed(ProcessContext* context, ProcessChain*) override
 			{
@@ -1006,7 +1038,7 @@ namespace LEX::Impl
 							}
 							catch (std::invalid_argument in_arg) {
 								size_t processed = 0;
-								
+
 								auto test = std::stod(tag, &processed);
 
 								auto remains = tag.size() - processed;
@@ -1592,4 +1624,217 @@ namespace LEX::Impl
 
 		};
 	
+
+
+
+
+
+
+
+
+
+
+		struct PreprocessorParser : public ParseModule
+		{
+			bool HasKeyword(std::string_view type) override
+			{
+				switch (Hash(type)) {
+				case "preprocessor"_h:
+					return true;
+				}
+
+				return false;
+			}
+
+			bool CanHandle(Parser*, Record*, ParseFlag) const override { return false; }
+
+			std::string_view GetModuleName() override
+			{
+				return typeid(PreprocessorParser).name();
+			}
+
+
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				Record prep = Parser::CreateExpression(parser->name(), SyntaxType::Preprocessor);
+
+				while (parser->eof() == false) {
+					auto next = parser->next();
+
+					if (next.GetView() != "#") {
+						continue;
+					}
+					
+					auto result = parser->ParseExpression();
+
+					parser->SkipType(TokenType::Whitespace, "\n");
+
+					if (result)
+						prep.EmplaceChild(result);
+					else
+						report::parse::debug("disarding empty record");
+				}
+
+				return prep;
+			}
+
+
+
+			bool ContextAllowed(ProcessContext* context, ProcessChain* link) override
+			{
+				return context->HasKeyword("preprocessor");
+			}
+
+
+
+			ParseMode GetParseMode() const override
+			{
+				return ParseMode::kPreprocess;
+			}
+		};
+
+
+
+		struct PreprocessorModule : public ParseModule
+		{
+			bool HasKeyword(std::string_view type) override
+			{
+				switch (Hash(type)) {
+				case "preprocessor"_h:
+					return true;
+				}
+
+				return false;
+			}
+
+
+			uint32_t GetPriority() const override final
+			{
+				return ModulePriority::Max;
+			}
+
+			virtual bool CanProcess(Parser* parser, Record*, ParseFlag) const = 0;
+
+			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override final
+			{
+				return parser->contextChain->HasKeyword("preprocessor") && CanProcess(parser, target, flag);
+			}
+
+		};
+
+		template <typename T>
+		struct AutoProcessor : public AutoParser<T, PreprocessorModule>{};
+
+
+		struct RequiresParser : public AutoProcessor<RequiresParser>
+		{
+			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override 
+			{ 
+				
+				return !target && parser->IsType(TokenType::Keyword, "requires");
+			}
+
+
+			enum Mode
+			{
+				kScript,		//A script that's loaded in this directory
+				kProject,	//A project exists
+				kOption,		//Script was loaded with a particular compiler option.
+				kDirectory,	//A file or folder loaded at this relative directory. Has to be loaded, meaning the sub directory has to be involved somehow.
+				kMacro
+			};
+
+
+			Record MakeRequirement(Parser* parser, Mode mode)
+			{
+				std::string_view name;
+				
+				Record out;
+				parse_strings;
+				switch (mode)
+				{
+					case kScript:
+					{
+						name = parse_strings::script_req;
+
+						auto next = parser->next();
+
+						if (next.TOKEN().type == TokenType::String)
+							ClipString(next.GetTag(), 1, 1);
+
+						out = Parser::CreateExpression(next, SyntaxType::None);
+
+
+
+						break;
+					}
+					case kProject:
+					{
+						name = parse_strings::project_req;
+						
+						parser->next();
+						out = Parser::CreateExpression(parser->next(), SyntaxType::None);
+						parser->next();
+						break;
+					}
+					case kOption:
+					{
+						name = parse_strings::option_req;
+						
+						parser->next();
+
+						out = Parser::CreateExpression(parser->next(), SyntaxType::None);
+						break;
+					}
+					case kDirectory:
+					{
+						name = parse_strings::directory_req;
+						parser->next();
+
+						out = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::None);
+						
+						Record* to = &out;
+
+						while (parser->SkipIfType(TokenType::Operator, "/") == true)
+						{
+							to = &to->EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::None));
+						}
+
+
+						break;
+					}
+				}
+				return Parser::CreateExpression(name, SyntaxType::Requirement, { out });
+			}
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				parser->next();
+				
+				Mode mode;
+
+				if (parser->IsType(TokenType::String) == true)
+				{
+					mode = kScript;
+				}
+				else if (parser->IsType(TokenType::Punctuation, "...") == true)
+					mode = kDirectory;
+				else if (parser->IsType(TokenType::Punctuation, "/:") == true)
+					mode = kOption;
+				else if (parser->IsType(TokenType::Operator, "<") == true)
+					mode = kProject;
+				else {
+					parser->croak("unknown requirement");
+					mode = kScript;
+				}
+
+				return MakeRequirement(parser, mode);
+			}
+
+		};
+
+
+
+
 }

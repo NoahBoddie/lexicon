@@ -15,7 +15,7 @@
 #include "Lexicon/Engine/ConcreteGlobal.h"
 #include "Lexicon/Engine/GlobalVariable.h"
 
-#include "Lexicon/Interfaces/Project.h"
+#include "Lexicon/Engine/Project.h"
 #include "Lexicon/Interfaces/ProjectClient.h"
 
 namespace LEX
@@ -241,7 +241,7 @@ namespace LEX
 
 					std::transform(children.begin(), children.end(), string_args.begin(), [](Record& it) { return it.GetView(); });
 
-					offset = GetProject()->GetClient()->GetOffsetFromArgs(cat_name.GetView(), string_args.data(), string_args.size());
+					offset = GetProject()->client()->GetOffsetFromArgs(cat_name.GetView(), string_args.data(), string_args.size());
 					logger::info("offset from args = {}", offset);
 				}
 				else

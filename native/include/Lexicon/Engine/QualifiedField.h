@@ -156,6 +156,11 @@ namespace LEX
 			return _target;
 		}
 
+		Field* GetField() const
+		{
+			return _target;
+		}
+
 		Solution AsSolution();
 
 		operator bool() const

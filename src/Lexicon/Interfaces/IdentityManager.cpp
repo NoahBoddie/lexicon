@@ -4,7 +4,7 @@
 
 
 //src
-#include "Lexicon/Interfaces/Environment.h"
+#include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/PolicyBase.h"
 #include "Lexicon/ITypePolicy.h"
 #include "Lexicon/Engine/VoidPolicy.h"

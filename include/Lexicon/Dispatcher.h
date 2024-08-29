@@ -93,7 +93,10 @@ namespace LEX
 			//static_assert(std::is_same_v<std::tuple<Target, int, int, int>,
 			//	function_traits<std::remove_pointer_t<decltype(T)>>::arguments>, "GN  NE NIP");
 
-			std::get<0>(tuple) = Unvariable<T>{}(target);
+			if constexpr (!std::is_same_v<T, StaticTargetTag>)
+			{
+				std::get<0>(tuple) = Unvariable<T>{}(target);
+			}
 
 			ValueImport(tuple, args);
 			//Here we get the return type and switch up on it.

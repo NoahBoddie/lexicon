@@ -2,9 +2,15 @@
 
 #include "Token.h"
 #include "Lexicon/Exception.h"
+
+//*tmp
+#include "Lexicon/Engine/ProcessContext.h"
+
 namespace LEX::Impl
 {
 	//submit the streams to the next one.
+
+
 
 	class InputStream
 	{
@@ -18,7 +24,7 @@ namespace LEX::Impl
 		//*
 		using Iterator = std::string::const_iterator;
 	public:
-		InputStream(std::string n, std::string p, std::string s, Line l = 1, Column c = 1);
+		InputStream(std::string n, std::string p, std::string s, ParseMode mode, Line l = 1, Column c = 1);
 
 
 		[[deprecated("deprecated due to better version")]]
@@ -74,6 +80,9 @@ namespace LEX::Impl
 
 		//screams when I make it const I don't care just want to move on.
 		std::string stream;
+
+		Column column() { return _column; }
+		Line line() { return _line; }
 
 	private:
 		Column _column = 0;

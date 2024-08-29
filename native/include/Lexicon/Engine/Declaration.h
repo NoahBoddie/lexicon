@@ -7,7 +7,7 @@
 #include "Lexicon/QualifiedType.h"
 
 //*src
-#include "Lexicon/Interfaces/Environment.h"
+#include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Number.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 

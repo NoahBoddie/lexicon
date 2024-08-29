@@ -29,7 +29,7 @@ namespace LEX::Impl
 
 		std::string Print()
 		{
-			return std::format("Token: {} (col: {}/ line: {}", TokenToString(type), column, line);
+			return std::format("Token: {} (col: {}/ line: {}", magic_enum::enum_name(type), column, line);
 		}
 
 		operator std::string() { return Print(); }

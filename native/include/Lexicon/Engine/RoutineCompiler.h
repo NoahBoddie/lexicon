@@ -109,7 +109,7 @@ namespace LEX
 		QualifiedType GetReturnType()
 		{
 			//this return type doesn't need to be the specialized one. In fact, for now it's better that it isn't.
-			return _targetFunc->GetReturnType();
+			return _callData->GetReturnType();
 		}
 
 		Scope* GetScope()
@@ -245,13 +245,21 @@ namespace LEX
 			return ModParamCount(1, { policy });
 		}
 
-		CompilerBase(Record& ast, FunctionData* owner = nullptr, Environment* env = nullptr) :
-			funcRecord{ ast },
-			_targetFunc{ owner },
-			_environment{ env }
+		CompilerBase(Record& ast, FunctionData* owner, Environment* env) : CompilerBase {ast, owner, env, owner->_name, owner->GetTargetType() }
 		{
 
 		}
+
+		CompilerBase(Record& ast, BasicCallableData* owner, Environment* env, std::string_view name= "<no name>", ITypePolicy* tarType = nullptr) :
+			funcRecord{ ast },
+			_name { name },
+			_callData{ owner },
+			_environment{ env },
+			_targetType{ tarType }
+		{
+
+		}
+
 
 		//Don't use this no more. Each must provide their own container
 		//std::vector<Operation> _cache;
@@ -278,7 +286,43 @@ namespace LEX
 		//<!>So FunctionData is an element, formulas are not elements
 
 		//Fell like it should hold the target element.
-		FunctionData* _targetFunc = nullptr;
+		//FunctionData* _targetFunc = nullptr;
+
+		//Replacement for targetFunc
+		BasicCallableData* _callData = nullptr;
+		
+		ITypePolicy* _targetType = nullptr;
+		//std::unique_ptr<ParameterInfo> __thisInfo;
+		
+		std::string_view _name;
+
+		size_t GetParamAllocSize() const
+		{
+			return  _callData ? _callData->GetParamAllocSize() : 0;
+		}
+
+
+		ITypePolicy* GetTargetType() const
+		{
+			return _targetType;
+		}
+
+		std::string_view name()
+		{
+			return _name;
+		}
+
+
+		ParameterInfo* FindParameter(std::string a_name)
+		{
+			return _callData ? _callData->FindParameter(a_name) : nullptr;
+		}
+
+		//~end
+
+
+
+		//I would like to remove environment from play, and replace it with just the element being given.
 		Environment* _environment = nullptr;
 		//ICallableUnit* routine = nullptr;
 
@@ -569,7 +613,6 @@ namespace LEX
 		//I will begin passing the result vector through this as well.
 
 		std::vector<Operation> CompileBlock(Record& data);
-		std::vector<Operation> CompileHeader();
 
 
 		RoutineBase CompileRoutine();
@@ -579,13 +622,19 @@ namespace LEX
 
 		//function data is no longer an ask, it's a requirement now.
 		// additional. FunctionData can hold its own record.
-		static RoutineBase Compile(Record& ast, FunctionData* owner = nullptr, Environment* env = nullptr)
+		static RoutineBase Compile(Record& ast, FunctionData* owner, Environment* env)
 		{
-			RoutineCompiler compiler{ ast, owner, env };
+			return Compile(ast, owner, env, owner->_name, owner->GetTargetType());
+		}
+		
+		static RoutineBase Compile(Record& ast, BasicCallableData* owner, Environment* env, std::string_view name = "<no name>", ITypePolicy* tarType = nullptr)
+		{
+			RoutineCompiler compiler{ ast, owner, env, name, tarType };
 			RoutineBase result = compiler.CompileRoutine();
 			RGL_LOG(debug, "Compilation complete.");
 			return result;
 		}
+
 
 	};
 }

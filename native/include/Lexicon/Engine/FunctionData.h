@@ -7,6 +7,7 @@
 
 #include "Lexicon/QualifiedType.h"
 
+#include "Lexicon/Engine/OverloadFlag.h"
 
 
 namespace LEX
@@ -15,6 +16,9 @@ namespace LEX
 	class ParameterInfo;
 	
 	struct ProcedureData;
+
+	struct Overload;
+	struct OverloadEntry;
 
 	//Definition is the name of the struct that holds either routine data, or caller data.
 	//Or maybe it should be an enum.
@@ -212,17 +216,6 @@ namespace LEX
 	public:
 
 
-		std::vector<ParameterInfo> GetParameters()
-		{
-			return { _ParamBegin(), _ParamEnd() };
-		}
-
-
-		std::vector<ParameterInfo> GetParameters() const
-		{
-			return { _ParamBegin(), _ParamEnd()};
-		}
-
 		size_t GetParamCount() const
 		{
 			return parameters.size() - HasTarget();
@@ -263,7 +256,7 @@ namespace LEX
 		//These sorts of things should be protected, not used up front.
 		//std::string name(){return _name;}
 
-		ParameterInfo* FindParameter(std::string a_name)
+		ParameterInfo* FindParameter(std::string_view a_name)
 		{
 			auto end = parameters.end();
 			auto it = std::find_if(parameters.begin(), end, [&](ParameterInfo& q) {return q.GetFieldName() == a_name; });
@@ -284,6 +277,22 @@ namespace LEX
 		//Possible use in deductions with generics, then I realized this isn't C++ and auto cannot exactly exist
 		// like I think it would.
 		//void SetReturnType(ITypePolicy*);
+
+
+
+		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag);
+
+
+		//Fuck it, these return non-booleans and use something else to denote their failures.
+
+		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags);
+		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags);
+
+		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags);
+
+
+
+
 	};
 
 }

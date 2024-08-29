@@ -1,18 +1,18 @@
 #pragma once
 
-#include "Lexicon/Interfaces/Environment.h"
+#include "Lexicon/Engine/Environment.h"
 
 //*src
 //#include "Function.h"
 
 #include "Lexicon/Engine/ConcretePolicy.h"
-#include "Lexicon/Interfaces/Project.h"
+#include "Lexicon/Engine/Project.h"
 
-#include "Lexicon/Component.h"
+#include "Lexicon/Engine/Component.h"
 #include "Lexicon/Engine/ExpressionType.h"
 #include "Lexicon/Exception.h"
 #include "Lexicon/Engine/Parser.h"
-#include "Lexicon/Interfaces/Element.h"
+#include "Lexicon/Engine/Element.h"
 
 #include "Lexicon/TypeID.h"
 #include "Lexicon/Engine/FunctionInfo.h"
@@ -34,7 +34,7 @@
 
 #include "Lexicon/Engine/parse_strings.h"
 
-#include "Lexicon/Interfaces/Script.h"
+#include "Lexicon/Engine/Script.h"
 
 //SHOULD_NATIVE
 #include "Lexicon/Engine/FunctionInfo.h"
@@ -93,7 +93,7 @@ namespace LEX
 			}
 		}
 
-		std::vector<FunctionInfo*> Environment::FindFunctions(std::string name)
+		std::vector<FunctionInfo*> Environment::FindFunctions(std::string_view name)
 		{
 			std::vector<FunctionInfo*> result{};
 
@@ -112,7 +112,7 @@ namespace LEX
 
 
 		
-		GlobalBase* Environment::FindVariable(std::string& name)
+		GlobalBase* Environment::FindVariable(std::string_view name)
 		{
 			
 			auto end = variables.end();
@@ -126,7 +126,7 @@ namespace LEX
 			}
 		}
 
-		std::vector<PolicyBase*> Environment::FindTypes(std::string name)
+		std::vector<PolicyBase*> Environment::FindTypes(std::string_view name)
 		{
 			auto end = typeMap.end();
 
@@ -617,13 +617,13 @@ namespace LEX
 
 
 
-		Environment* Environment::GetEnvironment()
+		IEnvironment* Environment::GetEnvironmentI()
 		{
 			return this;
 		}
 
 		//source file type shit
-		Element* Environment::GetParent()
+		IElement* Environment::GetParentI()
 		{
 			return _parent;
 		}

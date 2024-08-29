@@ -62,28 +62,28 @@ namespace LEX::Impl
 
 
 
-		bool IsType(TokenType type, std::string str = "");
+		bool IsType(TokenType type, std::string_view str = "");
 
-		RecordData ConsumeType(TokenType type, std::string str = "");
+		RecordData ConsumeType(TokenType type, std::string_view str = "");
 
-		void SkipType(TokenType type, std::string str);
+		void SkipType(TokenType type, std::string_view str);
 		
-		bool SkipIfType(TokenType type, std::string str);
+		bool SkipIfType(TokenType type, std::string_view str);
 
 		//Would like something called required type which fulfills the role of next and istype
 
-		bool WasType(TokenType type, std::string str = "");
+		bool WasType(TokenType type, std::string_view str = "");
 
 
 
-		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func);
+		std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<ParseFunc> func);
 
 
-		std::vector<Record> Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<ParseFunc> func);
+		std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::function<void()> separator, std::function<ParseFunc> func);
 
 
 		//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
-		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<Record()> func)
+		std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<Record()> func)
 		{
 			//std::function<ParseFunc> _b = nullptr;
 

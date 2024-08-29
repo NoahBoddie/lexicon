@@ -119,8 +119,6 @@
 // Move this bit into a src file.
 
 
-
-
 //move this please.
 inline HMODULE GetCurrentModule()
 {
@@ -206,7 +204,7 @@ namespace logger
 	SOURCE_LOGGER(warn, warn);
 	SOURCE_LOGGER(error, err);
 	SOURCE_LOGGER(critical, critical);
-    
+    /*
     inline void InitializeLogging()
     {
 
@@ -230,13 +228,16 @@ namespace logger
         std::shared_ptr<spdlog::logger> log = spdlog::stdout_color_mt("console");
 
 #ifndef NDEBUG
-        const auto level = spdlog::level::trace;
+        auto level = spdlog::level::trace;
 #else
         //Use right alt for just debug logging, control to allow debugger to attach.
-        const auto level = GetKeyState(VK_RCONTROL) & 0x800 || GetKeyState(VK_RMENU) & 0x800 ?
+        auto level = GetKeyState(VK_RCONTROL) & 0x800 || GetKeyState(VK_RMENU) & 0x800 ?
             spdlog::level::debug : spdlog::level::info;
 #endif
 
+        if (level >= spdlog::level::info) {
+            level = LEX::SettingManager::GetSingleton()->level;
+        }
 
         log->set_level(level);
         log->flush_on(level);
@@ -264,6 +265,7 @@ namespace logger
 
         logger::info("No default logger set, using standard.");
     }
+    //*/
 }
 
 
@@ -652,6 +654,10 @@ namespace LEX
 #define INTERNAL_PUBLIC INTERNAL_(public)
 
 #define INTERNAL_DEFAULT default
+
+//Access space is only supposed to be used by external binaries. Currently set to private.
+#define EXTERNAL private
+
 #define ACCESS_OR(mc_l, mc_r) mc_l
 #else
 #define INTERNAL private
@@ -660,6 +666,9 @@ namespace LEX
 #define INTERNAL_PUBLIC private
 
 #define INTERNAL_DEFAULT delete
+
+//Access space is only supposed to be used by external binaries. Currently set to public.
+#define EXTERNAL public
 
 #define ACCESS_OR(mc_l, mc_r) mc_r
 
@@ -689,3 +698,67 @@ namespace LEX
 #endif
 
 #define NULLCHECK(mc_condition) if (!mc_condition) report::critical("Condition '{}' is invalid, throwing fatal exception.", STRINGIZE(mc_condition))
+
+#include "Lexicon/Engine/SettingManager.h"
+
+
+void logger::InitializeLogging()
+{
+
+    static bool _initialized = false;
+
+    if (_initialized)
+        return;
+
+    _initialized = true;
+
+    //_logger<void>{}();
+    auto default_logger = GetProcAddress(GetCurrentModule(), "SetDefaultLogger");
+
+    if (auto default_logger = GetProcAddress(GetCurrentModule(), "SetDefaultLogger"); default_logger) {
+        using func_t = void(*)();
+        func_t func = (func_t)default_logger;
+        return func();
+    }
+
+
+    std::shared_ptr<spdlog::logger> log = spdlog::stdout_color_mt("console");
+
+#ifndef NDEBUG
+    auto level = spdlog::level::trace;
+#else
+    //Use right alt for just debug logging, control to allow debugger to attach.
+    auto level = GetKeyState(VK_RCONTROL) & 0x800 || GetKeyState(VK_RMENU) & 0x800 ?
+        spdlog::level::debug : spdlog::level::info;
+#endif
+
+    if (level >= spdlog::level::info) {
+        level = LEX::SettingManager::GetSingleton()->level;
+    }
+
+    log->set_level(level);
+    log->flush_on(level);
+
+    spdlog::set_default_logger(std::move(log));
+    //spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%t] [%s:%#] %v");
+    spdlog::set_pattern("%s(%#): [%^%l%$] %v");
+
+
+#ifdef NDEBUG
+    if (spdlog::level::debug == level) {
+        logger::debug("debug logger in release enabled.");
+    }
+#endif
+    return;
+
+    auto color_log = dynamic_cast<spdlog::sinks::stdout_color_sink_mt*>(log.get());
+
+    if (color_log)
+    {
+        //color_log->set_color(spdlog::level::level_enum::trace, spdlog::color)
+    }
+
+    //void set_color(spdlog::level::level_enum::trace, spdlog::yellow);
+
+    logger::info("No default logger set, using standard.");
+}

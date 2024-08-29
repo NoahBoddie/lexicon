@@ -374,6 +374,26 @@ namespace LEX
 		}
 	};
 
+	template <>
+	struct VariableType<void>
+	{
+		AbstractTypePolicy* operator()(const void*)
+		{
+			return IdentityManager::instance->GetInherentType(InherentType::kVoid)->FetchTypePolicy(nullptr);
+		}
+	};
+
+	struct StaticTargetTag {};
+
+	template <>
+	struct VariableType<StaticTargetTag>
+	{
+		AbstractTypePolicy* operator()(const StaticTargetTag*)
+		{
+			return nullptr;
+		}
+	};
+
 
 	//template <>
 	//struct VariableType<double>

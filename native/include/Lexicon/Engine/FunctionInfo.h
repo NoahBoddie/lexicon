@@ -87,28 +87,7 @@ namespace LEX
 
 		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
 		{
-			if (type) {
-				if (type != signature->_returnType)
-					return false;
-			}
-
-			if (flag & OverloadFlag::UsesDefault)
-			{
-				logger::info("uses defaults");
-				return false;
-			}
-
-			if (optional)
-			{
-				logger::info("uses optionals");
-				return false;
-			}
-
-			if (signature->parameters.size() - signature->HasTarget() != suggested) {
-				logger::info("uses param diff {} vs {}", signature->parameters.size() - signature->HasTarget(), suggested);
-				return false;
-			}
-			return true;
+			return signature->CanMatch(type, suggested, optional, flag);
 		}
 
 
@@ -116,156 +95,18 @@ namespace LEX
 
 		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
-			OverloadEntry result;
-
-			//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
-			if (index != -1 && index >= signature->parameters.size())
-			{
-				logger::critical("Failure to evaluate");
-				flags |= OverloadFlag::Failure;
-				return {};
-			}
-
-
-			//I'd maybe like to rework this VariableInfo to work like this.
-			//ParameterInfo* subject = index == -1 ? &thisInfo : &parameters[index];
-			ParameterInfo* subject = index != -1 ?
-				&signature->parameters[index + signature->HasTarget()] : signature->HasTarget() ?
-				&signature->parameters[0] : nullptr;
-
-			QualifiedType sub_type = subject->FetchQualifiedType();
-
-			if (type && sub_type)
-			{
-				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &result.convert);
-
-				result.convertType = convertType;
-
-				if (convertType <= ConvertResult::Failure)
-				{
-					flags |= OverloadFlag::Failure;
-					return result;
-				}
-
-
-				//result.convertType = ConvertResult::TypeDefined;
-				result.index = subject->GetFieldIndex();
-				result.type = sub_type;
-			}
-			else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
-			{
-				//This bit will need to change, as you may be able to access static functions from a member function.
-				result.convertType = ConvertResult::Exact;
-				result.index = -1;
-			}
-			else
-			{
-				result.convertType = ConvertResult::Ineligible;
-				result.index = -1;
-			}
-
-			return result;
+			return signature->MatchSuggestedEntry(type, scope, offset, index, flags);
 
 		}
 		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
 		{
-			flags |= OverloadFlag::Failure;
-			return { };
+			return signature->MatchDefaultEntry(type, scope, name, flags);
 		}
 
 		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
 		{
-			return {};
+			return signature->ResolveEntries(entries, scope, flags);
 		}
-
-
-		/*
-
-		//The concept with this is that the actual function info's themselves are 
-		bool PreEvaluate(size_t suggested, size_t optional, OverloadFlag flag) override
-		{
-			if (flag & OverloadFlag::UsesDefault)
-			{
-				logger::info("uses defaults");
-				return false;
-			}
-
-			if (optional)
-			{
-				logger::info("uses optionals");
-				return false;
-			}
-
-			if (signature->parameters.size() - signature->HasTarget() != suggested) {
-				logger::info("uses param diff {} vs {}", signature->parameters.size() - signature->HasTarget(), suggested);
-				return false;
-			}
-			return true;
-		}
-
-
-		OverloadEntry EvaluateEntry2(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
-		{
-			OverloadEntry result;
-
-			//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
-			if (index != -1 && index >= signature->parameters.size())
-			{
-				logger::critical("Failure to evaluate");
-				flags |= OverloadFlag::Failure;
-				return {};
-			}
-
-
-			//I'd maybe like to rework this VariableInfo to work like this.
-			//ParameterInfo* subject = index == -1 ? &thisInfo : &parameters[index];
-			ParameterInfo* subject = index != -1 ?
-				&signature->parameters[index + signature->HasTarget()] : signature->HasTarget() ?
-				&signature->parameters[0] : nullptr;
-
-			QualifiedType sub_type = subject->FetchQualifiedType();
-
-			if (type)
-			{
-				LEX::Conversion* out = nullptr;//Is entries if it's not the thing. Currently, not setting this up.
-				//TODO: This returns the wrong value rn.
-
-				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, out);
-
-				result.convertType = convertType;
-
-				if (convertType == ConvertResult::Failure)
-				{
-					flags |= OverloadFlag::Failure;
-					return result;
-				}
-
-
-				result.convertType = ConvertResult::TypeDefined;
-				result.index = subject->GetFieldIndex();
-				result.type = sub_type;
-			}
-			else
-			{
-				result.convertType = ConvertResult::Ineligible;
-				result.index = -1;
-			}
-
-			return result;
-
-		}
-		OverloadEntry EvaluateDefault2(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
-		{
-			flags |= OverloadFlag::Failure;
-			return { };
-		}
-
-		std::vector<OverloadEntry> GetRemainingEvals(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
-		{
-			return {};
-		}
-
-		//*/
 
 
 	};

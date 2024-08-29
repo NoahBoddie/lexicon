@@ -162,5 +162,10 @@ namespace LEX::Impl
 		}
 
 		virtual std::string_view GetModuleName() = 0;
+
+		virtual ParseMode GetParseMode() const
+		{
+			return ParseMode::kBasic;
+		}
 	};
 }

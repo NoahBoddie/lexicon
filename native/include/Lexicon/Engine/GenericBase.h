@@ -10,8 +10,8 @@
 
 //*src
 #include "Lexicon/ITemplateBody.h"
-#include "Lexicon/Interfaces/Element.h"
-#include "Lexicon/Interfaces/Environment.h"
+#include "Lexicon/Engine/Element.h"
+#include "Lexicon/Engine/Environment.h"
 namespace LEX
 {
 

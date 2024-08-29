@@ -1,10 +1,20 @@
 #pragma once
 
-#include "Lexicon/Component.h"
+#include "Lexicon/Engine/Component.h"
 #include "RGL/Impl/Record.h"
 #include "Lexicon/Exception.h"//May move to src
 
 #include "Lexicon/Interfaces/IElement.h"
+
+//*src
+#include "Lexicon/Interfaces/IProject.h"
+#include "Lexicon/Interfaces/IScript.h"
+#include "Lexicon/Interfaces/IEnvironment.h"
+#include "Lexicon/Engine/Overload.h"
+#include "Lexicon/Engine/OverloadKey.h"
+#include "Lexicon/Engine/QualifiedField.h"
+#include "Lexicon/Interfaces/ProjectManager.h"
+#include "Lexicon/RelateType.h"
 
 namespace LEX
 {
@@ -13,22 +23,11 @@ namespace LEX
 	class Script;
 	class CommonScript;
 	
-	namespace {
+	struct FunctionInfo;
 
-		//GenericSig is like the below, and carries the ISpecializable or something like that? The idea is you can set 2 classes apart by the differences
-		// in their generic parameters (note, the very default counts as a child of any). So the resolution should be handled similarly to the below.
-		//using GenericSig = int;
+	struct SyntaxRecord;
 
-		//Signature is the thing that is used to handle functions being ambiguious but different in their parameters
-		// 2 signatures are counted as equals if they are the same, the parameters of one can qualify as the parameters of another
-		// ie void name(float, float, float) vs void name(int, int, int) will be ambiguious to 
-		//Note though, a function signature is an actual type, this is just a container to help the comparison.
-		//Also remember function signatures are generic and one is created each time a function with a different arg count is created.
-
-		//Also note, I'd very much so rather use a set for this.
-		//using Signature = int;
-		//FuncSig
-	}
+	using ElementSearch = bool(std::vector<Environment*>&);
 
 	
 
@@ -48,20 +47,106 @@ namespace LEX
 		//This should take over
 		virtual std::string_view GetName() const = 0;
 
-		virtual Script* GetScript() override
-		{
-			return GetParent()->FetchScript();
+		virtual Record* GetSyntaxTree() = 0;
+
+	private://Maybe?
+		virtual IScript* GetScriptI() override;
+
+		virtual IProject* GetProjectI() override;
+
+		virtual IElement* GetParentI() = 0;
+		
+		virtual IEnvironment* GetEnvironmentI() = 0;
+
+		Element* Promote() override { return this; }
+
+		const Element* Promote() const override { return this; }
+
+	public:
+
+		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem);
+
+		Element* GetElementFromPath(std::string_view path, ElementType elem) override 
+		{ 
+			return GetElementFromPath(this, path, elem);
 		}
 
-		virtual Project* GetProject() override
+		Script* GetScript()
 		{
-			return GetParent()->FetchProject();
+			return GetScriptI()->TryPromote();
 		}
-		virtual Element* GetParent() = 0;
+
+		Project* GetProject()
+		{
+			return GetProjectI()->TryPromote();
+		}
+
+		Environment* GetEnvironment()
+		{
+			return GetEnvironmentI()->TryPromote();
+		}
+
+		Element* GetParent()
+		{
+			return GetParentI()->TryPromote();
+		}
+
 		
-		virtual Record* GetSyntaxTree() = 0;
+	public:
+
+#pragma region NewSearch
+
+
+		//the associated should maybe be a bool or just reject any other than include and import.
+
+		static SyntaxRecord& GetPath(Record& path, bool right);
+
+
+
+		static std::vector<Environment*> GetAssociates(Element* a_this, RelateType = {});
+
+
+
+		static Environment* GetEnvironmentTMP(Environment* a_this, Record* path, bool& search_scripts);
+
+		static Environment* WalkEnvironmentPath(Environment* a_this, SyntaxRecord*& path, bool search_scripts = true);
+
+		static Environment* SpecializeEnvironments(std::vector<Environment*>& generics);
+
+		static std::vector<Environment*> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
+
+
+		static bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
+
+
+
+
 		
-		virtual Environment* GetEnvironment() = 0;
+
+		//I think the reutnr of this function should probably be why it failed if anything.
+		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func);
+
+
+
+
+		static PolicyBase* SearchTypePath(Element* a_this, Record& _path);
+
+		static bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
+
+
+		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 
+		// to handle multiple different functions.
+		static FunctionInfo* SearchFunctionPath(Element* a_this, Record& path, OverloadKey* key = nullptr, Overload* out = nullptr);
+
+		static FunctionInfo* SearchFunctionPath(Element* a_this, Record& path, OverloadKey& key, Overload& out)
+		{
+			return SearchFunctionPath(a_this, path, &key, &out);
+		}
+
+		static QualifiedField SearchFieldPath(Element* a_this, Record& path);
+
+
+#pragma endregion
 
 
 
@@ -193,13 +278,10 @@ namespace LEX
 		Environment* _parent = nullptr;
 	public:
 
-		Environment* GetEnvironment() override
-		{
-			return _parent;
-		}
+		IEnvironment* GetEnvironmentI() override;
 
 
-		Element* GetParent() override;
+		IElement* GetParentI() override;
 
 
 		Record* GetSyntaxTree() override

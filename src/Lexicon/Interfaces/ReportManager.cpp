@@ -75,7 +75,8 @@ namespace LEX
 		//This might take a string as well.
 
 
-		
+		//TODO: With the errors that are through, I think it would be a nice touch to include the issue code when throwing. The exception.
+		// This way, we choose if we're alright with the issue or not.
 
 
 		if (level == IssueLevel::Error) {
@@ -260,6 +261,7 @@ namespace LEX
 
 		LogData data{ type, level, std::string { view }, to, loc };
 
+		//TODO: Around here it would be nice to note when a message has been promoted from it's natural state.
 		
 
 		if (MutateReport(data, true) == false, type = data.type) {
@@ -277,7 +279,7 @@ namespace LEX
 			}
 		}
 
-		if (log && level != IssueLevel::Critical)
+		if (log || level == IssueLevel::Critical)
 		{
 			auto spd_lvl = get_spdlog_level(level);
 

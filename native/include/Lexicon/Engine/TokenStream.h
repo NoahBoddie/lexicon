@@ -32,13 +32,13 @@ namespace LEX::Impl
 		}
 
 		//Searches a list of strings and sees if they're equal to the token string
-		bool _Search(const std::string& token, std::vector<std::string> strings);
+		bool _Search(const std::string& token, std::vector<std::string_view> strings);
 
 		//Searches a list of strings and sees if they're equal to the token string
-		template<std::convertible_to<std::string>... StringType>
+		template<std::convertible_to<std::string_view>... StringType>
 		bool _Search(const std::string& token, StringType... strs)
 		{
-			std::array<std::string, sizeof...(StringType)> strings{ std::string{strs}... };
+			std::array<std::string, sizeof...(StringType)> strings{ std::string_view{strs}... };
 
 			for (int i = 0; i < strings.size(); i++)
 			{

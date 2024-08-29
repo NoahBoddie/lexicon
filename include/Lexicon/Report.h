@@ -11,7 +11,7 @@ namespace LEX
 
 
 	using IssueCode = uint16_t;  //lynchpin this by removing it.
-
+	//Use no return on critical functions.
 
 	ENUM(IssueType, uint8_t)
 	{

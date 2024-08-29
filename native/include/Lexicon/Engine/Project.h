@@ -3,8 +3,8 @@
 #include "RGL/Impl/Record.h"
 #include "Lexicon/Exception.h"//May move to src
 
-#include "Lexicon/Component.h"
-#include "Lexicon/Interfaces/Element.h"
+#include "Lexicon/Engine/Component.h"
+#include "Lexicon/Engine/Element.h"
 #include "Lexicon/Interfaces/IProject.h"
 
 namespace LEX
@@ -25,24 +25,31 @@ namespace LEX
 	class Project : public Element, public IProject
 	{
 	public:
-		Script* GetCommons() override;
+		IScript* GetCommonsI() override;
 
-		void AddFormat(std::string_view name, std::string_view content, Script* source) override
+		//TODO: Why is this virtual.
+		Script* GetCommons();
+
+		void AddFormat(std::string_view name, std::string_view content, IScript* source) override
 		{
 			Format format;
 			format.formatName = name;
 			format.formatContent = content;
-			format.formatScript = source;
+			format.formatScript = source->TryPromote();
 
 			formatList.push_back(format);
 
 			report::debug("adding format {}", name);
 		}
 
-		void AddFormat(std::string& name, std::string& content, Script* source)
-		{
-			return AddFormat(std::string_view{ name }, std::string_view{ content }, source);
-		}
+		void AddFormat(std::string& name, std::string& content, Script* source);
+
+
+		Project* Promote() override { return this; }
+
+		const Project* Promote() const override { return this; }
+
+		//////////////////
 
 
 
@@ -54,6 +61,8 @@ namespace LEX
 		CommonScript* _commons = nullptr;
 
 		ProjectClient* _client = nullptr;
+
+		std::filesystem::path _filePath;
 
 		std::string _name;
 
@@ -68,7 +77,7 @@ namespace LEX
 		// But probably JUST it's commons.
 
 
-		ProjectClient* GetClient()
+		ProjectClient* client()
 		{
 			return _client;
 		}
@@ -87,12 +96,12 @@ namespace LEX
 		//*/
 
 
-		Project* GetProject() override
+		IProject* GetProjectI() override
 		{
 			return this;
 		}
 		
-		Element* GetParent() override
+		IElement* GetParentI() override
 		{
 			auto share = GetShared();
 			//Should return null on shared projects.
@@ -105,7 +114,7 @@ namespace LEX
 
 
 
-		Environment* GetEnvironment() override
+		IEnvironment* GetEnvironmentI() override
 		{
 			//It has no environment.
 			return nullptr;
@@ -133,7 +142,7 @@ namespace LEX
 
 		
 
-		Script* FindScript(std::string name);
+		Script* FindScript(std::string_view name);
 	};
 
 

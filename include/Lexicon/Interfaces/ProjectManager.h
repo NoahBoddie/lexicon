@@ -1,16 +1,24 @@
 #pragma once
 
+#include "Lexicon/Interfaces/IProject.h"
 #include "Lexicon/Interfaces/IElement.h"
 
 namespace LEX
 {
 
+	struct IScript;
+	struct IProject;
+	
 	class Project;
 	struct ITypePolicy;
 	struct IFunction;
 	struct IGlobal;
 	class Script;
+	
 	struct ProjectClient;
+
+	enum ElementType : uint8_t;
+
 
 	enum struct APIResult
 	{
@@ -19,6 +27,7 @@ namespace LEX
 		ElementExists,
 		FileMissing,
 		CreationFailed,
+		MissingRequirement,
 		Total, 
 
 
@@ -35,7 +44,7 @@ namespace LEX
 			//This may exclude commons to make that part easier.
 			std::vector<std::pair<std::string, std::string>> result{};
 
-			for (const auto iterator = std::filesystem::directory_iterator(a_folder); const auto & entry : iterator) {
+			for (const auto iterator = std::filesystem::directory_iterator(a_folder); const auto& entry : iterator) {
 				if (entry.exists() == false)
 					continue;
 
@@ -82,21 +91,14 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION(ProjectManager)
 			{
-				enum Enum
-				{
-					NoneElement,
-					TypeElement,
-					FuncElement,
-					GlobElement,
-				};
-
-
-				virtual Project* GetProject(std::string_view name) = 0;
-				virtual APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr) = 0;
+			EXTERNAL:
+				virtual IProject* INT_NAME(GetProject)(std::string_view name) = 0;
+			public:
+				virtual APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, const std::vector<std::string_view>*options = nullptr) = 0;
 				virtual APIResult CreateProject(std::string_view name, ProjectClient* client, Project** out = nullptr, HMODULE source = GetCurrentModule()) = 0;
 				
 
-				virtual IElement* GetElementFromPath(std::string_view path, Enum elem) = 0;
+				virtual IElement* GetElementFromPath(std::string_view path, ElementType elem) = 0;
 						
 			};
 		}
@@ -107,16 +109,27 @@ namespace LEX
 
 	struct IMPL_SINGLETON(ProjectManager)
 	{
-	public://Interface functions
+	EXTERNAL://Interface functions
+	
+		IProject* INT_NAME(GetProject)(std::string_view name) override;
 
-		Project* GetProject(std::string_view name) override;
-			
-		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr) override;
+		IProject* INT_NAME(GetShared)()
+		{
+			static IProject* shared = nullptr;
+
+			if (!shared)
+				shared = INT_NAME(GetProject)("shared");
+
+			return shared;
+		}
+
+	public:
+		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, const std::vector<std::string_view>* options = nullptr) override;
 			
 		APIResult CreateProject(std::string_view name, ProjectClient* client, Project** out = nullptr, HMODULE source = GetCurrentModule()) override;
 
 
-		IElement* GetElementFromPath(std::string_view path, Enum elem) override;
+		IElement* GetElementFromPath(std::string_view path, ElementType elem) override;
 
 	public://Ease of Use Functions
 
@@ -131,19 +144,9 @@ namespace LEX
 			return CreateProject(name, client, std::addressof(out), source);
 		}
 
-		Project* GetShared()
-		{
-			static Project* shared = nullptr;
-
-			if (!shared)
-				shared = GetProject("shared");
-
-			return shared;
-		}
-
 		IFunction* GetFunctionFromPath(std::string_view path)
 		{
-			if (auto elem = GetElementFromPath(path, FuncElement); elem)
+			if (auto elem = GetElementFromPath(path, kFuncElement); elem)
 				return elem->AsFunction();
 
 			return nullptr;
@@ -151,7 +154,7 @@ namespace LEX
 
 		ITypePolicy* GetTypeFromPath(std::string_view path)
 		{
-			if (auto elem = GetElementFromPath(path, TypeElement); elem)
+			if (auto elem = GetElementFromPath(path, kTypeElement); elem)
 				return elem->AsType();
 
 			return nullptr;
@@ -159,14 +162,24 @@ namespace LEX
 
 		IGlobal* GetGlobalFromPath(std::string_view path)
 		{
-			if (auto elem = GetElementFromPath(path, GlobElement); elem)
+			if (auto elem = GetElementFromPath(path, kGlobElement); elem)
 				return elem->AsGlobal();
 
 			return nullptr;
 		}
 
 	INTERNAL://Hidden functions
-			
+		
+		Project* IMP_NAME(GetShared)()
+		{
+			return INT_NAME(GetShared)()->TryPromote();
+		}
+
+		Project* IMP_NAME(GetProject)(std::string_view name)
+		{
+			return INT_NAME(GetProject)(name)->TryPromote();
+		}
+
 		APIResult InitMain();
 	};
 

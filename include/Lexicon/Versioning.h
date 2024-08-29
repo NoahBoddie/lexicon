@@ -80,7 +80,7 @@ namespace Version
 			mc_name : public std::conditional_t<Previous::version != version, Previous::mc_name, mc_base> __VA_OPT__(,) __VA_ARGS__
 
 
-#define INTERFACE_VERSION(mc_name) INTERFACE_VERSION_DERIVES(mc_name, Interface)
+#define INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, Interface __VA_OPT__(,) __VA_ARGS__)
 
 #define CURRENT_VERSION(mc_type, mc_number, ...)									\
 	namespace Current																\
@@ -132,6 +132,28 @@ namespace detail
 #define IMPL_DATA() struct hidden_data : public ::detail::uninstantiable_data
 #endif
 
+
+//These allow for the names of certain functions to change based on if it's the implementation version or the non-implementation version.
+// The lack of an I at the end determines the one you should be using. Simply use the macro name, not a specific version.
+
+#ifdef LEX_SOURCE
+
+//Defines the given name as the interface version of the name. Currently will be named <name>I
+#define INT_NAME(mc_name) mc_name##I
+
+//Defines the given name as the impl version of the name. Save to use mc_name directly.
+#define IMP_NAME(mc_name) mc_name
+
+#else
+
+//Defines the given name as the interface version of the name. Safe to use mc_name directly.
+#define INT_NAME(mc_name) mc_name
+
+//Defines the given name as the impl version of the name. Currently will be named <name>I
+#define IMP_NAME(mc_name) mc_name##I
+
+#endif
+
 namespace name { struct f; }
 
 
@@ -147,8 +169,8 @@ struct F
 };
 
 
-
-#define IMPL_SINGLETON(mc_type) mc_type : public Version::Current::mc_type, public InterfaceSingleton<mc_type>
+#define IMPL_VERSION(mc_type) mc_type :public Version::Current::mc_type
+#define IMPL_SINGLETON(mc_type) IMPL_VERSION(mc_type), public InterfaceSingleton<mc_type>
 
 
 namespace LEX

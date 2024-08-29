@@ -56,45 +56,7 @@ namespace LEX
 		return cache;
 	}
 
-	std::vector<Operation> RoutineCompiler::CompileHeader()
-	{
-		//NEW NAME: ProcessNest
-		//Scratch, Process/CompileBlock
-
-		std::vector<Operation> result;
-
-
-		Scope a_scope{ this, ScopeType::Header };
-
-		auto old = _current;
-		_current = &result;
-
-		std::vector<ParameterInfo> params = _targetFunc->GetParameters();
-
-		size_t size = params.size();
-
-		std::vector<std::string> names{ size };
-		std::vector<ITypePolicy*> policies{ size };
-
-		//names.reserve(size);
-		//policies.reserve(size);
-
-		for (int i = 0; i < size; i++)
-		{
-			auto& param = params[i];
-
-			names[i] = param.GetFieldName();
-
-			policies[i] = param.GetType();
-		}
-		
-		//a_scope.CreateVariables(names, policies);
-
-
-		_current = old;
-
-		return result;
-	}
+	
 
 
 	RoutineBase RoutineCompiler::CompileRoutine()
@@ -124,7 +86,7 @@ namespace LEX
 
 			bool method = false;
 
-			Solution solution{ _targetFunc->GetTargetType(), OperandType::Index, 0 };
+			Solution solution{ GetTargetType(), OperandType::Index, 0 };
 			
 			
 			//Assign const here.
@@ -137,7 +99,7 @@ namespace LEX
 			}
 			
 			
-			varCount[0] = varCount[1] = _targetFunc->GetParamAllocSize();
+			varCount[0] = varCount[1] = GetParamAllocSize();
 			
 
 			auto end = operations.end();

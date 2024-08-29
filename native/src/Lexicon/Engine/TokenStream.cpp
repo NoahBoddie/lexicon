@@ -47,7 +47,7 @@ namespace LEX::Impl
 	}
 		
 
-	bool TokenStream::_Search(const std::string& token, std::vector<std::string> strings)
+	bool TokenStream::_Search(const std::string& token, std::vector<std::string_view> strings)
 	{
 		//move to source.
 		for (int i = 0; i < strings.size(); i++)
@@ -147,6 +147,10 @@ namespace LEX::Impl
 			else
 				return false;
 
+		case TokenType::Whitespace:
+			return token == "\n";
+
+
 		default:
 			report::parse::error("unconfirmable token type {} detected. Terminating program.", (int)type);
 			throw nullptr;
@@ -190,6 +194,9 @@ namespace LEX::Impl
 		}
 
 
+
+		if (SetIfToken(data, TokenType::Whitespace) == true)
+			return data;
 
 		if (SetIfToken(data, TokenType::Format) == true)
 			return data;

@@ -82,11 +82,11 @@ namespace LEX
 		//thing to get function here.
 
 		template <typename R, typename... Args>
-		bool RegisterFunction(R(*func)(Args...), std::string_view path)
+		bool RegisterFunction(R(*prod)(Args...), std::string_view path)
 		{
 			IFunction* func = ProjectManager::instance->GetFunctionFromPath(path);
 
-			return RegisterFunction(func, func);
+			return RegisterFunction(prod, func);
 		}
 
 		bool RegisterFunction(Procedure procedure, std::string_view path)

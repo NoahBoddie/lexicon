@@ -96,6 +96,7 @@ namespace LEX
 		//I have no fucking clue how to do the originals (though I'm sure it's move, copy, swap) so I'm doing it manually for right now.
 		Object(const Object& other)
 		{
+			logger::debug("addy 2 {:X}", _data.fstVal);
 			Unhandle(&other);
 			Transfer(other, false);
 
@@ -103,6 +104,7 @@ namespace LEX
 
 		Object(Object&& other)
 		{
+			//Do you actually want to unhandle here?
 			Unhandle(&other);
 
 			Transfer(other, true);
@@ -270,7 +272,9 @@ namespace LEX
 			
 			//Transfers delete what data existed, so this needs to be reinitialized
 			if (type == ObjectDataType::kNone) {
+				logger::debug("addy 3a {:X}", _data.fstVal);
 				_data = other.policy->CreateData();
+				logger::debug("addy 3b {:X}", _data.fstVal);
 			}
 			if (move) {
 				other.policy->Move(_data, other._data);
