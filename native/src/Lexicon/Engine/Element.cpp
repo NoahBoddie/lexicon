@@ -37,9 +37,12 @@ namespace LEX
 
 	//the associated should maybe be a bool or just reject any other than include and import.
 
-	SyntaxRecord& Element::GetPath(Record& path, bool right)
+	SyntaxRecord& Element::GetPath(Record& path, std::optional<bool> right)
 	{
-		Record* ret = path.FindChild(right ? parse_strings::rhs : parse_strings::rhs);
+		Record* ret = nullptr;
+			
+		if (right.has_value())
+			path.FindChild(right.value() ? parse_strings::rhs : parse_strings::lhs);
 
 		if (!ret)
 			ret = &path.GetFront();
@@ -293,7 +296,7 @@ namespace LEX
 
 	Environment* Element::GetEnvironmentTMP(Environment* a_this, Record* path, bool& search_scripts)
 	{
-		Environment* result;
+		Environment* result = nullptr;
 		get_switch(path->SYNTAX().type)
 		{
 		case SyntaxType::Scopename:
@@ -322,12 +325,11 @@ namespace LEX
 			{
 				result = nullptr;
 				//Script name means nothing basically.
+				//But here it would search through required or subdirected stuff.
 
-				break;
+				
 			}
-
-		default:
-			result = nullptr; break;
+			return nullptr;
 		}
 
 
@@ -361,34 +363,6 @@ namespace LEX
 				break;
 			}
 
-			if (0) {
-				bool _continue = false;
-				bool _break = false;
-
-
-				cycle_switch(flags)
-				{
-		case OverloadFlag::Failure:
-			logger::info("Failure");
-			_continue = true;
-			continue;
-
-		case OverloadFlag::Ambiguous:
-			logger::info("Ambiguous");
-			_break = true;
-			break;
-
-				}
-
-				if (_continue)
-					continue;
-
-				if (_break)
-					break;
-
-			}
-
-
 			out = std::move(overload);
 
 			last = &out;
@@ -399,6 +373,8 @@ namespace LEX
 
 		return last;
 	}
+
+
 
 	FunctionInfo* Element::SearchFunctionPath(Element* a_this, Record& path, OverloadKey* key, Overload* out)
 	{
@@ -438,6 +414,7 @@ namespace LEX
 	}
 
 
+
 	QualifiedField Element::SearchFieldPath(Element* a_this, Record& path)
 	{
 	
@@ -471,18 +448,34 @@ namespace LEX
 	}
 
 
+	
+	bool FindNext(Element*& focus, Record* target, Record*& next)
+	{
+		//target is left, next is right
+		Project* project = focus->GetProject();
+
+		if (project && next->SYNTAX().type == SyntaxType::Path) {
+			bool is_path = target->SYNTAX().type == SyntaxType::Path;
+
+			//Ensure that this doesn't use a path.
+			if (auto script = project->FindScript(target->GetFront().GetView()); script) {
+				focus = script;
+				
+				
+				return true;
+			}
+		}
+
+
+		return false;
+	}
+	
+	
+	/*
 	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
 	{
 		//Needs a function to handle these.
-		/*
-		this element
-		up element until none (loop)
-		Search from project
-		Move onto commons
-		move onto shared commons
-		search for script in current project
-		search for project
-		//*/
+	
 
 		//So there has to be something that prevents it from using the main one, notably if someone is incredibly specific about which version they're using.
 
@@ -522,9 +515,9 @@ namespace LEX
 			kFind,
 			kShared,
 			kCurrent,
-		} state = !a_this ? kFind : kNone;//Force to be find depending on what heads path.
+		} state = !a_this ? kFind : kCurrent;//Force to be find depending on what heads path.
 
-		if (path && state == kNone)
+		if (first && state == kCurrent)
 		{
 			switch (first->SYNTAX().type)
 			{
@@ -533,9 +526,6 @@ namespace LEX
 				break;
 			case SyntaxType::Scriptname:
 				target = nullptr;
-				[[fallthrough]];
-			default:
-				state = kCurrent;
 				break;
 			}
 		}
@@ -543,15 +533,17 @@ namespace LEX
 		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
 		// path is.
 
+		
 
-		while (target || state != kNone)
+		while (state != kNone)
 		{
 			auto _next = next;
 
-			if (!target)// && left) //Must have a left side
+			if (!target && path)// && left) //Must have a left side
 			{
 				Project* project = nullptr;
 
+				//looks more like it's asking for front.
 				Record* tar = left ? left : &path->GetFront();
 
 				switch (state)
@@ -616,7 +608,7 @@ namespace LEX
 				if (state == kCurrent)
 					target = target->FetchParent();
 
-				if (!target)
+				if (!target || state != kCurrent)
 					state--;
 			}
 			else
@@ -630,7 +622,178 @@ namespace LEX
 
 		return false;
 	}
+	/*/
+	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
+	{
+		SyntaxRecord* path = SyntaxRecord::To(rec.FindChild(parse_strings::path));
 
+		//Identifier is searched for directly, it won't search up or to it's associates.
+		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
+
+		auto left = path ? path->FindChild(parse_strings::lhs) : nullptr;
+		auto right = left ? path->FindChild(parse_strings::rhs) : nullptr;
+
+
+
+		//I'm considering not using these.
+		//auto first = left ?
+		//	&GetPath(*left) : path ?
+		//	&path->GetFront() : nullptr;
+
+		//This is what should be submitted to functions
+		//auto next = right ?
+		//	&GetPath(*right, false) : path ?
+		//	&path->GetFront() : &rec;
+
+
+		auto first = left ? left : path;
+
+		//If right exists then it's right. If it doesn't, theres only one path and thus 
+		auto next = right ? right : nullptr;
+
+		enum ProjectState
+		{
+			kNone,
+			kFindProject,
+			kFindShared,
+			kGetShared,
+			kFindCurrent,
+			kGetCurrent,
+			kSeekMain,
+		} state = !a_this ? kFindProject : kSeekMain;//Force to be find depending on what heads path.
+
+		if (first && state == kSeekMain)
+		{
+			switch (first->GetFront().SYNTAX().type)
+			{
+			case SyntaxType::ProjectName:
+				state = kFindProject;
+				break;
+			case SyntaxType::Scriptname:
+				state = kFindCurrent;
+				break;
+			}
+		}
+		
+		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
+		// path is.
+
+
+		Element* target = a_this;
+
+		std::set<Element*> searched{};
+
+		while (state != kNone)
+		{
+			auto _focus = first;
+
+			
+			bool cont = false;
+
+			if (state != kSeekMain)
+			{
+				Project* project;
+				if (path)
+				{
+					switch (state)
+					{
+
+					case kGetShared://Should get shared commons and search it
+						target = ProjectManager::instance->GetShared();
+						break;
+
+					case kGetCurrent://Should get current commons and search it
+						//target = ProjectManager::instance->GetProject(first->GetFront().GetView());
+						target = a_this->FetchCommons();
+						break;
+
+
+					case kFindShared://Should get shared, then search
+						project = ProjectManager::instance->GetShared();
+						goto find;
+
+					case kFindCurrent://Should get current project, then search
+						project = a_this->FetchProject();
+
+						goto find;
+
+					case kFindProject:// should find project and search for script.
+						project = ProjectManager::instance->GetProject(first->GetFront().GetView());
+
+
+						_focus = next;
+
+						if (!next || next->SYNTAX().type != SyntaxType::Path) {
+							cont = true;
+							break;
+						}
+
+						//next = &GetPath(*next, true);
+						next = next->FindChild(parse_strings::rhs);
+
+					find:
+						//This needs something that I'm unsure it need.
+						target = project;
+
+						if (project) {
+
+							auto& tar = GetPath(*_focus, false);
+
+
+							if (auto script = project->FindScript(tar.GetView()); script) {
+								target = script;
+								_focus = next;
+								break;
+							}
+							else {
+								cont = true;
+							}
+						}
+						break;
+					}
+				}
+				else
+				{
+					cont = true;
+				}
+			}
+
+			if (!cont && target)
+			{
+
+				bool success = HandlePath(target, SyntaxRecord::To(_focus), func, searched, !is_direct);
+
+				if (success)
+					return true;
+
+			}
+			
+			if (!is_direct)
+			{
+				if (state == kSeekMain)
+					target = target->FetchParent();
+
+				if (state != kSeekMain || !target)
+					state--;
+			}
+			else
+			{
+				break;
+			}
+
+			//if (target)
+			//	state--;
+			
+
+			continue;
+		}
+
+		//ProjectManager::
+
+
+		return false;
+	}
+	//*/
 
 
 	IEnvironment* SecondaryElement::GetEnvironmentI()
