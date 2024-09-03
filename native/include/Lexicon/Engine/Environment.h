@@ -244,19 +244,6 @@ namespace LEX
 
 		virtual std::vector<PolicyBase*> FindTypes(std::string_view name);
 
-		//These return Environment instead of scripts because I really only need script from it. That, and it might allow me to use maybe scripts too. 
-		// and there's no need for IScript to be used.
-		//Scripts return its include and import, classes get their scripts import/includes.
-		//<!> These are scripts aren't they?
-		virtual std::vector<Environment*> GetIncluded();
-
-		virtual std::vector<Environment*> GetImport();
-
-		//TODO: I think I'll combine get import and include so I can not have a bunch of boilerplate
-		void GetRecursiveIncluded(std::set<Environment*>& cache);
-
-		std::vector<Environment*> GetRecursiveIncluded();
-
 
 
 
@@ -268,48 +255,6 @@ namespace LEX
 
 		//This is in Environment.cpp, needs to be moved out.
 		bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
-
-
-		//All versions end up at these last 2 locations.
-		PolicyBase* SearchTypeImpl(std::string name, OverloadKey* key);
-
-
-		QualifiedField SearchFieldImpl(std::string name, OverloadKey* key);
-
-
-		FunctionInfo* SearchFunctionImpl(std::string name, OverloadKey& key, Overload& out);
-
-
-
-
-
-		FunctionInfo* SearchFunction(Record& path, OverloadKey& key, Overload& out);
-
-
-		///These functions are supposed to resolve generic ambiguity.
-		PolicyBase* SearchType(Record& path);
-
-
-		QualifiedField SearchField(Record& path);
-
-
-
-
-
-		Environment* SearchEnvironment(Record& path);
-
-
-
-
-
-		Environment* SearchEnvironmentPath(Record*& _path);
-
-
-		PolicyBase* SearchTypePath(Record& _path);
-
-		FunctionInfo* SearchFunctionPath(Record& _path, OverloadKey& input, Overload& out);
-
-		QualifiedField SearchFieldPath(Record& _path);
 
 
 
