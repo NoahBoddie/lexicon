@@ -1023,6 +1023,19 @@ namespace LEX::Impl
 							
 
 
+							auto func = [&]()->Record
+								{
+									size_t processed = 0;
+
+									auto test = std::stod(tag, &processed);
+
+									auto remains = tag.size() - processed;
+									//I'm going to be real, I don't know how to reverse this and I'm tired b.
+									if (remains == 1 && tag[processed] == 'f' || !remains) {}
+									else throw std::invalid_argument{ "Nothing to say" };
+
+									return parser->CreateExpression(next, SyntaxType::Number);
+								};
 
 							try
 							{
@@ -1032,21 +1045,12 @@ namespace LEX::Impl
 								auto test = std::stoll(tag, &processed);
 
 								if (tag.size() > processed)
-									throw std::invalid_argument{ "Nothing to say" };
+									return func();
 
 								return parser->CreateExpression(next, SyntaxType::Integer);
 							}
 							catch (std::invalid_argument in_arg) {
-								size_t processed = 0;
-
-								auto test = std::stod(tag, &processed);
-
-								auto remains = tag.size() - processed;
-								//I'm going to be real, I don't know how to reverse this and I'm tired b.
-								if (remains == 1 && tag[processed] == 'f' || !remains) {}
-								else throw std::invalid_argument{ "Nothing to say" };
-
-								return parser->CreateExpression(next, SyntaxType::Number);
+								return func();
 							}
 							
 						} catch (std::invalid_argument in_arg) {
