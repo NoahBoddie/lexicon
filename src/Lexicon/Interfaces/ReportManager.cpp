@@ -263,22 +263,19 @@ namespace LEX
 
 		//TODO: Around here it would be nice to note when a message has been promoted from it's natural state.
 		
-
-		if (MutateReport(data, true) == false, type = data.type) {
-			//Should still log if it's fatal
-			log = false;
-		}
-		else {
+		//This doesn't print logs, fix pls.
+		log = MutateReport(data, true);
+		type = data.type;
+		
+		if (log || level == IssueLevel::Critical) {
 			HeaderMessage(message, type, code);
-
-			//At a later point I'll prevent type from being edited in post.
-			//type = data.type;
-
-			if (MutateReport(data, false) == false) {
-				log = false;
-			}
 		}
 
+		if (log) {
+			log = MutateReport(data, false);
+		}
+
+		
 		if (log || level == IssueLevel::Critical)
 		{
 			auto spd_lvl = get_spdlog_level(level);
