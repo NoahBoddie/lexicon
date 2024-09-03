@@ -85,10 +85,6 @@ namespace LEX
 		// Also, I may not need to "Find" them for that reason.
 		// Instead, asking if something is one of these things might be better.
 		
-		std::vector<Environment*> GetIncluded() override;
-
-		std::vector<Environment*> GetImport() override;
-
 
 		Script* FindRelationship(std::string name, bool shared, RelateType bond);
 

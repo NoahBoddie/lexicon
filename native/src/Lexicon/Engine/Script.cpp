@@ -307,16 +307,6 @@ namespace LEX
 	// Also, I may not need to "Find" them for that reason.
 	// Instead, asking if something is one of these things might be better.
 
-	std::vector<Environment*> Script::GetIncluded()
-	{
-		return {};
-	}
-
-	std::vector<Environment*> Script::GetImport()
-	{
-		return {};
-	}
-
 
 	Script* Script::FindRelationship(std::string name, bool shared, RelateType bond)
 	{
