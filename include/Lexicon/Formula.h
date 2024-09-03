@@ -50,10 +50,11 @@ namespace LEX
 
 				//Send out a message here.
 			}
-
+			
 			if (self) {
+				
 				RuntimeVariable result = self.formula()->Call();
-
+				
 				if constexpr (!std::is_same_v<void, T>) {
 					return Unvariable<T>{}(result.Ptr());
 				}

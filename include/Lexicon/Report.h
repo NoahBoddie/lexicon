@@ -299,11 +299,8 @@ namespace LEX
 		static void Log_(LString& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
 			ValidateMessage(message, args...);
-			
+		
 			return LogBase(0, message, type, level, loc);
-			
-
-			HeaderMessage(message, type, level, 0);
 		}
 
 		template <is_not<std::source_location>... Ts>
@@ -340,6 +337,7 @@ namespace LEX
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
 		static void Log(LString& message, std::source_location& loc, IssueType type, Ts&... args)
 		{
+
 			return Log_(message, loc, type, Level, args...);
 
 			ValidateMessage(message, args...);

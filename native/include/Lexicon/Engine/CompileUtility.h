@@ -95,7 +95,7 @@ namespace LEX
 		[[nodiscard]] static Operation MutateRef(Solution& sol, Operand op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
-
+			
 			Operation result = Operation{ InstructType::Forward, op, sol };
 
 			sol = op;
