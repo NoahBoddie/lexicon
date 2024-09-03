@@ -99,7 +99,7 @@ namespace LEX
 
 		//the associated should maybe be a bool or just reject any other than include and import.
 
-		static SyntaxRecord& GetPath(Record& path, bool right);
+		static SyntaxRecord& GetPath(Record& path, std::optional<bool> right = std::nullopt);
 
 
 
@@ -131,6 +131,15 @@ namespace LEX
 
 		static PolicyBase* SearchTypePath(Element* a_this, Record& _path);
 
+
+
+		PolicyBase* SearchTypePath(Record& _path)
+		{
+			return SearchTypePath(this, _path);
+		}
+
+
+
 		static bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
 
 
@@ -143,8 +152,17 @@ namespace LEX
 			return SearchFunctionPath(a_this, path, &key, &out);
 		}
 
+		FunctionInfo* SearchFunctionPath(Record& path, OverloadKey& key, Overload& out)
+		{
+			return SearchFunctionPath(this, path, key, out);
+		}
+
 		static QualifiedField SearchFieldPath(Element* a_this, Record& path);
 
+		QualifiedField SearchFieldPath(Record& path)
+		{
+			return SearchFieldPath(this, path);
+		}
 
 #pragma endregion
 
