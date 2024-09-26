@@ -80,7 +80,7 @@ namespace LEX
 		auto* policy = ObjectPolicyManager::instance->RegisterObjectType(aliases, category, range, builder, source);
 
 		policy->base = vtable;
-		vtable->_policy = policy;
+		vtable->SetPolicy(policy);
 
 		//load vtable into returned function for object policy.
 

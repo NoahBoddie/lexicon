@@ -69,12 +69,20 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	};
 
 
-
+	std::vector<IdentityData>& GetDataList()
+	{
+		//I handle this through due to the fact that register interface is handled along with the rest of the construction
+		// objects (honestly a dumb idea). This ensures no matter how early a singleton is constructed, the interface list is
+		// constructed before something tries to add to it.
+		static std::vector<IdentityData> dataList{};
+		//logger::info("dataList.size() => {}", dataList.size());
+		return dataList;
+	}
 
 
 
 	inline std::mutex _lock;
-	inline std::vector<IdentityData> dataList;
+	//inline std::vector<IdentityData> dataList;
 	//Policy list starts with an entry immediately. The void policy.
 	inline std::vector<PolicyBase*> policyList{ nullptr };
 
@@ -109,7 +117,11 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 	uint32_t IdentityManager::GetIDFromIndex(TypeIndex index)
 	{
+		auto& dataList = GetDataList();
+
 		assert(dataList.size() > index);
+
+		//logger::info("dataList.size() ({}) > index ({})", dataList.size(), index);
 
 		return dataList[index].startID;
 	}
@@ -117,6 +129,8 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 	TypeIndex IdentityManager::GetIndexFromName(std::string_view name)
 	{
+		auto& dataList = GetDataList();
+
 		auto size = dataList.size();
 
 		for (int i = 0; i < size; i++)
@@ -133,6 +147,8 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 	TypeIdentity IdentityManager::GetIdentityFromID(TypeID id)
 	{
+		auto& dataList = GetDataList();
+
 		auto size = dataList.size();
 
 		uint32_t res = -1;
@@ -194,6 +210,8 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 		//uint32_t nextID = policyList.size();
 
+		auto& dataList = GetDataList();
+
 		TypeIndex index = dataList.size();
 
 		auto size = policyList.size();
@@ -223,6 +241,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 		TypeID id = TypeID::CreateID(nextID);
 
+		auto& dataList = GetDataList();
 
 		dataList.emplace_back("", nextID, 1);//shouldn't this be 1 since it's a size?
 		policyList.emplace_back(policy);

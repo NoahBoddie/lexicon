@@ -8,7 +8,7 @@ namespace LEX
 		kTypeElement,
 		kFuncElement,
 		kGlobElement,
-		//kScrpElement,
+		kScrpElement,
 		//kProjElement,
 	};
 }

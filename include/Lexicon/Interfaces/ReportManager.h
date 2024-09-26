@@ -73,11 +73,12 @@ namespace LEX
 		CURRENT_VERSION(ReportManager, 1);
 	}
 
-
+	struct ScopedLogger;
 
 	struct IMPL_SINGLETON(ReportManager)
 	{
 	public:
+		friend ScopedLogger;//TODO: Scoped logger needs to be moved or handled properly.
 
 		std::string_view GetIssueMessage(IssueCode code) override;
 		

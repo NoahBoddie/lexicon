@@ -1244,7 +1244,13 @@ namespace LEX
                 //offset
                 constexpr auto setting = LEX::Number::Settings::CreateFromType<T>();
 
+                auto test = LEX::IdentityManager::instance.get();
+
+                logger::info("singleton value {}", (uintptr_t)test);
+                logger::info("~A");
                 auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
+                logger::info("~B");
+                
 
                 result = buffer->FetchTypePolicy(nullptr);
 

@@ -180,6 +180,299 @@ namespace LEX
 
 	}
 
+
+
+
+	class ScriptString
+	{
+	public:
+		using iterator = std::string::iterator;
+
+		static constexpr auto _max = max_value<Line>;
+
+	private:
+
+		struct ScriptLine
+		{
+			ScriptLine(iterator b, iterator e) : begin{ b }, end{ e } {}
+
+			iterator begin;
+			iterator end;
+
+
+			bool enabled = true;	//If it's not enabled it will remove everything within the line but keep the line. Will be disabled in reverse
+			//
+		};
+
+	public:
+
+		ScriptString(std::string_view n, const char* str) : ScriptString{ n, std::string_view {str} }
+		{
+
+		}
+
+
+		ScriptString(std::string_view n, std::string& str) : ScriptString{ n , std::string_view {str} }
+		{
+			
+		}
+
+		ScriptString(std::string_view n, std::string_view view) : _name{ n }, _value{std::string(view)}
+		{
+			Init();
+		}
+
+		std::string_view GetLine(Line i)
+		{
+			if (--i == _max)
+				return "";
+
+			auto& line = _lines[i];
+			return std::string_view{ line.begin, line.end };
+
+		}
+
+		bool IsLineEnabled(Line i)
+		{
+			if (--i == _max)
+				return "";
+
+			auto& line = _lines[i];
+			return line.enabled;
+
+		}
+
+
+		void SetLines(bool value, Line begin, Line end = _max)
+		{
+			if (begin == _max)
+				return;
+
+			begin--;
+
+			
+
+			if (end == _max || end == 0)
+				end = begin;
+			else
+				end--;
+
+			if (begin > end) {
+				std::swap(begin, end);
+			}
+
+			for (; begin <= end; begin++)
+			{
+				_lines[begin].enabled = value;
+			}
+		}
+
+
+		std::string Clear()
+		{
+			if (_lines.size() == 0)
+				return _value;
+
+			//after using this it becomes invalid.
+			for (int i = (int)_lines.size() - 1; i >= 0; i--)
+			{
+				auto& line = _lines[i];
+
+				if (!line.enabled)
+					_value.erase(line.begin, line.end);
+			}
+
+			return _value;
+		}
+
+		std::string_view name()
+		{
+			return _name;
+		}
+
+	private:
+
+		void Init()
+		{
+			auto it = _value.begin();
+			auto end = _value.end();
+
+			while (it != end)
+			{
+				auto begin = it;
+
+				it = std::find(it, end, '\n');
+
+				_lines.emplace_back(begin, it);
+				
+				if (it!= end) it++;
+			}
+		}
+
+	private:
+		std::string_view _name;
+		std::string _value;
+		std::vector<ScriptLine> _lines;
+
+	};
+
+
+
+	bool CheckCondition(Record& expression, std::vector<std::string_view>& options)
+	{
+		//At a later point this will take an expression of basic numbers and such and try to compile it. No functions, just literals and possible macros.
+		//For now there's only one option.
+
+		auto& it = expression.GetFront();
+
+		switch (it.SYNTAX().type)
+		{
+		case SyntaxType::Requirement:
+		case SyntaxType::Prefunc:
+			switch (Hash(it.GetTag()))
+			{
+				case "option"_h:
+				{
+					auto begin = options.begin();
+					auto end = options.end();
+
+					return std::find(begin, end, it.GetFront().GetView()) != end;
+				}
+			}
+		}
+
+		
+		return false;
+
+	}
+
+	APIResult ConditionalProcess(ScriptString& script, std::vector<std::string_view>& options, RecordIterator it, RecordIterator end)
+	{
+		bool enabled = CheckCondition(*it, options);
+
+		Line start = it->SYNTAX().line;
+		Line finish = 0;
+
+		bool cont = true;
+
+		APIResult fin = APIResult::Success;
+		
+		while (++it != end && cont)
+		{
+
+			if (it->SYNTAX().type != SyntaxType::Conditional) {
+				if (!enabled)
+					it->SYNTAX().type = SyntaxType::Disposable;
+				
+				continue;
+			}
+			
+			//All conditionals are disposable regardless.
+			it->SYNTAX().type = SyntaxType::Disposable;
+
+
+			switch (Hash(it->GetTag()))
+			{
+			case "if"_h:
+				fin = ConditionalProcess(script, options, it, end);
+				if (fin != APIResult::Success) return fin;
+				break;
+
+			case "endif"_h:
+				finish = it->SYNTAX().line;
+				cont = false;
+				break;
+			}
+		}
+
+		if (!finish) {
+			report::parse::warn("Un-ended #if detected.");
+			return APIResult::CreationFailed;
+		}
+
+		if (enabled)
+		{
+			script.SetLines(false, start);
+			script.SetLines(false, finish);
+		}
+		else
+		{
+			script.SetLines(false, start, finish);
+		}
+		return fin;
+	}
+	
+	APIResult RequireProcess(ScriptString& script, std::vector<std::string_view>& options, RecordIterator it, RecordIterator end)
+	{
+		//I would like to change how requirement works, and instead make it something that works like a global if, requiring that
+		// something exists or the entire thing just gets dumped.
+
+		bool enabled = CheckCondition(*it, options);
+		
+		if (!enabled){
+			logger::break_warn("Requirement not met for {} to load.", script.name());
+			return APIResult::MissingRequirement;
+		}
+
+		return APIResult::Success;
+	}
+
+
+	APIResult GeneralProcess(ScriptString& script, Record& directives, std::vector<std::string_view>& options)
+	{
+		auto& dirs = directives.GetChildren();
+
+		RecordIterator it = dirs.begin();
+		RecordIterator end = dirs.end();
+
+		auto _begin = options.begin();
+		auto _end = options.end();
+
+		APIResult result = APIResult::Success;
+
+		while (it != end && result == APIResult::Success)
+		{
+			auto old = it;
+
+			auto line = it->SYNTAX().line;
+
+			if (script.IsLineEnabled(line) == true)
+			{
+				script.SetLines(false, it->SYNTAX().line);
+
+				switch (it->SYNTAX().type)
+				{
+				case SyntaxType::Requirement:
+					result = RequireProcess(script, options, it, end);
+					break;
+					if (it->GetView() == parse_strings::option_req) {
+						auto& front = it->GetFront();
+
+						//if (tmp_CheckCompileOptions(front.GetView()) == false) {
+						if (std::find(_begin, _end, front.GetView()) == _end) {
+							logger::break_warn("Requirement '{}' was not present for {} to load.", front.GetView(), script.name());
+							return APIResult::MissingRequirement;
+						}
+					}
+					break;
+				case SyntaxType::Conditional:
+					result = ConditionalProcess(script, options, it, end);
+					break;
+
+				}
+			}
+
+			if (it == old)
+				it++;
+		}
+
+		dirs.erase(std::remove_if(dirs.begin(), dirs.end(), [](Record& q) {return q.SYNTAX().type == SyntaxType::Disposable; }), dirs.end());
+		
+
+
+		return result;
+	}
+
 	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out, const std::vector<std::string_view>* opts)
 	{
 		//Might break this down into a function that knows it's path and one that doesn't, mostly for scripts created via function.
@@ -206,39 +499,77 @@ namespace LEX
 			tmp_AddCompileOptions(options, GetShared());
 		}
 
+		ScriptString test_content{ name, contents };
+		
+		
+		Record tmp_directives;
 
+
+		if constexpr (false)
 		{
 			Impl::PreprocessorParser direct_parse;
-			Record tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
 
+			tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
 
+			
 
 			if (tmp_directives.size() != 0) {
 				auto begin = options.begin();
 				auto end = options.end();
 
 				for (auto& directive : tmp_directives.GetChildren()) {
-					if (directive.SYNTAX().type == SyntaxType::Requirement && directive.GetView() == parse_strings::option_req) {
-						auto& front = directive.GetFront();
+					
+					test_content.SetLines(false, directive.SYNTAX().line);
+
+					switch (directive.SYNTAX().type)
+					{
+						case SyntaxType::Requirement:
+							if (directive.GetView() == parse_strings::option_req) {
+								auto& front = directive.GetFront();
+
+								//if (tmp_CheckCompileOptions(front.GetView()) == false) {
+								if (std::find(begin, end, front.GetView()) == end) {
+									logger::break_warn("Requirement '{}' was not present for {} to load.", front.GetView(), name);
+									return APIResult::MissingRequirement;
+								}
+							}
+							break;
+
 						
-						//if (tmp_CheckCompileOptions(front.GetView()) == false) {
-						if (std::find(begin, end, front.GetView()) == end) {
-							logger::break_warn("Requirement '{}' was not present for {} to load.", front.GetView(), name);
-							return APIResult::MissingRequirement;
-						}
+
 					}
+					
 				}
 				std::stringstream result;
 
 				//const boost::regex regex(R"((?<=\A|\n)\s*#[^\n]*)");
-				const boost::regex regex(R"((?<=\A)|(?<=\n)\s*#[^\n]*)");
+				//const boost::regex regex(R"((?<=\A)|(?<=\n)\s*#[^\n]*)");
+				const boost::regex regex(R"((?:(?<=\A)|(?<=\n))#[^\n]*)");
 				boost::regex_replace(std::ostream_iterator<char>(result), contents.begin(), contents.end(), regex, "");
 				contents = result.str();
+
+				logger::info("TESTING: \n {}", test_content.Clear());
+			}
+		}
+		else
+		{
+
+			Impl::PreprocessorParser direct_parse;
+
+			tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+
+			if (APIResult res = GeneralProcess(test_content, tmp_directives, options); res != APIResult::Success)
+				return res;
+			else
+			{
+				contents = test_content.Clear();
 			}
 		}
 		
 
 		Record ast = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents);
+
+		ast.EmplaceChild(std::move(tmp_directives));
 
 		PrintAST(ast);
 

@@ -226,8 +226,8 @@ namespace LEX
 	void Script::OnAttach()
 	{
 		//Really I can and probably will just split this shit.
-		Record& ast = *GetSyntaxTree();
-		CompileExpression(ast);
+		//Record& ast = *GetSyntaxTree();
+		//CompileExpression(ast);
 	}
 
 
@@ -244,9 +244,22 @@ namespace LEX
 	
 	void Script::CompileExpression(Record& target)
 	{
+		
+	}
+
+
+	LinkResult Script::OnLink(LinkFlag flags)
+	{
+		Record& target = *GetSyntaxTree();
+
+		if (flags != LinkFlag::Loaded)
+			return LinkResult::Failure;
+
+
+
 		for (auto& node : target.GetChildren())
 		{
-			get_switch (node.SYNTAX().type)
+			get_switch(node.SYNTAX().type)
 			{
 
 			case SyntaxType::Project://No fucking idea why this is even here.
@@ -257,12 +270,12 @@ namespace LEX
 
 				project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
 			}
-				break;
+		   break;
 
 			case SyntaxType::Function:
 			{
 				//auto* function = new ConcreteFunction{};
-				
+
 				//AddFunction(function);
 
 				//function->ConstructFromRecord(node);
@@ -273,11 +286,11 @@ namespace LEX
 			case SyntaxType::Type:
 			{
 				//auto* policy = ObtainPolicy(node);
-				
+
 				//policy->ConstructFromRecord(node);
 
 				//AddType(policy);
-				
+
 				AddType(tempObtainPolicy(node));
 				break;
 			}
@@ -289,11 +302,52 @@ namespace LEX
 			}
 			//These 2 are script exclusives
 			case SyntaxType::Directive:
+			{
+				//Directives should be ordered, namely that subdirectories should be made first.
+				Project* parent = GetProject();
 
+				for (auto& directive : node.GetChildren()) {
+					switch (directive.SYNTAX().type)
+					{
+					case SyntaxType::Relationship:
+					{
+						RelateType type;
+
+						switch (Hash(directive.GetTag()))
+						{
+						case "import"_h: type = RelateType::Imported; break;
+						case "include"_h: type = RelateType::Included; break;
+						default: report::compile::error("unknown relationship directive '{}' detected.", directive.GetView());
+						}
+
+						auto view = directive.GetFront().GetView();
+						Script* script = parent->FindScript(view);
+
+						if (!script) {
+							report::compile::error("Cannot find script '{}'.", view);
+						}
+
+						AddRelationship(script, type);
+					}
+					break;
+
+					}
+
+				}
+			}
+				break;
 			default:
 				report::compile::critical("Syntax {} not valid for script", magic_enum::enum_name(switch_value)); break;
 			}
 		}
+		
+
+		return LinkResult::Success;
+	}
+
+	LinkFlag Script::GetLinkFlags()
+	{
+		return  LinkFlag::Loaded;
 	}
 
 
@@ -318,11 +372,11 @@ namespace LEX
 	}
 
 
-	RelateType Script::AddRelationship(Script*, RelateType bond)
+	void Script::AddRelationship(Script* script, RelateType bond)
 	{
 		//Return the relationship it's been assigned or the relationship it has previously been assign if it
 		// can't the relationship.
-		return RelateType::None;
+		_relationMap[bond].push_back(script);
 	}
 
 

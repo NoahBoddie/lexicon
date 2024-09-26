@@ -51,12 +51,6 @@ namespace LEX
 	}
 
 
-
-	std::vector<Environment*> Element::GetAssociates(Element* a_this, RelateType)
-	{
-		return {};
-	}
-
 	
 
 	Environment* Element::WalkEnvironmentPath(Environment* a_this, SyntaxRecord*& path, bool search_scripts)
@@ -132,7 +126,7 @@ namespace LEX
 				buffer.emplace_back(env);
 
 				if (a != RelateType::None)
-					buffer.insert_range(buffer.end(), GetAssociates(env, a));
+					buffer.insert_range(buffer.end(), env->GetAssociates(a));
 			}
 			result.insert_range(result.end(), buffer);
 			out = std::move(buffer);
@@ -276,6 +270,10 @@ namespace LEX
 		}
 		case kGlobElement:
 			return dynamic_cast<GlobalBase*>(SearchFieldPath(a_this, path_record).GetField());
+		
+		case kScrpElement:
+			return SearchScriptPath(a_this, path_record);
+
 
 		case kNoneElement:
 			if (auto elem = GetElementFromPath(a_this, path, kTypeElement))
@@ -283,6 +281,8 @@ namespace LEX
 			if (auto elem = GetElementFromPath(a_this, path, kFuncElement))
 				return elem;
 			if (auto elem = GetElementFromPath(a_this, path, kGlobElement))
+				return elem;
+			if (auto elem = GetElementFromPath(a_this, path, kScrpElement))
 				return elem;
 
 			return nullptr;
@@ -382,6 +382,8 @@ namespace LEX
 
 		SearchPathBase(a_this, SyntaxRecord::To(path), [&](std::vector<Environment*>& query) -> bool
 			{
+				//std::verctor
+
 
 				for (auto env : query)
 				{
@@ -392,16 +394,21 @@ namespace LEX
 
 					if (funcs.size() != 0)
 					{
-						if (key && out && CheckOverload(*key, { funcs.begin(), funcs.end() }, *out) == true)
+						if (key && out)
 						{
-							result = dynamic_cast<FunctionInfo*>(out->clause);
+							if (CheckOverload(*key, { funcs.begin(), funcs.end() }, *out) == true)
+							{
+								result = dynamic_cast<FunctionInfo*>(out->clause);
+								return true;
+							}
 						}
-						else// if (funcs.size() == 1)
+						else if (funcs.size() == 1)
 						{
 							result = funcs[0];
+							return true;
 						}
 
-						return true;
+						
 					}
 
 				}
@@ -446,7 +453,33 @@ namespace LEX
 
 		return result;
 	}
+	
+	Script* Element::SearchScriptPath(Element* a_this, Record& path)
+	{
 
+		Script* result = nullptr;
+
+		SearchPathBase(a_this, SyntaxRecord::To(path), [&](std::vector<Environment*>& query) -> bool
+			{
+				for (auto env : query)
+				{
+					//Later this will handle this a bit differently.
+					Script* script = env->GetProject()->FindScript(path.GetView());
+
+					if (script)
+					{
+						result = script;
+
+						return true;
+					}
+				}
+
+				return false;
+			});
+
+
+		return result;
+	}
 
 	
 	bool FindNext(Element*& focus, Record* target, Record*& next)
@@ -471,160 +504,11 @@ namespace LEX
 	}
 	
 	
-	/*
-	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
-	{
-		//Needs a function to handle these.
 	
-
-		//So there has to be something that prevents it from using the main one, notably if someone is incredibly specific about which version they're using.
-
-		//This needs to be proper at some point.
-		SyntaxRecord* path = SyntaxRecord::To(rec.FindChild(parse_strings::path));
-
-		//Identifier is searched for directly, it won't search up or to it's associates.
-		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
-
-		auto left = path ? path->FindChild(parse_strings::lhs) : nullptr;
-		auto right = left ? path->FindChild(parse_strings::rhs) : nullptr;
-
-		auto first = left ?
-			&GetPath(*left, false) : path ?
-			&path->GetFront() : nullptr;
-
-		//This is what should be submitted to functions
-		auto next = right ?
-			&GetPath(*right, true) : path ?
-			&path->GetFront() : &rec;
-
-
-
-		Element* target = a_this;
-
-		std::set<Element*> searched{};
-
-		bool is_shared = true;
-
-		
-		//Move this out, I'd like a way to force project state. What it is would be determined if it's run on an element or not.
-		// So that actually means this version of the function stays, to make it less confusing.
-		// or is getting moved to the project manager
-		enum ProjectState
-		{
-			kNone,
-			kFind,
-			kShared,
-			kCurrent,
-		} state = !a_this ? kFind : kCurrent;//Force to be find depending on what heads path.
-
-		if (first && state == kCurrent)
-		{
-			switch (first->SYNTAX().type)
-			{
-			case SyntaxType::ProjectName:
-				state = kFind;
-				break;
-			case SyntaxType::Scriptname:
-				target = nullptr;
-				break;
-			}
-		}
-
-		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
-		// path is.
-
-		
-
-		while (state != kNone)
-		{
-			auto _next = next;
-
-			if (!target && path)// && left) //Must have a left side
-			{
-				Project* project = nullptr;
-
-				//looks more like it's asking for front.
-				Record* tar = left ? left : &path->GetFront();
-
-				switch (state)
-				{
-				case kCurrent:
-					project = a_this->GetProject();
-					goto _find;
-
-				case kShared:
-					project = ProjectManager::instance->GetShared();
-					goto _find;
-
-				case kFind:
-					//Find is when project has to be found first, so move the finding of the script down here.
-					if (!right)
-						break;
-
-					project = ProjectManager::instance->GetProject(tar->GetFront().GetView());
-
-					tar = &GetPath(*right, false);
-					//Revert to this to test for a crash
-					//_next->GetView() == parse_strings::rhs || _next->GetView() == parse_strings::lhs
-					if (_next->SYNTAX().type != SyntaxType::Path) {
-						_next = nullptr;
-					}
-
-
-
-					if (!tar)
-					{
-						return false;
-						state = kNone;
-						//If target is no longer able to be found.
-						//We break, nothing to do.
-						break;
-					}
-					//_next = nullptr;//Unsure how to deal with this bit.
-				_find:
-					//state--;
-					if (project) {
-						bool is_path = tar->SYNTAX().type == SyntaxType::Path;
-
-						if (auto script = project->FindScript(is_path ? tar->GetFront().GetView() : tar->GetView()); script) {
-							target = script;
-							break;
-						}
-					}
-
-				case kNone:
-					break;
-				}
-			}
-
-
-			bool success = HandlePath(target, SyntaxRecord::To(_next), func, searched, !is_direct);
-
-			if (success)
-				return true;
-
-			if (!is_direct)
-			{
-				if (state == kCurrent)
-					target = target->FetchParent();
-
-				if (!target || state != kCurrent)
-					state--;
-			}
-			else
-			{
-				break;
-			}
-		}
-
-		//ProjectManager::
-
-
-		return false;
-	}
-	/*/
 	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
 	{
+		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
+
 		SyntaxRecord* path = SyntaxRecord::To(rec.FindChild(parse_strings::path));
 
 		//Identifier is searched for directly, it won't search up or to it's associates.
@@ -658,11 +542,10 @@ namespace LEX
 			kFindShared,
 			kGetShared,
 			kFindCurrent,
-			kGetCurrent,
-			kSeekMain,
-		} state = !a_this ? kFindProject : kSeekMain;//Force to be find depending on what heads path.
+			k_GetCurrent,
+		} state = !a_this ? kFindProject : k_GetCurrent;//Force to be find depending on what heads path.
 
-		if (first && state == kSeekMain)
+		if (first && state == k_GetCurrent)
 		{
 			switch (first->GetFront().SYNTAX().type)
 			{
@@ -681,7 +564,9 @@ namespace LEX
 
 		Element* target = a_this;
 
-		std::set<Element*> searched{};
+		//Each of these sets are used to hold data for when "find" is used on a project or when it's regularly used.
+		std::set<Element*> full_search{};
+		std::set<Element*> find_search{};
 
 		while (state != kNone)
 		{
@@ -690,7 +575,9 @@ namespace LEX
 			
 			bool cont = false;
 
-			if (state != kSeekMain)
+			std::set<Element*>* searched = &full_search;
+
+			if (state != k_GetCurrent)
 			{
 				Project* project;
 				if (path)
@@ -702,10 +589,9 @@ namespace LEX
 						target = ProjectManager::instance->GetShared();
 						break;
 
-					case kGetCurrent://Should get current commons and search it
-						//target = ProjectManager::instance->GetProject(first->GetFront().GetView());
-						target = a_this->FetchCommons();
-						break;
+					//case kGetCurrent://Should get current commons and search it
+						//target = a_this->FetchCommons();
+						//break;
 
 
 					case kFindShared://Should get shared, then search
@@ -730,10 +616,13 @@ namespace LEX
 
 						//next = &GetPath(*next, true);
 						next = next->FindChild(parse_strings::rhs);
+						
+						//Thie final find project will have an even more shaved off, thus it should use a completely clear one.
+						find_search.clear();
 
 					find:
-						//This needs something that I'm unsure it need.
-						target = project;
+						//Each find will have something shaved off, so it will use a seperate set.
+						searched = &find_search;
 
 						if (project) {
 
@@ -761,7 +650,9 @@ namespace LEX
 			if (!cont && target)
 			{
 
-				bool success = HandlePath(target, SyntaxRecord::To(_focus), func, searched, !is_direct);
+
+
+				bool success = HandlePath(target, SyntaxRecord::To(_focus), func, *searched, !is_direct);
 
 				if (success)
 					return true;
@@ -770,11 +661,12 @@ namespace LEX
 			
 			if (!is_direct)
 			{
-				if (state == kSeekMain)
+				if (state == k_GetCurrent)
 					target = target->FetchParent();
 
-				if (state != kSeekMain || !target)
+				if (state != k_GetCurrent || !target) {
 					state--;
+				}
 			}
 			else
 			{

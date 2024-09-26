@@ -1661,7 +1661,8 @@ namespace LEX::Impl
 
 			Record HandleToken(Parser* parser, Record* target) override
 			{
-				Record prep = Parser::CreateExpression(parser->name(), SyntaxType::Preprocessor);
+				
+				Record prep = Parser::CreateExpression(parse_strings::preprocessor, SyntaxType::Directive);
 
 				while (parser->eof() == false) {
 					auto next = parser->next();
@@ -1730,7 +1731,7 @@ namespace LEX::Impl
 		template <typename T>
 		struct AutoProcessor : public AutoParser<T, PreprocessorModule>{};
 
-
+		/*The Old version.
 		struct RequiresParser : public AutoProcessor<RequiresParser>
 		{
 			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override 
@@ -1814,7 +1815,7 @@ namespace LEX::Impl
 
 			Record HandleToken(Parser* parser, Record* target) override
 			{
-				parser->next();
+				auto loc = parser->next();
 				
 				Mode mode;
 
@@ -1833,12 +1834,125 @@ namespace LEX::Impl
 					mode = kScript;
 				}
 
-				return MakeRequirement(parser, mode);
+				auto result = MakeRequirement(parser, mode);
+
+				result.SYNTAX().line = loc.TOKEN().line;
+				result.SYNTAX().column = loc.TOKEN().column;
+				return result;
+			}
+
+		};
+		//*/
+
+
+		struct RelationParser : public AutoProcessor<RelationParser>
+		{
+			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override
+			{
+
+				return !target && ( parser->IsType(TokenType::Keyword, "import") || parser->IsType(TokenType::Keyword, "include") );
+			}
+
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				auto relation = Parser::CreateExpression(parser->next(), SyntaxType::Relationship);
+
+				auto next = parser->ConsumeType(TokenType::Identifier);
+
+
+				relation.EmplaceChild(Parser::CreateExpression(next, SyntaxType::None));
+
+				return relation;
 			}
 
 		};
 
+		struct RequiresParser : public AutoProcessor<RequiresParser>
+		{
+			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override
+			{
+
+				return !target && parser->IsType(TokenType::Keyword, "requires");
+			}
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+
+				auto result = Parser::CreateExpression(parser->next(), SyntaxType::Requirement);
 
 
+				auto& child = result.EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
+
+				parser->SkipType(TokenType::Punctuation, "(");
+
+				child.EmplaceChild(Parser::CreateExpression(parser->next(), SyntaxType::Identifier));
+
+				parser->SkipType(TokenType::Punctuation, ")");
+
+
+
+				return result;
+			}
+
+		};
+
+		struct PreIfParser : public AutoProcessor<PreIfParser>
+		{
+			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override
+			{
+				return !target && (parser->IsType(TokenType::Keyword, "if") || parser->IsType(TokenType::Identifier, "endif"));
+			}
+
+			Record HandleConditional(Parser* parser)
+			{
+				auto result = Parser::CreateExpression(parser->next(), SyntaxType::Conditional);
+
+				//This should allow for the /: punctuator instead.
+				;
+
+
+
+
+				auto& child = result.EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
+				
+				parser->SkipType(TokenType::Punctuation, "(");
+
+				child.EmplaceChild(Parser::CreateExpression(parser->next(), SyntaxType::Identifier));
+
+				parser->SkipType(TokenType::Punctuation, ")");
+
+
+
+				return result;
+			}
+
+			Record HandleEnd(Parser* parser)
+			{
+				auto result = Parser::CreateExpression(parser->next(), SyntaxType::Conditional);
+
+		
+				return result;
+			}
+
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				auto peek = parser->peek();
+
+				if (peek.GetView() == "if")
+				{
+					return HandleConditional(parser);
+				}
+				else if (peek.GetView() == "endif")
+				{
+					return HandleEnd(parser);
+				}
+
+				parser->croak("shouldn't happen");
+				return{};
+			}
+
+		};
 
 }

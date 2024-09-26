@@ -31,14 +31,18 @@ endif()
 
 
 #TODO: use this and a build setting to determine if this is trying to make a source plugin or if it's an interface
-message("Options:")
-option(LEXICON_SOURCE "Marks project as source binary for Lexicon." ON)
-option(TEST_BUILD "Tries to use test build for lexicon." ON)#if project is self, allow test builds.
+#message("Options:")
+#option(LEXICON_SOURCE "Marks project as source binary for Lexicon." ON)
+#option(TEST_BUILD "Tries to use test build for lexicon." ON)#if project is self, allow test builds.
 
 if (PARENT_NAME STREQUAL PROJECT_NAME)
 	set(TEST_BUILD ON)
 endif()
 
+if (CMAKE_PROJECT_NAME STREQUAL PARENT_NAME)
+	message("* LEXICON_SOURCE = ON")
+    set(LEXICON_SOURCE ON)
+endif()
 
 
 # ---- Dependencies ----
@@ -131,15 +135,12 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/GenericType.h" 
 		"native/include/Lexicon/Engine/DynamicTupleElement.h" 
 		"native/include/Lexicon/Engine/TemplateTuple.h" 
-		"include/Lexicon/ITemplateInsertPart.h" #These don't belong here
-		"include/Lexicon/ITemplateInsertBody.h" 
-		"include/Lexicon/GenericPartArray.h" 
-		"include/Lexicon/GenericBodyArray.h"
 		"native/include/Lexicon/Engine/Component.h"
-		"native/include/Lexicon/Engine/SettingManager.h")
+		"native/include/Lexicon/Engine/SettingManager.h"
+		"native/include/Lexicon/Engine/DefaultClient.h" 
+		"native/include/Lexicon/Engine/SyntaxRecord.h" 
+		"native/include/Lexicon/Engine/BasicFormula.h")
 
-
-	
 	set(master_sources
 	
 		"native/src/Lexicon/Engine/QualifiedField.cpp"
@@ -185,7 +186,10 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/GenericType.cpp"
 		"native/src/Lexicon/Engine/TemplateType.cpp" 
 		"native/src/Lexicon/Engine/SpecialPart.cpp" 
-		src/Lexicon/Interfaces/FormulaManager.cpp)
+		src/Lexicon/Interfaces/FormulaManager.cpp
+		"src/Lexicon/Interfaces/ReportManager.cpp"
+		"native/src/Lexicon/Engine/SettingManager.cpp"
+		"native/src/Lexicon/Engine/FunctionData.cpp" )
 else()
 	set (master_headers )
 	set (master_sources )
@@ -243,16 +247,28 @@ set(headers
 	include/Lexicon/Interfaces/InterfaceSingleton.h
 	include/Lexicon/Interfaces/ProcedureHandler.h
 	include/Lexicon/Interfaces/ProjectManager.h
-	 "include/Lexicon/Interfaces/IElement.h" 
-	 "include/Lexicon/Interfaces/IEnvironment.h"
-	 "include/Lexicon/Interfaces/IScript.h" 
-	 "include/Lexicon/Interfaces/IProject.h"
-	 "include/Lexicon/Interfaces/ProjectClient.h"
-	 "include/Lexicon/SignatureBase.h" 
-	 "include/Lexicon/IRuntime.h"
-	 "include/Lexicon/ProcedureData.h" 
-	 "include/Lexicon/InherentType.h"
-	 ${master_headers}  "include/Lexicon/Interfaces/ReportManager.h" "include/Lexicon/Impl/common_type.h" "native/include/Lexicon/Engine/DefaultClient.h" "native/include/Lexicon/Engine/SyntaxRecord.h" "include/Lexicon/ElementType.h" "include/Lexicon/RelateType.h" "include/Lexicon/IFormula.h" "include/Lexicon/Interfaces/FormulaManager.h" "include/Lexicon/FormulaHandler.h" "native/include/Lexicon/Engine/BasicFormula.h")
+	"include/Lexicon/Interfaces/IElement.h" 
+	"include/Lexicon/Interfaces/IEnvironment.h"
+	"include/Lexicon/Interfaces/IScript.h" 
+	"include/Lexicon/Interfaces/IProject.h"
+	"include/Lexicon/Interfaces/ProjectClient.h"
+	"include/Lexicon/SignatureBase.h" 
+	"include/Lexicon/IRuntime.h"
+	"include/Lexicon/ProcedureData.h" 
+	"include/Lexicon/InherentType.h"
+	"include/Lexicon/ElementType.h" 
+	"include/Lexicon/RelateType.h"
+	"include/Lexicon/IFormula.h"
+	"include/Lexicon/Interfaces/FormulaManager.h"
+	"include/Lexicon/FormulaHandler.h"
+	"include/Lexicon/Interfaces/ReportManager.h" 
+	"include/Lexicon/Impl/common_type.h" 
+	"include/Lexicon/ITemplateInsertPart.h"
+	"include/Lexicon/ITemplateInsertBody.h" 
+	"include/Lexicon/GenericPartArray.h" 
+	"include/Lexicon/GenericBodyArray.h"
+	 ${master_headers}
+)
 
 
 set(sources
@@ -269,7 +285,12 @@ set(sources
 	src/Lexicon/Variable.cpp
 	src/Lexicon/VariableType.cpp
 	src/Lexicon/ITemplatePart.cpp
-	${master_sources} "src/Lexicon/Interfaces/ReportManager.cpp" "src/Lexicon/ObjectInfo.cpp" "include/Lexicon/Report.cpp" "native/src/Lexicon/Engine/SettingManager.cpp" "native/src/Lexicon/Engine/FunctionData.cpp" "src/Lexicon/FormulaHandler.cpp")
+
+	"src/Lexicon/ObjectInfo.cpp"
+	"include/Lexicon/Report.cpp"#this is in the wrong place.
+
+	"src/Lexicon/FormulaHandler.cpp"
+	${master_sources} )
 
 
 
@@ -532,17 +553,21 @@ else()
 	set(BINARY_TYPE lib)
 endif()
 
-#if (LEXICON_SOURCE)
+if (CMAKE_PROJECT_NAME STREQUAL PARENT_NAME)
     target_compile_definitions(
 	"${PROJECT_NAME}"
 	PUBLIC
 		LEX_SOURCE=1
-		LEX_BINARY_MODULE=\"${PARENT_NAME}.${BINARY_TYPE}\"
 	)
 
     #when this gets ported out, please use it to also determine what the primary source is as well
-#endif()
+endif()
 
+target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_BINARY_MODULE=\"${PARENT_NAME}.${BINARY_TYPE}\"
+	)
 
 
 #///Executable Test

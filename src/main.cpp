@@ -170,6 +170,7 @@ void LexTesting(std::string formula)
  
     Script* script = ProjectManager::instance->GetShared()->GetCommons();
     
+    Component::Link(LinkFlag::Loaded);
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
 	Component::Link(LinkFlag::External);

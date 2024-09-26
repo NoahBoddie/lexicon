@@ -39,8 +39,7 @@ namespace LEX
 		Record _syntaxTree;
 
 		//This is where scripts are refered
-		std::unordered_map<RelateType, std::vector<Script*>> _relationMap2;
-		std::unordered_map<Script*, RelateType> _relationMap;
+		std::unordered_map<RelateType, std::vector<Script*>> _relationMap;
 	public:
 
 
@@ -56,6 +55,7 @@ namespace LEX
 
 		const Script* Promote() const override { return this; }
 
+		Script* AsScript() override { return this; }
 
 
 		ComponentType GetComponentType() override;
@@ -76,6 +76,13 @@ namespace LEX
 
 
 
+		LinkResult OnLink(LinkFlag flags);
+
+		LinkFlag GetLinkFlags();
+
+
+
+
 		PolicyBase* tempObtainPolicy(Record& ast);
 
 
@@ -89,7 +96,25 @@ namespace LEX
 		Script* FindRelationship(std::string name, bool shared, RelateType bond);
 
 
-		RelateType AddRelationship(Script*, RelateType bond);
+		std::vector<Script*> GetRelationships(RelateType bond)
+		{
+			
+		}
+
+		std::vector<Environment*> GetAssociates(RelateType bond)
+		{
+			auto it = _relationMap.find(bond);
+
+			if (_relationMap.end() != it) {
+				auto& list = it->second;
+				return { list.begin(), list.end() };
+			}
+				
+
+			return {};
+		}
+
+		void AddRelationship(Script*, RelateType bond);
 
 
 		virtual bool IsCommons() const { return false; }

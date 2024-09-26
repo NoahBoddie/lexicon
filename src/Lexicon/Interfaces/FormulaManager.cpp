@@ -41,7 +41,7 @@ namespace LEX
 
 
 
-	[[nodiscard]] uint64_t FormulaManager::RequestFormula(SignatureBase& base, std::vector<std::string_view>& params, std::string_view routine, FormulaHandler& out)
+	[[nodiscard]] uint64_t FormulaManager::RequestFormula(SignatureBase& base, std::vector<std::string_view>& params, std::string_view routine, FormulaHandler& out, std::string_view from)
 	{
 
 		std::unique_ptr<BasicFormula> formula = std::make_unique<BasicFormula>();
@@ -50,6 +50,8 @@ namespace LEX
 
 		for (int i = 0; i < base.parameters.size(); i++)
 		{
+			logger::info("TEST {} {} {}", params[i], params.size(), base.parameters.size());
+
 			formula->parameters.push_back(ParameterInfo(base.parameters[i], std::string(params[i]), i));
 		}
 
@@ -57,9 +59,23 @@ namespace LEX
 		Record ast = Impl::Parser__::CreateSyntax<Impl::LineParser>(std::string(routine));
 
 
+		Script* perspective;
+
+		if (from.empty() == false)
+		{
+			perspective = ProjectManager::instance->GetScriptFromPath(from)->TryPromote();
+		}
+		else
+		{
+			perspective = ProjectManager::instance->GetShared()->GetCommons();
+		}
+		
+		if (!perspective) {
+			report::apply::error("cannot find script '{}'.", from);
+		}
 
 		//This needs to confirm it's proper
-		formula->_routine = RoutineCompiler::Compile(ast, formula.get(), ProjectManager::instance->GetShared()->GetCommons());
+		formula->_routine = RoutineCompiler::Compile(ast, formula.get(), perspective);
 
 
 		formulaMap[formula.get()].refCount = 1;

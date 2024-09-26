@@ -98,7 +98,9 @@ namespace LEX::Impl
 			"private",
 			"protected",
 			"internal",
-			"requires"
+			"requires",
+			"include",
+			"import",
 		};
 
 		inline static std::string _compRegex;

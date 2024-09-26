@@ -1759,10 +1759,9 @@ namespace LEX
 	}
 
 
-
-
 	void TestRun()
 	{
+
 		bool exit = false;
 
 		IElement* element = nullptr;

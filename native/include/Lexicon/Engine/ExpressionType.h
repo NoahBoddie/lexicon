@@ -9,7 +9,6 @@ namespace LEX
 
 		Script,
 		Project,
-		Directive,
 		Number,
 		Integer,
 		String,
@@ -61,10 +60,12 @@ namespace LEX
 		Disposable,
 		Identifier,
 		Declare,
-		//Preprocessor
-		Preprocessor,
 		Requirement,
+		Relationship,
 		
+		Directive,
+
+		Prefunc,
 
 		//Aliases- Short hand that makes my job a bit easier.
 		None = Total,  //No type. Purely name.

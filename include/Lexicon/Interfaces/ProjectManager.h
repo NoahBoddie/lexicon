@@ -168,6 +168,16 @@ namespace LEX
 			return nullptr;
 		}
 
+
+		LEX::IScript* GetScriptFromPath(std::string_view path)
+		{
+			if (auto elem = GetElementFromPath(path, kScrpElement); elem)
+				return elem->AsScript();
+
+			return nullptr;
+		}
+
+
 	INTERNAL://Hidden functions
 		
 		Project* IMP_NAME(GetShared)()

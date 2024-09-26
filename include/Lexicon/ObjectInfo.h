@@ -157,7 +157,11 @@ namespace LEX
 			return type->GetTypePolicy((ITemplateBody*)nullptr);
 		}
 
-
+		void SetPolicy(ObjectPolicy* policy)
+		{
+			if (!_policy)
+				_policy = policy;
+		}
 		//*/
 	INTERNAL:
 		//This policy is the only 

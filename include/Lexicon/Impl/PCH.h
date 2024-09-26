@@ -190,8 +190,6 @@ namespace logger
 	template <class... Args>                                                          \
 	a_func(fmt::format_string<Args...>, Args&&...) -> a_func<Args...>;
 
-    
-    
 
 #define DEFAULT_LOGGER() extern "C" __declspec(dllexport) void SetDefaultLogger()
 
@@ -699,8 +697,9 @@ namespace LEX
 
 #define NULLCHECK(mc_condition) if (!mc_condition) report::critical("Condition '{}' is invalid, throwing fatal exception.", STRINGIZE(mc_condition))
 
+#ifdef LEX_SOURCE
 #include "Lexicon/Engine/SettingManager.h"
-
+#endif
 
 void logger::InitializeLogging()
 {
@@ -731,10 +730,12 @@ void logger::InitializeLogging()
     auto level = GetKeyState(VK_RCONTROL) & 0x800 || GetKeyState(VK_RMENU) & 0x800 ?
         spdlog::level::debug : spdlog::level::info;
 #endif
+#ifdef LEX_SOURCE
 
     if (level >= spdlog::level::info) {
         level = LEX::SettingManager::GetSingleton()->level;
     }
+#endif
 
     log->set_level(level);
     log->flush_on(level);

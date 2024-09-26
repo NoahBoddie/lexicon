@@ -30,7 +30,7 @@ namespace LEX
 			logger::info("uses optionals");
 			return false;
 		}
-
+	
 		if (parameters.size() - HasTarget() != suggested) {
 			logger::info("uses param diff {} vs {}", parameters.size() - HasTarget(), suggested);
 			return false;

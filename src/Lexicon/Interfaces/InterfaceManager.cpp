@@ -53,6 +53,7 @@ namespace LEX
 	}
 
 
+	/*
 	bool InterfaceManager::RegisterInterface(Interface& ifc, std::string_view name)
 	{
 #ifdef LEX_SOURCE
@@ -73,5 +74,5 @@ namespace LEX
 		using _Self = Update(Interface*&, std::string_view, uintptr_t);
 		return ExternCall<_Self>(LEX_BINARY_MODULE, "RequestInterface_Impl", out, name, version);
 	}
-
+	//*/
 }

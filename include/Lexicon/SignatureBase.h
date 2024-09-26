@@ -93,4 +93,54 @@ namespace LEX
 	};
 
 
+	namespace Version
+	{
+		namespace _1
+		{
+			//Move this to the version stuff pls
+
+#define PULL_FROM_SIG(mc_name)pull_##mc_name(){ return _base->mc_name; }
+#define GET_FROM_SIG(mc_name)mc_name(){ CHECK_INTERFACE_VERSION({}); return pull_##mc_name(); }
+
+
+			struct INTERFACE_VERSION(ISignature)
+			{
+			protected:
+				ISignature() = default;
+				//ISignature(const ISignature&) = default;
+				//ISignature(ISignature&&) = default;
+
+
+				virtual QualifiedType PULL_FROM_SIG(result);
+				virtual QualifiedType PULL_FROM_SIG(target);
+				virtual api::container<std::vector<QualifiedType>> PULL_FROM_SIG(parameters);
+
+			public:
+
+				QualifiedType GET_FROM_SIG(result);
+				QualifiedType GET_FROM_SIG(target);
+				std::vector<QualifiedType> GET_FROM_SIG(parameters);
+
+			protected:
+				
+				const SignatureBase* _base = nullptr;
+			};
+
+		}
+
+#undef GET_FROM_SIG
+#undef PULL_FROM_SIG
+
+		CURRENT_VERSION(ISignature, 1);
+
+	}
+
+	//This is to be used without reference in interfaces, having it plugged in anywhere where there's a signature base.
+	struct IMPL_VERSION(ISignature)
+	{
+		ISignature(const SignatureBase & base) { _base = &base; }
+		
+		ISignature(SignatureBase&& base) { _base = &base; }
+	};
+	REQUIRED_SIZE(ISignature, 0x10);
 }

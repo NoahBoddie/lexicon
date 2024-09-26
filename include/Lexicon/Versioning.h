@@ -99,6 +99,8 @@ namespace Version
 //Short hand if you don't want to define the current version and implementation version differently. Note this could not forward declare, mustn't be abstract.
 #define CURRENT_IMPL_VERSION(mc_type, mc_number, ...) CURRENT_VERSION(mc_type, mc_number, public InterfaceSingleton<mc_type>)
 
+#define CHECK_INTERFACE_VERSION(...) if (Version() < version) { return __VA_ARGS__; }
+
 namespace detail
 {
 	//A struct that ensures that no data can ever actually be created.
@@ -154,19 +156,7 @@ namespace detail
 
 #endif
 
-namespace name { struct f; }
 
-
-struct F
-{
-	IMPL_DATA()
-	{
-		int _i1;
-		int _i2;
-		int _i3;
-	};
-
-};
 
 
 #define IMPL_VERSION(mc_type) mc_type :public Version::Current::mc_type

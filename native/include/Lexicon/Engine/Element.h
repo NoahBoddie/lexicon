@@ -103,7 +103,10 @@ namespace LEX
 
 
 
-		static std::vector<Environment*> GetAssociates(Element* a_this, RelateType = {});
+		virtual std::vector<Environment*> GetAssociates(RelateType)
+		{
+			return {};
+		}
 
 
 
@@ -162,6 +165,15 @@ namespace LEX
 		QualifiedField SearchFieldPath(Record& path)
 		{
 			return SearchFieldPath(this, path);
+		}
+
+
+		static Script* SearchScriptPath(Element* a_this, Record& path);
+
+
+		Script* SearchScriptPath(Record& path)
+		{
+			return SearchScriptPath(this, path);
 		}
 
 #pragma endregion

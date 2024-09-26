@@ -31,7 +31,7 @@ namespace LEX
 
 		//This sorta needs to be able to make sure that the item can unvariable itself.
 
-		static T Run(std::string_view routine/*, default here*/)
+		static T Run(std::string_view routine, std::string_view from = ""/*, default here*/)
 		{
 
 			FormulaHandler self;
@@ -46,7 +46,7 @@ namespace LEX
 
 				std::vector<std::string_view> params{};
 
-				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self);
+				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from);
 
 				//Send out a message here.
 			}
@@ -92,7 +92,7 @@ namespace LEX
 		//Basically, this is a wrapper for a given IFormula.
 
 
-		R operator()(Args&&... args/*, Variable var*/)
+		R operator()(Args... args/*, Variable var*/)
 		{
 			//What should I do if someone tries to call this and doesn't have the right stuff?
 
@@ -103,7 +103,7 @@ namespace LEX
 			}
 		}
 
-		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine)
+		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::string_view from = "")
 		{
 
 			Self self;
@@ -118,7 +118,7 @@ namespace LEX
 
 				std::vector<std::string_view> params{ parameters... };
 
-				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self);
+				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from);
 
 				
 			}

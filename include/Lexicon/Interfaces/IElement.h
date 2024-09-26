@@ -40,6 +40,7 @@ namespace LEX
 				virtual ITypePolicy* AsType() { return nullptr; }
 				virtual IFunction* AsFunction() { return nullptr; }
 				virtual IGlobal* AsGlobal() { return nullptr; }
+				virtual LEX::IScript* AsScript() { return nullptr; }
 
 				//This promote, and all promotes need to be internal only. There's no use to it outside
 				// of this.

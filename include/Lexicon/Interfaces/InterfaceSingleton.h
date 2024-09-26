@@ -26,9 +26,12 @@ namespace LEX
 		static T* RequestSingleton()
 		{
 			static T* _interface = nullptr;
-			if (_interface)
+			
+			if (!_interface)
 			{
 				Update result = InterfaceManager::RequestInterface<T>(_interface, T::version);
+
+
 
 				//Make this part a static function plz
 				switch (result)
@@ -46,7 +49,15 @@ namespace LEX
 					break;//Engine is out of date, user fault.
 
 				case Update::Match:
+					if (!_interface)
+						//report::fault::
+						logger::warn("interface not returned despite success.");
+					else
+						logger::info("interface success.");
 					break;//We're all gucci
+				default:
+					logger::info("unknown issue");
+					break;
 				}
 			}
 
@@ -70,7 +81,7 @@ namespace LEX
 	private:
 		struct _instance//class should be private.
 		{
-		private:
+		public:
 			T* get() const
 			{
 #ifdef LEX_SOURCE
@@ -80,7 +91,7 @@ namespace LEX
 				return RequestSingleton();
 #endif
 			}
-		public:
+		
 
 			T& operator* () const
 			{

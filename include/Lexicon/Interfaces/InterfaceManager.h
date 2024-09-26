@@ -5,19 +5,51 @@
 namespace LEX
 {
 	struct Interface;
-	
-	//Both of these should be in a source file some where.
-	extern "C" __declspec(dllexport) bool RegisterInterface_Impl(Interface& ifc, std::string_view name);
 
+
+#ifdef LEX_SOURCE
+#define LEX_API extern "C" [[maybe_unused]] __declspec(dllexport)
+#else
+#define LEX_API
+#endif
+
+	//Both of these should be in a source file some where.
+	LEX_API bool RegisterInterface_Impl(Interface& ifc, std::string_view name);
+	
 	//This should be an external function.
-	extern "C" __declspec(dllexport) Update RequestInterface_Impl(Interface*& out, std::string_view name, uintptr_t version);
+	LEX_API Update RequestInterface_Impl(Interface*& out, std::string_view name, uintptr_t version);
+	
+	
+
+
 
 	struct InterfaceManager
 	{
-		static bool RegisterInterface(Interface& ifc, std::string_view name);
 
+		static bool RegisterInterface(Interface& ifc, std::string_view name)
+		{
+#ifdef LEX_SOURCE
+			return RegisterInterface_Impl(ifc, name);
+#else
+			using Self = decltype(RegisterInterface_Impl);
+			return ExternCall<Self>(LEX_BINARY_MODULE, "RegisterInterface_Impl", ifc, name);
+#endif
 
-		static Update RequestInterface(Interface*& out, std::string_view name, uintptr_t version);
+		//If this is the source, it should just directly use the implemetation.
+			
+		}
+
+		static Update RequestInterface(Interface*& out, std::string_view name, uintptr_t version)
+		{
+#ifdef LEX_SOURCE
+			return RequestInterface_Impl(out, name, version);
+#else
+			using Self = decltype(RequestInterface_Impl);
+			return ExternCall<Self>(LEX_BINARY_MODULE, "RequestInterface_Impl", out, name, version);
+#endif
+
+			
+		}
 
 
 		template<std::derived_from<Interface> T>

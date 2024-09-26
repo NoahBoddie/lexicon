@@ -23,13 +23,15 @@ namespace LEX
 	ENUM(LinkFlag, uint8_t)
 	{
 		None,
-		Object		= 1 << 0,	//Used for objects who's reference of may not be visable on the spot.
+		Loaded		= 1 << 0,   //Used to tell when all scripts have loaded
 		Declaration	= 1 << 1,	//Used when all functions have finished being declared, meaning their names exist.
 		Definition	= 1 << 2,	//Used when all functions have finished being defined, meaning they can be called. Also links external funcs.
 								// (for AVG, called in postpostload)
-		External	= 1 << 3,	//Used for the reference of properties or formulas and as such must be handled after load.
+		Object		= 1 << 3,	//Used for objects who's reference of may not be visable on the spot.
+
+		External	= 1 << 4,	//Used for the reference of properties or formulas and as such must be handled after load.
 		
-		All			= LinkFlag::Object | LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External,
+		All			= LinkFlag::Loaded | LinkFlag::Object | LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External,
 
 		//Final happens when all linking is done, notably, what also happens here is a bid for dependency.
 		// Basically by now if it's not loaded properly, it will never be. Final also cannot be manually selected.
@@ -290,6 +292,9 @@ namespace LEX
 		virtual LinkResult OnLink(LinkFlag flags) { return LinkResult::Failure; }
 
 		virtual LinkFlag GetLinkFlags() { return LinkFlag::None; }
+		
+		//This is a function that gets called when the entire linking process completes.
+		virtual void OnLinkComplete() {}
 
 		bool ValidFlag() const
 		{
