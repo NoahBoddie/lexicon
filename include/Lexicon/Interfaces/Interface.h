@@ -75,14 +75,22 @@ namespace api
 			Clear();
 		}
 
+		constexpr container() = default;
+
 		container(const elem& e) : _data{ e.data() }, _size{ e.size() } {}
 
 		container(elem&& e) : container{ e } {}
 
 
-		container(const container&) = delete;
+		container(const container& other)
+		{
+			Obtain(other._size, other._size);
+		}
 
-		container(container&&) = delete;
+		container(container&& other)
+		{
+			Move(other);
+		}
 
 
 
@@ -104,7 +112,7 @@ namespace api
 
 		container& operator= (container&& c)
 		{
-			return Obtain(c._size, c._size);
+			return Move(c);
 		}
 
 		//make const version of this, ensure that it only exists in the event that the self actually has a [].
@@ -179,6 +187,18 @@ namespace api
 			return *_elem;
 		}
 
+		container& Move(container& other)
+		{
+			_raw = other._raw;
+			_size = other._size;
+
+			other._raw = 0;
+			other._size = 0;
+
+			return *this;
+		}
+
+
 		Enum GetMode() const
 		{
 			if (!_raw)
@@ -208,12 +228,7 @@ namespace api
 
 	};
 
-	void Test()
-	{
-		container<std::vector<int>> test = std::vector<int>{};
-	}
 
-	std::string_view;
 	/*
 	template<class T, class Alloc = std::allocator<T>>
 	class vector

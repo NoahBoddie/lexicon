@@ -31,7 +31,7 @@ namespace LEX
 				virtual OBJECT_POLICY* GetObjectPolicy(uint32_t index) = 0;
 
  
-				virtual OBJECT_POLICY* RegisterObjectType(std::vector<std::string_view> aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source) = 0;
+				virtual OBJECT_POLICY* RegisterObjectType(api::container<std::vector<std::string_view>> aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source) = 0;
 
 			};
 		}
@@ -49,7 +49,7 @@ namespace LEX
 		OBJECT_POLICY* GetObjectPolicy(uint32_t index) INTERFACE_METHOD;
 
 
-		OBJECT_POLICY* RegisterObjectType(std::vector<std::string_view> aliases, std::string_view category,
+		OBJECT_POLICY* RegisterObjectType(api::container<std::vector<std::string_view>> aliases, std::string_view category,
 			TypeOffset range, DataBuilder builder, HMODULE source) INTERFACE_METHOD;
 
 

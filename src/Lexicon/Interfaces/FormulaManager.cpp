@@ -41,18 +41,28 @@ namespace LEX
 
 
 
-	[[nodiscard]] uint64_t FormulaManager::RequestFormula(SignatureBase& base, std::vector<std::string_view>& params, std::string_view routine, FormulaHandler& out, std::string_view from)
+	[[nodiscard]] uint64_t FormulaManager::RequestFormula(ISignature base, api::container<std::vector<std::string_view>> params, std::string_view routine, FormulaHandler& out, std::string_view from)
 	{
 
 		std::unique_ptr<BasicFormula> formula = std::make_unique<BasicFormula>();
 
-		formula->_returnType = base.result;
+		formula->_returnType = base.result();
 
-		for (int i = 0; i < base.parameters.size(); i++)
+		auto parameters = base.parameters();
+
+		if (auto target = base.target(); target)
 		{
-			logger::info("TEST {} {} {}", params[i], params.size(), base.parameters.size());
+			formula->_targetType = target;
+			formula->parameters.emplace_back(target, parse_strings::this_word, 0);
+			formula->__thisInfo = std::make_unique<ParameterInfo>(target, parse_strings::this_word, 0);
+		}
 
-			formula->parameters.push_back(ParameterInfo(base.parameters[i], std::string(params[i]), i));
+		auto& f_params = formula->parameters;
+		for (int i = 0; i < parameters.size(); i++)
+		{
+			logger::info("TEST {} {} {}", params[i], params->size(), parameters.size());
+
+			f_params.push_back(ParameterInfo(parameters[i], std::string(params[i]), f_params.size()));
 		}
 
 
@@ -73,9 +83,9 @@ namespace LEX
 		if (!perspective) {
 			report::apply::error("cannot find script '{}'.", from);
 		}
-
+		
 		//This needs to confirm it's proper
-		formula->_routine = RoutineCompiler::Compile(ast, formula.get(), perspective);
+		formula->_routine = RoutineCompiler::Compile(ast, formula.get(), perspective, parse_strings::no_name, formula->GetTargetType());
 
 
 		formulaMap[formula.get()].refCount = 1;

@@ -15,7 +15,7 @@ namespace LEX
 	struct RuntimeVariable;
 
 	//This exists elsewhere, please move this some how.
-	using Procedure = void(*)(RuntimeVariable&, Variable* target, std::vector<Variable*>, ProcedureData&);
+	using Procedure = void(*)(RuntimeVariable&, Variable* target, api::container<std::vector<Variable*>>, ProcedureData&);
 
 	namespace Version
 	{
@@ -24,7 +24,7 @@ namespace LEX
 
 			struct INTERFACE_VERSION(ProcedureHandler)
 			{
-				virtual bool CheckSignatureMatch(SignatureBase& base, IFunction* func) = 0;
+				virtual bool CheckSignatureMatch(LEX::ISignature base, IFunction* func) = 0;
 				virtual bool RegisterDispatch(Dispatcher* dispatch, IFunction* func) = 0;
 				virtual bool RegisterFunction(Procedure procedure, IFunction* func) = 0;
 			};
@@ -36,7 +36,7 @@ namespace LEX
 
 	struct IMPL_SINGLETON(ProcedureHandler)
 	{		
-		bool CheckSignatureMatch(SignatureBase& base, IFunction* func) override INTERFACE_FUNCTION;
+		bool CheckSignatureMatch(LEX::ISignature base, IFunction* func) override INTERFACE_FUNCTION;
 
 		bool RegisterDispatch(Dispatcher* dispatch, IFunction* func) override INTERFACE_FUNCTION;
 

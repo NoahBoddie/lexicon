@@ -6,15 +6,15 @@
 
 namespace LEX
 {
-	RuntimeVariable ConcreteFunction::Execute(std::vector<RuntimeVariable>& args, Runtime* runtime, RuntimeVariable* def)
+	RuntimeVariable ConcreteFunction::Execute(api::container<std::vector<RuntimeVariable>> args, Runtime* runtime, RuntimeVariable* def)
 	{
 		//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
 
 		
 		Variable* target = nullptr;
 
-		if (args.size() != parameters.size())
-			report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
+		if (args->size() != parameters.size())
+			report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
 
 		size_t size = parameters.size();
 
@@ -49,7 +49,7 @@ namespace LEX
 			data.defOption = def;
 			data.function = this;
 
-			auto begin = args.begin();
+			auto begin = args->begin();
 			
 			std::vector<Variable*> send_args;
 			
@@ -61,9 +61,9 @@ namespace LEX
 				begin++;
 			}
 			
-			std::transform(begin, args.end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
+			std::transform(begin, args->end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
 			
-			logger::critical("size check {} {}, {}", args.size(), parameters.size(), send_args.size());
+			logger::critical("size check {} {}, {}", args->size(), parameters.size(), send_args.size());
 
 			report _{ IssueType::Runtime };
 			prod(result, target, send_args, data);

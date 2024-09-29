@@ -14,7 +14,7 @@ namespace LEX
 		//void LoadFromRecord(Record&)
 
 	
-		RuntimeVariable Execute(std::vector<RuntimeVariable>& args, Runtime* runtime, RuntimeVariable* def) override;
+		RuntimeVariable Execute(api::container<std::vector<RuntimeVariable>> args, Runtime* runtime, RuntimeVariable* def) override;
 
 
 	};

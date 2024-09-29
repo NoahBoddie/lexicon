@@ -138,7 +138,7 @@ namespace LEX
 	//This is to be used without reference in interfaces, having it plugged in anywhere where there's a signature base.
 	struct IMPL_VERSION(ISignature)
 	{
-		ISignature(const SignatureBase & base) { _base = &base; }
+		ISignature(const SignatureBase& base) { _base = &base; }
 		
 		ISignature(SignatureBase&& base) { _base = &base; }
 	};

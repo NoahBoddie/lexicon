@@ -1646,7 +1646,7 @@ namespace LEX
 
 			inline static Self* instance = &GetSingleton();
 
-			RuntimeVariable Execute(std::vector<RuntimeVariable>& args, Runtime*, RuntimeVariable*) override
+			RuntimeVariable Execute(api::container<std::vector<RuntimeVariable>> args, Runtime*, RuntimeVariable*) override
 			{
 				return (double)args[0]->AsString().size();
 			}
@@ -1676,7 +1676,7 @@ namespace LEX
 
 				inline static Self* instance = &GetSingleton();
 
-				virtual RuntimeVariable Execute(std::vector<RuntimeVariable>& args, Runtime*, RuntimeVariable*)
+				virtual RuntimeVariable Execute(api::container<std::vector<RuntimeVariable>> args, Runtime*, RuntimeVariable*)
 				{
 
 					//Convert should be real simple.
@@ -1994,8 +1994,8 @@ namespace LEX
 			float64->EmplaceDefault(static_cast<double>(0));
 			float32->EmplaceDefault(static_cast<float>(0));
 			uBoolean->EmplaceDefault(static_cast<bool>(0));
-			
-			sInt32->EmplaceDefault(static_cast<uint32_t>(0));
+			constexpr bool test = std::is_same_v<unsigned int, uint32_t>;
+			uInt32->EmplaceDefault(static_cast<uint32_t>(0));
 			sInt32->EmplaceDefault(static_cast<int32_t>(0));
 			sInt64->EmplaceDefault(static_cast<int64_t>(0));
 			uInt64->EmplaceDefault(static_cast<uint64_t>(0));

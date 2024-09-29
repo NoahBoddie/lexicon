@@ -92,9 +92,18 @@ namespace LEX
 			parameters = std::move(other.parameters);
 		}
 
-		constexpr Signature() noexcept = default;
 
+		void MoveSignature(ISignature& other)
+		{
+			result = other.result();
+			target = other.target();
+			parameters = other.parameters();
+		}
+
+		constexpr Signature() noexcept = default;
+		//May not need.
 		Signature(SignatureBase& other) { MoveSignature(other); }
+		Signature(ISignature& other) { MoveSignature(other); }
 
 	};
 

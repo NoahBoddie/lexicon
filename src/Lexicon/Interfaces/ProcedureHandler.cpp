@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Interfaces/ProcedureHandler.h"
 
 #include "Lexicon/Engine/Signature.h"
@@ -14,7 +12,7 @@ namespace LEX
 	inline static std::vector<std::unique_ptr<Dispatcher>> _dispatchList{};
 
 
-	bool ProcedureHandler::CheckSignatureMatch(SignatureBase& base, IFunction* func)
+	bool ProcedureHandler::CheckSignatureMatch(ISignature base, IFunction* func)
 	{
 
 		Signature sign{ base };
@@ -53,7 +51,7 @@ namespace LEX
 
 		_dispatchList.emplace_back(std::unique_ptr<Dispatcher>{ dispatch });
 
-		auto reciever = [](RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) -> void {
+		auto reciever = [](RuntimeVariable& result, Variable* target, api::container<std::vector<Variable*>> args, ProcedureData& data) -> void {
 			auto p_data = data.function->GetProcedureData();
 
 			//check data here.

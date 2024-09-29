@@ -21,12 +21,12 @@ namespace LEX
 		// They don't have targets
 
 
-		RuntimeVariable Execute(std::vector<RuntimeVariable>& args, Runtime* runtime, RuntimeVariable* def) override
+		RuntimeVariable Execute(api::container<std::vector<RuntimeVariable>> args, Runtime* runtime, RuntimeVariable* def) override
 		{
 			//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
 
-			if (args.size() != parameters.size())
-				report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
+			if (args->size() != parameters.size())
+				report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
 
 			size_t size = parameters.size();
 

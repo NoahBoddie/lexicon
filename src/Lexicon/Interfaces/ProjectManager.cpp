@@ -473,7 +473,7 @@ namespace LEX
 		return result;
 	}
 
-	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out, const std::vector<std::string_view>* opts)
+	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out, api::container<std::vector<std::string_view>> options)
 	{
 		//Might break this down into a function that knows it's path and one that doesn't, mostly for scripts created via function.
 		std::string script_path = std::format("{}/{}.lsi", path, name);
@@ -488,8 +488,6 @@ namespace LEX
 
 		file_input.close();//Don't really need to do this, seeing as the destructor does, but eh
 
-
-		std::vector<std::string_view> options = opts ? *opts : std::vector<std::string_view>{};
 
 
 		tmp_AddCompileOptions(options, project);
@@ -514,8 +512,8 @@ namespace LEX
 			
 
 			if (tmp_directives.size() != 0) {
-				auto begin = options.begin();
-				auto end = options.end();
+				auto begin = options->begin();
+				auto end = options->end();
 
 				for (auto& directive : tmp_directives.GetChildren()) {
 					
