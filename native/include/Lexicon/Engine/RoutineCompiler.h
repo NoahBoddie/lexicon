@@ -6,6 +6,8 @@
 #include "Operation.h"
 #include "RoutineBase.h"
 
+#include "parse_strings.h"
+
 //*src
 #include "ConcreteFunction.h"
 #include "TargetObject.h"
@@ -627,7 +629,7 @@ namespace LEX
 			return Compile(ast, owner, env, owner->_name, owner->GetTargetType());
 		}
 		
-		static RoutineBase Compile(Record& ast, BasicCallableData* owner, Environment* env, std::string_view name = "<no name>", ITypePolicy* tarType = nullptr)
+		static RoutineBase Compile(Record& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name, ITypePolicy* tarType = nullptr)
 		{
 			RoutineCompiler compiler{ ast, owner, env, name, tarType };
 			RoutineBase result = compiler.CompileRoutine();

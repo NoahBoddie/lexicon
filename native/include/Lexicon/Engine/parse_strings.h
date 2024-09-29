@@ -46,6 +46,7 @@ namespace LEX
 		constexpr static auto project_req = "<:prj:>";
 		constexpr static auto directory_req = "<:dir:>";
 
+		constexpr static auto no_name = "<:noname:>";
 	};
 
 }
