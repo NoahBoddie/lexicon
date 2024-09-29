@@ -24,7 +24,7 @@ namespace LEX
 
 		static bool TryRegister(Dispatcher* dispatch, IFunction* func);
 
-		virtual void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) = 0;
+		virtual void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*>& args, ProcedureData& data) = 0;
 
 	protected:
 		//A constant code that will serve as varification. Actually unsure what this does but I'll keep it in case I remember
@@ -74,7 +74,7 @@ namespace LEX
 			}
 		}
 
-		void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*> args, ProcedureData& data) override
+		void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*>& args, ProcedureData& data) override
 		{
 			//Unload that shit.
 			//using Arg1 = std::tuple_element_t<0, std::tuple<Args...>>;
