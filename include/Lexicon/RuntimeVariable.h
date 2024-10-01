@@ -184,7 +184,7 @@ namespace LEX
 		{
 			Handle(other, Flag::Init);
 		}
-
+		
 
 		RunDataHelper& operator=(const RunDataHelper& other)
 		{

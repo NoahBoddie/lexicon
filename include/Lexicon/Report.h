@@ -84,6 +84,8 @@ namespace LEX
 
 	struct report
 	{
+		//I would like a new sink, failure. Failure will be equal to error but it won't crash.
+
 	protected:
 		static inline LString CreateArgSlots(size_t size)
 		{

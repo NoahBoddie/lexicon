@@ -94,6 +94,9 @@ namespace LEX
                 logger::debug("I, {}, have type {}", _name, (uint64_t)_targetType);
             }
 
+            //Is this shit right???? It's using the return type I'm like 100% sure
+
+
             //Qualifiers like const are put here depending on if the function is const. 
             // We don't have those post declarations yet.
             auto& param = parameters.emplace_back(QualifiedType{ type }, parse_strings::this_word, 0);
