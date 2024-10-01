@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Lexicon/VariableType.h"
+
 //*src
 #include "Lexicon/AbstractTypePolicy.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
@@ -7,6 +9,8 @@
 namespace LEX
 {
 	struct AbstractTypePolicy;
+
+	using c_string = const char*;
 
 	struct String
 	{
@@ -91,6 +95,7 @@ namespace LEX
 			return { _ptr, _size };
 		}
 
+
 		operator std::string() const
 		{
 			return string();
@@ -99,6 +104,12 @@ namespace LEX
 		operator std::string_view() const
 		{
 			return view();
+		}
+
+
+		operator c_string() const
+		{
+			return c_str();
 		}
 
 
@@ -152,6 +163,28 @@ namespace LEX
 
 	};
 	REQUIRED_SIZE(String, 0x10);
+
+
+
+	template <>
+	struct VariableType<std::string>
+	{
+
+		AbstractTypePolicy* operator()()
+		{
+			return String::GetVariableType(nullptr);
+		}
+	};
+
+	template <>
+	struct VariableType<std::string_view>
+	{
+
+		AbstractTypePolicy* operator()()
+		{
+			return String::GetVariableType(nullptr);
+		}
+	};
 
 
 }
