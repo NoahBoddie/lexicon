@@ -737,6 +737,11 @@ void logger::InitializeLogging()
     }
 #endif
 
+    if (auto def = spdlog::default_logger(); def)
+    {
+        return;
+    }
+
     log->set_level(level);
     log->flush_on(level);
 
