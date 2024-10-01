@@ -64,9 +64,9 @@ namespace LEX
 
 		auto operator <=>(const QualifiedType&) const = default;
 
-		//TODO: IsCovertToQualfied needs to hold an ITypePolicy to see if it has permission to this conversion. How I'd do that, is kinda hard.
-		ConvertResult IsConvertToQualified(QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const
+		ConvertResult IsQualified(QualifiedType& other) const
 		{
+			//This does a conversion but only on the qualifiers.
 
 			//auto comp = flags & other.flags;
 
@@ -75,7 +75,7 @@ namespace LEX
 			Qualifier r_comp = other.flags & Qualifier::Const;
 
 			if (l_comp != r_comp) {
-				
+
 				//this  first bit makes no sense, if the left side is const anything can still go into it (as long as we are initializing).
 				if (1 != 1) {
 					//if (l_comp == Qualifier::Const)
@@ -95,6 +95,19 @@ namespace LEX
 						return ConvertResult::QualError2;
 				}
 			}
+
+			//Simple for now.
+			return ConvertResult::Exact;
+		}
+
+
+
+		//TODO: IsCovertToQualfied needs to hold an ITypePolicy to see if it has permission to this conversion. How I'd do that, is kinda hard.
+		ConvertResult IsConvertToQualified(QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const
+		{
+
+			if (auto result = IsQualified(other); result != ConvertResult::Exact)
+				return result;
 
 			//Simple for now.
 			return policy->IsConvertibleTo(other.policy, scope, out, is_expl ? ConversionType::Implicit : ConversionType::Implicit);
