@@ -110,7 +110,7 @@ namespace LEX
 
 				//under more normal situations, vary this by whether it's a ref or not.
 
-				result = to_result;
+				result = Variable{ to_result, GetVariableType<R>() };
 			}
 		}
 

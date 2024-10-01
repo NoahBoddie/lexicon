@@ -33,7 +33,7 @@ namespace LEX
 		//If not void and complete (or just complete because void isn't a complete type
 		//If it's void, that's fine
 		if (_out != Impl::Register::Invalid && result.IsVoid() == false)
-			runtime->GetRegister(_out) = result;
+			runtime->GetRegister(_out) = std::move(result);
 		//*/
 	}
 

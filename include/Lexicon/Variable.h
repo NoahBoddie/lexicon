@@ -291,7 +291,8 @@ namespace LEX
         template <Constructible<VariableComponent> T>
         Variable(T&& value)//, AbstractTypePolicy* type)
         {
-            _value = value;
+            //Move here
+            _value = std::move(value);
             SetPolicy(_CheckVariableType());//REFUTE
             _SetDefined(true);
         }
@@ -490,14 +491,14 @@ namespace LEX
 
         AbstractTypePolicy* _CheckVariableType();
 
-    public:
 
-        //PRIVATE_INTERNAL:
+    INTERNAL:
         void SetPolicy(AbstractTypePolicy* policy)
         {
             _type = policy;
         }
 
+    public:
 
         explicit operator IVariable* ()
         {
@@ -660,7 +661,12 @@ namespace LEX
             if (_type)
                 CheckAssign(LEX::GetVariableType(other));
 
+            if (!Policy() && _value.index() == 0)
+                SetPolicy(other.Policy());
+
             _value = other._value;
+
+            
 
             _SetDefined(true);
             _SetChanged(true);
