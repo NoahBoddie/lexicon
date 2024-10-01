@@ -151,7 +151,6 @@ namespace LEX
 
 			ret = func->Execute(args, runtime, nullptr);
 
-
 			//I may actually just include the decrement in here myself.
 
 			if (count) {//Only needs to do this if it had arguments. Handles reference snags basically.
@@ -193,13 +192,44 @@ namespace LEX
 				}
 				break;
 
+				case OperandType::Type:
+				{
+					auto& var = from[0];
+					
+					//This is the real solution, I just want to check if I was right.
+					//auto from_type = LEX::GetVariableType(var.Ref());
+					auto from_type = var->Policy();
+
+					if (!from_type)
+						report::info("NO FROM");
+
+					auto to_type = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+
+					
+					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionType::Explicit); convert_result > convertFailure)
+					{
+						ret = var.Ref();
+						ret->SetPolicy(to_type->FetchTypePolicy(runtime));
+					}
+					else
+					{
+						ret = to_type->GetDefault();
+					}
+					
+				}
+				break;
+
+
+				//If it's a type it will check if it's current type can be converted into the given thing. if not, it will return it as a null.
+
 				default:
-					report::runtime::critical("Invalid operand type detected. {}", (int)a_lhs.type);
+					report::runtime::critical("Invalid operand type detected. {}", magic_enum::enum_name(a_lhs.type));
+					break;
 
 			}
 			
-			
-			ret = func->Execute(from, runtime, nullptr);
+			if (func)
+				ret = func->Execute(from, runtime, nullptr);
 		}
 
 
@@ -1606,6 +1636,76 @@ namespace LEX
 		}
 
 
+		Solution CastProcess(ExpressionCompiler* compiler, Record& target)
+		{
+			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetEnvironment() };
+
+			if (!header) {
+				report::compile::error("No type found for cast");
+			}
+
+			Solution expression = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered());
+
+
+
+
+			Conversion out;
+
+			assert(expression.policy);
+			report::compile::debug("result {:X}", (uint64_t)expression.policy);
+
+			if (1 || target.GetView() != "maybe")
+			{
+				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, true); convert_result > convertFailure)
+				{
+					//If this can convert, it's basically going to be something automatic.
+					CompUtil::HandleConversion(compiler, out, expression, convert_result);
+				}
+				//if the type we're trying to go to can convert into ours with only type conversions
+				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, true); convert_result > convertFailure)
+				{
+					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
+
+					compiler->GetOperationList().emplace_back(
+						InstructionType::Convert,
+						compiler->GetPrefered(),
+						Operand{ header.policy, OperandType::Type },
+						expression);
+				}
+				else
+				{
+					report::compile::critical("Expression not convertible to cast type.");
+				}
+			}
+			else
+			{
+
+
+
+				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, true); convert_result > convertFailure)
+				{
+					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
+
+					compiler->GetOperationList().emplace_back(
+						InstructionType::Convert,
+						compiler->GetPrefered(),
+						Operand{ header.policy, OperandType::Type },
+						expression);
+				}
+
+				//The 2 classes must both 
+			}
+
+			
+		
+
+			return expression;
+		}
+
+
+
+
+
 		void not_actually_call__CallProcess(RoutineCompiler* compiler, Record& target)
 		{
 			//This cannot be used right now, as the actual ability to get a function hasn't been implemented just yet.
@@ -1897,6 +1997,7 @@ namespace LEX
 
 			generatorList[SyntaxType::Unary] = OperatorProcess;
 			generatorList[SyntaxType::Binary] = OperatorProcess;
+			generatorList[SyntaxType::Cast] = CastProcess;
 			
 
 			generatorList[SyntaxType::Number] = LiteralProcess;

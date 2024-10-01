@@ -73,7 +73,7 @@ namespace LEX::Impl
 			"struct", 
 			"class", 
 			"intrinsic", 
-			"external",
+			"external",//I REALLY want to rename this.
 			"interface",
 			"bind",
 			"this",
@@ -101,6 +101,7 @@ namespace LEX::Impl
 			"requires",
 			"include",
 			"import",
+			"as",
 		};
 
 		inline static std::string _compRegex;

@@ -1631,6 +1631,57 @@ namespace LEX::Impl
 
 
 
+		struct CastParser : public AutoParser<CastParser>
+		{
+			//The idea of this should be the lowest priority possible. It expects an identifier and if nothing else claims it then it's a field.
+
+
+			//uint32_t GetPriority() const override
+			//{
+			//	return ModulePriority::None;
+			//}
+
+			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			{
+				return target && parser->IsType(TokenType::Keyword, "as");
+			}
+
+
+
+
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				auto next = parser->next();
+				
+				if (parser->peek().GetView() == "maybe")
+				{
+					next = parser->next();
+				}
+
+				Record cast = Parser::CreateExpression(next, SyntaxType::Cast);
+
+				cast.EmplaceChild(Parser::CreateExpression(parse_strings::lhs, SyntaxType::None, { std::move(*target) }));
+				cast.EmplaceChild(Parser::CreateExpression(parse_strings::rhs, SyntaxType::None, { ParseModule::TryModule<HeaderParser>(parser, nullptr) }));
+
+				return cast;
+			}
+
+			bool IsAtomic() const override { return true; }
+
+
+		};
+
+
+
+
+
+
+
+
+		////////////////////////////////////////////
+		//Preprocessors                          ///
+		////////////////////////////////////////////
 
 
 
