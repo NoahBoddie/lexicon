@@ -1284,7 +1284,7 @@ namespace LEX
 		if (!ret)
 			ret = &path.GetFront();
 
-		return SyntaxRecord::To(*ret);
+		return ret->Transform<SyntaxRecord>();
 	}
 
 
@@ -1345,7 +1345,7 @@ namespace LEX
 
 		if (!left) {
 
-			auto result = GetEnvironmentTMP(a_this, &path->GetFront(), search_scripts);
+			auto result = GetEnvironmentTMP(a_this, &path->Demote(), search_scripts);
 
 			path = nullptr;
 
@@ -1354,9 +1354,9 @@ namespace LEX
 
 		if constexpr (1 == 1)//If not generic.
 		{
-			Environment* _this = GetEnvironmentTMP(a_this, left, search_scripts);
+			Environment* _this = GetEnvironmentTMP(a_this, &left->Demote(), search_scripts);
 
-			path = SyntaxRecord::To(path->FindChild(parse_strings::rhs));
+			path = path->FindChild(parse_strings::rhs);
 
 			return WalkEnvironmentPath(a_this, path, search_scripts);
 		}
@@ -1511,7 +1511,7 @@ namespace LEX
 		//So there has to be something that prevents it from using the main one, notably if someone is incredibly specific about which version they're using.
 
 		//This needs to be proper at some point.
-		SyntaxRecord* path = SyntaxRecord::To(rec.FindChild(parse_strings::path));
+		SyntaxRecord* path = rec.FindChild(parse_strings::path);
 
 		auto left = path ? path->FindChild(parse_strings::lhs) : nullptr;
 		auto right = left ? path->FindChild(parse_strings::rhs) : nullptr;
@@ -1534,7 +1534,7 @@ namespace LEX
 
 		if (path)
 		{
-			switch (path->GetFront().SYNTAX().type)
+			switch (path->GetFront().GetEnumFromRecord<LEX::Syntax>().type)
 			{
 			case SyntaxType::ProjectName:
 				path_state = kFind;
@@ -1564,7 +1564,7 @@ namespace LEX
 			{
 				Project* project = nullptr;
 
-				Record* tar = left ? left : &path->GetFront();
+				Record* tar = left ? &left->Demote() : &path->GetFront().Demote();
 
 				switch (state)
 				{
@@ -1583,10 +1583,10 @@ namespace LEX
 
 					project = ProjectManager::instance->GetProject(tar->GetFront().GetView());
 
-					tar = &GetPath(*right, false);
+					tar = &GetPath(*right, false).Demote();
 					//Revert to this to test for a crash
 					//_next->GetView() == parse_strings::rhs || _next->GetView() == parse_strings::lhs
-					if (_next->SYNTAX().type != SyntaxType::Path) {
+					if (_next->GetSyntax().type != SyntaxType::Path) {
 						_next = nullptr;
 					}
 
@@ -1618,7 +1618,7 @@ namespace LEX
 			}
 
 
-			bool success = HandlePath(target, SyntaxRecord::To(_next), func, searched);
+			bool success = HandlePath(target, _next, func, searched);
 
 			if (success)
 				return true;
@@ -1643,7 +1643,7 @@ namespace LEX
 	{
 		PolicyBase* result = nullptr;
 
-		SearchPathBase(a_this, SyntaxRecord::To(_path), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, _path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -1699,13 +1699,13 @@ namespace LEX
 	{
 		constexpr std::string_view __dent = "| ";
 
-		std::string log = tree.PrintAs<LEX::Syntax>();
+		std::string log = tree.Print<LEX::Syntax>();
 
 		RGL_LOG(info, "{}{}", indent, log);
 
 		indent += __dent;
 
-		for (auto& child_rec : tree.GetChildren())
+		for (auto& child_rec : tree.children())
 		{
 			PrintAST_(child_rec, indent);
 		}

@@ -46,8 +46,13 @@ namespace LEX
 
 		if (!ret)
 			ret = &path.GetFront();
+		RecordBase;
+		static_assert(derived_record<SyntaxRecord>);
+		static_assert(std::derived_from <SyntaxRecord, RecordBase>);
+		static_assert(sizeof(BasicRecord<Syntax>) == sizeof(RecordBase));
+		constexpr auto size = sizeof(SyntaxRecord);
 
-		return SyntaxRecord::To(*ret);
+		return ret->Transform<SyntaxRecord>();
 	}
 
 
@@ -64,7 +69,7 @@ namespace LEX
 
 		if (!left) {
 
-			auto result = GetEnvironmentTMP(a_this, &path->GetFront(), search_scripts);
+			auto result = GetEnvironmentTMP(a_this, &path->Demote(), search_scripts);
 
 			path = nullptr;
 
@@ -73,9 +78,9 @@ namespace LEX
 
 		if constexpr (1 == 1)//If not generic.
 		{
-			Environment* _this = GetEnvironmentTMP(a_this, left, search_scripts);
+			Environment* _this = GetEnvironmentTMP(a_this, &left->Demote(), search_scripts);
 
-			path = SyntaxRecord::To(path->FindChild(parse_strings::rhs));
+			path = path->FindChild(parse_strings::rhs);
 
 			return WalkEnvironmentPath(a_this, path, search_scripts);
 		}
@@ -204,7 +209,7 @@ namespace LEX
 	{
 		PolicyBase* result = nullptr;
 
-		SearchPathBase(a_this, SyntaxRecord::To(_path), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, _path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -380,7 +385,7 @@ namespace LEX
 	{
 		FunctionInfo* result = nullptr;
 
-		SearchPathBase(a_this, SyntaxRecord::To(path), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
 			{
 				//std::verctor
 
@@ -427,7 +432,7 @@ namespace LEX
 	
 		QualifiedField result{ nullptr };
 
-		SearchPathBase(a_this, SyntaxRecord::To(path), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -459,7 +464,7 @@ namespace LEX
 
 		Script* result = nullptr;
 
-		SearchPathBase(a_this, SyntaxRecord::To(path), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -509,7 +514,7 @@ namespace LEX
 	{
 		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
 
-		SyntaxRecord* path = SyntaxRecord::To(rec.FindChild(parse_strings::path));
+		SyntaxRecord* path = rec.FindChild(parse_strings::path);
 
 		//Identifier is searched for directly, it won't search up or to it's associates.
 		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
@@ -547,7 +552,7 @@ namespace LEX
 
 		if (first && state == k_GetCurrent)
 		{
-			switch (first->GetFront().SYNTAX().type)
+			switch (first->GetFront().GetSyntax().type)
 			{
 			case SyntaxType::ProjectName:
 				state = kFindProject;
@@ -609,7 +614,7 @@ namespace LEX
 
 						_focus = next;
 
-						if (!next || next->SYNTAX().type != SyntaxType::Path) {
+						if (!next || next->GetSyntax().type != SyntaxType::Path) {
 							cont = true;
 							break;
 						}
@@ -652,7 +657,7 @@ namespace LEX
 
 
 
-				bool success = HandlePath(target, SyntaxRecord::To(_focus), func, *searched, !is_direct);
+				bool success = HandlePath(target, _focus, func, *searched, !is_direct);
 
 				if (success)
 					return true;
