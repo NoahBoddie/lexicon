@@ -121,13 +121,13 @@ namespace LEX
 	{
 		constexpr std::string_view __dent = "| ";
 
-		std::string log = tree.PrintAs<LEX::Syntax>();
+		std::string log = tree.Print<LEX::Syntax>();
 
 		RGL_LOG(info, "{}{}", indent, log);
 
 		indent += __dent;
 
-		for (auto& child_rec : tree.GetChildren())
+		for (auto& child_rec : tree.children())
 		{
 			PrintAST(child_rec, indent);
 		}
@@ -346,7 +346,7 @@ namespace LEX
 
 	}
 
-	APIResult ConditionalProcess(ScriptString& script, std::vector<std::string_view>& options, RecordIterator it, RecordIterator end)
+	APIResult ConditionalProcess(ScriptString& script, std::vector<std::string_view>& options, Record::Iterator it, Record::Iterator end)
 	{
 		bool enabled = CheckCondition(*it, options);
 
@@ -402,7 +402,7 @@ namespace LEX
 		return fin;
 	}
 	
-	APIResult RequireProcess(ScriptString& script, std::vector<std::string_view>& options, RecordIterator it, RecordIterator end)
+	APIResult RequireProcess(ScriptString& script, std::vector<std::string_view>& options, Record::Iterator it, Record::Iterator end)
 	{
 		//I would like to change how requirement works, and instead make it something that works like a global if, requiring that
 		// something exists or the entire thing just gets dumped.
@@ -420,10 +420,10 @@ namespace LEX
 
 	APIResult GeneralProcess(ScriptString& script, Record& directives, std::vector<std::string_view>& options)
 	{
-		auto& dirs = directives.GetChildren();
+		auto& dirs = directives.children();
 
-		RecordIterator it = dirs.begin();
-		RecordIterator end = dirs.end();
+		Record::Iterator it = dirs.begin();
+		Record::Iterator end = dirs.end();
 
 		auto _begin = options.begin();
 		auto _end = options.end();
@@ -515,7 +515,7 @@ namespace LEX
 				auto begin = options->begin();
 				auto end = options->end();
 
-				for (auto& directive : tmp_directives.GetChildren()) {
+				for (auto& directive : tmp_directives.children()) {
 					
 					test_content.SetLines(false, directive.SYNTAX().line);
 

@@ -1252,7 +1252,7 @@ namespace LEX
 			// will NOT increment the index, instead storing the record for later use.
 			//Additionally, I use get arg count so that the index being pushed
 			//*Turns out, the I was not required.
-			for (size_t i = 0; auto & arg : arg_record->GetChildren())
+			for (size_t i = 0; auto & arg : arg_record->children())
 			{
 
 				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
@@ -1399,7 +1399,7 @@ namespace LEX
 			// will NOT increment the index, instead storing the record for later use.
 			//Additionally, I use get arg count so that the index being pushed
 			//*Turns out, the I was not required.
-			for (size_t i = 0; auto & arg : arg_record->GetChildren())
+			for (size_t i = 0; auto & arg : arg_record->children())
 			{
 
 				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered());//, ops);

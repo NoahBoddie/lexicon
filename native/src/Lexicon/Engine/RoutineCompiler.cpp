@@ -45,7 +45,7 @@ namespace LEX
 			//In that case, scopes are objects that are manually created, and require at least a RoutineCompiler (meaning expressions can't create new scopes)
 			//, allowing for something that can be created in one function, kept alive until it's end, and then destroyed once no longer needed. Thus, my worries of maintaining
 			// the var stack is finished.
-			for (auto& entry : data.GetChildren())
+			for (auto& entry : data.children())
 			{
 				std::vector<Operation> new_stuff = CompileLine(entry, Register::Result);
 				cache.insert_range(cache.end(), new_stuff);

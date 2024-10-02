@@ -717,7 +717,7 @@ namespace LEX::Impl
 						//header.GetChild(KeywordType::TypeSpec).EmplaceChild(Parser::CreateExpression(peek, SyntaxType::None));
 						//result.EmplaceChild(ParseModule::TryModule<IdentifierParser>(parser, nullptr)).SYNTAX().type = SyntaxType::Typename;
 						Record pull = ParseModule::TryModule<HeaderParser>(parser, nullptr);
-						result.EmplaceChildren(std::move(pull.GetChild(KeywordType::TypeSpec).GetChildren()));
+						result.EmplaceChildren(std::move(pull.GetChild(KeywordType::TypeSpec).children()));
 
 						target->EmplaceChildren(result);
 
@@ -1039,14 +1039,20 @@ namespace LEX::Impl
 
 							try
 							{
+								//This is still entirely fucked up and terrible. But, I would like to try to reprise this at some point.
+
 								size_t processed = 0;
 
 								
 								auto test = std::stoll(tag, &processed);
 
-								if (tag.size() > processed)
-									return func();
-
+								if (tag.size() > processed) {
+									test = std::stoll(tag, &processed, 16);
+								
+									if (tag.size() > processed)
+										return func();
+								}
+								
 								return parser->CreateExpression(next, SyntaxType::Integer);
 							}
 							catch (std::invalid_argument in_arg) {
@@ -1275,10 +1281,10 @@ namespace LEX::Impl
 						parent.EmplaceChildren(std::move(children));
 					}
 					else {
-						index.PushBackChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Number), SyntaxType::Number));
+						index.EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Number), SyntaxType::Number));
 					}
 				} else {
-					index.PushBackChild(Parser::CreateExpression("0", SyntaxType::Number));
+					index.EmplaceChild(Parser::CreateExpression("0", SyntaxType::Number));
 				}
 
 				return index;
@@ -1304,7 +1310,7 @@ namespace LEX::Impl
 				if constexpr (1!=1)//when pigs fly, or in other words when I implement generics
 				{
 					//This is the section for generics at a later point. As it is not generic, it is empty.
-					settings.PushBackChild(Parser::CreateExpression(parse_strings::generic, SyntaxType::None));
+					settings.EmplaceChild(Parser::CreateExpression(parse_strings::generic, SyntaxType::None));
 				}
 
 
@@ -1330,7 +1336,7 @@ namespace LEX::Impl
 					case "intrinsic"_h:  //Intrinsic needs to push back a category name, and index.
 					case "external"_h:   //external needs to push back category name and index.
 						requires_body = false;
-						attach.PushBackChild(HandleInterfaceIndex(parser));
+						attach.EmplaceChild(HandleInterfaceIndex(parser));
 						break;
 
 					default:
@@ -1416,7 +1422,7 @@ namespace LEX::Impl
 							parser->SkipType(TokenType::Punctuation, ";");
 					}
 
-					result.PushBackChild(body);
+					result.EmplaceChild(body);
 				} else if (requires_body) {
 					parser->croak("type requires a body.");
 				}
@@ -1558,7 +1564,7 @@ namespace LEX::Impl
 					
 
 					if (body.SYNTAX().type == SyntaxType::StateBlock)
-						block.EmplaceChildren(std::move(body.GetChildren()));
+						block.EmplaceChildren(std::move(body.children()));
 					else if (body)
 						block.EmplaceChildren(std::move(body));
 
@@ -1569,7 +1575,7 @@ namespace LEX::Impl
 				{
 					Record body = ParseModule::TryModule<EncapsulateParser>(parser, nullptr);
 
-					auto& children = body.GetChildren();
+					auto& children = body.children();
 
 
 					if (body.SYNTAX().type == SyntaxType::StateBlock)

@@ -26,7 +26,7 @@ namespace LEX
 	{
 		Qualifier flags{};
 
-		for (auto& entry : node.GetChildren())
+		for (auto& entry : node.children())
 		{
 			std::string& name = entry.GetTag();
 
@@ -54,7 +54,7 @@ namespace LEX
 	{
 		DeclareSpecifier decl{};
 
-		for (auto& entry : node.GetChildren())
+		for (auto& entry : node.children())
 		{
 			std::string& name = entry.GetTag();
 

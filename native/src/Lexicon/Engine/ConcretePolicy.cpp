@@ -170,7 +170,7 @@ namespace LEX
 	void ConcretePolicy::CompileExpression_DEPRECATED(Record& ast)
 	{
 		//Keeping this because I may have need of it in the future.
-		for (auto& node : ast.GetChildren())
+		for (auto& node : ast.children())
 		{
 			switch (ast.SYNTAX().type)
 			{
@@ -235,7 +235,7 @@ namespace LEX
 				//this should more be if it's not number.
 				if (auto& args = cat_name.GetFront(); args.GetView() == "args")
 				{
-					auto& children = args.GetChildren();
+					auto& children = args.children();
 
 					std::vector<std::string_view> string_args{ children.size() };
 

@@ -107,7 +107,7 @@ namespace LEX
         }
 
 
-        for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->GetChildren())
+        for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->children())
         {
             Record* node_head = node.FindChild(parse_strings::header);
 
@@ -222,7 +222,7 @@ namespace LEX
             }
 
 
-            for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->GetChildren())
+            for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->children())
             {
                 Record* node_head = node.FindChild(parse_strings::header);
 

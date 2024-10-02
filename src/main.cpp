@@ -38,13 +38,13 @@ static void PrintAST(Record& tree, std::string indent = "")
 {
     const static std::string __dent = "|  ";
 
-    std::string log = tree.PrintAs<Syntax>();
+    std::string log = tree.Print<Syntax>();
     
     RGL_LOG(info, "{}{}", indent, log);
 
     indent += __dent;
 
-    for (auto& child_rec : tree.GetChildren())
+    for (auto& child_rec : tree.children())
     {
         PrintAST(child_rec, indent);
     }

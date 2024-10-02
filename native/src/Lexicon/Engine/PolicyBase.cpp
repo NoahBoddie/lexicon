@@ -82,7 +82,7 @@ namespace LEX
 		//This should be handled after declaration.
 		//static_assert(false);
 		if (auto derives = settings->FindChild(parse_strings::derives)) {
-			for (auto& inherit : derives->GetChildren()) {
+			for (auto& inherit : derives->children()) {
 				PolicyBase* type = GetParent()->FetchEnvironment()->SearchTypePath(inherit);
 
 				Access access = Access::None;

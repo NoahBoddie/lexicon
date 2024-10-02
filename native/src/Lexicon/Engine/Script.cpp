@@ -114,7 +114,7 @@ namespace LEX
 				//this should more be if it's not number.
 				if (auto& args = category.GetFront(); args.GetView() == "args")
 				{
-					auto& children = args.GetChildren();
+					auto& children = args.children();
 
 					std::vector<std::string_view> string_args{ children.size() };
 
@@ -257,7 +257,7 @@ namespace LEX
 
 
 
-		for (auto& node : target.GetChildren())
+		for (auto& node : target.children())
 		{
 			get_switch(node.SYNTAX().type)
 			{
@@ -306,7 +306,7 @@ namespace LEX
 				//Directives should be ordered, namely that subdirectories should be made first.
 				Project* parent = GetProject();
 
-				for (auto& directive : node.GetChildren()) {
+				for (auto& directive : node.children()) {
 					switch (directive.SYNTAX().type)
 					{
 					case SyntaxType::Relationship:
