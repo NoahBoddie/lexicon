@@ -10,8 +10,10 @@
 namespace LEX
 {
 
-	struct SyntaxRecord : public Record
+	struct SyntaxBody
 	{
+		using Self = BasicRecord<Syntax, SyntaxBody>;
+
 		//I would like to make an over version of syntax record that basically copies all the functions and makes it into a new version, that way find
 		// and the rest of that stuff doesn't have so many issues.
 
@@ -19,7 +21,6 @@ namespace LEX
 		// but it would help determine what returns there are. The template record is what would do all the accessing and such maybe?
 
 
-		using Record::Record;
 
 		//What I basically want of this it accumulate messages, and their source locations and such. So it will handle that sort of this.
 
@@ -35,20 +36,26 @@ namespace LEX
 			size_t hash = hasher(std::this_thread::get_id());
 
 		}
-		
+	private:
+		Self* GetSelf()
+		{
+			return reinterpret_cast<Self*>(this);
+		}
+	public:
+
 		Element* GetParent()
 		{
-			return Record::GetParent<Element*>();
+			return GetSelf()->RecordBase::GetParent<Element*>();
 		}
 		
 		void SetParent(Element* parent)
 		{
-			return __super::SetParent(parent);
+			return GetSelf()->RecordBase::SetParent(parent);
 		}
 
 		Syntax& GetSyntax()
 		{
-			return SYNTAX();
+			return GetSelf()->GetEnumFromRecord();
 		}
 
 		bool IsPath()
@@ -202,15 +209,8 @@ namespace LEX
 
 		//*/
 
-#define SYNTAX_REC_TO(mc_qual, mc_t) static SyntaxRecord mc_qual To(Record mc_qual it) { return reinterpret_cast<std::add_##mc_t##value_reference_t<SyntaxRecord mc_qual>>(it); }
 
-		//This is stupid don't do this.
-		SYNTAX_REC_TO(&, l);
-		SYNTAX_REC_TO(*&, l);
-		SYNTAX_REC_TO(*&&, r);
-
-#undef SYNTAX_REC_TO
-		//This should disable things like copy constructors and such, basically preventing it from being copied and forcing it to be referenced.
 	};
 
+	using SyntaxRecord = BasicRecord<Syntax, SyntaxBody>;
 }
