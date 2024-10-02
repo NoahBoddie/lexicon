@@ -6,6 +6,8 @@
 
 #include "Lexicon/Interfaces/IElement.h"
 
+
+#include "Lexicon/TypeAliases.h"
 //*src
 #include "Lexicon/Interfaces/IProject.h"
 #include "Lexicon/Interfaces/IScript.h"
@@ -16,6 +18,8 @@
 #include "Lexicon/Interfaces/ProjectManager.h"
 #include "Lexicon/RelateType.h"
 
+
+
 namespace LEX
 {
 	struct Environment;
@@ -25,7 +29,7 @@ namespace LEX
 	
 	struct FunctionInfo;
 
-	struct SyntaxRecord;
+
 
 	using ElementSearch = bool(std::vector<Environment*>&);
 

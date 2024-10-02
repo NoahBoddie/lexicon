@@ -153,10 +153,6 @@ namespace LEX
 		using expected_var_type_t = expected_var_type<T>::type;
 	}
 
-	void Test()
-	{
-
-	}
 
 	template <typename R, typename T, typename... Args>
 	struct Formula<R(T::*)(Args...)> : public FormulaHandler

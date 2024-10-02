@@ -16,6 +16,9 @@ namespace LEX
 	//Variables that are captured from one runtime to another,
 	// or Variables that are from another function runtime
 
+	struct Syntax;
+	struct SyntaxBody;
+	using SyntaxRecord = BasicRecord<Syntax, SyntaxBody>;
 	
 
 	namespace Impl
