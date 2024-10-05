@@ -15,8 +15,40 @@ namespace LEX
 
 		//I don't think I'd even want to do this.
 		//using ConcretePolicy::ConcretePolicy;
-		std::vector<ITypePolicy*> GetPostAffixedTypes() const override { return {}; }
+		std::vector<ITypePolicy*> GetPostAffixedTypes() const override { return { IdentityManager::instance->GetInherentBase(InherentType::kVoidable) }; }
+
+
+		virtual TypeRuleset GetRuleset() const
+		{
+			return TypeRuleset::NoGlobal | TypeRuleset::NoVariable | TypeRuleset::ReturnOpt;
+		}
+
 		//Should do nothing.
 		VoidPolicy();
+
+	};
+
+
+	class VoidablePolicy : public ConcretePolicy
+	{
+	public:
+
+		//I don't think I'd even want to do this.
+		//using ConcretePolicy::ConcretePolicy;
+		std::vector<ITypePolicy*> GetPostAffixedTypes() const override { return {}; }
+
+
+		virtual TypeRuleset GetRuleset() const
+		{
+			return TypeRuleset::NoGlobal | TypeRuleset::ReturnOpt;
+		}
+
+		//Should do nothing.
+		VoidablePolicy()
+		{
+			_id = (uint32_t)InherentType::kVoidable;
+
+			_dataType = DataType::Interface;
+		}
 	};
 }
