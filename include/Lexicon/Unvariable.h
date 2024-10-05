@@ -27,4 +27,13 @@ namespace LEX
 		}
 	};
 
+	template <>
+	struct Unvariable<Variable>
+	{
+		Variable& operator()(Variable* var)
+		{
+			return *var;
+		}
+	};
+
 }
