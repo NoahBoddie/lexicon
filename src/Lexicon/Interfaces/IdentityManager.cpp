@@ -84,7 +84,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	inline std::mutex _lock;
 	//inline std::vector<IdentityData> dataList;
 	//Policy list starts with an entry immediately. The void policy.
-	inline std::vector<PolicyBase*> policyList{ nullptr };
+	inline std::vector<PolicyBase*> policyList{};
 
 	//TODO: Instead of having to search every identity list, I think I may make a second list that basically points to what index it goes to. 
 	// This is easier to do, but also with the advent of so many different generated object types, it will become more performant to just do this.
@@ -93,11 +93,29 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	inline std::array<PolicyBase*, InherentType::kTotal> inherentTypes
 	{
 		new VoidPolicy{}, 
+		new VoidablePolicy{}
 	};
 
 
+	void CheckID(uint32_t& id)
+	{
+		if (id < InherentType::kTotal) {
+			report::compile::critical("TypeID {} is an Inherent and cannot be claimed. Value is {} ", id, magic_enum::enum_name((InherentType)id));
+		}
 
-	inline PolicyBase* _voidPolicy = new VoidPolicy{};
+		id -= InherentType::kTotal;
+
+	}
+
+	INITIALIZE()
+	{
+		//This exists for each of the policies to handle their inheritance. Mainly for void so it can be voidable.
+		for (auto type : inherentTypes){
+			if (type)
+				type->HandleInheritance();
+		}
+	}
+
 
 	//Not needed now policy list exists.
 	inline uint32_t nextID = InherentType::kTotal;
@@ -178,6 +196,8 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	{
 		//Fix.
 		std::lock_guard<std::mutex> guard{ _lock };
+		
+		CheckID(id);
 
 		assert(policyList.size() > id);
 
@@ -263,12 +283,13 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	//This too is used often.(What does this mean?)
 	PolicyBase* IdentityManager::GetBaseByID(TypeID id)
 	{
+
 		//TODO: The first type should be the void policy, it should already be generated.
 		if (id < InherentType::kTotal) {
 			return GetInherentBase((InherentType)id.value());
 		}
 
-		return policyList[id];
+		return policyList[id.value() - InherentType::kTotal];
 	}
 
 }
