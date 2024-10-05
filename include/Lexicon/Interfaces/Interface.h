@@ -47,7 +47,7 @@ namespace api
 	namespace detail
 	{
 		template <typename T>
-		concept container_type = requires(const T & t) 
+		concept container_type = requires(const T& t) 
 		{ 
 			{ t.size() } -> std::same_as<size_t>;
 		} 
@@ -228,6 +228,18 @@ namespace api
 
 	};
 
+
+	template <class Elem, class Traits = std::char_traits<Elem>, class Alloc = std::allocator<Elem>>
+	using basic_string = container<std::basic_string<Elem, Traits, Alloc>>;
+
+
+
+	using string = container<std::string>;
+
+
+	template <class T, class Alloc = std::allocator<T>>
+	using vector = container<std::vector<T, Alloc>>;
+	//using 
 
 	/*
 	template<class T, class Alloc = std::allocator<T>>
