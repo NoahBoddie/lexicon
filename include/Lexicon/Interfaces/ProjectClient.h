@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Lexicon/TypeID.h"
+
 namespace LEX
 {
 	class Project;
@@ -25,10 +27,10 @@ namespace LEX
 				
 				virtual TypeOffset GetOffsetFromArgs(std::string_view category, std::string_view* data, size_t length) = 0;
 				
-				virtual HMODULE GetParentModule() const = 0;
+				virtual HMODULE GetParentModule() = 0;
 
 				//returns an empty string view when it reaches the end.
-				virtual std::string_view GetCompileOptions(size_t index) const = 0;
+				virtual std::string_view GetCompileOptions(size_t index) = 0;
 
 				Project* GetProject() { return _project; }
 
@@ -50,11 +52,11 @@ namespace LEX
 	using IProjectClient = Version::Current::ProjectClient;
 
 	//This will allow for forward declaration where type alias will not.
-	struct ProjectClient : IProjectClient
+	struct ProjectClient : public IProjectClient
 	{
-		HMODULE GetParentModule() const override final { return GetCurrentModule(); }
+		HMODULE GetParentModule() override final { return GetCurrentModule(); }
 
-		std::string_view GetCompileOptions(size_t index) const override { return {}; }
+		std::string_view GetCompileOptions(size_t index) override { return {}; }
 	};
 
 	/*
