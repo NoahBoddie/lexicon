@@ -15,7 +15,7 @@ namespace LEX
 
 
 		//Doesn't actually need to take vector could be list.
-		RoutineBase(std::vector<Operation> op, size_t var, size_t arg) :
+		RoutineBase(std::vector<Operation>&& op, size_t var, size_t arg) :
 			operations{ op },
 			varCapacity{ var },
 			argCapacity{ arg }

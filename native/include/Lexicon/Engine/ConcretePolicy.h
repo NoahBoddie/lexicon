@@ -76,6 +76,7 @@ namespace LEX
 
 
 	private:
+		//TODO: unique_ptr this bum. It takes more space than it's owed.
 		Variable _default;
 
 	};

@@ -7,6 +7,7 @@
 
 //Revision. I want to change the name (again). Maybe TypeInterface, idk
 
+//Use common type instead.
 #include "Lexicon/Interfaces/IdentityManager.h"
 #include "Lexicon/ITypePolicy.h"
 

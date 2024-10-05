@@ -71,7 +71,8 @@ namespace LEX
 		DropStack,
 		DropStackN,//This will drop if positive instead of if negative.
 		JumpStack,
-		Return,					//
+		Return,
+		//ReturnScoped,//DEPRECATED//exactly the same as return, but helps specify that it's scoped and may be skipped.
 		Total,
 		IncArgStack = InstructionType::IncrementArgStack,
 		IncVarStack = InstructionType::IncrementVarStack,
