@@ -259,8 +259,9 @@ namespace LEX
 		{ 
 			//logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
 			
-			logger::critical(" index of set {}", a_lhs.Get<Index>());
-			RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
+		
+			//RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
+			RuntimeVariable& var = a_lhs.AsVariable(runtime);
 			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
 			
 			//if no policy, fatal fault
@@ -1581,6 +1582,7 @@ namespace LEX
 		{
 			QualifiedType return_policy = compiler->GetReturnType();
 
+			auto& list = compiler->GetOperationList();
 
 			if (target.size() != 0)
 			{
@@ -1620,18 +1622,23 @@ namespace LEX
 				CompUtil::HandleConversion(compiler, out, result, convert_result);
 
 			}
-			else if (return_policy && return_policy != IdentityManager::instance->GetInherentType(InherentType::kVoid))
+			else if (return_policy->CheckRuleset(TypeRuleset::NoReturn) == false)
 			{
 				report::compile::critical("Expecting return expression");
 			}
+			else
+			{ 
+				CompUtil::PrepareReturn(compiler, return_policy, {});
+			}
+			
 
+			auto scope = compiler->GetScope();
 
-			compiler->GetScope()->FlagReturn();
+			scope->FlagReturn();
 
 			//Operation ret_op{ InstructionType::Return };
 
 			//This part should probably say what left and right situation should be on display.
-
 			compiler->GetOperationList().emplace_back(InstructionType::Return);
 		}
 
@@ -1986,6 +1993,8 @@ namespace LEX
 		};
 
 
+
+
 		INITIALIZE()
 		{
 			logger::debug("test");
@@ -2090,6 +2099,9 @@ namespace LEX
 			
 
 			static ConcretePolicy* _coreObject = new CoreType{ "CORE", 0 };
+			
+			_coreObject->SetInheritFrom(common_type::voidable());
+			
 
 			
 			float64->EmplaceDefault(static_cast<double>(0));
