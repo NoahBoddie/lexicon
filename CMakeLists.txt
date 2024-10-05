@@ -268,7 +268,7 @@ set(headers
 	"include/Lexicon/GenericPartArray.h" 
 	"include/Lexicon/GenericBodyArray.h"
 	 ${master_headers}
-)
+ "src/Lexicon/Object.cpp")
 
 
 set(sources
