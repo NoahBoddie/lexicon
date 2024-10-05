@@ -91,6 +91,7 @@ namespace LEX::Impl
 			"const",
 			"mutable",
 			"void",
+			"voidable",
 			"ref",
 			//"maybe",
 			"readonly",

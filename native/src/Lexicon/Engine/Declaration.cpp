@@ -167,6 +167,8 @@ namespace LEX
 				case "void"_h:
 					return IdentityManager::instance->GetInherentBase(InherentType::kVoid);
 
+				case "voidable"_h:
+					return IdentityManager::instance->GetInherentBase(InherentType::kVoidable);
 
 				case "object"_h:
 					return IdentityManager::instance->GetBaseByOffset("CORE", 0);
