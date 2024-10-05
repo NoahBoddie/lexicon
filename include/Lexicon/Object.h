@@ -478,6 +478,9 @@ namespace LEX
 		}
 
 
+		std::string PrintString() const;
+
+
 
 
 		ObjectData _data{};

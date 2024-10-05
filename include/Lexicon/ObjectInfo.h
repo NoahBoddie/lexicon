@@ -3,6 +3,7 @@
 #include "ObjectData.h"
 #include "TypeID.h"
 
+#include "Lexicon/String.h"
 //*src
 #include "ITypePolicy.h"
 
@@ -15,6 +16,8 @@ namespace LEX
 
 	struct ITypePolicy;
 	struct AbstractTypePolicy;
+
+	struct String;
 
 	//Please use ObjectData&. There's never a situation where we won't send it, and ObjectData will never be in need of sending "this".
 
@@ -35,15 +38,15 @@ namespace LEX
 		virtual ObjectPolicy* GetObjectPolicy() = 0;
 
 		//Used to tell the individual objects version. Useful if the plugin doesn't change, but what's targeted does.
-		virtual uintptr_t GetObjectVersion() const = 0;
+		virtual uintptr_t GetObjectVersion() = 0;
 		
 		//This should exist as a seperation between Vtable version and the other.
 		// The info version is what the user implements. The VTable version is what I've added onto the vtables. Basically, VTable
 		// will be a final virtual function.
-		//virtual uintptr_t GetInfoVersion() const = 0;
+		//virtual uintptr_t GetInfoVersion() = 0;
 
 		//Used to tell what version the class is. Helps detect when new functions are added.
-		virtual uintptr_t GetVTableVersion() const = 0;
+		virtual uintptr_t GetVTableVersion() = 0;
 
 
 		//TODO: IsCompatible should be using a different struct, specifically the one that tells which item is incompatible with which.
@@ -107,6 +110,9 @@ namespace LEX
 			return SpecializeType(object, type);
 		}
 
+		//Gets the objects print string. Comes with context for types such as bind classes that attach themselves to an object.
+		virtual String PrintString(ObjectData& object, std::string_view context) = 0;
+
 		//*/
 
 	};
@@ -119,8 +125,8 @@ namespace LEX
 		ObjectPolicy* GetObjectPolicy() override { return _policy; }
 
 
-		uintptr_t GetObjectVersion() const override { return 0; }
-		uintptr_t GetVTableVersion() const override { return 0; }
+		uintptr_t GetObjectVersion() override { return 0; }
+		uintptr_t GetVTableVersion() override { return 0; }
 
 		
 		virtual bool IsCompatible(const IObjectVTable*) override { return true; }
@@ -162,6 +168,17 @@ namespace LEX
 			if (!_policy)
 				_policy = policy;
 		}
+
+
+		String PrintString(ObjectData& self, std::string_view context) override
+		{
+
+
+			//Later I'd like this to be able to get the name. Saving that for later though.
+			return std::format("{}::({:X})", context.empty() ? "Object" : context, self.fstVal);
+		}
+
+
 		//*/
 	INTERNAL:
 		//This policy is the only 
@@ -251,6 +268,25 @@ namespace LEX
 				return std::partial_ordering::unordered;
 			}
 		}
+
+
+		String PrintString(ObjectData& self, std::string_view context) override
+		{
+			constexpr bool has_func = requires(const T& t, std::string_view s)
+			{
+				{ t.PrintString(s) } -> std::convertible_to<String>;
+			};
+
+			if constexpr (has_func)
+			{
+				return self.get<T>().PrintString(context);
+			}
+			else
+			{
+				return __super::PrintString(self, context);
+			}
+		}
+
 
 		//it would be neat if this would make it so object data no longer had to be used by obscuring the old versions of the functions
 		// and calling new ones. 

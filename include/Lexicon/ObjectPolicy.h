@@ -3,12 +3,14 @@
 #include "Lexicon/TypeID.h"
 #include "Lexicon/ObjectPoolData.h"
 #include "Lexicon/ObjectInfo.h"
-
+#include "Lexicon/String.h"
 //*src
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {
+	struct ObjectPolicyImpl;
+
 
 	struct IObjectPolicy
 	{
@@ -18,6 +20,10 @@ namespace LEX
 
 		
 		virtual ~IObjectPolicy() = default;
+
+		//For when the impl version gets moved.
+		virtual ObjectPolicyImpl* Promote() { return nullptr; }
+		
 
 		//*
 		[[nodiscard]] virtual uint32_t ObtainPool() = 0;
@@ -37,14 +43,14 @@ namespace LEX
 		virtual void DestroyPool(uint32_t i) = 0;
 
 
-		virtual uint32_t GetTypeIDFromOffset(TypeOffset) const = 0;
+		virtual uint32_t GetTypeIDFromOffset(TypeOffset) = 0;
 
-		virtual ObjectData CreateData(uint32_t = 0) const = 0;
+		virtual ObjectData CreateData(uint32_t = 0) = 0;
 		
-		virtual uint32_t GetPolicyID() const = 0;
+		virtual uint32_t GetPolicyID() = 0;
 
-		virtual TypeIndex GetCategoryIndex() const = 0;
-		virtual std::string_view GetCategoryName() const = 0;
+		virtual TypeIndex GetCategoryIndex() = 0;
+		virtual std::string_view GetCategoryName() = 0;
 		//*/
 	};
 
@@ -85,14 +91,14 @@ namespace LEX
 
 
 		//Used to tell the individual objects version. Useful if the plugin doesn't change, but what's targeted does.
-		uintptr_t GetObjectVersion() const override
+		uintptr_t GetObjectVersion() override
 		{
 			return base->GetObjectVersion();
 		}
 
 
 		//Used to tell what version the class is. Helps detect when new functions are added.
-		uintptr_t GetVTableVersion() const override final
+		uintptr_t GetVTableVersion() override final
 		{
 			return base->GetVTableVersion();
 		}
@@ -181,6 +187,13 @@ namespace LEX
 		uint32_t GetTypeID(ObjectData& self) override
 		{
 			return base->GetTypeID(self);
+		}
+
+
+		
+		String PrintString(ObjectData& self, std::string_view context) override
+		{
+			return base->PrintString(self, context);
 		}
 
 #pragma endregion
@@ -455,27 +468,27 @@ namespace LEX
 
 #pragma endregion
 
-		uint32_t GetTypeIDFromOffset(TypeOffset offset) const override
+		uint32_t GetTypeIDFromOffset(TypeOffset offset) override
 		{
 			return IdentityManager::instance->GetIDFromIndex(index) + offset;
 		}
 
-		ObjectData CreateData(uint32_t id = 0) const override
+		ObjectData CreateData(uint32_t id = 0) override
 		{
 			//Currently, no data used. Later? Either Instance ID, or Type ID. One should know which they use.
 			return ctor(id);
 		}
 
-		uint32_t GetPolicyID() const override
+		uint32_t GetPolicyID() override
 		{
 			return policyID;
 		}
 
-		TypeIndex GetCategoryIndex() const override
+		TypeIndex GetCategoryIndex() override
 		{
 			return index;
 		}
-		std::string_view GetCategoryName() const override
+		std::string_view GetCategoryName() override
 		{
 			return category;
 		}
