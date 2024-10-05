@@ -40,6 +40,31 @@ namespace LEX
 
 
 
+		static ITypePolicy* void_t()
+		{
+			static ITypePolicy* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetInherentType(InherentType::kVoid);
+			}
+
+			return type;
+		}
+
+
+		static ITypePolicy* voidable()
+		{
+			static ITypePolicy* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetInherentType(InherentType::kVoidable);
+			}
+
+			return type;
+		}
+
+
+
 	private:
 		
 	};

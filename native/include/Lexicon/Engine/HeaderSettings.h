@@ -77,7 +77,8 @@ namespace LEX
 		headerGuide[KeywordType::TypeSpec]["int"] = { HeaderFlag::Primary, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["double"] = { HeaderFlag::Primary, HeaderFlag::Sizable };
 		headerGuide[KeywordType::TypeSpec]["float"] = { HeaderFlag::Primary, HeaderFlag::Sizable };
-		headerGuide[KeywordType::TypeSpec]["void"] = { HeaderFlag::Primary, HeaderFlag::All };
+		headerGuide[KeywordType::TypeSpec]["void"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };
+		headerGuide[KeywordType::TypeSpec]["voidable"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };
 		headerGuide[KeywordType::TypeSpec]["string"] = { HeaderFlag::Primary, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["char"] = { HeaderFlag::Primary, HeaderFlag::None };//char doesn't exist yet.
 		headerGuide[KeywordType::TypeSpec]["object"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };//char doesn't exist yet.
