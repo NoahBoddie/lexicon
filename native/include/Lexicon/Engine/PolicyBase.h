@@ -22,11 +22,11 @@ namespace LEX
 		enum Flag
 		{
 			None = 0,
-			LinkExtern = 1 << Prev::_next + 0,
-			InheritHandled = 1 << Prev::_next + 1,
+			LinkExtern = 1 << (Prev::_next + 0),
+			InheritHandled = 1 << (Prev::_next + 1),
 
 
-			_next = 1 << Prev::_next + 2,
+			_next = 1 << (Prev::_next + 2),
 
 		};
 
@@ -34,6 +34,8 @@ namespace LEX
 		// a specialization ending up in there (Seeing as they must be kept as ITypePolicy)
 		
 	public:
+
+		//TODO: I would like have more information here telling the compiler what it can and can't do with it.
 
 		
 		TypeID GetTypeID() const override
@@ -217,6 +219,11 @@ namespace LEX
 	public:
 
 		void HandleInheritance() override;
+
+		virtual TypeRuleset GetRuleset() const
+		{
+			return TypeRuleset::None;
+		}
 
 
 		//These doing this is kinda ill advised, but since the function is defined here, it's safe to do. Specially since
