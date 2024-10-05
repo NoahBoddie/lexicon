@@ -45,8 +45,8 @@ namespace LEX
 			if (auto it = vars.find(name); it != end) {
 				return it->second;
 			}
-			else if (parent) {
-				return parent->SearchFieldPath(_path, key);
+			else if (_parent) {
+				return _parent->SearchFieldPath(_path, key);
 			}
 
 			if (ParameterInfo* field = process->FindParameter(name); field) {

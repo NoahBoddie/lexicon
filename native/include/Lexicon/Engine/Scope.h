@@ -31,15 +31,14 @@ namespace LEX
 
 	struct Scope
 	{
-	private:
+	public:
 		enum ReturnType : uint8_t
 		{
-			None,		//There is no guarenteed return
-			Nested,		//There is a return, through different scopes.
-			Immutable	//There is a non conditional return interpreted. Cannot be overwritten.
+			None,			//There is no guarenteed return
+			ImpNested,		//There is a return, through different scopes.
+			Nested,			//There is a return, through different scopes.
+			Immutable		//There is a non conditional return interpreted. Cannot be overwritten.
 		};
-	public:
-
 		//The generic object that handles the concept of a scope.
 
 		~Scope()
@@ -72,7 +71,7 @@ namespace LEX
 			process->_current = _prev;
 
 
-			process->currentScope = parent;
+			process->currentScope = _parent;
 
 
 
@@ -98,12 +97,12 @@ namespace LEX
 
 			//This needs to handle the return type so it can get a proper compiling error for not returning when required.
 
-			parent = process->currentScope;
+			_parent = process->currentScope;
 			process->currentScope = this;
 			
 			process->_current = &operationList;
 
-			if (parent && s == ScopeType::Header) {
+			if (_parent && s == ScopeType::Header) {
 				report::compile::critical("invalid header scope with parent detected.");
 			}
 		} 
@@ -157,12 +156,30 @@ namespace LEX
 		QualifiedField SearchFieldPath(Record& _path, OverloadKey* key = nullptr);
 
 
+		Scope* parent() { return _parent; }
+
+		Scope* grandparent()
+		{
+			Scope* focus = _parent;
+
+			if (focus)
+			{
+				
+				while (focus->parent() != nullptr)
+				{
+					focus = focus->parent();
+				}
+			}
+			
+			return focus;
+		}
+
 		//If this is the scope that the routine uses to hold its top level data returns true.
-		bool IsRoutine() const { return !parent; }
+		bool IsRoutine() const { return !_parent; }
 
-		bool IsHeader() const { return _type == ScopeType::Header && !parent; }
+		bool IsHeader() const { return _type == ScopeType::Header && !_parent; }
 
-		bool IsTopLevel() const { return IsHeader() || (parent ? parent->_type == ScopeType::Header : false); }
+		bool IsTopLevel() const { return IsHeader() || (_parent ? _parent->_type == ScopeType::Header : false); }
 
 
 		//As variables get declared, this list will grow in size.
@@ -177,7 +194,7 @@ namespace LEX
 
 
 		//If scope has no parent, it will address the function data stored on the compiler, making it the chief scope.
-		Scope* parent = nullptr;
+		Scope* _parent = nullptr;
 
 		RoutineCompiler* process = nullptr;//Will turn statement compiler into a routinecompiler.
 
@@ -201,8 +218,8 @@ namespace LEX
 		{
 
 			if (IsHeader() == true) {
-
-				if (!process->implicitReturn && !_return && process->GetReturnType()->FetchTypeID() != -1)
+				//TODO: Please do this properly, zero should be void, -1 should be null.
+				if (!process->implicitReturn && !IsReturned() && process->GetReturnType()->TryRuleset(TypeRuleset::ReturnOpt) == false)
 					report::compile::critical("Explicit return expected. {}", process->name());
 
 				return;
@@ -215,31 +232,84 @@ namespace LEX
 
 			case ScopeType::Required:
 				if (_return)
-					parent->_ConfirmExit();
+					_parent->_ConfirmExit();
+
+				break;
+
+			case ScopeType::Conditional:
+				if (IsReturned() == true)
+					//Will be nested if dependent was successful. And if it wasn't, an imp exit is discared.
+					_parent->IsReturnNested() ? _parent->_ConfirmExit() : _parent->_FlagImpExit();
+				else
+					_parent->_UnflagExit();
+
+				break;
+
+			case ScopeType::Depedent:
+				if (IsReturned() == true)
+					_parent->IsReturnImpNested() ? _parent->_ConfirmExit() : _parent->_FlagExit();
+				else
+					_parent->_UnflagExit();
+
+				//else if (IsReturnImmutable() == true && _parent->IsReturnI)
+				break;
+			}
+		}
+		/*
+		void _CheckExit()
+		{
+
+			if (IsHeader() == true) {
+				//TODO: Please do this properly, zero should be void, -1 should be null.
+				if (!process->implicitReturn && !_return && process->GetReturnType()->TryRuleset(TypeRuleset::ReturnOpt) == false)
+					report::compile::critical("Explicit return expected. {}", process->name());
+
+				return;
+			}
+
+			switch (_type)
+			{
+			case ScopeType::Header:
+				break;
+
+			case ScopeType::Required:
+				if (_return)
+					_parent->_ConfirmExit();
 
 				break;
 
 			case ScopeType::Conditional:
 				if (_return)
-					parent->_FlagExit();
+					_parent->_FlagExit();
 				else
-					parent->_UnflagExit();
+					_parent->_UnflagExit();
 
 				break;
 
 			case ScopeType::Depedent:
-				if (!_return)
-					parent->_UnflagExit();
-
+				if (IsReturned() == false)
+					_parent->_UnflagExit();
+				//else if (IsReturnImmutable() == true && _parent->IsReturnI)
 				break;
 			}
 		}
+
+		//*/
+
 
 		void _FlagExit()
 		{
 
 			if (_return != Immutable)
 				_return = ReturnType::Nested;
+		}
+
+
+		void _FlagImpExit()
+		{
+
+			if (_return != Immutable)
+				_return = ReturnType::ImpNested;
 		}
 
 		void _UnflagExit()
@@ -257,6 +327,27 @@ namespace LEX
 		void FlagReturn()
 		{
 			_return = ReturnType::Immutable;
+		}
+			
+
+		bool IsReturnNested() const
+		{
+			return _return == ReturnType::Nested;
+		}
+
+		bool IsReturnNone() const
+		{
+			return _return == ReturnType::ImpNested || _return == ReturnType::None;
+		}
+
+		bool IsReturnImpNested() const
+		{
+			return _return == ReturnType::ImpNested;
+		} 
+
+		bool IsReturned() const
+		{
+			return _return == ReturnType::Immutable;
 		}
 
 		//Flag for a return call within this scope. But it means different things for the routine's scope than it does for something like an
