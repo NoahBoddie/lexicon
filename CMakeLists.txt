@@ -189,7 +189,10 @@ if(LEXICON_SOURCE)
 		src/Lexicon/Interfaces/FormulaManager.cpp
 		"src/Lexicon/Interfaces/ReportManager.cpp"
 		"native/src/Lexicon/Engine/SettingManager.cpp"
-		"native/src/Lexicon/Engine/FunctionData.cpp" )
+		"native/src/Lexicon/Engine/FunctionData.cpp" 
+		"native/src/Lexicon/Engine/SyntaxRecord.cpp"
+
+	)
 else()
 	set (master_headers )
 	set (master_sources )

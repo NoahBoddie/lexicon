@@ -1,14 +1,17 @@
 #pragma once
 
-#include "Lexicon/Report.h"
-#include "Lexicon/Interfaces/ReportManager.h"
-
-#include "Lexicon/Engine/Script.h"
 
 #include "Lexicon/Engine/Expression.h"
 
+
+#include "Lexicon/Report.h"
+#include "Lexicon/Interfaces/ReportManager.h"
+
 namespace LEX
 {
+	class Script;
+	struct Element;
+
 
 	struct SyntaxBody
 	{
@@ -37,44 +40,20 @@ namespace LEX
 
 		}
 	private:
-		Self* GetSelf()
-		{
-			return reinterpret_cast<Self*>(this);
-		}
+		Self* GetSelf();
+
 	public:
 
-		Element* GetParent()
-		{
-			return GetSelf()->RecordBase::GetParent<Element*>();
-		}
+		Element* GetParent();
 		
-		void SetParent(Element* parent)
-		{
-			return GetSelf()->RecordBase::SetParent(parent);
-		}
+		void SetParent(Element* parent);
 
-		Syntax& GetSyntax()
-		{
-			return GetSelf()->GetEnumFromRecord();
-		}
+		Syntax& GetSyntax();
 
-		bool IsPath()
-		{
-			return GetSyntax().type == SyntaxType::Path;
-		}
+		bool IsPath();
 
 
-		std::string GetAffix()
-		{
-			Script* script = GetParent()->FetchScript();
-
-			std::string_view name = script ? script->GetName() : "<no_name>";
-			std::string_view extension = script ? ".lsi" : "";
-
-			auto& syntax = GetSyntax();
-
-			return std::format(" <{}{}: (line: {} / col: {})>", name, extension, syntax.line, syntax.column);
-		}
+		std::string GetAffix();
 		
 		auto Mutator()
 		{
