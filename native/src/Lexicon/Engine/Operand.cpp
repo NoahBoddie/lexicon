@@ -35,7 +35,7 @@ namespace LEX
 			
 		}
 
-		report::runtime::critical("Operand Cannot return AsVariable. No reference type detected. {} ", (uint8_t)type);
+		report::runtime::critical("Operand Cannot return AsVariable. No reference type detected. {} ", magic_enum::enum_name(type));
 		throw nullptr;//Error.
 	}
 
