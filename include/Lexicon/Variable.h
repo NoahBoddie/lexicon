@@ -263,23 +263,8 @@ namespace LEX
     //}
 
 
-    struct TestUnion
-    {
-        //This class needs to be it's own thing, not just a part of variable.
 
-        union
-        {
-            uint64_t raw;
-            std::bitset<64> bits;//The idea is this will allow us to extract bits before and after assigning.
-            struct
-            {
-                TypeID id;
-                uint32_t spec;
-            }; 
-        };
-    };
-    static_assert(sizeof(TestUnion) == 8, "grgihyrbg");
-    static_assert(sizeof(std::bitset<61>) == 8, "grgihyrbg");
+
 
 
     struct Variable
@@ -703,7 +688,8 @@ namespace LEX
                 return it->Policy();
             }
 
-            return nullptr;
+            //This type could be anything, even void. As such, the representation of a Variable is the basic interface voidable.
+            return IdentityManager::instance->GetInherentType(InherentType::kVoidable)->FetchTypePolicy(nullptr);
         }
      
 
@@ -753,6 +739,46 @@ namespace LEX
         }
 
         RuntimeVariable Convert(AbstractTypePolicy* to);
+
+
+    private:
+
+        template<typename T>
+        constexpr static bool Workaround()
+        {
+            return requires(const T& t)
+            {
+                { t.PrintString() } -> std::convertible_to<String>;
+            };
+        }
+
+
+    public:
+
+        std::string PrintString() const
+        {
+            String string = std::visit([this](auto&& self) -> String {
+                using T = std::decay_t<decltype(self)>;
+                
+                constexpr bool has_func = Workaround<T>();
+                
+                if constexpr (has_func){
+                    return self.PrintString();
+                }
+                else if constexpr (std::is_same_v<T, String>) {
+
+                    return std::format("\"{}\"", self.view());
+                }
+                else if constexpr (std::is_same_v<T, Void>) {
+                    return "void::()";
+                }
+                else {
+                    return std::format("{}::(inv)", magic_enum::enum_name(GetBasicType()));
+                }
+                }, _value);
+
+            return string;
+        }
     };
 
 
@@ -781,8 +807,10 @@ namespace LEX
 
         return result;
     }
-}
 
+ 
+
+}
 
 
 

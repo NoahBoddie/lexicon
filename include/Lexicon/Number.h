@@ -849,6 +849,13 @@ namespace LEX
 		}
 
 
+
+        std::string PrintString() const
+        {
+            //I would like for this to return the qualifiers it has, but this will work for now.
+            return string();
+        }
+
 		std::string string() const
 		{
 			switch (infinite)
