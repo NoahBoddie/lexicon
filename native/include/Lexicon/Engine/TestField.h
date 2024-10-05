@@ -299,6 +299,24 @@ namespace LEX
 		Formula<void(void)>::Create("otherTest() => otherTest() => otherTest() => otherTest()")();
 		
 		Formula<void>::Run("otherTest() => otherTest() => otherTest()");
+		
+		 
+
+		Variable result = Formula<Variable>::Run("(0.0).CouldBeLiterallyAnything()");
+
+		logger::critical("{}", result.PrintString());
+#ifdef KILL
+		if (result.IsVoid())
+		{
+			logger::critical("is void");
+		}
+		else
+		{
+			logger::critical("value is {}", result.AsNumber());
+		}
+#endif
+
+		IObjectVTable;
 	}
 
 
@@ -939,6 +957,48 @@ namespace LEX
 		{
 			logger::info("Deleting Array");
 		}
+
+
+		std::string PrintString(std::string_view context) const
+		{
+			auto size = stuff.size();
+			
+			std::vector<std::string> entries{ size };
+			std::string result = "[";
+			
+			for (int i = 0; i < size; i++)
+			{
+				if (i)
+					result += ", ";
+
+				result += stuff[i].PrintString();
+				
+
+			}
+			result += "]";
+			
+			//Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
+			return result;
+			
+			/*
+			std::string result{ reserve };
+			
+			result.reserve(reserve);
+
+			result = std::accumulate(std::begin(entries), std::end(entries), result,
+				[](std::string& ss, std::string& s)
+				{
+					return ss.empty() ? s : ss + "," + s;
+				});
+
+
+			std::stringstream  stream;
+			
+			std::copy(entries.begin(), entries.end(), std::ostream_iterator<std::string>(stream, ", "));
+			
+			return std::format("[{}]", stream.str());
+			//*/
+		}
 	};
 
 	template <>
@@ -986,12 +1046,14 @@ namespace LEX
 		RegisterObjectType<Array_>("ARRAY");
 		
 		return;
+		if constexpr (0)
 		{
 			Object _array1 = GetObjectPolicy<Array_>()->CreateObject(0);
 			Object _array2 = GetObjectPolicy<Array_>()->CreateObject(0);
 
 			_array1 = _array2;
 		}
+		if constexpr (0)
 		{
 			Object _array1 = GetObjectPolicy<Array_>()->CreateObject(0);
 			Object _array2 = GetObjectPolicy<Array_>()->CreateObject(0);
@@ -1000,7 +1062,7 @@ namespace LEX
 		}
 
 
-		return;
+		//return;
 		// To walk through functionality, how would this work ?
 		std::vector<int> vars{ 1, 2, 3, 4, 5, 6, 7 };
 
@@ -1025,10 +1087,12 @@ namespace LEX
 
 
 		//for (auto& variable : reinterpret_cast<Array_*>(_array.data.ptrVal)->stuff)
-		for (auto& variable : _array.get<Array_>().stuff)
-		{
-			logger::critical("var: {}", variable.AsNumber());
-		}
+		//for (auto& variable : _array.get<Array_>().stuff)
+		//{
+		//	logger::critical("var: {}", variable.AsNumber());
+		//}
+
+		logger::info("~Testing PrintString for Arrays: \"{}\"", _array.PrintString());
 
 
 
@@ -1058,6 +1122,8 @@ namespace LEX
 
 
 		first = second;
+		
+
 		logger::info("end of test");
 	};
 
