@@ -1,5 +1,6 @@
 #include "Lexicon/Engine/CompileUtility.h"
 #include "Lexicon/Engine/RoutineCompiler.h"
+#include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
 	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result)
@@ -58,5 +59,16 @@ namespace LEX
 		}
 
 		return false;
+	}
+
+	void CompUtil::PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value)
+	{
+		if (!value && common_type::void_t() != return_type) {
+			//Solution has no value and it is not void
+			
+			//Actually, if it's void you'll want to clear it even more
+			
+			compiler->GetOperationList().emplace_back(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
+		}
 	}
 }

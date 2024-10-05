@@ -105,6 +105,9 @@ namespace LEX
 
 
 		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result);
+		
+
+		static void PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value);
 
 
 	};
