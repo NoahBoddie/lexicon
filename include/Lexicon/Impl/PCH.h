@@ -335,7 +335,7 @@ struct Initializer
 private:
     inline static bool _done = false;
 };
-inline static int test = 0;
+
 //Initializes something on the spot.
 #define INITIALIZE__COUNTED(mc_counter) inline static void CONCAT(__init_func_,mc_counter)();\
 volatile inline static Initializer CONCAT(__init_var_,mc_counter) = CONCAT(__init_func_,mc_counter);\
