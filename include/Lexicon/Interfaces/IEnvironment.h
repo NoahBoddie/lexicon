@@ -27,23 +27,11 @@ namespace LEX
 				// correction, finding a field like this is something that should be present in ITypePolicy, not this.
 				//virtual Field* FindFieldPath(std::string_view path) = 0;
 				//virtual IGlobal* FindGlobalPath(std::string_view path) = 0;
-			
-
-				virtual Environment* Promote() = 0;
-				virtual const Environment* Promote() const = 0;
-
-
-				Environment* TryPromote() { return this ? Promote() : nullptr; }
-				const Environment* TryPromote() const { return this ? Promote() : nullptr; }
-
 			};
 		}
 
 		CURRENT_VERSION(IEnvironment, 1);
 	}
 
-	struct IMPL_VERSION(IEnvironment)
-	{
-	
-	};
+	struct IMPL_VERSION(IEnvironment){};
 }

@@ -4,7 +4,7 @@
 #include "RGL/Impl/Record.h"
 #include "Lexicon/Exception.h"//May move to src
 
-#include "Lexicon/Interfaces/IElement.h"
+#include "Lexicon/Engine/IElementImpl.h"
 
 
 #include "Lexicon/TypeAliases.h"
@@ -35,7 +35,7 @@ namespace LEX
 
 	
 
-	struct Element : public Component, public IElement
+	struct Element : public Component, public IElementImpl
 	{
 		enum Flag
 		{
@@ -53,46 +53,22 @@ namespace LEX
 
 		virtual Record* GetSyntaxTree() = 0;
 
-	private://Maybe?
-		virtual IScript* GetScriptI() override;
+	
+		Script* GetScript(bool = {}) override;
 
-		virtual IProject* GetProjectI() override;
+		Project* GetProject(bool = {}) override;
 
-		virtual IElement* GetParentI() = 0;
+		Element* GetParent(bool = {}) = 0;
 		
-		virtual IEnvironment* GetEnvironmentI() = 0;
-
-		Element* Promote() override { return this; }
-
-		const Element* Promote() const override { return this; }
+		Environment* GetEnvironment(bool = {}) = 0;
 
 	public:
 
 		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem);
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem) override 
+		Element* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) override
 		{ 
 			return GetElementFromPath(this, path, elem);
-		}
-
-		Script* GetScript()
-		{
-			return GetScriptI()->TryPromote();
-		}
-
-		Project* GetProject()
-		{
-			return GetProjectI()->TryPromote();
-		}
-
-		Environment* GetEnvironment()
-		{
-			return GetEnvironmentI()->TryPromote();
-		}
-
-		Element* GetParent()
-		{
-			return GetParentI()->TryPromote();
 		}
 
 		
@@ -234,7 +210,7 @@ namespace LEX
 
 		static Project* GetShared();
 
-		virtual Script* GetCommons();
+		Script* GetCommons(bool = {}) override;
 
 		Script* FetchCommons()
 		{
@@ -312,10 +288,10 @@ namespace LEX
 		Environment* _parent = nullptr;
 	public:
 
-		IEnvironment* GetEnvironmentI() override;
+		Environment* GetEnvironment(bool = {}) override;
 
 
-		IElement* GetParentI() override;
+		Element* GetParent(bool = {}) override;
 
 
 		Record* GetSyntaxTree() override

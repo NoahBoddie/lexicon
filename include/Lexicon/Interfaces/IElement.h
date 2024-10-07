@@ -30,29 +30,20 @@ namespace LEX
 			struct INTERFACE_VERSION(IElement)
 			{
 				virtual std::string_view GetName() const = 0;
-				virtual Record* GetSyntaxTree() = 0;
+				//virtual Record* GetSyntaxTree() = 0;//Do not use this, it won't be able to handle the request.
 				
-				virtual IScript* INT_NAME(GetScript)() = 0;
-				virtual IProject* INT_NAME(GetProject)() = 0;
-				virtual LEX::IElement* INT_NAME(GetParent)() = 0;
-				virtual IEnvironment* INT_NAME(GetEnvironment)() = 0;
+				virtual IScript* GetScript() = 0;
+				virtual IProject* GetProject() = 0;
+				virtual LEX::IElement* GetParent() = 0;
+				virtual IEnvironment* GetEnvironment() = 0;
+				virtual LEX::IScript* GetCommons() = 0;
 				
-				virtual ITypePolicy* AsType() { return nullptr; }
-				virtual IFunction* AsFunction() { return nullptr; }
-				virtual IGlobal* AsGlobal() { return nullptr; }
-				virtual LEX::IScript* AsScript() { return nullptr; }
-
-				//This promote, and all promotes need to be internal only. There's no use to it outside
-				// of this.
-				virtual Element* Promote() = 0;
-				virtual const Element* Promote() const = 0;
 
 				//Will not need an interface name due to being able to be a covariant
 				virtual LEX::IElement* GetElementFromPath(std::string_view path, ElementType elem) = 0;
-
 			protected:
-				//virtual void* demote() {};
-				
+				virtual void* Cast(std::string_view name) = 0;
+
 
 			};
 
@@ -65,31 +56,40 @@ namespace LEX
 	struct IMPL_VERSION(IElement) 
 	{
 
-		Element* TryPromote() { return this ? Promote() : nullptr; }
-		const Element* TryPromote() const { return this ? Promote() : nullptr; }
-
-
-		ITypePolicy* ToType() { return this ? AsType() : nullptr; }
-		IFunction* ToFunction() { return this ? AsFunction() : nullptr; }
-		IGlobal* ToGlobal() { return this ? AsGlobal() : nullptr; }
-
-
-
 		std::string GetFullName() //const
 		{
 
 			std::string result = std::string{ GetName() };
 
-			IElement* element = INT_NAME(GetParent)();
+			IElement* element = GetParent();
 
 			while (element)
 			{
 				result = std::format("{}::{}", element->GetName(), result);
-				element = element->INT_NAME(GetParent)();
+				element = element->GetParent();
 			}
 
 			return result;
 		}
 
+
+
+		//Each of these muse derive from the same type that IElement does.
+		template<typename T>
+		T* As()
+		{
+			if (!this)
+				return nullptr;
+
+			void* result = Cast(TypeName<T>::value);
+
+			return reinterpret_cast<T*>(result);
+		}
+
+		template <typename T>
+		operator T& ()
+		{
+			return *As<T>();
+		}
 	};
 }

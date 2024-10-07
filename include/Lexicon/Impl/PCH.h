@@ -653,6 +653,13 @@ namespace LEX
 
 #define INTERNAL_DEFAULT default
 
+
+#define INTERN_TYPE int8_t
+#define EXTERN_TYPE uint8_t
+
+#define INTERN_NAME int8_t = {}
+#define EXTERN_NAME uint8_t
+
 //Access space is only supposed to be used by external binaries. Currently set to private.
 #define EXTERNAL private
 
@@ -669,6 +676,13 @@ namespace LEX
 #define EXTERNAL public
 
 #define ACCESS_OR(mc_l, mc_r) mc_r
+
+
+#define INTERN_TYPE uint8_t
+#define EXTERN_TYPE int8_t
+
+#define INTERN_NAME uint8_t
+#define EXTERN_NAME int8_t = {}
 
 #endif // LEX_SOURCE
 

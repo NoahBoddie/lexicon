@@ -9,7 +9,7 @@
 
 namespace LEX
 {
-
+	//Delete please
 	struct Global :
 		public SecondaryElement,
 		public IVariable

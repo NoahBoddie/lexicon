@@ -73,7 +73,7 @@ namespace LEX
 
 		if (from.empty() == false)
 		{
-			perspective = ProjectManager::instance->GetScriptFromPath(from)->TryPromote();
+			perspective = static_cast<Script*>(ProjectManager::instance->GetScriptFromPath(from));
 		}
 		else
 		{

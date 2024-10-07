@@ -137,7 +137,7 @@ namespace LEX
 
 
 
-	IProject* ProjectManager::INT_NAME(GetProject)(std::string_view name)
+	IProject* ProjectManager::GetProject(std::string_view name, EXTERN_TYPE)
 	{
 		if (stricmp("Shared", name.data()) == 0)
 			return _shared;
@@ -152,6 +152,20 @@ namespace LEX
 
 		return nullptr;
 	}
+
+
+	Project* ProjectManager::GetShared(INTERN_TYPE)
+	{
+		return static_cast<Project*>(GetShared(EXTERN_TYPE{}));
+	}
+
+	Project* ProjectManager::GetProject(std::string_view name, INTERN_TYPE)
+	{
+		return static_cast<Project*>(GetProject(name, EXTERN_TYPE{}));
+	}
+
+
+
 
 	bool tmp_CheckCompileOptions(std::string_view tag)
 	{

@@ -11,9 +11,6 @@ namespace LEX
 	
 	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public OverloadClause, public PolicyData
 	{//PolicyBase Might not even use clauses directly. We shall see.
-	public:
-		ITypePolicy* AsType() override { return this; }
-
 
 	private:
 
@@ -97,7 +94,19 @@ namespace LEX
 			return this;
 		}
 
-
+		
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<ITypePolicy>::value):
+				return (ITypePolicy*)this;
+			
+			case Hash(TypeName<PolicyBase>::value):
+				return this;
+			}
+			return __super::Cast(name);
+		}
 
 
 		

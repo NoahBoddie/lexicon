@@ -25,6 +25,21 @@ namespace LEX
 		virtual LinkResult OnLink(LinkFlag flags) override;
 
 		virtual LinkFlag GetLinkFlags() override;
+	
+	protected:
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IFunction>::value):
+				return (IFunction*)this;
+
+			case Hash(TypeName<FunctionBase>::value):
+				return this;
+			}
+
+			return nullptr;
+		}
 
 	public://This public wasn't here before. I wish to understand why it needs to be here now.
 

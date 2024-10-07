@@ -4,9 +4,22 @@
 namespace LEX
 {
 
-	void  Project::AddFormat(std::string& name, std::string& content, Script* source)
+	void Project::AddFormat(std::string_view name, std::string_view content, IScript* source) 
 	{
-		AddFormat(std::string_view{ name }, std::string_view{ content }, source);
+		AddFormat(name, content, static_cast<Script*>(source));
+	}
+
+
+	void  Project::AddFormat(std::string_view name, std::string_view content, Script* source)
+	{
+		Format format;
+		format.formatName = name;
+		format.formatContent = content;
+		format.formatScript = source;
+
+		formatList.push_back(format);
+
+		report::debug("adding format {}", name);
 	}
 
 
@@ -53,13 +66,9 @@ namespace LEX
 
 	}
 
-	IScript* Project::GetCommonsI()
+
+	Script* Project::GetCommons(bool)
 	{
 		return _commons;
-	}
-
-	Script* Project::GetCommons()
-	{
-		return GetCommonsI()->TryPromote();
 	}
 }

@@ -7,7 +7,7 @@
 
 
 #include "Lexicon/Engine/Environment.h"
-#include "Lexicon/Interfaces/IScript.h"
+#include "Lexicon/Engine/IScriptImpl.h"
 //
 #include "Lexicon/AbstractTypePolicy.h"
 #include "Lexicon/AbstractFunction.h"
@@ -22,7 +22,7 @@ namespace LEX
 	struct PolicyBase;
 
 
-	class Script : public Environment, public IScript
+	class Script : public Environment, public IScriptImpl
 	{
 	public:
 
@@ -45,17 +45,27 @@ namespace LEX
 
 		bool IsDefined() const;
 
-		Script* GetCommons() override;
+		Script* GetCommons(bool = {}) override;
 
 
-		IScript* GetScriptI() override;
+		Script* GetScript(bool = {}) override;
 
 
-		Script* Promote() override { return this; }
+		IElement* base() override { return this; }
+		const IElement* base() const override { return this; }
 
-		const Script* Promote() const override { return this; }
 
-		Script* AsScript() override { return this; }
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IScript>::value):
+				return (IScript*)this;
+			case Hash(TypeName<Script>::value):
+				return this;
+			}
+			return nullptr;
+		}
 
 
 		ComponentType GetComponentType() override;
@@ -124,7 +134,7 @@ namespace LEX
 	
 	struct CommonScript : public Script
 	{
-		CommonScript* GetCommons();
+		CommonScript* GetCommons(bool);
 
 		bool IsCommons() const override { return true; }
 

@@ -17,6 +17,21 @@ namespace LEX
 		RuntimeVariable Execute(api::container<std::vector<RuntimeVariable>> args, Runtime* runtime, RuntimeVariable* def) override;
 
 
+	protected:
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<AbstractFunction>::value):
+				return (AbstractFunction*)this;
+
+			case Hash(TypeName<ConcreteFunction>::value):
+				return this;
+			}
+
+			return __super::Cast(name);
+		}
+
 	};
 
 	using Function = ConcreteFunction;

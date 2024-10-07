@@ -33,7 +33,20 @@ namespace LEX
 	struct GlobalBase : public virtual IGlobal, public SecondaryElement, public GlobalData_
 	{
 	public:
-		IGlobal* AsGlobal() override { return this; }
+
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IGlobal>::value):
+				return (IFunction*)this;
+
+			case Hash(TypeName<GlobalBase>::value):
+				return this;
+			}
+
+			return nullptr;
+		}
 
 
 		//I may need a new type of linker for this, so the very most default value can be set for globals, then I can use them

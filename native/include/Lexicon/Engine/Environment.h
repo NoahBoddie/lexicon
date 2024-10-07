@@ -179,10 +179,6 @@ namespace LEX
 	{
 	public:
 
-		Environment* Promote() override { return this; }
-
-		const Environment* Promote() const override { return this; }
-
 
 		//virtual names and fancy names. Virtuals are the ones that are implemented by class, fancy names are embelished ones that call the virtual ones and are safe on nullptrs.
 		// Add/Emplace
@@ -203,6 +199,19 @@ namespace LEX
 		{
 			return nullptr;
 		}
+
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IEnvironment>::value):
+				return (IEnvironment*)this;
+			case Hash(TypeName<Environment>::value):
+				return this;
+			}
+			return nullptr;
+		}
+
 
 		//virtual IGlobal* FindGlobalPath(std::string_view path) overide { return nullptr; }
 
@@ -259,10 +268,10 @@ namespace LEX
 
 
 
-		IEnvironment* GetEnvironmentI() override;
+		Environment* GetEnvironment(bool = {}) override;
 
 		//source file type shit
-		IElement* GetParentI() override;
+		Element* GetParent(bool = {}) override;
 
 		void SetParent(Element* par) override;
 

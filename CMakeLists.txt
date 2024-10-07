@@ -139,7 +139,8 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/SettingManager.h"
 		"native/include/Lexicon/Engine/DefaultClient.h" 
 		"native/include/Lexicon/Engine/SyntaxRecord.h" 
-		"native/include/Lexicon/Engine/BasicFormula.h")
+		"native/include/Lexicon/Engine/BasicFormula.h"
+		native/include/Lexicon/Engine/IElementImpl.h)
 
 	set(master_sources
 	
@@ -191,6 +192,7 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/SettingManager.cpp"
 		"native/src/Lexicon/Engine/FunctionData.cpp" 
 		"native/src/Lexicon/Engine/SyntaxRecord.cpp"
+		"native/src/Lexicon/Engine/IElementImpl.cpp"
 
 	)
 else()
@@ -270,8 +272,10 @@ set(headers
 	"include/Lexicon/ITemplateInsertBody.h" 
 	"include/Lexicon/GenericPartArray.h" 
 	"include/Lexicon/GenericBodyArray.h"
-	 ${master_headers}
- "src/Lexicon/Object.cpp")
+	"include/Lexicon/IElementProxy.h"
+	"include/Lexicon/IElementProxy.h"
+	${master_headers}
+)
 
 
 set(sources
@@ -293,7 +297,8 @@ set(sources
 	"include/Lexicon/Report.cpp"#this is in the wrong place.
 
 	"src/Lexicon/FormulaHandler.cpp"
-	${master_sources} )
+	"src/Lexicon/Object.cpp"
+	${master_sources} "native/src/Lexicon/Engine/IProjectImpl.cpp" "native/src/Lexicon/Engine/IScriptImpl.cpp")
 
 
 

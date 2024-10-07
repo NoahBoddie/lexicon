@@ -350,6 +350,133 @@ void SafeInvoke(std::function<void()> func)
 }
 
 
+
+#ifdef FIALED_PROPERTIES
+namespace PropertyTest
+{
+
+    //Property can possibly be a template basically. With the idea being that it has a version where it's inited
+    // with a this, and thus given functional status, or one where it isn't and access to a varible is controlled
+    //I think to control this there will be a difference between float and float()
+
+    //Want to figured a good way to differ these 2. I think
+
+    struct TestProp;
+
+
+    inline std::vector<std::pair<void*, void*>> props;
+
+    template<typename F, typename R, typename T>
+    concept Getter = std::is_function_v<F> && requires(F func, T* t)
+    {
+        { func(t) } -> std::same_as<R>;
+    };
+
+    template<typename R, typename = void>
+    struct Property
+    {
+        template<typename T>
+        using Get = R(*)(T*);
+
+        template<typename T>
+        using Set = void(*)(T*, R);
+
+
+        uint32_t offset = 0;
+        uint32_t propSet = -1;
+        //These will use a vector to contain the functions 
+
+        Get<void> get = nullptr;
+            
+        Set<void> set = nullptr;
+
+        void* GetSelf()
+        {
+            return this + offset;
+        }
+
+
+        Property<R>& operator= (R value)
+        {
+            set(GetSelf(), value);
+            return *this;
+        }
+
+        operator R()
+        {
+            return get(GetSelf());
+        }
+
+
+        template <typename O>
+        Property(O* a_this, void(*func)(O*))
+        {
+            
+
+
+        }
+        
+        template <typename O>
+        Property(O* a_this, Get<O> _get, Set<O> _set)//, O* a_this = this)
+        {
+            //offset = static_cast<uint32_t>(static_cast<uint64_t>(this) - static_cast<uint64_t>(a_this));
+
+
+        }
+        
+    };
+
+    template <typename T>
+    concept prop_constraint = std::is_reference_v<T>;
+
+    template<prop_constraint R>
+    struct Property<R>
+    {
+        using Type = std::remove_reference_t<R>;
+
+    private:
+        Type value;
+
+    public:
+
+        //These will use a vector to contain the functions 
+
+        //Property() = default;
+
+        Property(void* something)
+        {
+            
+        }
+    };
+
+
+
+    
+
+
+    struct TestProp
+    {
+        
+        Property<float> test
+        {
+            this,
+            &[](auto*) ->void {}
+        };
+
+        
+    };
+
+    INITIALIZE()
+    {
+        TestProp test;
+    }
+
+}
+#endif
+
+
+
+
 int main(int argc, char** argv) {
     //logger::InitializeLogging(true);
 #ifdef _DEBUG
@@ -367,7 +494,7 @@ int main(int argc, char** argv) {
         } while (!IsDebuggerPresent() && input != IDCANCEL);
     }
 #endif
-    
+
     Initializer::Execute();
 
     Funckle({ 1, 2, 4, 5 });

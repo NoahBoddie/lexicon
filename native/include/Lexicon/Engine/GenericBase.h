@@ -105,7 +105,7 @@ namespace LEX
 
 				Element* element = dynamic_cast<Element*>(this);
 
-				ITypePolicy* scope = element->FetchEnvironment()->ToType();
+				ITypePolicy* scope = element->FetchEnvironment()->As<ITypePolicy>();
 
 				if constexpr (0)
 				{//For now it accepts all, so no real reason to do this.

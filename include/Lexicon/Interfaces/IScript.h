@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Interface.h"
+#include "Lexicon/IElementProxy.h"
 
 namespace LEX
 {
@@ -11,14 +11,9 @@ namespace LEX
 		namespace _1
 		{
 
-			struct INTERFACE_VERSION(IScript)
+			struct INTERFACE_VERSION_DERIVES(IScript, IElementProxy)
 			{
 				//Relationship information
-
-
-
-				virtual Script* Promote() = 0;
-				virtual const Script* Promote() const = 0;
 
 
 			};
@@ -29,11 +24,5 @@ namespace LEX
 		CURRENT_VERSION(IScript, 1);
 	}
 
-	struct IMPL_VERSION(IScript)
-	{
-
-		Script* TryPromote() { return this ? Promote() : nullptr; }
-		const Script* TryPromote() const { return this ? Promote() : nullptr; }
-
-	};
+	struct IMPL_VERSION(IScript){};
 }

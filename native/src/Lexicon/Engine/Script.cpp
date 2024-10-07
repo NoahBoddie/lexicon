@@ -158,7 +158,7 @@ namespace LEX
 
 
 
-	Script* Script::GetCommons()
+	Script* Script::GetCommons(bool)
 	{
 		//This 
 		return _parent->FetchCommons();
@@ -182,7 +182,7 @@ namespace LEX
 
 
 
-	IScript* Script::GetScriptI()
+	Script* Script::GetScript(bool)
 	{
 		return this;
 	}
@@ -382,7 +382,7 @@ namespace LEX
 
 
 
-	CommonScript* CommonScript::GetCommons()
+	CommonScript* CommonScript::GetCommons(bool)
 	{
 		return this;
 	}

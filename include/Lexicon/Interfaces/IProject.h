@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Interface.h"
+#include "Lexicon/IElementProxy.h"
 
 namespace LEX
 {
@@ -14,15 +14,10 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct INTERFACE_VERSION(IProject)
+			struct INTERFACE_VERSION_DERIVES(IProject, IElementProxy)
 			{
-				virtual IScript* INT_NAME(GetCommons)() = 0;
-				virtual void AddFormat(std::string_view name, std::string_view content, IScript* source) = 0;
-
-
-				virtual Project* Promote() = 0;
-				virtual const Project* Promote() const = 0;
-
+				virtual IScript* GetCommons() = 0;//Will likely remove
+				virtual void AddFormat(std::string_view name, std::string_view content, LEX::IScript* source) = 0;
 
 			};
 		}
@@ -31,12 +26,5 @@ namespace LEX
 
 	}
 
-	struct IMPL_VERSION(IProject)
-	{
-	
-
-		Project* TryPromote() { return this ? Promote() : nullptr; }
-		const Project* TryPromote() const { return this ? Promote() : nullptr; }
-
-	};
+	struct IMPL_VERSION(IProject){};
 }

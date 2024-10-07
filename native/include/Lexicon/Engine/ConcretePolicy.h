@@ -45,6 +45,21 @@ namespace LEX
 
 		void OnAttach() override;
 
+
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<AbstractTypePolicy>::value):
+				return (AbstractTypePolicy*)this;
+
+			case Hash(TypeName<ConcretePolicy>::value):
+				return this;
+			}
+
+			return __super::Cast(name);
+		}
+
 	protected:
 		void SetDefault(Variable& var) override;
 	public:

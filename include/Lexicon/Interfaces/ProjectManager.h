@@ -14,7 +14,7 @@ namespace LEX
 	struct IFunction;
 	struct IGlobal;
 	class Script;
-	
+	struct GlobalBase;
 	struct ProjectClient;
 
 	enum ElementType : uint8_t;
@@ -92,7 +92,7 @@ namespace LEX
 			struct INTERFACE_VERSION(ProjectManager)
 			{
 			EXTERNAL:
-				virtual IProject* INT_NAME(GetProject)(std::string_view name) = 0;
+				virtual LEX::IProject* GetProject(std::string_view name, EXTERN_NAME) = 0;
 			public:
 				virtual APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::container<std::vector<std::string_view>> options = {}) = 0;
 				virtual APIResult CreateProject(std::string_view name, ProjectClient* client, Project** out = nullptr, HMODULE source = GetCurrentModule()) = 0;
@@ -111,17 +111,20 @@ namespace LEX
 	{
 	EXTERNAL://Interface functions
 	
-		IProject* INT_NAME(GetProject)(std::string_view name) override;
+		IProject* GetProject(std::string_view name, EXTERN_NAME) override;
 
-		IProject* INT_NAME(GetShared)()
+		IProject* GetShared(EXTERN_NAME)
 		{
 			static IProject* shared = nullptr;
-
+			
 			if (!shared)
-				shared = INT_NAME(GetProject)("shared");
+				//Either way, this will be accessing something that can handle it
+				shared = GetProject("shared", EXTERN_TYPE{});
 
 			return shared;
 		}
+
+	
 
 	public:
 		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::container<std::vector<std::string_view>> options = {}) override;
@@ -147,7 +150,7 @@ namespace LEX
 		IFunction* GetFunctionFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, kFuncElement); elem)
-				return elem->AsFunction();
+				return elem->As<IFunction>();
 
 			return nullptr;
 		}
@@ -155,40 +158,53 @@ namespace LEX
 		ITypePolicy* GetTypeFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, kTypeElement); elem)
-				return elem->AsType();
+				return elem->As<ITypePolicy>();
 
 			return nullptr;
 		}
 
-		IGlobal* GetGlobalFromPath(std::string_view path)
+
+		GlobalBase* GetGlobalFromPath(std::string_view path, INTERN_NAME)
 		{
 			if (auto elem = GetElementFromPath(path, kGlobElement); elem)
-				return elem->AsGlobal();
+				return elem->As<GlobalBase>();
 
 			return nullptr;
 		}
 
 
-		LEX::IScript* GetScriptFromPath(std::string_view path)
+		IGlobal* GetGlobalFromPath(std::string_view path, EXTERN_NAME)
+		{
+			if (auto elem = GetElementFromPath(path, kGlobElement); elem)
+				return elem->As<IGlobal>();
+
+			return nullptr;
+		}
+
+
+		LEX::IScript* GetScriptFromPath(std::string_view path, INTERN_NAME)
 		{
 			if (auto elem = GetElementFromPath(path, kScrpElement); elem)
-				return elem->AsScript();
+				return elem->As<IScript>();
 
 			return nullptr;
 		}
+
+		Script* GetScriptFromPath(std::string_view path, EXTERN_NAME)
+		{
+			if (auto elem = GetElementFromPath(path, kScrpElement); elem)
+				return elem->As<Script>();
+
+			return nullptr;
+		}
+
 
 
 	INTERNAL://Hidden functions
 		
-		Project* IMP_NAME(GetShared)()
-		{
-			return INT_NAME(GetShared)()->TryPromote();
-		}
+		Project* GetShared(INTERN_NAME);
 
-		Project* IMP_NAME(GetProject)(std::string_view name)
-		{
-			return INT_NAME(GetProject)(name)->TryPromote();
-		}
+		Project* GetProject(std::string_view name, INTERN_NAME);
 
 		APIResult InitMain();
 	};

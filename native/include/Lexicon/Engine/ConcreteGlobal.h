@@ -44,5 +44,20 @@ namespace LEX
 			return true;
 		}
 
+
+	protected:
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<AbstractGlobal>::value):
+				return (AbstractGlobal*)this;
+
+			case Hash(TypeName<ConcreteGlobal>::value):
+				return this;
+			}
+
+			return __super::Cast(name);
+		}
 	};
 }
