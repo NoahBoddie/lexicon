@@ -31,6 +31,7 @@ namespace LEX
 		Info,
 		Debug,
 		Warning,
+		//Failure,
 		Error,
 		Critical,  //Functionally the same as error, but in some situations where error won't send n exception this will
 		Total
@@ -101,33 +102,6 @@ namespace LEX
 			}
 
 			return result;
-		}
-
-		template <IssueLevel Level>
-		static inline void TryThrow(IssueType type, LString& message)
-		{
-			//This should through differently depending on what type it is, and if it's fatal it should be
-			// a fault regardless.
-
-			//This might take a string as well.
-
-			if constexpr (Level == IssueLevel::Error) {
-				//specific crash
-				if (Type == IssueType::Compile) {
-					throw CompileError("Not implemented");
-				} else if (Type == IssueType::Link) {
-					throw LinkError("Not implemented");
-				} else if (Type == IssueType::Parse) {
-					throw ParseError("Not implemented");
-				} else if (Type == IssueType::Runtime) {
-					throw RuntimeError("Not implemented");
-				} else {
-					throw Error("Not implemented");
-				}
-			} else if constexpr (Level == IssueLevel::Critical) {
-				//Just the fatal crash, doesn't matter what type it is.
-				throw FatalError("Not implemented");
-			}
 		}
 
 		template <IssueLevel Level>
@@ -341,47 +315,12 @@ namespace LEX
 		{
 
 			return Log_(message, loc, type, Level, args...);
-
-			ValidateMessage(message, args...);
-
-			HeaderMessage(message, type, Level, 0);
-
-			RaiseMessage<Level>(message, loc);
-
-			TryThrow<Level>(type, message);
 		}
 
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
 		static void Log(IssueCode code, std::source_location& loc, IssueType type, Ts&... args)
 		{
 			return report::Log_(code, loc, type, Level, args...);
-
-			LString result;
-
-			const LChar* message = IssueTable::GetIssueMessage(code);
-
-			//LString argSlots;
-
-			if (!message) {
-				result = "MISSING_ISSUE";
-
-				constexpr auto size = sizeof...(Ts);
-
-				if constexpr (size != 0) {
-					result += " Args("s + CreateArgSlots(size) + ").";
-				}
-
-			} else {
-				result = message;
-			}
-
-			ValidateMessage(result, args...);
-
-			HeaderMessage(result, type, Level, code);
-
-			RaiseMessage<Level>(result, loc);
-
-			TryThrow<Level>(type, result);
 		}
 
 	public:
@@ -456,10 +395,6 @@ namespace LEX
 #define break_critical(...) BREAK_LOGGER(critical, __VA_ARGS__)
 
 	private:
-		//loose type should be named some common ground that will make it easier to use for macros.
-		//This shouldn't need to exist for external stuff probably, wouldn't want this getting around a lot.
-		static inline thread_local std::optional<IssueType> Type = std::nullopt;
-
 		static IssueType GetIssueType();
 
 		std::optional<IssueType> _prev;
@@ -467,16 +402,10 @@ namespace LEX
 	public:
 		//Report itself serves as class that sets what loose type is currently being used, and then undoes it once when it's over.
 		// Optionally, it should maybe come with an optional state so it can turn itself off if invalid.
-		report(IssueType set) :
-			_prev{ Type }
-		{
-			Type = set;
-		}
+		
+		report(IssueType set);
 
-		~report()
-		{
-			Type = _prev;
-		}
+		~report();
 	};
 
 

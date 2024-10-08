@@ -23,7 +23,7 @@ namespace LEX
 	
 	using LogMutator_V1 = bool(IssueType&, IssueLevel&, std::string&, ReportType&, spdlog::source_loc&);
 
-	//May need to move this
+	//This will need to be changed. String cannot work.
 	struct LogData
 	{
 		IssueType			type;
@@ -62,7 +62,9 @@ namespace LEX
 
 				virtual IssueType GetIssueType() = 0;
 
-				virtual void SendReport(IssueType type, IssueLevel level, IssueCode code, std::string_view message, spdlog::source_loc& loc, Outlogger = OutLog) = 0;
+				virtual void SetIssueType(std::optional<IssueType> type) = 0;
+
+				virtual void SendReport(IssueType type, IssueLevel level, ReportType to, IssueCode code, std::string_view message, spdlog::source_loc& loc, Outlogger = OutLog) = 0;
 
 			INTERNAL:
 				[[nodiscard]] virtual size_t AddMutator(std::function<LogMutator> mutator, bool preheader) = 0;
@@ -83,7 +85,8 @@ namespace LEX
 		std::string_view GetIssueMessage(IssueCode code) override;
 		
 		IssueType GetIssueType() override;
-		void SendReport(IssueType type, IssueLevel level, IssueCode code, std::string_view message, spdlog::source_loc& loc, Outlogger = OutLog) override;
+		void SetIssueType(std::optional<IssueType> type) override;
+		void SendReport(IssueType type, IssueLevel level, ReportType to, IssueCode code, std::string_view message, spdlog::source_loc& loc, Outlogger = OutLog) override;
 	
 	INTERNAL:
 		size_t AddMutator(std::function<LogMutator> mutator, bool preheader) override;

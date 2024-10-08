@@ -7,6 +7,7 @@ namespace LEX
 	static inline thread_local std::optional<IssueType> Type = std::nullopt;
 
 	IssueType ReportManager::GetIssueType() { return Type.value_or(IssueType::Message); }
+	void ReportManager::SetIssueType(std::optional<IssueType> type) { Type = type; }
 
 
 	static void HeaderMessage(std::string& message, IssueType type, IssueCode code)
@@ -245,17 +246,15 @@ namespace LEX
 	}
 
 
-	void ReportManager::SendReport(IssueType type, IssueLevel level, IssueCode code, std::string_view view, spdlog::source_loc& loc, Outlogger logger)
+	void ReportManager::SendReport(IssueType type, IssueLevel level, ReportType to, IssueCode code, std::string_view view, spdlog::source_loc& loc, Outlogger logger)
 	{
 		//By having this in interface, I can obscure spdlog, enabling spdlog not being a requirement. But in the future. I won't try too hard to do that now.
 
 		constexpr fmt::format_string<std::string_view> a_fmt{ "{}" };
 		
-		ReportType to = ReportType::None;
-		
 		logger::InitializeLogging();
 
-		std::string message{ view };
+		//std::string message{ view };
 
 		bool log = true;
 
@@ -268,7 +267,7 @@ namespace LEX
 		type = data.type;
 		
 		if (log || level == IssueLevel::Critical) {
-			HeaderMessage(message, type, code);
+			HeaderMessage(data.message, type, code);
 		}
 
 		if (log) {
@@ -283,18 +282,18 @@ namespace LEX
 			switch (to)
 			{
 			case ReportType::Plugin:
-				logger(loc, spd_lvl, message);
+				logger(loc, spd_lvl, data.message);
 				break;
 			case ReportType::General:
 			case ReportType::Script:
 			case ReportType::Main:
 
 			default:
-				spdlog::log(loc, spd_lvl, a_fmt, std::string_view{ message });
+				spdlog::log(loc, spd_lvl, a_fmt, std::string_view{ data.message });
 			}
 		}
 
-		TryThrow(type, level, message);
+		TryThrow(type, level, data.message);
 	}
 
 }
