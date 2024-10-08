@@ -13,7 +13,7 @@ namespace LEX
 
 
 
-    void FunctionBase::LoadFromRecord(Record& target)
+    void FunctionBase::LoadFromRecord(SyntaxRecord& target)
     {
         /*
         'GetActorValue' <Expression: Function (col: 38/ line: 2>
@@ -44,7 +44,7 @@ namespace LEX
     void FunctionBase::OnAttach()
     {
 		return;
-        Record& target = *GetSyntaxTree();
+        SyntaxRecord& target = *GetSyntaxTree();
 
 
         Environment* environment = GetEnvironment();
@@ -53,7 +53,7 @@ namespace LEX
             report::link::error("environ issues cont.");
         }
         
-        Record* head_rec = target.FindChild(parse_strings::header);
+        SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
         if (!head_rec)
 			report::compile::critical("No record named header.");
@@ -109,7 +109,7 @@ namespace LEX
 
         for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->children())
         {
-            Record* node_head = node.FindChild(parse_strings::header);
+            SyntaxRecord* node_head = node.FindChild(parse_strings::header);
 
             if (!node_head)
 				report::compile::critical("No record named header.");
@@ -153,7 +153,8 @@ namespace LEX
 
     LinkResult FunctionBase::OnLink(LinkFlag flags)
     {
-        Record& target = *GetSyntaxTree();
+        
+        SyntaxRecord& target = *GetSyntaxTree();
 
         //I would cycle_switch but seems a bit shit.
         switch (flags)
@@ -166,7 +167,7 @@ namespace LEX
                 report::link::error("environ issues cont.");
             }
 
-            Record* head_rec = target.FindChild(parse_strings::header);
+            SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
             if (!head_rec)
 				report::compile::critical("No record named header.");
@@ -224,7 +225,7 @@ namespace LEX
 
             for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->children())
             {
-                Record* node_head = node.FindChild(parse_strings::header);
+                SyntaxRecord* node_head = node.FindChild(parse_strings::header);
 
                 if (!node_head)
 					report::compile::critical("No record named header.");

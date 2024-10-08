@@ -1481,14 +1481,14 @@ namespace LEX
 
 	//the associated should maybe be a bool or just reject any other than include and import.
 
-	static SyntaxRecord& GetPath(Record& path, bool right)
+	static SyntaxRecord& GetPath(SyntaxRecord& path, bool right)
 	{
-		Record* ret = path.FindChild(right ? parse_strings::rhs : parse_strings::rhs);
+		SyntaxRecord* ret = path.FindChild(right ? parse_strings::rhs : parse_strings::rhs);
 
 		if (!ret)
 			ret = &path.GetFront();
 
-		return ret->Transform<SyntaxRecord>();
+		return *ret;
 	}
 
 

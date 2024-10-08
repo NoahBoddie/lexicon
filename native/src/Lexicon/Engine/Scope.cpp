@@ -10,9 +10,9 @@
 
 namespace LEX
 {
-	PolicyBase* Scope::SearchTypePath(Record& _path)
+	PolicyBase* Scope::SearchTypePath(SyntaxRecord& _path)
 	{
-		Record dummy{ "dummy", 0, _path };
+		SyntaxRecord dummy{ "dummy", Syntax{ SyntaxType::None}, _path };
 
 		//I'm too fucking lazy to make it work normally, so this is what we're gonna deal with til I do.
 		//PolicyBase* result = GetPolicyFromSpecifiers(_path, process->GetEnvironment());
@@ -24,13 +24,13 @@ namespace LEX
 	
 
 	//This actually probably will want to return the function info, because of something like generic functions.
-	FunctionInfo* Scope::SearchFunctionPath(Record& path, OverloadKey& input, Overload& out)
+	FunctionInfo* Scope::SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out)
 	{
 		return process->GetEnvironment()->SearchFunctionPath(path, input, out);
 
 	}
 
-	QualifiedField Scope::SearchFieldPath(Record& _path, OverloadKey* key)
+	QualifiedField Scope::SearchFieldPath(SyntaxRecord& _path, OverloadKey* key)
 	{
 
 

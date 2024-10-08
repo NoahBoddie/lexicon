@@ -70,7 +70,7 @@ namespace LEX
 			MarkInheritHandled();
 		}
 		else {
-			Record* settings = ast->FindChild(parse_strings::settings);
+			SyntaxRecord* settings = ast->FindChild(parse_strings::settings);
 
 			if (!settings) {
 				report::compile::critical("setting not found in type policy record");

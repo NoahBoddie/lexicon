@@ -149,11 +149,11 @@ namespace LEX
 
 
 
-		PolicyBase* SearchTypePath(Record& _path);
+		PolicyBase* SearchTypePath(SyntaxRecord& _path);
 
-		FunctionInfo* SearchFunctionPath(Record& path, OverloadKey& input, Overload& out);
+		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out);
 
-		QualifiedField SearchFieldPath(Record& _path, OverloadKey* key = nullptr);
+		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadKey* key = nullptr);
 
 
 		Scope* parent() { return _parent; }

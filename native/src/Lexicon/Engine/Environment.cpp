@@ -267,12 +267,12 @@ namespace LEX
 
 
 
-		Record* SecondaryEnvironment::GetSyntaxTree()
+		SyntaxRecord* SecondaryEnvironment::GetSyntaxTree()
 		{
 			return _syntax;
 		}
 
-		void SecondaryEnvironment::SetSyntaxTree(Record& rec)
+		void SecondaryEnvironment::SetSyntaxTree(SyntaxRecord& rec)
 		{
 			if (!_syntax)
 				_syntax = &rec;

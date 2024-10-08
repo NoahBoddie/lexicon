@@ -36,7 +36,7 @@ namespace LEX
 		
 		std::filesystem::path _filePath;
 
-		Record _syntaxTree;
+		SyntaxRecord _syntaxTree;
 
 		//This is where scripts are refered
 		std::unordered_map<RelateType, std::vector<Script*>> _relationMap;
@@ -70,11 +70,11 @@ namespace LEX
 
 		ComponentType GetComponentType() override;
 
-		Record* GetSyntaxTree() override;
+		SyntaxRecord* GetSyntaxTree() override;
 
-		void SetSyntaxTree(Record& rec) final override;
+		void SetSyntaxTree(SyntaxRecord& rec) final override;
 
-		void LoadFromRecord(Record& ast) override;
+		void LoadFromRecord(SyntaxRecord& ast) override;
 
 		void OnAttach() override;
 
@@ -93,7 +93,7 @@ namespace LEX
 
 
 
-		PolicyBase* tempObtainPolicy(Record& ast);
+		PolicyBase* tempObtainPolicy(SyntaxRecord& ast);
 
 
 

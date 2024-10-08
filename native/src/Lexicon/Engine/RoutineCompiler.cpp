@@ -20,7 +20,7 @@ namespace LEX
 {
 
 
-	std::vector<Operation> RoutineCompiler::CompileBlock(Record& data)
+	std::vector<Operation> RoutineCompiler::CompileBlock(SyntaxRecord& data)
 	{
 		//NEW NAME: ProcessNest
 		//Scratch, Process/CompileBlock

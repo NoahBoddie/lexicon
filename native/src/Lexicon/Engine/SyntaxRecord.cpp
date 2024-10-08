@@ -16,11 +16,6 @@ namespace LEX
 		return GetSelf()->RecordBase::GetParent<Element*>();
 	}
 
-	void SyntaxBody::SetParent(Element* parent)
-	{
-		return GetSelf()->RecordBase::SetParent(parent);
-	}
-
 	Syntax& SyntaxBody::GetSyntax()
 	{
 		return GetSelf()->GetEnumFromRecord();

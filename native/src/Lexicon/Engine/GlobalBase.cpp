@@ -8,7 +8,7 @@
 namespace LEX
 {
 
-	void GlobalBase::LoadFromRecord(Record& target)
+	void GlobalBase::LoadFromRecord(SyntaxRecord& target)
 	{
 		if (target.SYNTAX().type != SyntaxType::Variable) {
 			report::compile::critical("Not a function, cannot load.");
@@ -25,7 +25,7 @@ namespace LEX
 	LinkResult GlobalBase::OnLink(LinkFlag flags)
 	{
 
-        Record& target = *GetSyntaxTree();
+        SyntaxRecord& target = *GetSyntaxTree();
 
         //I would cycle_switch but seems a bit shit.
         switch (flags)
@@ -39,7 +39,7 @@ namespace LEX
                 report::link::error("environ issues cont.");
             }
 
-            Record* head_rec = target.FindChild(parse_strings::header);
+            SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
             if (!head_rec)
                 report::compile::critical("No record named header.");

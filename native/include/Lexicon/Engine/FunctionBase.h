@@ -18,7 +18,7 @@ namespace LEX
 		//This is a pivot for for functions, more important than anywhere else, this set up excludes formulas
 		// from being able to be stored in a function, or having the same linking
 
-		void LoadFromRecord(Record& target) override;
+		void LoadFromRecord(SyntaxRecord& target) override;
 
 		void OnAttach() override;
 		

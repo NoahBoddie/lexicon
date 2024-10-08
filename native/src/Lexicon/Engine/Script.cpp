@@ -24,7 +24,7 @@ namespace LEX
 		return new T{ std::string_view{name}, offset };
 	}
 
-	TypeOffset RecordToInt(Record& ast)
+	TypeOffset RecordToInt(SyntaxRecord& ast)
 	{//helps with generic or concrete divide
 		std::string tag = ast.GetTag();
 
@@ -42,9 +42,9 @@ namespace LEX
 
 
 
-	inline PolicyBase* Script::tempObtainPolicy(Record& ast)
+	inline PolicyBase* Script::tempObtainPolicy(SyntaxRecord& ast)
 	{
-		Record& settings = ast.GetChild(0);
+		SyntaxRecord& settings = ast.GetChild(0);
 
 
 
@@ -62,7 +62,7 @@ namespace LEX
 		//Generic, a different TypePolicy has to be used, but otherwise it's fine.
 
 
-		Record* genericSet = settings.FindChild(parse_strings::generic);
+		SyntaxRecord* genericSet = settings.FindChild(parse_strings::generic);
 		bool is_generic = genericSet && genericSet->size();
 
 
@@ -98,7 +98,7 @@ namespace LEX
 
 		if (auto attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach); attach)
 		{
-			Record& attach_data = attach->GetFront();
+			SyntaxRecord& attach_data = attach->GetFront();
 			switch (Hash(attach_data.GetTag()))
 			{
 			case "intrinsic"_h:
@@ -108,7 +108,7 @@ namespace LEX
 			case "external"_h:
 			{
 				//Handle error, I can't fucking be bothered.
-				Record& category = attach_data.GetFront();
+				SyntaxRecord& category = attach_data.GetFront();
 				TypeOffset index;
 
 				//this should more be if it's not number.
@@ -118,7 +118,7 @@ namespace LEX
 
 					std::vector<std::string_view> string_args{ children.size() };
 
-					std::transform(children.begin(), children.end(), string_args.begin(), [](Record& it) { return it.GetView(); });
+					std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
 
 					index = GetProject()->client()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
 					logger::info("offset from args = {}", index);
@@ -193,7 +193,7 @@ namespace LEX
 		return typeid(Script);
 	}
 
-	Record* Script::GetSyntaxTree()
+	SyntaxRecord* Script::GetSyntaxTree()
 	{
 		if (IsDefined() == false)
 			throw EnvironmentError("Syntax Tree not defined.");
@@ -201,7 +201,7 @@ namespace LEX
 		return &_syntaxTree;
 	}
 
-	void Script::SetSyntaxTree(Record& rec)
+	void Script::SetSyntaxTree(SyntaxRecord& rec)
 	{
 		if (IsDefined() == true)
 			return;
@@ -211,7 +211,7 @@ namespace LEX
 	}
 
 
-	void Script::LoadFromRecord(Record& ast)
+	void Script::LoadFromRecord(SyntaxRecord& ast)
 	{
 		//if (IsInitialized() == true)
 		//	throw EnvironmentError("No Syntax Tree already.");
@@ -250,7 +250,7 @@ namespace LEX
 
 	LinkResult Script::OnLink(LinkFlag flags)
 	{
-		Record& target = *GetSyntaxTree();
+		SyntaxRecord& target = *GetSyntaxTree();
 
 		if (flags != LinkFlag::Loaded)
 			return LinkResult::Failure;

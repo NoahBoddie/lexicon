@@ -66,7 +66,7 @@ namespace LEX
 		}
 
 
-		Record ast = Impl::Parser__::CreateSyntax<Impl::LineParser>(std::string(routine));
+		SyntaxRecord ast = Impl::Parser__::CreateSyntax<Impl::LineParser>(std::string(routine)).Transform<SyntaxRecord>();
 
 
 		Script* perspective;

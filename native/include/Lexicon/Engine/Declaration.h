@@ -20,9 +20,9 @@ namespace LEX
 	class TempTest;
 	
 	//TODO: I'd like to have GetPolicyFromSpecifiers dealt with via strings, and/or able to be dealt with via a record.
-	PolicyBase* GetPolicyFromSpecifiers(Record& node, Environment* env);
+	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Environment* env);
 
-	inline Qualifier GetQualifiersFromStrings(Record& node)
+	inline Qualifier GetQualifiersFromStrings(SyntaxRecord& node)
 	{
 		Qualifier flags{};
 
@@ -50,7 +50,7 @@ namespace LEX
 		return flags;
 	}
 
-	inline DeclareSpecifier GetSpecifiersFromStrings(Record& node)
+	inline DeclareSpecifier GetSpecifiersFromStrings(SyntaxRecord& node)
 	{
 		DeclareSpecifier decl{};
 
@@ -106,7 +106,7 @@ namespace LEX
 	public:
 		Declaration() = default;
 
-		Declaration(Record& header, Environment* env);
+		Declaration(SyntaxRecord& header, Environment* env);
 
 
 		//This is a declaration header. It stores declarations of functions, globals, members, methods etc.

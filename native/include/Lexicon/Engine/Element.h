@@ -8,6 +8,10 @@
 
 
 #include "Lexicon/TypeAliases.h"
+
+#include "Lexicon/Engine/SyntaxRecord.h"
+
+
 //*src
 #include "Lexicon/Interfaces/IProject.h"
 #include "Lexicon/Interfaces/IScript.h"
@@ -51,7 +55,7 @@ namespace LEX
 		//This should take over
 		virtual std::string_view GetName() const = 0;
 
-		virtual Record* GetSyntaxTree() = 0;
+		virtual SyntaxRecord* GetSyntaxTree() = 0;
 
 	
 		Script* GetScript(bool = {}) override;
@@ -79,7 +83,7 @@ namespace LEX
 
 		//the associated should maybe be a bool or just reject any other than include and import.
 
-		static SyntaxRecord& GetPath(Record& path, std::optional<bool> right = std::nullopt);
+		static SyntaxRecord& GetPath(SyntaxRecord& path, std::optional<bool> right = std::nullopt);
 
 
 
@@ -90,7 +94,7 @@ namespace LEX
 
 
 
-		static Environment* GetEnvironmentTMP(Environment* a_this, Record* path, bool& search_scripts);
+		static Environment* GetEnvironmentTMP(Environment* a_this, SyntaxRecord* path, bool& search_scripts);
 
 		static Environment* WalkEnvironmentPath(Environment* a_this, SyntaxRecord*& path, bool search_scripts = true);
 
@@ -112,11 +116,11 @@ namespace LEX
 
 
 
-		static PolicyBase* SearchTypePath(Element* a_this, Record& _path);
+		static PolicyBase* SearchTypePath(Element* a_this, SyntaxRecord& _path);
 
 
 
-		PolicyBase* SearchTypePath(Record& _path)
+		PolicyBase* SearchTypePath(SyntaxRecord& _path)
 		{
 			return SearchTypePath(this, _path);
 		}
@@ -128,30 +132,30 @@ namespace LEX
 
 		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 
 		// to handle multiple different functions.
-		static FunctionInfo* SearchFunctionPath(Element* a_this, Record& path, OverloadKey* key = nullptr, Overload* out = nullptr);
+		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey* key = nullptr, Overload* out = nullptr);
 
-		static FunctionInfo* SearchFunctionPath(Element* a_this, Record& path, OverloadKey& key, Overload& out)
+		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out)
 		{
 			return SearchFunctionPath(a_this, path, &key, &out);
 		}
 
-		FunctionInfo* SearchFunctionPath(Record& path, OverloadKey& key, Overload& out)
+		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key, Overload& out)
 		{
 			return SearchFunctionPath(this, path, key, out);
 		}
 
-		static QualifiedField SearchFieldPath(Element* a_this, Record& path);
+		static QualifiedField SearchFieldPath(Element* a_this, SyntaxRecord& path);
 
-		QualifiedField SearchFieldPath(Record& path)
+		QualifiedField SearchFieldPath(SyntaxRecord& path)
 		{
 			return SearchFieldPath(this, path);
 		}
 
 
-		static Script* SearchScriptPath(Element* a_this, Record& path);
+		static Script* SearchScriptPath(Element* a_this, SyntaxRecord& path);
 
 
-		Script* SearchScriptPath(Record& path)
+		Script* SearchScriptPath(SyntaxRecord& path)
 		{
 			return SearchScriptPath(this, path);
 		}
@@ -217,9 +221,9 @@ namespace LEX
 			return this ? GetCommons() : nullptr;
 		}
 
-		virtual void SetSyntaxTree(Record&) = 0;//This is to be made on the abstract classes.
+		virtual void SetSyntaxTree(SyntaxRecord&) = 0;//This is to be made on the abstract classes.
 
-		virtual void LoadFromRecord(Record& rec)
+		virtual void LoadFromRecord(SyntaxRecord& rec)
 		{
 			//should likely be a pure virtual, but holding off.
 		}
@@ -229,7 +233,7 @@ namespace LEX
 			//This is specifically when parentage is established.
 		}
 
-		void OnInit(Record& rec) final override
+		void OnInit(SyntaxRecord& rec) final override
 		{
 			SetSyntaxTree(rec);
 			//We get the node like this so the target is a viable syntax tree. Other wise, it may use a tree that doesn't exist anymore.
@@ -284,7 +288,7 @@ namespace LEX
 	{
 		//Function and Global
 		//std::string name;//may include name later, depending.
-		Record* _syntax = nullptr;
+		SyntaxRecord* _syntax = nullptr;
 		Environment* _parent = nullptr;
 	public:
 
@@ -294,15 +298,15 @@ namespace LEX
 		Element* GetParent(bool = {}) override;
 
 
-		Record* GetSyntaxTree() override
+		SyntaxRecord* GetSyntaxTree() override
 		{
 			return _syntax;
 		}
 
-		void SetSyntaxTree(Record& rec) final override
+		void SetSyntaxTree(SyntaxRecord& rec) final override
 		{
 			if (!_syntax)
-				_syntax = &rec;
+				_syntax = &rec.Transform<SyntaxRecord>();
 		}
 
 	protected:

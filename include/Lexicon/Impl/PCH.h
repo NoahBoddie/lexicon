@@ -749,12 +749,15 @@ void logger::InitializeLogging()
     if (level >= spdlog::level::info) {
         level = LEX::SettingManager::GetSingleton()->level;
     }
-#endif
+
+#else
 
     if (auto def = spdlog::default_logger(); def)
     {
         return;
     }
+
+#endif
 
     log->set_level(level);
     log->flush_on(level);

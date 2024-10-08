@@ -22,7 +22,7 @@ namespace LEX
 {
 
 	//TODO: REcordToInt exists in multiple places. A lot even. Please, centralize them.
-	TypeOffset _RecordToInt(Record& ast)
+	TypeOffset _RecordToInt(SyntaxRecord& ast)
 	{//helps with generic or concrete divide
 		std::string tag = ast.GetTag();
 
@@ -85,11 +85,11 @@ namespace LEX
 	}
 
 
-	void ConcretePolicy::LoadFromRecord(Record& ast) 
+	void ConcretePolicy::LoadFromRecord(SyntaxRecord& ast)
 	{
 		_name = ast.GetTag();
 
-		Record* settings = ast.FindChild(parse_strings::settings);
+		SyntaxRecord* settings = ast.FindChild(parse_strings::settings);
 
 		if (!settings) {
 			report::compile::critical("setting not found in type policy record");
@@ -109,7 +109,7 @@ namespace LEX
 
 		if (auto test = settings->FindChild(parse_strings::attach); test)
 		{
-			Record& attach = test->GetFront();
+			SyntaxRecord& attach = test->GetFront();
 			//I actually will allow interfaces to be external. It prevents them from being instantiable though.
 
 			
@@ -131,7 +131,7 @@ namespace LEX
 					//save this shit til after linkage.
 					//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
 
-					Record& cat_name = attach.GetFront();
+					SyntaxRecord& cat_name = attach.GetFront();
 
 					category = cat_name.GetTag();
 
@@ -167,7 +167,7 @@ namespace LEX
 		HandleInheritance();
 	}
 
-	void ConcretePolicy::CompileExpression_DEPRECATED(Record& ast)
+	void ConcretePolicy::CompileExpression_DEPRECATED(SyntaxRecord& ast)
 	{
 		//Keeping this because I may have need of it in the future.
 		for (auto& node : ast.children())
@@ -201,7 +201,7 @@ namespace LEX
 
     LinkResult ConcretePolicy::OnLink(LinkFlag flags)
     {
-        Record& ast = *GetSyntaxTree();
+		SyntaxRecord& ast = *GetSyntaxTree();
 		
 		switch (flags)
 		{
@@ -214,7 +214,7 @@ namespace LEX
 
 		case LinkFlag::External:
 		{
-			Record& attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach)->GetFront();
+			SyntaxRecord& attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach)->GetFront();
 
 			if (attach.size() == 0) {
 				report::compile::critical("external type requires some type.");
@@ -225,7 +225,7 @@ namespace LEX
 			//save this shit til after linkage.
 			//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
 
-			Record& cat_name = attach.GetFront();
+			SyntaxRecord& cat_name = attach.GetFront();
 
 			category = cat_name.GetTag();
 
@@ -239,7 +239,7 @@ namespace LEX
 
 					std::vector<std::string_view> string_args{ children.size() };
 
-					std::transform(children.begin(), children.end(), string_args.begin(), [](Record& it) { return it.GetView(); });
+					std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
 
 					offset = GetProject()->client()->GetOffsetFromArgs(cat_name.GetView(), string_args.data(), string_args.size());
 					logger::info("offset from args = {}", offset);

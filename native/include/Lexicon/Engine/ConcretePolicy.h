@@ -64,10 +64,10 @@ namespace LEX
 		void SetDefault(Variable& var) override;
 	public:
 
-		void LoadFromRecord(Record& ast) override;
+		void LoadFromRecord(SyntaxRecord& ast) override;
 
 
-		void CompileExpression_DEPRECATED(Record& ast);
+		void CompileExpression_DEPRECATED(SyntaxRecord& ast);
 
 
 		LinkResult OnLink(LinkFlag flags) override;

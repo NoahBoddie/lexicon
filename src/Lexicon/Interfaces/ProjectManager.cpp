@@ -117,11 +117,11 @@ namespace LEX
 
 	}
 
-	static void PrintAST(Record& tree, std::string indent = "")
+	static void PrintAST(SyntaxRecord& tree, std::string indent)
 	{
 		constexpr std::string_view __dent = "| ";
 
-		std::string log = tree.Print<LEX::Syntax>();
+		std::string log = tree.Print();
 
 		RGL_LOG(info, "{}{}", indent, log);
 
@@ -132,7 +132,12 @@ namespace LEX
 			PrintAST(child_rec, indent);
 		}
 	}
-	
+
+
+	static void PrintAST(SyntaxRecord& tree)
+	{
+		return PrintAST(tree, "");
+	}
 
 
 
@@ -579,7 +584,7 @@ namespace LEX
 		}
 		
 
-		Record ast = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents);
+		SyntaxRecord ast = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents).Transform<SyntaxRecord>();
 
 		ast.EmplaceChild(std::move(tmp_directives));
 

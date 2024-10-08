@@ -46,8 +46,6 @@ namespace LEX
 
 		Element* GetParent();
 		
-		void SetParent(Element* parent);
-
 		Syntax& GetSyntax();
 
 		bool IsPath();
@@ -78,14 +76,22 @@ namespace LEX
 		static void mc_name(IssueCode code, Ts&&... args)\
 		{\
 			ScopedLogger log(Mutator(), true);\
-			return report::Log_(message, loc, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
+			return report::Log_(code, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
 		}\
 		template <is_not<std::source_location>... Ts>\
 		static void mc_name(IssueCode code, std::source_location loc, Ts&&... args)\
 		{\
 			ScopedLogger log(Mutator(), true);\
-			return report::Log_(message, loc, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
+			return report::Log_(code, loc, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
 		}
+
+
+		DECLARE_SYNTAX_LOGGER(LogCritical, Critical);
+
+		DECLARE_SYNTAX_LOGGER(LogInfo, Info);
+		DECLARE_SYNTAX_LOGGER(LogDebug, Debug);
+
+
 
 		template <is_not<std::source_location>... Ts> void Note(SourceAndProxy<std::string> message, Ts&&... args) {
 			ScopedLogger log(Mutator(), true); return report::Log_(message.prox, message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);

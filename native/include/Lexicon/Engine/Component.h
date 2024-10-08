@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Interfaces/Interface.h"
-
+#include "Lexicon/Engine/SyntaxRecord.h"
 namespace LEX
 {
 	class RoutineArgument;
@@ -99,7 +99,7 @@ namespace LEX
 	private:
 		//Limit the use of a recordless create by seeing if load from record has been implemented.
 		template<class D>
-		static D* _Create(Record* rec = nullptr)
+		static D* _Create(SyntaxRecord* rec = nullptr)
 		{
 			D* comp = new D();
 
@@ -115,13 +115,13 @@ namespace LEX
 
 
 		template<std::derived_from<Component> D>
-		static D* Create(Record* rec = nullptr)
+		static D* Create(SyntaxRecord* rec = nullptr)
 		{
 			return _Create<D>(rec);
 		}
 
 		template<std::derived_from<Component> D>
-		static D* Create(Record& rec)
+		static D* Create(SyntaxRecord& rec)
 		{
 			return Create<D>(&rec);
 		}
@@ -131,7 +131,7 @@ namespace LEX
 		
 
 		//Contrary to what I stated would be important, without routine items, there's no reason to have this load from data anymore.
-		virtual void OnInit(Record& rec)
+		virtual void OnInit(SyntaxRecord& rec)
 		{
 			//should likely be a pure virtual, but holding off.
 		}
@@ -201,12 +201,12 @@ namespace LEX
 			}
 		}
 
-		void Initialize(Record* rec) 
+		void Initialize(SyntaxRecord* rec)
 		{
 			if (IsInitialized() == false)
 			{
 				if (rec)
-					OnInit(*rec);
+					OnInit(rec->Transform<SyntaxRecord>());
 
 				_flags |= ComponentFlag::Initialized;
 
@@ -215,7 +215,7 @@ namespace LEX
 			
 		}
 		
-		void Initialize(Record& rec)
+		void Initialize(SyntaxRecord& rec)
 		{
 			return Initialize(&rec);
 		}

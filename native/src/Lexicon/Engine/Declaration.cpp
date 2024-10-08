@@ -12,7 +12,7 @@ namespace LEX
 {
 	/*
 
-	auto _run = [&](Record& entry)
+	auto _run = [&](SyntaxRecord& entry)
 		{
 			std::string& name = entry.GetTag();
 
@@ -82,7 +82,7 @@ namespace LEX
 	//*/
 
 
-	PolicyBase* GetPolicyFromSpecifiers(Record& node, Environment* env)
+	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Environment* env)
 	{
 		PolicyBase* result = nullptr;
 
@@ -90,7 +90,7 @@ namespace LEX
 		{
 			Number::Settings settings{};
 
-			Record* type_name = nullptr;
+			SyntaxRecord* type_name = nullptr;
 			std::string search_name;
 
 			//For now this only really registers for numbers.
@@ -205,17 +205,17 @@ namespace LEX
 	}
 
 
-	Declaration::Declaration(Record& header, Environment* env)
+	Declaration::Declaration(SyntaxRecord& header, Environment* env)
 	{
 		if (header.GetTag() != parse_strings::header) {
 			report::fault::critical("header not found.");
 		}
 
 
-		//std::array<Record&, 3> header_nodes{ *header.FindChild("type_qual") , *header.FindChild("type_spec"), *header.FindChild("decl_spec") };
-		Record& type_qual = *header.FindChild(parse_strings::type_qualifier);
-		Record& decl_spec = *header.FindChild(parse_strings::declare_specifier);
-		Record& type_spec = *header.FindChild(parse_strings::type_specifier);
+		//std::array<SyntaxRecord&, 3> header_nodes{ *header.FindChild("type_qual") , *header.FindChild("type_spec"), *header.FindChild("decl_spec") };
+		SyntaxRecord& type_qual = *header.FindChild(parse_strings::type_qualifier);
+		SyntaxRecord& decl_spec = *header.FindChild(parse_strings::declare_specifier);
+		SyntaxRecord& type_spec = *header.FindChild(parse_strings::type_specifier);
 
 		//So here's the concept, if you see 2 restricteds in the same place, they aren't compatible. This simplifies this sort of thing.
 		// rest

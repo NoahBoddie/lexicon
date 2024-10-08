@@ -26,9 +26,9 @@ namespace LEX
 	struct TargetObject;
 
 	//TODO: Statement generator uses RoutineCompiler. If there's something statement compiler does not have, please address.
-	using StatementGenerator = void(*)(RoutineCompiler*, Record&);
+	using StatementGenerator = void(*)(RoutineCompiler*, SyntaxRecord&);
 	//This doesn't need an out does it
-	using ExpressionGenerator = Solution(*)(ExpressionCompiler*, Record&);//, Solution, Solution);//, Register);
+	using ExpressionGenerator = Solution(*)(ExpressionCompiler*, SyntaxRecord&);//, Solution, Solution);//, Register);
 
 	
 	struct Generator : public ConstClassAlias<std::variant<Void, StatementGenerator, ExpressionGenerator>>
@@ -36,7 +36,7 @@ namespace LEX
 		//I don't quite have the word for this yet, so I'm going to leave it. Module might be it, but dunno.
 		ALIAS_HEADER;
 
-		Solution _PostPrepFunction(RoutineCompiler* compiler, Record& target)
+		Solution _PostPrepFunction(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 			//The factory pieces seem like they need something to plug into
 
@@ -247,12 +247,12 @@ namespace LEX
 			return ModParamCount(1, { policy });
 		}
 
-		CompilerBase(Record& ast, FunctionData* owner, Environment* env) : CompilerBase {ast, owner, env, owner->_name, owner->GetTargetType() }
+		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Environment* env) : CompilerBase {ast, owner, env, owner->_name, owner->GetTargetType() }
 		{
 
 		}
 
-		CompilerBase(Record& ast, BasicCallableData* owner, Environment* env, std::string_view name= "<no name>", ITypePolicy* tarType = nullptr) :
+		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name= "<no name>", ITypePolicy* tarType = nullptr) :
 			funcRecord{ ast },
 			_name { name },
 			_callData{ owner },
@@ -329,7 +329,7 @@ namespace LEX
 		//ICallableUnit* routine = nullptr;
 
 		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
-		Record& funcRecord;
+		SyntaxRecord& funcRecord;
 
 		Scope* currentScope{};//Scopes are the thing that should handle how many variables are in use, that sort of schtick I think.
 		// as well as the concept of memory being freed.
@@ -347,22 +347,22 @@ namespace LEX
 	{
 		using CompilerBase::CompilerBase;
 		
-		//ExpressionCompiler(Record& ast, FunctionData* owner = nullptr) : CompilerBase{ ast, owner }{}
+		//ExpressionCompiler(SyntaxRecord& ast, FunctionData* owner = nullptr) : CompilerBase{ ast, owner }{}
 
 
 		//Obscures statement compiling functions so that  statements can never be compiled where Expressions
 		// are expected. Differed by simply expecting or not execting a solution.
 
 
-		virtual Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) = 0;
+		virtual Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out) = 0;
 
-		Solution CompileExpression(Record& node, Register pref)
+		Solution CompileExpression(SyntaxRecord& node, Register pref)
 		{
 			//uses the current loaded op vector. if non-exists error
 			return CompileExpression(node, pref, *_current);
 		}
 
-		Solution CompileExpression(Record& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::Explicit)
+		Solution CompileExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::Explicit)
 		{
 			//Consider making this self managing like how scope does.
 
@@ -379,7 +379,7 @@ namespace LEX
 
 
 
-		Solution PushExpression(Record& node, Register pref, std::vector<Operation>& out)
+		Solution PushExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out)
 		{
 			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
 			// one.
@@ -399,12 +399,12 @@ namespace LEX
 			return result;
 		}
 
-		Solution PushExpression(Record& node, Register pref)
+		Solution PushExpression(SyntaxRecord& node, Register pref)
 		{
 			return PushExpression(node, pref, *_current);
 		}
 
-		Solution PushExpression(Record& node, Register pref, Solution tar, bool is_expl = true)
+		Solution PushExpression(SyntaxRecord& node, Register pref, Solution tar, bool is_expl = true)
 		{
 
 			TargetObject target{ tar, GetTarget(), is_expl };
@@ -439,7 +439,7 @@ namespace LEX
 
 	
 
-		Solution _InteralProcess(Generator& factory, Record& node, std::vector<Operation>& out)
+		Solution _InteralProcess(Generator& factory, SyntaxRecord& node, std::vector<Operation>& out)
 		{
 
 
@@ -465,7 +465,7 @@ namespace LEX
 		//TODO: I would like try versions of these, mainly for an if statement that could take an statement
 		// in its first part, then expect an expression after. Maybe. Idk
 
-		Solution CompileExpression(Record& node, Register pref, std::vector<Operation>& out) override
+		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out) override
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -501,13 +501,13 @@ namespace LEX
 		using ExpressionCompiler::CompileExpression;
 		
 		/*
-		Solution CompileExpression(Record& node, Register pref)
+		Solution CompileExpression(SyntaxRecord& node, Register pref)
 		{
 			//uses the current loaded op vector. if non-exists error
 			return CompileExpression(node, pref, *_current);
 		}
 
-		Solution CompileExpression(Record& node, Register pref, Solution tar)
+		Solution CompileExpression(SyntaxRecord& node, Register pref, Solution tar)
 		{
 			TargetObject target{ tar, GetTarget_(), true };
 			
@@ -522,7 +522,7 @@ namespace LEX
 		//*/
 
 
-		void CompileStatement(Record& node, Register pref, std::vector<Operation>& out)
+		void CompileStatement(SyntaxRecord& node, Register pref, std::vector<Operation>& out)
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -553,13 +553,13 @@ namespace LEX
 			_prefered = prev;
 		}
 
-		void CompileStatement(Record& node, Register pref)
+		void CompileStatement(SyntaxRecord& node, Register pref)
 		{
 			//uses the current loaded op vector. if non-exists error
 			return CompileStatement(node, pref, *_current);
 		}
 
-		void CompileStatement(Record& node, Register pref, Solution tar)
+		void CompileStatement(SyntaxRecord& node, Register pref, Solution tar)
 		{
 			TargetObject target{ tar, GetTarget(), true };
 
@@ -573,7 +573,7 @@ namespace LEX
 
 
 		//This is probably going to be private. Rule is you set a new prefered with it, then do your business.
-		std::vector<Operation> CompileLine(Record& node, Register pref, Solution& out)
+		std::vector<Operation> CompileLine(SyntaxRecord& node, Register pref, Solution& out)
 		{
 			//NEW NAME: ProcessNode
 
@@ -605,7 +605,7 @@ namespace LEX
 			return result;
 		}
 
-		std::vector<Operation> CompileLine(Record& node, Register pref)
+		std::vector<Operation> CompileLine(SyntaxRecord& node, Register pref)
 		{
 			Solution trash;
 
@@ -614,23 +614,24 @@ namespace LEX
 
 		//I will begin passing the result vector through this as well.
 
-		std::vector<Operation> CompileBlock(Record& data);
+		std::vector<Operation> CompileBlock(SyntaxRecord& data);
 
 
 		RoutineBase CompileRoutine();
 
 
-		//RoutineCompiler(Record& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }{}
+		//RoutineCompiler(SyntaxRecord& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }{}
 
 		//function data is no longer an ask, it's a requirement now.
 		// additional. FunctionData can hold its own record.
-		static RoutineBase Compile(Record& ast, FunctionData* owner, Environment* env)
+		static RoutineBase Compile(SyntaxRecord& ast, FunctionData* owner, Environment* env)
 		{
 			return Compile(ast, owner, env, owner->_name, owner->GetTargetType());
 		}
 		
-		static RoutineBase Compile(Record& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name, ITypePolicy* tarType = nullptr)
+		static RoutineBase Compile(SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name, ITypePolicy* tarType = nullptr)
 		{
+			report _{ IssueType::Compile };
 			RoutineCompiler compiler{ ast, owner, env, name, tarType };
 			RoutineBase result = compiler.CompileRoutine();
 			RGL_LOG(debug, "Compilation complete.");

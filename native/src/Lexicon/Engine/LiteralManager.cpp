@@ -6,7 +6,7 @@ namespace LEX
 	//*
 
 	//TODO: Ideally obtain literal, this returns const, will want to experiment with that later.
-	Literal  LiteralManager::ObtainLiteral(Record& ast)
+	Literal LiteralManager::ObtainLiteral(SyntaxRecord& ast)
 	{
 		//I have a concept within this of making hashes from the strings of records, and mutating the hash with it's children
 		Variable entry = CreateVariable(ast);

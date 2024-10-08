@@ -313,7 +313,7 @@ namespace LEX
 	{
 		//Function and For classes basically, and any subclass that would derive from it.
 		// Hm. Literally just TypePolicies need this. So move it?
-		Record* _syntax = nullptr;
+		SyntaxRecord* _syntax = nullptr;
 		
 	public:
 
@@ -322,9 +322,9 @@ namespace LEX
 		
 
 
-		Record* GetSyntaxTree() override;
+		SyntaxRecord* GetSyntaxTree() override;
 
-		void SetSyntaxTree(Record& rec) final override;
+		void SetSyntaxTree(SyntaxRecord& rec) final override;
 	};
 
 	static_assert(std::derived_from<Environment, Component>);

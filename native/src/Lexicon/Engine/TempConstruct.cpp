@@ -266,7 +266,7 @@ namespace LEX
 			
 			//if no policy, fatal fault
 			if (!policy){
-				report::compile::critical("no policy found.");
+				report::runtime::critical("no policy found.");
 			}
 
 			
@@ -285,10 +285,10 @@ namespace LEX
 
 			//if no policy, fatal fault
 			if (!policy) {
-				report::compile::critical("no policy found.");
+				report::runtime::critical("no policy found.");
 			}
 
-			logger::critical(" index of set {}", a_lhs.Get<Index>());
+			logger::debug(" index of set {}", a_lhs.Get<Index>());
 
 			var->SetPolicy(policy);
 
@@ -519,7 +519,7 @@ namespace LEX
 		};
 
 
-		OperatorType GetOperatorType_Old(Record& target)
+		OperatorType GetOperatorType_Old(SyntaxRecord& target)
 		{
 			bool binary = target.SYNTAX().type == SyntaxType::Binary;
 
@@ -626,7 +626,7 @@ namespace LEX
 
 
 
-		InstructType GetOperatorType(Record& target)
+		InstructType GetOperatorType(SyntaxRecord& target)
 		{
 			bool binary = target.SYNTAX().type == SyntaxType::Binary;
 
@@ -831,7 +831,7 @@ namespace LEX
 
 		struct OpProcessors
 		{
-			static Solution GenericProcess(ExpressionCompiler* compiler, Record& target, InstructType op)
+			static Solution GenericProcess(ExpressionCompiler* compiler, SyntaxRecord& target, InstructType op)
 			{
 				//TODO:Note, this operator stuff WILL fail when it comes to member access, since it needs
 				// what's on the left to process what's on the right. In this specific instance, I'm going to make 
@@ -848,6 +848,8 @@ namespace LEX
 
 				//if (op == OperatorType::Invalid) {
 				if (op == InstructType::Invalid) {
+					
+					target.LogCritical("Invalid instruction for operation.");
 					report::compile::critical("Invalid instruction for operation.");
 				}
 
@@ -863,7 +865,7 @@ namespace LEX
 					Register reg1 = Register::Left;
 					Register reg2 = Register::Right;
 
-					Record& left = target.FindChild(str1)->GetChild(0);
+					SyntaxRecord& left = target.FindChild(str1)->GetChild(0);
 					RGL_LOG(debug, "<%>lhs: after find child");
 					lhs = compiler->CompileExpression(left, reg1);
 					RGL_LOG(debug, "<%>lhs: end");
@@ -907,7 +909,7 @@ namespace LEX
 			}
 
 
-			static Solution AccessProcess(ExpressionCompiler* compiler, Record& target)
+			static Solution AccessProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 			{
 
 				//TODO:Note, this operator stuff WILL fail when it comes to member access, since it needs
@@ -930,8 +932,8 @@ namespace LEX
 
 
 
-				Record& left = target.FindChild(str1)->GetFront();
-				Record& right = target.FindChild(str2)->GetFront();
+				SyntaxRecord& left = target.FindChild(str1)->GetFront();
+				SyntaxRecord& right = target.FindChild(str2)->GetFront();
 
 
 
@@ -947,7 +949,7 @@ namespace LEX
 			}
 
 
-			static Solution AssignProcess(ExpressionCompiler* compiler, Record& target)
+			static Solution AssignProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 			{
 				Register prefered = compiler->GetPrefered();
 
@@ -958,8 +960,8 @@ namespace LEX
 				Register reg1 = Register::Left;
 				Register reg2 = Register::Right;
 
-				Record& left = target.FindChild(str1)->GetFront();
-				Record& right = target.FindChild(str2)->GetFront();
+				SyntaxRecord& left = target.FindChild(str1)->GetFront();
+				SyntaxRecord& right = target.FindChild(str2)->GetFront();
 
 
 
@@ -1005,7 +1007,7 @@ namespace LEX
 
 
 
-			static Solution ThenProcess(ExpressionCompiler* compiler, Record& target)
+			static Solution ThenProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 			{
 				Register prefered = compiler->GetPrefered();
 
@@ -1023,7 +1025,7 @@ namespace LEX
 
 
 		//RecordProcessors
-		Solution OperatorProcess(ExpressionCompiler* compiler, Record& target)
+		Solution OperatorProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			InstructType op = GetOperatorType(target);
 
@@ -1055,7 +1057,7 @@ namespace LEX
 
 		struct CondProcessors 
 		{
-			static void IfElseProcess(RoutineCompiler* compiler, Record& target)
+			static void IfElseProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 			{
 				//'if' <Syntax: Conditional (col: 5/ line: 84>
 				//    '<:express:>' <Syntax: Header>
@@ -1150,7 +1152,7 @@ namespace LEX
 		};
 
 
-		void ConditionalProcess(RoutineCompiler* compiler, Record& target)
+		void ConditionalProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 			switch (Hash(target.GetTag()))
 			{
@@ -1171,7 +1173,7 @@ namespace LEX
 
 
 
-		Solution LiteralProcess(ExpressionCompiler* compiler, Record& target)
+		Solution LiteralProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
@@ -1182,7 +1184,7 @@ namespace LEX
 			return sol;
 		}
 
-		Solution FieldProcess(ExpressionCompiler* compiler, Record& target)
+		Solution FieldProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			//Currently, this cannot be handled
 			QualifiedField var = compiler->GetScope()->SearchFieldPath(target);
@@ -1212,12 +1214,12 @@ namespace LEX
 		
 
 
-		Solution HandleCall_V2(ExpressionCompiler* compiler, Record& target)
+		Solution HandleCall_V2(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 
 			//The argument check has to happen first.
 
-			Record* arg_record = target.FindChild(parse_strings::args);
+			SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
 
 			if (!arg_record) {
 				report::compile::critical("no args record in '{}' detected.", target.GetTag());
@@ -1245,7 +1247,7 @@ namespace LEX
 			// function(arg1, arg2, def_param4 = arg3);
 			// This sort of thing is known as a default argument, and instead of processing it here,
 			// it will process it later, when it is processing default arguments. 
-			//std::vector<Record*> def_args;
+			//std::vector<SyntaxRecord*> def_args;
 
 
 
@@ -1355,12 +1357,12 @@ namespace LEX
 
 
 
-		Solution HandleCall(ExpressionCompiler* compiler, Record& target)
+		Solution HandleCall(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 
 			//The argument check has to happen first.
 
-			Record* arg_record = target.FindChild(parse_strings::args);
+			SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
 
 			if (!arg_record) {
 				report::compile::critical("no args record in '{}' detected.", target.GetTag());
@@ -1392,7 +1394,7 @@ namespace LEX
 			// function(arg1, arg2, def_param4 = arg3);
 			// This sort of thing is known as a default argument, and instead of processing it here,
 			// it will process it later, when it is processing default arguments. 
-			//std::vector<Record*> def_args;
+			//std::vector<SyntaxRecord*> def_args;
 
 
 
@@ -1462,7 +1464,7 @@ namespace LEX
 		}
 
 
-		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, Record& target)
+		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 
 			//OverloadInput input;
@@ -1490,7 +1492,7 @@ namespace LEX
 
 
 
-		Solution CallProcess(ExpressionCompiler* compiler, Record& target)
+		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			//I seek to merge the functionality of these 2 functions into this one, seeing as they need to tread the same ground.
 
@@ -1508,14 +1510,14 @@ namespace LEX
 
 
 
-		void VariableProcess(RoutineCompiler* compiler, Record& target)
+		void VariableProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 
 			//TODO: Readdress VariableProcess. Also might be an expression?
 
 
 
-			Record* head_rec = target.FindChild(parse_strings::header);
+			SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
 			if (!head_rec)
 				report::compile::critical("No record named header.");
@@ -1535,7 +1537,7 @@ namespace LEX
 			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);
 
 			size_t loc_index = loc->_index;
-			if (Record* definition = target.FindChild(parse_strings::def_expression); definition) {
+			if (SyntaxRecord* definition = target.FindChild(parse_strings::def_expression); definition) {
 				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
 
 
@@ -1564,21 +1566,21 @@ namespace LEX
 
 
 
-		void StatementProcess(RoutineCompiler* compiler, Record& target)
+		void StatementProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 			Scope _{ compiler, ScopeType::Required };
 			compiler->CompileBlock(target);
 		}
 
 
-		Solution ExpressionProcess(ExpressionCompiler* compiler, Record& target)
+		Solution ExpressionProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			return compiler->CompileExpression(target.GetFront(), compiler->GetPrefered());
 		}
 
 
 
-		void ReturnProcess(RoutineCompiler* compiler, Record& target)
+		void ReturnProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 			QualifiedType return_policy = compiler->GetReturnType();
 
@@ -1586,6 +1588,7 @@ namespace LEX
 
 			if (target.size() != 0)
 			{
+				
 
 				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result);
 
@@ -1610,7 +1613,10 @@ namespace LEX
 				Conversion out;
 
 				assert(result.policy);
-				report::compile::debug("result {:X}", (uint64_t)result.policy);
+
+				target.GetChild(0).LogDebug("result {:X}", (uint64_t)result.policy);
+
+
 
 				auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
 
@@ -1643,13 +1649,18 @@ namespace LEX
 		}
 
 
-		Solution CastProcess(ExpressionCompiler* compiler, Record& target)
+		Solution CastProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
+
+			auto& rhs = target.FindChild(parse_strings::rhs)->GetFront();
+
 			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetEnvironment() };
 
 			if (!header) {
 				report::compile::error("No type found for cast");
 			}
+
+			auto& lhs = target.FindChild(parse_strings::lhs)->GetFront();
 
 			Solution expression = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered());
 
@@ -1659,7 +1670,10 @@ namespace LEX
 			Conversion out;
 
 			assert(expression.policy);
-			report::compile::debug("result {:X}", (uint64_t)expression.policy);
+			
+			lhs.LogDebug("result {:X}", (uint64_t)expression.policy);
+
+			//report::compile::debug("result {:X}", (uint64_t)expression.policy);
 
 			if (1 || target.GetView() != "maybe")
 			{
@@ -1713,7 +1727,7 @@ namespace LEX
 
 
 
-		void not_actually_call__CallProcess(RoutineCompiler* compiler, Record& target)
+		void not_actually_call__CallProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 			//This cannot be used right now, as the actual ability to get a function hasn't been implemented just yet.
 			// But, I can put in the most of everything.

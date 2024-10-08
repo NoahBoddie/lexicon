@@ -126,13 +126,13 @@ namespace LEX
 		}
 
 
-		Record* GetSyntaxTree() override
+		SyntaxRecord* GetSyntaxTree() override
 		{
 			//It has no syntax tree.
 			return nullptr;
 		}
 
-		void SetSyntaxTree(Record& rec) final override {}
+		void SetSyntaxTree(SyntaxRecord& rec) final override {}
 
 		ComponentType GetComponentType() override
 		{

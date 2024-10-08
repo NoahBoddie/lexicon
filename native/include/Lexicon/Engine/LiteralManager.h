@@ -4,7 +4,7 @@
 #include "Lexicon/Engine/Literal.h"
 #include "Lexicon/Engine/Expression.h"
 #include "Lexicon/Engine/ExpressionType.h"
-
+#include "Lexicon/Engine/SyntaxRecord.h"
 namespace LEX
 {
 	struct Literal;
@@ -54,7 +54,7 @@ namespace LEX
 	}
 
 	//Move to constructor
-	inline Variable CreateVariable(Record& ast)
+	inline Variable CreateVariable(SyntaxRecord& ast)
 	{
 		Variable result;
 
@@ -119,7 +119,7 @@ namespace LEX
 		//static std::unordered_map<size_t, Record*> resolveMap;
 
 		//TODO: Ideally obtain literal, this returns const, will want to experiment with that later.
-		static Literal ObtainLiteral(Record& ast);
+		static Literal ObtainLiteral(SyntaxRecord& ast);
 
 		static Variable* GetLiteral(size_t index);
 	

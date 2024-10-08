@@ -54,7 +54,7 @@ namespace LEX
 		//Actually, it would probably be something like external would be post definition. But on definition, simple values are filled.
 		// to prevent error when trying to use them.
 
-		void LoadFromRecord(Record& target) override;
+		void LoadFromRecord(SyntaxRecord& target) override;
 
 		void OnAttach() override;
 

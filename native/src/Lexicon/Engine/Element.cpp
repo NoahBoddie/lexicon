@@ -37,9 +37,9 @@ namespace LEX
 
 	//the associated should maybe be a bool or just reject any other than include and import.
 
-	SyntaxRecord& Element::GetPath(Record& path, std::optional<bool> right)
+	SyntaxRecord& Element::GetPath(SyntaxRecord& path, std::optional<bool> right)
 	{
-		Record* ret = nullptr;
+		SyntaxRecord* ret = nullptr;
 			
 		if (right.has_value())
 			path.FindChild(right.value() ? parse_strings::rhs : parse_strings::lhs);
@@ -69,7 +69,7 @@ namespace LEX
 
 		if (!left) {
 
-			auto result = GetEnvironmentTMP(a_this, &path->Demote(), search_scripts);
+			auto result = GetEnvironmentTMP(a_this, path, search_scripts);
 
 			path = nullptr;
 
@@ -78,7 +78,7 @@ namespace LEX
 
 		if constexpr (1 == 1)//If not generic.
 		{
-			Environment* _this = GetEnvironmentTMP(a_this, &left->Demote(), search_scripts);
+			Environment* _this = GetEnvironmentTMP(a_this, left, search_scripts);
 
 			path = path->FindChild(parse_strings::rhs);
 
@@ -205,7 +205,7 @@ namespace LEX
 
 
 
-	PolicyBase* Element::SearchTypePath(Element* a_this, Record& _path)
+	PolicyBase* Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
 	{
 		PolicyBase* result = nullptr;
 
@@ -252,7 +252,7 @@ namespace LEX
 
 	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem)
 	{
-		Record path_record = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(std::string{ path });
+		SyntaxRecord path_record = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(std::string{ path }).Transform<SyntaxRecord>();
 
 		//if (path_record.error()) return nullptr;
 
@@ -299,7 +299,7 @@ namespace LEX
 	}
 
 
-	Environment* Element::GetEnvironmentTMP(Environment* a_this, Record* path, bool& search_scripts)
+	Environment* Element::GetEnvironmentTMP(Environment* a_this, SyntaxRecord* path, bool& search_scripts)
 	{
 		Environment* result = nullptr;
 		get_switch(path->SYNTAX().type)
@@ -381,7 +381,7 @@ namespace LEX
 
 
 
-	FunctionInfo* Element::SearchFunctionPath(Element* a_this, Record& path, OverloadKey* key, Overload* out)
+	FunctionInfo* Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey* key, Overload* out)
 	{
 		FunctionInfo* result = nullptr;
 
@@ -427,7 +427,7 @@ namespace LEX
 
 
 
-	QualifiedField Element::SearchFieldPath(Element* a_this, Record& path)
+	QualifiedField Element::SearchFieldPath(Element* a_this, SyntaxRecord& path)
 	{
 	
 		QualifiedField result{ nullptr };
@@ -459,7 +459,7 @@ namespace LEX
 		return result;
 	}
 	
-	Script* Element::SearchScriptPath(Element* a_this, Record& path)
+	Script* Element::SearchScriptPath(Element* a_this, SyntaxRecord& path)
 	{
 
 		Script* result = nullptr;
@@ -487,7 +487,7 @@ namespace LEX
 	}
 
 	
-	bool FindNext(Element*& focus, Record* target, Record*& next)
+	bool FindNext(Element*& focus, SyntaxRecord* target, SyntaxRecord*& next)
 	{
 		//target is left, next is right
 		Project* project = focus->GetProject();
