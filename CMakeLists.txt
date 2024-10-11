@@ -140,7 +140,8 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/DefaultClient.h" 
 		"native/include/Lexicon/Engine/SyntaxRecord.h" 
 		"native/include/Lexicon/Engine/BasicFormula.h"
-		native/include/Lexicon/Engine/IElementImpl.h)
+		native/include/Lexicon/Engine/IElementImpl.h
+		"native/include/Lexicon/Engine/IssueTable.h")
 
 	set(master_sources
 	
@@ -274,8 +275,9 @@ set(headers
 	"include/Lexicon/GenericBodyArray.h"
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/IElementProxy.h"
+	"include/Lexicon/Issue.h"
 	${master_headers}
-)
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h" )
 
 
 set(sources
@@ -298,7 +300,8 @@ set(sources
 
 	"src/Lexicon/FormulaHandler.cpp"
 	"src/Lexicon/Object.cpp"
-	${master_sources} "native/src/Lexicon/Engine/IProjectImpl.cpp" "native/src/Lexicon/Engine/IScriptImpl.cpp")
+	"src/Lexicon/Impl/PCH.cpp"
+	${master_sources} "native/src/Lexicon/Engine/IProjectImpl.cpp" "native/src/Lexicon/Engine/IScriptImpl.cpp" )
 
 
 
