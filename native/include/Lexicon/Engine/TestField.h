@@ -1409,9 +1409,17 @@ namespace LEX
 
 	void other_func()
 	{
+		std::unordered_map<std::string, int> t;
+
+		auto it = t.begin();
+		auto str = it->first;
+		ReportManager;
+
 		//function("nothing");
 	}
-	
+
+
+
 
 	namespace SingletonWorksheet
 	{
