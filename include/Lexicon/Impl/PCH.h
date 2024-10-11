@@ -193,7 +193,7 @@ namespace logger
 
 #define DEFAULT_LOGGER() extern "C" __declspec(dllexport) void SetDefaultLogger()
 
-    inline void InitializeLogging();
+    void InitializeLogging();
 
 
 	SOURCE_LOGGER(trace, trace);
@@ -277,8 +277,6 @@ namespace logger
 using namespace std::literals;
 
 //*
-#include "Lexicon/Report.h"
-
 
 
 //This shit is supposed to be in src, it's not making it into the next project stupid.
@@ -287,6 +285,9 @@ namespace LEX
 	using namespace RGL_NAMESPACE;
 	using namespace RGL_INCLUDE_NAMESPACE;
 }
+
+#include "Lexicon/Report.h"
+
 
 inline int __init = 0;
 
@@ -299,8 +300,11 @@ inline int __init = 0;
 struct Initializer
 {
     using def = void(*)();
+    using now = void(*)(size_t);
 
     inline static std::vector<def> executeList;
+
+    inline static size_t immediateNumber = 0;
 
     static bool Finished()
     {
@@ -332,17 +336,29 @@ struct Initializer
             //func();
             executeList.push_back(func);
     }
+
+    template <std::convertible_to<now> T>
+    Initializer(T func)
+    {
+        if (func)
+            func(immediateNumber++);
+    }
+
+
 private:
     inline static bool _done = false;
 };
 
 //Initializes something on the spot.
-#define INITIALIZE__COUNTED(mc_counter) inline static void CONCAT(__init_func_,mc_counter)();\
+#define INITIALIZE__COUNTED(mc_counter, ...) inline static void CONCAT(__init_func_,mc_counter)(__VA_ARGS__);\
 volatile inline static Initializer CONCAT(__init_var_,mc_counter) = CONCAT(__init_func_,mc_counter);\
-void CONCAT(__init_func_,mc_counter)()
+void CONCAT(__init_func_,mc_counter)(__VA_ARGS__)
 
 #define INITIALIZE(...) __VA_OPT__(/)##__VA_OPT__(*) __VA_ARGS__ __VA_OPT__(*)##__VA_OPT__(/) \
 INITIALIZE__COUNTED(__COUNTER__)
+
+#define INITIALIZE_NOW(...) __VA_OPT__(/)##__VA_OPT__(*) __VA_ARGS__ __VA_OPT__(*)##__VA_OPT__(/) \
+INITIALIZE__COUNTED(__COUNTER__, size_t a_count)
 
 
 //inline static Initializer CONCAT(__init_,__LINE__) = []() -> void
@@ -711,77 +727,4 @@ namespace LEX
 
 #define NULLCHECK(mc_condition) if (!mc_condition) report::critical("Condition '{}' is invalid, throwing fatal exception.", STRINGIZE(mc_condition))
 
-#ifdef LEX_SOURCE
-#include "Lexicon/Engine/SettingManager.h"
-#endif
 
-void logger::InitializeLogging()
-{
-
-    static bool _initialized = false;
-
-    if (_initialized)
-        return;
-
-    _initialized = true;
-
-    //_logger<void>{}();
-    auto default_logger = GetProcAddress(GetCurrentModule(), "SetDefaultLogger");
-
-    if (auto default_logger = GetProcAddress(GetCurrentModule(), "SetDefaultLogger"); default_logger) {
-        using func_t = void(*)();
-        func_t func = (func_t)default_logger;
-        return func();
-    }
-
-
-    std::shared_ptr<spdlog::logger> log = spdlog::stdout_color_mt("console");
-
-#ifndef NDEBUG
-    auto level = spdlog::level::trace;
-#else
-    //Use right alt for just debug logging, control to allow debugger to attach.
-    auto level = GetKeyState(VK_RCONTROL) & 0x800 || GetKeyState(VK_RMENU) & 0x800 ?
-        spdlog::level::debug : spdlog::level::info;
-#endif
-#ifdef LEX_SOURCE
-
-    if (level >= spdlog::level::info) {
-        level = LEX::SettingManager::GetSingleton()->level;
-    }
-
-#else
-
-    if (auto def = spdlog::default_logger(); def)
-    {
-        return;
-    }
-
-#endif
-
-    log->set_level(level);
-    log->flush_on(level);
-
-    spdlog::set_default_logger(std::move(log));
-    //spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%t] [%s:%#] %v");
-    spdlog::set_pattern("%s(%#): [%^%l%$] %v");
-
-
-#ifdef NDEBUG
-    if (spdlog::level::debug == level) {
-        logger::debug("debug logger in release enabled.");
-    }
-#endif
-    return;
-
-    auto color_log = dynamic_cast<spdlog::sinks::stdout_color_sink_mt*>(log.get());
-
-    if (color_log)
-    {
-        //color_log->set_color(spdlog::level::level_enum::trace, spdlog::color)
-    }
-
-    //void set_color(spdlog::level::level_enum::trace, spdlog::yellow);
-
-    logger::info("No default logger set, using standard.");
-}
