@@ -19,7 +19,7 @@ namespace LEX
 
 	void GlobalBase::OnAttach()
 	{
-        reinterpret_cast<SyntaxRecord*>(GetSyntaxTree())->Note("New Global {}", GetName());
+        GetSyntaxTree()->Note("New Global {}", GetName());
 	}
 
 	LinkResult GlobalBase::OnLink(LinkFlag flags)
