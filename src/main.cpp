@@ -4,8 +4,13 @@
 
 //*
 
+#define SETTING_PATH C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon
+#include "Lexicon/Engine/SettingManager.h"
+
 #include "Lexicon.h"
 #include "Lexicon/Engine/TestFieldB.h"
+
+#include "Lexicon/Issue.h"
 //#include "spdlog/spdlog.h"
 //#include "spdlog/sinks/stdout_color_sinks.h"
 //#include <spdlog/sinks/basic_file_sink.h>
@@ -17,9 +22,6 @@
 //
 //#include "Lexicon/Engine/TempConstruct.cpp"
 //
-
-
-
 
 
 using namespace RGL;
@@ -58,9 +60,14 @@ void TestProcedure(RuntimeVariable& result, Variable* target, std::vector<Variab
     result = tar.size();
 }
 
-double size_backend(String a_this)
+using STR = std::string;
+
+double size_backend(std::string a_this)
 {
-	logger::info("size of \"{}\"", a_this.view());
+    
+    Unvariable<std::string>{};
+
+	//logger::info("size of \"{}\"", a_this.view());
 	return a_this.size();
 }
 
