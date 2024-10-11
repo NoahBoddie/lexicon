@@ -338,9 +338,13 @@ namespace LEX
     {
         Negative = -1,
         Finite = 0,
+        None = 0, 
         Positive = 1,
         //NaN = 2,
     };
+
+    using OverflowState = InfiniteState;
+
 
 
     struct infinity
@@ -1235,6 +1239,10 @@ namespace LEX
 		Settings _setting;
 		uint8_t _priority;//Space is free so I might as well
 		InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
+        
+        //This is a flag that helps know if overflow has occured on a number. If you convert it, it will remain, if you assign it it will remain,
+        // it only disappears when performing an operation on it. Basically, it's a flag to help remember if the last operation made it overflow or not.
+        OverflowState overflowFlag = OverflowState::None;
 	};
 
     template <numeric T>
