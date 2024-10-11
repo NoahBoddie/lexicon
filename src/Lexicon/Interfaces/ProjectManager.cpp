@@ -639,7 +639,7 @@ namespace LEX
 
 		//If the name doesn't exist, this should just use the core path (this is how we detect the commons.
 		//std::string path = std::string(core_path);
-		std::string path = std::string(SettingManager::GetSingleton()->scriptDir);
+		std::string path = std::string(SettingManager::GetSingleton()->dataDir) + "/scripts";
 
 		if (name != "Shared") {
 			path += "/";
