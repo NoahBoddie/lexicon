@@ -1,9 +1,9 @@
 #include "Lexicon/Interfaces/ReportManager.h"
 
+#include "Lexicon/Engine/IssueTable.h"
+
 namespace LEX
 {
-	inline std::unordered_map<size_t, std::string_view> issueTable;
-
 	static inline thread_local std::optional<IssueType> Type = std::nullopt;
 
 	IssueType ReportManager::GetIssueType() { return Type.value_or(IssueType::Message); }
@@ -114,6 +114,7 @@ namespace LEX
 		case IssueLevel::Debug:
 			return spdlog::level::level_enum::debug;
 		case IssueLevel::Error:
+		case IssueLevel::Failure:
 			return spdlog::level::level_enum::err;
 		case IssueLevel::Info:
 			return spdlog::level::level_enum::info;
@@ -131,8 +132,7 @@ namespace LEX
 
 	std::string_view ReportManager::GetIssueMessage(IssueCode code)
 	{
-		auto it = issueTable.find(code);
-		return it != issueTable.end() ? it->second : std::string_view{};
+		return IssueTable::GetIssueMessage(code.value);
 	}
 
 
