@@ -2,6 +2,7 @@
 
 
 #include "Lexicon/Exception.h"
+#include "Lexicon/IssueCode.h"
 
 namespace LEX
 {
@@ -10,8 +11,18 @@ namespace LEX
 	concept is_not = !std::is_same_v<std::remove_reference_t<std::remove_pointer_t<This>>, Not>;
 
 
-	using IssueCode = uint16_t;  //lynchpin this by removing it.
-	//Use no return on critical functions.
+
+
+
+
+
+
+
+
+
+
+//*/
+
 
 	ENUM(IssueType, uint8_t)
 	{
@@ -31,7 +42,7 @@ namespace LEX
 		Info,
 		Debug,
 		Warning,
-		//Failure,
+		Failure,
 		Error,
 		Critical,  //Functionally the same as error, but in some situations where error won't send n exception this will
 		Total
@@ -47,29 +58,6 @@ namespace LEX
 	// isn't the table for codes. That table only cares about the numbers.
 	// But if one tries to print a code it will tell it's name.
 
-	struct IssueTable
-	{
-		constexpr static const LChar* npos = "";
-
-		using _Table = std::unordered_map<size_t, LChar*>;
-
-		inline static _Table _table;
-
-		static const LChar* GetIssueMessage(IssueCode code)
-		{
-			auto it = _table.find(code);
-			return it != _table.end() ? it->second : nullptr;
-		}
-	};
-
-	struct Issue
-	{
-		std::string_view name = "";  //debug name for when the path is not found.
-		size_t code = 0;
-
-		constexpr Issue(std::string_view _n, uint16_t _c) :
-			name{ _n }, code{ _c } {}
-	};
 
 	template <typename T>
 	struct SourceAndProxy
@@ -263,7 +251,7 @@ namespace LEX
 			message.insert(0, result);
 		}
 
-		static void LogBase(IssueCode code, std::string& message, IssueType type, IssueLevel level, std::source_location& loc);
+		static void LogBase(IssueCode code, std::string_view message, IssueType type, IssueLevel level, std::source_location& loc);
 
 		static std::string_view GetIssueMessage(IssueCode code);
 
@@ -304,7 +292,7 @@ namespace LEX
 
 			ValidateMessage(result, args...);
 
-			return LogBase(code, message, type, level, loc);
+			LogBase(code, result, type, level, loc);
 		}
 
 		//----------------------*/
