@@ -6,7 +6,7 @@
 
 namespace LEX
 {
-	RuntimeVariable ConcreteFunction::Execute(api::container<std::vector<RuntimeVariable>> args, Runtime* runtime, RuntimeVariable* def)
+	RuntimeVariable ConcreteFunction::Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def)
 	{
 		//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
 

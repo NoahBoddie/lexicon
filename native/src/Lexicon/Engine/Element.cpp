@@ -464,10 +464,17 @@ namespace LEX
 
 		Script* result = nullptr;
 
-		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, path, [&](std::vector<Environment*>& query) -> bool
 			{
 				for (auto env : query)
 				{
+					//Has possible cross contamination issues. Like having 2 envs with different names.
+					//if (env->GetName() == path.GetView())
+					//{
+					//	result = static_cast<Script*>(env);
+					//	return true;
+					//}
+
 					//Later this will handle this a bit differently.
 					Script* script = env->GetProject()->FindScript(path.GetView());
 
@@ -613,8 +620,18 @@ namespace LEX
 
 
 						_focus = next;
+						//IM CHANGING THIS, KEEP AN EYE ON IT
+						//if (!next || next->GetSyntax().type != SyntaxType::Path) {
+						//	cont = true;
+						//	break;
+						//}
 
-						if (!next || next->GetSyntax().type != SyntaxType::Path) {
+						if (!next) {		
+							target = project;
+							break;
+						}
+						else if (next->GetSyntax().type != SyntaxType::Path)
+						{
 							cont = true;
 							break;
 						}

@@ -181,8 +181,12 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 			auto& data = dataList[--i];
 
-			if (data.startID <= id)
+
+
+			if (data.startID <= id) {
+				
 				return TypeIdentity{ data.startID, i, id - data.startID };
+			}
 		}
 
 
@@ -197,15 +201,17 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		//Fix.
 		std::lock_guard<std::mutex> guard{ _lock };
 		
-		CheckID(id);
+		auto index = id;
 
-		assert(policyList.size() > id);
+		CheckID(index);
+
+		assert(policyList.size() > index);
 
 
-		PolicyBase*& slot = policyList[id];
+		PolicyBase*& slot = policyList[index];
 
 		if (slot) {
-			report::compile::critical("Slot for {} already taken.", id);
+			report::compile::critical("Slot for {} (id {}) already taken.", index, id);
 		}
 
 		//check here 

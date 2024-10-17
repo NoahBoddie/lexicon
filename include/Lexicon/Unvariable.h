@@ -20,6 +20,8 @@ namespace LEX
 	{
 		Type operator()(Variable* var)
 		{
+			logger::critical("*#* Var is {}", var->PrintString());
+
 			if (var->CanCastTo<Type>() == false)
 				report::apply::critical("Current value of Variable is unable to be cast to '{}'.", typeid(Type).name());
 

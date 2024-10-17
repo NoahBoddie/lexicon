@@ -197,11 +197,11 @@ namespace LEX
 					auto& var = from[0];
 					
 					//This is the real solution, I just want to check if I was right.
-					//auto from_type = LEX::GetVariableType(var.Ref());
-					auto from_type = var->Policy();
+					auto from_type = LEX::GetVariableType(var.Ref());
+					//auto from_type = var->Policy();
 
 					if (!from_type)
-						report::info("NO FROM");
+						report::runtime::critical("NO FROM");
 
 					auto to_type = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
 
@@ -334,8 +334,10 @@ namespace LEX
 			}
 			else									//Move//Copies
 			{
+				logger::critical("*$* before move (other: {})", a_rhs.GetVariable(runtime)->PrintString());
 				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.CopyVariable(runtime);
 				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
+				logger::critical("*$* after move {} (other: {})", a_lhs.GetVariable(runtime)->PrintString(), a_rhs.GetVariable(runtime)->PrintString());
 			}
 		}
 
@@ -803,7 +805,7 @@ namespace LEX
 				
 
 				if (!l_settings) {
-					report::compile::error("{} operand must be a number, '{}' found. ({}", "Left", lhs->GetName());
+					report::compile::error("{} operand must be a number, '{}' found.", "Left", lhs->GetName());
 				}
 				if (!r_settings) {
 					report::compile::error("{} operand must be a number, '{}' found.", "Right", rhs->GetName());
@@ -1191,7 +1193,6 @@ namespace LEX
 
 			if (!var) {
 				report::compile::critical("Cannot find variable '{}'.", target.GetTag());
-				return {};
 			}
 
 			//XTOR
@@ -1310,20 +1311,20 @@ namespace LEX
 				}
 			}
 
-			bool has_tar = false;
+			bool has_tar = func->GetTargetType();
+
+			alloc_size += instructions.defaults.size() + has_tar;
 
 			auto& list = compiler->GetOperationList();
 
-			if (func->GetTargetType() != nullptr) {
-				//This will push itself into the arguments, but it will only be used under certain situations.
-				list.push_back(CompUtil::MutateRef(*self->target, Operand{ compiler->GetArgCount(), OperandType::Argument }));
-				alloc_size++;
-				has_tar = true;
-			}
-
-			alloc_size += instructions.defaults.size();
 
 			auto start = compiler->ModArgCount(alloc_size);
+
+
+			if (func->GetTargetType() != nullptr) {
+				//This will push itself into the arguments, but it will only be used under certain situations.
+				list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
+			}
 
 
 			for (size_t i = 0; i < args.size(); i++)
@@ -1767,7 +1768,7 @@ namespace LEX
 
 			inline static Self* instance = &GetSingleton();
 
-			RuntimeVariable Execute(api::container<std::vector<RuntimeVariable>> args, Runtime*, RuntimeVariable*) override
+			RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime*, RuntimeVariable*) override
 			{
 				return (double)args[0]->AsString().size();
 			}
@@ -1797,7 +1798,7 @@ namespace LEX
 
 				inline static Self* instance = &GetSingleton();
 
-				virtual RuntimeVariable Execute(api::container<std::vector<RuntimeVariable>> args, Runtime*, RuntimeVariable*)
+				virtual RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime*, RuntimeVariable*)
 				{
 
 					//Convert should be real simple.
@@ -1826,7 +1827,7 @@ namespace LEX
 
 			std::array<ICallableUnit*, Number::Settings::length> convertMap;
 
-
+			//uint32_t is 0:1:1:0
 			template <NumeralType A, Signage B, Size C, Limit D>
 			RuntimeVariable ConvNum(RuntimeVariable var)
 			{
@@ -1959,10 +1960,11 @@ namespace LEX
 				
 				if (out && result <= ConvertResult::Failure)
 				{
+					
+
 					auto identity = other->FetchTypeID().GetIdentity();
 
 					auto index = IdentityManager::instance->GetIndexFromName("NUMBER");
-
 
 
 					if (identity.index == index )

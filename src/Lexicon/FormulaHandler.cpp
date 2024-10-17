@@ -12,6 +12,8 @@ namespace LEX
 		{
 			if (copy)
 				FormulaManager::instance->IncrementForumula(formula);
+			else
+				other._formula = nullptr;
 
 			_formula = formula;
 

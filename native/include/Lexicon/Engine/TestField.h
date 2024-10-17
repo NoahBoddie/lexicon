@@ -132,10 +132,34 @@ inline std::hash<std::vector<uint64_t>> hasher;
 namespace LEX
 {
 	
-	
 	/////////////////////////
 	//Implementations
 	////////////////////////
+
+
+	struct APIResult_
+	{
+		IssueCode code;
+		//Should the given issue always be in english? maybe i just store both and let them choose which they want.
+		uint64_t messageID;
+
+		[[nodiscard]] std::string Redeem(bool useTranslation)
+		{
+			//The point of redeem is to get the message as printed (mostly) to the logger. This can be useful if you want to print it to your
+			// own logs or something.
+
+			//After redeemed the given message id is killed. Similar things will happen when the API result dies.
+			return {};
+		}
+
+
+		constexpr operator bool() const
+		{
+			return !code;
+		}
+	};
+
+
 
 	
 	/*
@@ -407,7 +431,6 @@ namespace LEX
 
 
 //#requires /:Option
-
 
 
 

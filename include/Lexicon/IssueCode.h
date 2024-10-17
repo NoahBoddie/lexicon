@@ -11,8 +11,8 @@ namespace LEX
 
 			struct
 			{
-				uint32_t project;
 				uint32_t code;
+				uint32_t project;
 			};
 		};
 		//constexpr IssueCode(uint32_t p, uint32_t c) : project{p}, code {c}{}

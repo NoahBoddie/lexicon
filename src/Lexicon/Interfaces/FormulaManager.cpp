@@ -41,7 +41,7 @@ namespace LEX
 
 
 
-	[[nodiscard]] uint64_t FormulaManager::RequestFormula(ISignature base, api::container<std::vector<std::string_view>> params, std::string_view routine, FormulaHandler& out, std::string_view from)
+	[[nodiscard]] uint64_t FormulaManager::RequestFormula(ISignature base, api::vector<std::string_view> params, std::string_view routine, FormulaHandler& out, std::string_view from)
 	{
 
 		std::unique_ptr<BasicFormula> formula = std::make_unique<BasicFormula>();
@@ -90,8 +90,9 @@ namespace LEX
 
 		formulaMap[formula.get()].refCount = 1;
 		out._formula = formula.get();
+		logger::info("starteddd {}", (uintptr_t)out._formula);
 		formula.release();
-
+		logger::info("after release");
 		//Zero means success
 		return 0;
 	}
@@ -112,8 +113,9 @@ namespace LEX
 		if (data && --data->refCount == 0) {
 			delete formula;
 			formulaMap.erase(formula);
+			logger::info("deleteddd {}", (uintptr_t)formula);
+
 			formula = nullptr;
-			logger::info("deleteddd");
 		}
 	}
 

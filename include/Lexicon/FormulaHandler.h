@@ -33,13 +33,16 @@ namespace LEX
 
 		FormulaHandler& operator=(const FormulaHandler& other)
 		{
-			Unhandle();
+			
 			Transfer(other, true);
 			return *this;
 		}
 
 		FormulaHandler& operator=(FormulaHandler&& other)
 		{
+			if (_formula != other._formula)
+				Unhandle();
+
 			Transfer(other, false);
 			return *this;
 		}
@@ -61,7 +64,7 @@ namespace LEX
 
 	private:
 
-		IFormula* _formula = nullptr;
+		mutable IFormula* _formula = nullptr;
 	};
-
+	REQUIRED_SIZE(FormulaHandler, 0x8);
 }

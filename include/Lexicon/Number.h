@@ -845,7 +845,7 @@ namespace LEX
 
 			return copy;
 		}
-
+        
 		Number& Assign(const Number& other)
 		{
 			*this = other.Convert(_setting);

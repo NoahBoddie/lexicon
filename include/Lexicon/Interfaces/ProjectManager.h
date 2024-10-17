@@ -94,7 +94,7 @@ namespace LEX
 			EXTERNAL:
 				virtual LEX::IProject* GetProject(std::string_view name, EXTERN_NAME) = 0;
 			public:
-				virtual APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::container<std::vector<std::string_view>> options = {}) = 0;
+				virtual APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::vector<std::string_view> options = {}) = 0;
 				virtual APIResult CreateProject(std::string_view name, ProjectClient* client, Project** out = nullptr, HMODULE source = GetCurrentModule()) = 0;
 				
 
@@ -127,7 +127,7 @@ namespace LEX
 	
 
 	public:
-		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::container<std::vector<std::string_view>> options = {}) override;
+		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::vector<std::string_view> options = {}) override;
 			
 		APIResult CreateProject(std::string_view name, ProjectClient* client, Project** out = nullptr, HMODULE source = GetCurrentModule()) override;
 

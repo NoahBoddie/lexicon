@@ -328,6 +328,10 @@ namespace LEX
 
 		RuntimeVariable& GetArgument(size_t i)
 		{
+			if (i >= _asp) {
+				report::runtime::critical("Argument stack index larger than current stack size. ({}/{})", i, _vsp);
+			}
+
 			//I'm thinking this should be input only, with a different function that gets a vector of the given arguments.
 			//I feel this should be input only, at least mostly. Really want to revisit. Especially since I don't like GetVariable's setup.
 			return _argStack[i];

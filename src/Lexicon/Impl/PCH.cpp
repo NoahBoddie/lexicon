@@ -5,9 +5,87 @@
 #include "Lexicon/Engine/SettingManager.h"
 #endif
 
+
+
+std::optional<std::filesystem::path> log_directory()
+{
+    TCHAR buff[MAX_PATH];
+
+    const auto result = SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, buff);
+
+    std::filesystem::path path = &buff[0];
+
+    if (path.empty() || result != 0) {
+        logger::info("failed to get known folder path");
+        
+        return std::nullopt;
+    }
+
+    
+    path /= "Lexicon"sv;
+    /*
+    path /= "My Games"sv;
+    if SKYRIM_REL_VR_CONSTEXPR(REL::Module::IsVR()) {
+        path /= "Skyrim VR";
+    }
+    else {
+        path /= std::filesystem::exists("steam_api64.dll") ?
+            (std::filesystem::exists("openvr_api.dll") ? "Skyrim VR" : "Skyrim Special Edition") :
+            "Skyrim Special Edition GOG";
+    }
+    path /= "SKSE"sv;
+    //*/
+    return path;
+}
+
+
+void SetLogger(std::string_view name, std::filesystem::path path, std::string_view pattern) {
+
+
+    path /= name;
+    path += L".log";
+
+
+    std::shared_ptr<spdlog::logger> log;
+
+    if (IsDebuggerPresent()) {
+        log = std::make_shared<spdlog::logger>(
+            name.data(), std::make_shared<spdlog::sinks::msvc_sink_mt>());
+    }
+    else {
+        log = std::make_shared<spdlog::logger>(
+            name.data(), std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.string(), true));
+    }
+
+   
+#ifndef NDEBUG
+    const auto level = spdlog::level::trace;
+#else
+    const auto level = spdlog::level::info;
+#endif
+
+
+    log->set_level(level);
+    log->flush_on(level);
+
+    spdlog::register_logger(log);
+    
+
+    //spdlog::set_level(level);
+    //spdlog::flush_on(level);
+    
+    
+    //spdlog::set_pattern("%s(%#): [%^%l%$] %v"s);
+    log->set_pattern(pattern.data());
+
+    log->info("Logger '{}' set.", name);
+}
+
+
+
 void logger::InitializeLogging()
 {
-
+    
     static bool _initialized = false;
 
     if (_initialized)
@@ -25,8 +103,6 @@ void logger::InitializeLogging()
     }
 
 
-    std::shared_ptr<spdlog::logger> log = spdlog::stdout_color_mt("console");
-
 #ifndef NDEBUG
     auto level = spdlog::level::trace;
 #else
@@ -38,6 +114,7 @@ void logger::InitializeLogging()
 
     if (level >= spdlog::level::info) {
         level = LEX::SettingManager::GetSingleton()->level;
+        
     }
 
 #else
@@ -49,12 +126,29 @@ void logger::InitializeLogging()
 
 #endif
 
+    //Only setting up the console log here.
+
+    std::shared_ptr<spdlog::logger> log = spdlog::stdout_color_mt("console");
+
+
+
     log->set_level(level);
     log->flush_on(level);
 
     spdlog::set_default_logger(std::move(log));
     //spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%t] [%s:%#] %v");
     spdlog::set_pattern("%s(%#): [%^%l%$] %v");
+    
+
+    //LEX::SettingManager::GetSingleton()->level;
+    
+    auto directory = log_directory();
+
+
+
+    //SetLogger("program", *directory, "%s(%#): [%^%l%$] %v");
+    //SetLogger("script", *directory, "%s(%#): [%^%l%$] %v");
+
 
 
 #ifdef NDEBUG
@@ -64,15 +158,4 @@ void logger::InitializeLogging()
 #endif
     logger::info("No default logger set, using standard.");
     return;
-
-    auto color_log = dynamic_cast<spdlog::sinks::stdout_color_sink_mt*>(log.get());
-
-    if (color_log)
-    {
-        //color_log->set_color(spdlog::level::level_enum::trace, spdlog::color)
-    }
-
-    //void set_color(spdlog::level::level_enum::trace, spdlog::yellow);
-
-    
 }

@@ -17,16 +17,23 @@ namespace LEX
 		
 		if (is_int)
 		{
-			
-			try {
-				number = std::stoll(value);
+			if (strncmp(value.c_str(), "0x", 2) == 0 || strncmp(value.c_str(), "0X", 2) == 0)
+			{
+				number = std::stoull(value, nullptr, 16);
+			}
+			else
+			{
+				try {
+					number = std::stoll(value);
 
-				//int64_t value = std::stoll(code);
-				//result = value;
+					//int64_t value = std::stoll(code);
+					//result = value;
+				}
+				catch (std::out_of_range sign_error) {
+					number = std::stoull(value);
+				}
 			}
-			catch (std::out_of_range sign_error) {
-				number = std::stoull(value);
-			}
+			
 		}
 		else
 		{

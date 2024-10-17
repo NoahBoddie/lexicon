@@ -112,6 +112,8 @@
 #pragma warning(push)
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/msvc_sink.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #pragma warning(pop)
 
 

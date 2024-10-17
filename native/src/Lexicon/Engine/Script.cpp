@@ -247,6 +247,18 @@ namespace LEX
 		
 	}
 
+	bool AppendContent(std::string_view content, api::vector<std::string_view> options)
+	{
+		//In order for append to work, new objects need to  play catch up with already existing things. To do this, we can check if linkage already
+		// finalized, and then finalize it again.
+
+		//I also would need the ability to create scripts from strings, as I wouldn't want appending to be a thing for regular scripts just yet.
+
+		//Ultimately, we just can't quite do it right, so we shouldn't bother right now. Append is important, but I'd rather like to get a make shift
+		// set up going where you can just append to specific files.
+		return false;
+	}
+
 
 	LinkResult Script::OnLink(LinkFlag flags)
 	{
@@ -259,6 +271,7 @@ namespace LEX
 
 		for (auto& node : target.children())
 		{
+			//Turn this into a function
 			get_switch(node.SYNTAX().type)
 			{
 
@@ -270,7 +283,7 @@ namespace LEX
 
 				project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
 			}
-		   break;
+		    break;
 
 			case SyntaxType::Function:
 			{

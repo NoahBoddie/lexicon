@@ -492,7 +492,7 @@ namespace LEX
 		return result;
 	}
 
-	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out, api::container<std::vector<std::string_view>> options)
+	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out, api::vector<std::string_view> options)
 	{
 		//Might break this down into a function that knows it's path and one that doesn't, mostly for scripts created via function.
 		std::string script_path = std::format("{}/{}.lsi", path, name);
@@ -638,19 +638,19 @@ namespace LEX
 		}
 
 		//If the name doesn't exist, this should just use the core path (this is how we detect the commons.
-		//std::string path = std::string(core_path);
+		//std::string path = std::string(SettingManager::GetSingleton()->dataDir) + "/scripts";
 		std::string path = std::string(SettingManager::GetSingleton()->dataDir) + "/scripts";
 
-		if (name != "Shared") {
-			path += "/";
-			path += name;
-		}
+		path += "/";
+		path += name;
+
+
 		std::filesystem::path commons_path = std::filesystem::path(path + "/Commons.lsi");
 
 		//These actually shouldn't through, that's a parsing process thing. What it should actually be doing is probably returning in some failure and
 		// communicating to the project client.
 		if (std::filesystem::exists(commons_path) == false) {
-			throw EnvironmentError("Commons not found.");
+			throw EnvironmentError(std::format("Commons not found at {}.", commons_path.string()));
 			return APIResult::Failure;
 		}
 
@@ -710,6 +710,7 @@ namespace LEX
 			case kFuncElement:
 			case kTypeElement:
 			case kGlobElement:
+			case kScrpElement:
 				element = Element::GetElementFromPath(nullptr, path, elem); 
 				break;
 			default:

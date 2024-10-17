@@ -23,6 +23,7 @@ namespace LEX
 		}
 		else {
 			result = _LiteralList().size();
+			logger::critical("*^*Emplacing literal {} from {}", entry.PrintString(), result);
 			_LiteralList().emplace_back(entry);
 			size = result;
 		}
@@ -35,7 +36,9 @@ namespace LEX
 	{
 		RGL_LOG(trace, "<%> get at {}, size {}, addr {}", index, _LiteralList().size(), (uintptr_t)&_LiteralList());
 
-		return &_LiteralList()[index];
+		auto var = &_LiteralList()[index];
+
+		return var;
 	}
 
 

@@ -278,7 +278,7 @@ namespace LEX
         {
             //Move here
             _value = std::move(value);
-            SetPolicy(_CheckVariableType());//REFUTE
+            SetPolicy(CheckVariableType());//REFUTE
             _SetDefined(true);
         }
         //Variable(const Variable& rhs) = default;
@@ -341,7 +341,7 @@ namespace LEX
         Variable& operator=(T& value)
         {
             _value = value;
-            SetPolicy(_CheckVariableType());//REFUTE
+            SetPolicy(CheckVariableType());//REFUTE
             _SetDefined(true);
             _SetChanged(true);
             return *this;
@@ -422,7 +422,7 @@ namespace LEX
         Variable& operator=(T& value)
         {
             _value = value;
-            SetPolicy(_CheckVariableType());//REFUTE
+            SetPolicy(CheckVariableType());//REFUTE
             _SetDefined(true);
             _SetChanged(true);
             return *this;
@@ -474,7 +474,7 @@ namespace LEX
             _value.GetData().SetFlag(VariableFlag::Polymorphic, value);
         }
 
-        AbstractTypePolicy* _CheckVariableType();
+        AbstractTypePolicy* CheckVariableType() const;
 
 
     INTERNAL:
@@ -562,6 +562,7 @@ namespace LEX
         Number AsNumber() { return std::get<Number>(_value); }
         Integer AsInteger() { throw nullptr; }
         String AsString() { return std::get<String>(_value); }
+
         Object AsObject() { return std::get<Object>(_value); }
         Array AsArray() { throw nullptr; }
 
@@ -685,7 +686,9 @@ namespace LEX
         {
             if (it)
             {
-                return it->Policy();
+                auto result = it->CheckVariableType();
+                
+                return result ? result : it->Policy();
             }
 
             //This type could be anything, even void. As such, the representation of a Variable is the basic interface voidable.

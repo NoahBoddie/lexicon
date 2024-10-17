@@ -191,6 +191,13 @@ namespace LEX
 		template<typename T> concept call_class_has_var_type = call_class_has_var_type_Store<T> || call_class_has_var_type_Value<T>;
 
 
+		//This one removes qualifiers specifically, but does not remove pointers.
+		template<typename T>
+		using remove_qual_t = std::remove_cv_t<std::remove_reference_t<T>>;//std::decay_t<T>;//
+
+		template<typename T>
+		using remove_all_t = std::remove_cv_t<std::remove_pointer_t<std::remove_reference_t<T>>>;//std::decay_t<T>;//
+
 		template<typename T>
 		using custom_decay = T;//std::decay_t<T>;//
 	}
@@ -233,13 +240,13 @@ namespace LEX
 
 	namespace detail
 	{
-		template<typename T> concept function_has_var_type_Value = requires(const std::remove_pointer_t<T>* t)
+		template<typename T> concept function_has_var_type_Value = requires(const remove_all_t<T>* t)
 		{
-			{ FetchVariableType<T>(t) } -> std::same_as<AbstractTypePolicy*>;
+			{ FetchVariableType<remove_qual_t<T>>(t) } -> std::same_as<AbstractTypePolicy*>;
 		};
 		template<typename T> concept function_has_var_type_Store = requires()
 		{
-			{ FetchVariableType<T>() } -> std::same_as<AbstractTypePolicy*>;
+			{ FetchVariableType<remove_qual_t<T>>() } -> std::same_as<AbstractTypePolicy*>;
 		};
 
 		template<typename T> concept function_has_var_type = function_has_var_type_Value<T> || function_has_var_type_Store<T>;
@@ -262,13 +269,13 @@ namespace LEX
 	template <detail::function_has_var_type T>
 	AbstractTypePolicy* GetVariableType()
 	{
-		using Decay_T = detail::custom_decay<T>;
+		using Ty = detail::remove_qual_t<T>;
 
-		if constexpr (detail::function_has_var_type_Value<T>) {
-			return FetchVariableType<Decay_T>(nullptr);
+		if constexpr (detail::function_has_var_type_Value<Ty>) {
+			return FetchVariableType<Ty>(nullptr);
 		}
 		else {
-			return FetchVariableType<Decay_T>();
+			return FetchVariableType<Ty>();
 		}
 
 		
@@ -278,22 +285,22 @@ namespace LEX
 	template <detail::function_has_var_type T>
 	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>* arg)
 	{
-		using Decay_T = detail::custom_decay<T>;
+		using Ty = detail::remove_qual_t<T>;
 
 
 		AbstractTypePolicy* type = nullptr;
 
 		//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
 
-		if constexpr (detail::function_has_var_type_Value<T>) {
+		if constexpr (detail::function_has_var_type_Value<Ty>) {
 			if (arg) {
-				return FetchVariableType<Decay_T>(arg);
+				return FetchVariableType<Ty>(const_cast<Ty*>(arg));
 			}
 		}
 
-		if constexpr (detail::function_has_var_type_Store<T>) {
+		if constexpr (detail::function_has_var_type_Store<Ty>) {
 			if (!type) {
-				type = FetchVariableType<Decay_T>();
+				type = FetchVariableType<Ty>();
 			}
 		}
 
@@ -305,41 +312,41 @@ namespace LEX
 	template <detail::function_has_var_type T>
 	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>& arg)
 	{
-		using _T = detail::custom_decay<T>;
+		//using Ty = detail::remove_qual_t<T>;
 
 
-		return GetVariableType<_T>(&arg);
+		return GetVariableType<T>(&arg);
 	}
 
 
 	template <detail::function_has_var_type T> requires (!std::is_pointer_v<T>)
 		AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
 	{
-		using _T = detail::custom_decay<T>;
+		//using _T = detail::custom_decay<T>;
 
 
-		return GetVariableType<_T>(&arg);
+		return GetVariableType<T>(&arg);
 	}
 
 	template <detail::function_has_var_type T> requires (std::is_pointer_v<T>)
 	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
 	{
-		using Decay_T = detail::custom_decay<T>;
+		using Ty = detail::remove_qual_t<T>;
 
 
 		AbstractTypePolicy* type = nullptr;
 
 		//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
 
-		if constexpr (detail::function_has_var_type_Value<T>) {
+		if constexpr (detail::function_has_var_type_Value<Ty>) {
 			if (arg) {
-				return FetchVariableType<Decay_T>(arg);
+				return FetchVariableType<Ty>(const_cast<Ty>(arg));
 			}
 		}
 
-		if constexpr (detail::function_has_var_type_Store<T>) {
+		if constexpr (detail::function_has_var_type_Store<Ty>) {
 			if (!type) {
-				type = FetchVariableType<Decay_T>();
+				type = FetchVariableType<Ty>();
 			}
 		}
 

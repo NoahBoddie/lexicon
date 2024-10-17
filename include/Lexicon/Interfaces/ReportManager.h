@@ -9,13 +9,14 @@
 namespace LEX
 {
 
-	enum struct ReportType
+	ENUM(ReportType)
 	{
-		None,			//The logger is undecided, default is plugin.
-		Main,			//The log goes to the main logger
-		General,		//The log goes to the general scripts area
-		Script,			//The log goes to the script owners area
-		Plugin,			//Log goes to the owning plugin
+		Main,				//The log goes to the main logger
+		Program,			//The log is allowed to given to the program logger
+		Script,				//The log allowed to be given to the script logger
+		
+			
+		Return = 1 << 7,	//The log is to return to sender, logging how it sees fit.
 	};
 
 	//TODO: Turn log mutator parameters into a struct, this is pretty annoying to remember.

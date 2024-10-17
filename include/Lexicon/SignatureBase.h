@@ -113,7 +113,7 @@ namespace LEX
 
 				virtual QualifiedType PULL_FROM_SIG(result);
 				virtual QualifiedType PULL_FROM_SIG(target);
-				virtual api::container<std::vector<QualifiedType>> PULL_FROM_SIG(parameters);
+				virtual api::vector<QualifiedType> PULL_FROM_SIG(parameters);
 
 			public:
 

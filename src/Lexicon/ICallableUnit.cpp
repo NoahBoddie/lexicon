@@ -6,7 +6,7 @@
 namespace LEX
 {
 
-	RuntimeVariable ICallableUnit::Invoke(api::container<std::vector<RuntimeVariable>> args, Variable*)
+	RuntimeVariable ICallableUnit::Invoke(api::vector<RuntimeVariable> args, Variable*)
 	{
 		return Execute(std::move(args), nullptr, nullptr);
 	}

@@ -68,6 +68,9 @@ namespace LEX
 		}
 
 
+		bool AppendContent(std::string_view content, api::vector<std::string_view> options = {}) override;
+
+
 		ComponentType GetComponentType() override;
 
 		SyntaxRecord* GetSyntaxTree() override;

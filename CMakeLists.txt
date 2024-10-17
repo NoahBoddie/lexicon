@@ -194,6 +194,8 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/FunctionData.cpp" 
 		"native/src/Lexicon/Engine/SyntaxRecord.cpp"
 		"native/src/Lexicon/Engine/IElementImpl.cpp"
+		"native/src/Lexicon/Engine/IProjectImpl.cpp" 
+		"native/src/Lexicon/Engine/IScriptImpl.cpp"
 
 	)
 else()
@@ -301,7 +303,8 @@ set(sources
 	"src/Lexicon/FormulaHandler.cpp"
 	"src/Lexicon/Object.cpp"
 	"src/Lexicon/Impl/PCH.cpp"
-	${master_sources} "native/src/Lexicon/Engine/IProjectImpl.cpp" "native/src/Lexicon/Engine/IScriptImpl.cpp" )
+	${master_sources}
+)
 
 
 
@@ -581,6 +584,20 @@ target_compile_definitions(
 	)
 
 
+	
+target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		SETTING_PATH=${SETTING_PATH}
+	)
+
+target_compile_definitions(
+	"${PARENT_NAME}"
+	PUBLIC
+		SETTING_PATH=${SETTING_PATH}
+)
+
+
 #///Executable Test
 #add_executable (${PROJECT_NAME}_Test ${sources})
 if(LEXICON_SOURCE AND TEST_BUILD)
@@ -637,6 +654,14 @@ if(LEXICON_SOURCE AND TEST_BUILD)
 	"${PROJECT_NAME}"
 	PUBLIC
 		LEX_BINARY_MODULE=\"${PARENT_NAME}_Test.exe\"
+	)
+
+	
+
+	target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_TEST_SOURCE=1
 	)
 endif()
 

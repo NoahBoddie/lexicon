@@ -11,10 +11,11 @@ namespace LEX
 		spdlog::source_loc a_loc{ loc.file_name(), static_cast<int>(loc.line()), loc.function_name() };
 		
 		//This is temporary, eventually I want some control of this in the plugin, via the same report method.
-#ifdef LEX_SOURCE
-		constexpr auto to = ReportType::Main;
-#else
-		constexpr auto to = ReportType::Plugin;
+		
+		ReportType to = ReportType::Main;
+
+#ifndef LEX_SOURCE
+		to |= ReportType::Return;
 #endif
 
 

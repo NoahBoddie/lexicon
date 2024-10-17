@@ -274,23 +274,43 @@ namespace LEX
 			log = MutateReport(data, false);
 		}
 
+		bool return_back = to & ReportType::Return;
+
+		to &= ~ReportType::Return;
+
+		
 		
 		if (log || level == IssueLevel::Critical)
 		{
 			auto spd_lvl = get_spdlog_level(level);
 
+			std::shared_ptr<spdlog::logger> log_ptr;
+
 			switch (to)
 			{
-			case ReportType::Plugin:
-				logger(loc, spd_lvl, data.message);
-				break;
-			case ReportType::General:
 			case ReportType::Script:
-			case ReportType::Main:
+				if (log_ptr = spdlog::get("script"))
+					log_ptr->log(loc, spd_lvl, data.message);
 
-			default:
-				spdlog::log(loc, spd_lvl, a_fmt, std::string_view{ data.message });
+				[[fallthrough]];
+
+			case ReportType::Program:
+				if (log_ptr = spdlog::get("program"))
+					log_ptr->log(loc, spd_lvl, data.message);
+
+				[[fallthrough]];
+				
+			case ReportType::Main:
+				spdlog::log(loc, spd_lvl, data.message);
+				break;
+
+			//default:
+				//if (log_ptr = spdlog::get("console"))
+				//	log_ptr->log(loc, spd_lvl, data.message);
 			}
+			
+			if (return_back)
+				logger(loc, spd_lvl, data.message);
 		}
 
 		TryThrow(type, level, data.message);

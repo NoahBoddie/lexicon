@@ -5,6 +5,8 @@
 #include "Lexicon/Engine/RoutineCompiler.h"
 
 #include "Lexicon/Engine/SyntaxRecord.h"
+
+#include "Lexicon/Engine/ConcreteGlobal.h"
 namespace LEX
 {
 
@@ -86,9 +88,14 @@ namespace LEX
 
         case LinkFlag::External://This should be final, but I haven't gotten around to it.
         {
+            
+
             //Only will attempt to revert to init if init has already been done.
-            if (_init)
+            if (_init) {
                 Revert(false);
+                if (auto self = As<ConcreteGlobal>())
+                    report::compile::debug("Global {} created with the value {}", GetName(), self->PrintString());
+            }
         }
         break;
 

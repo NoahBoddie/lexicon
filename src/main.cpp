@@ -65,8 +65,6 @@ using STR = std::string;
 double size_backend(std::string a_this)
 {
     
-    Unvariable<std::string>{};
-
 	//logger::info("size of \"{}\"", a_this.view());
 	return a_this.size();
 }
@@ -129,7 +127,7 @@ double GetActorValue_backend(double a_this, double othername, double shootfol, d
 
 void TestParse()
 {
-    std::string path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon/parse_test.txt";
+    std::string path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon/scripts/parse_test.txt";
     std::ifstream file_input;
     file_input.open(path);
 
@@ -292,43 +290,6 @@ void LexTesting(std::string formula)
     return;
     //END OF THE CONTROLLED ENVIRONMENT
 }
-
-
-namespace
-{
-    //This is how I may want to set up something like GetObjectType for external users.
-    template <typename T>
-    void GetTest()
-    {
-        std::cout << "1";
-    }
-
-    template  <std::integral T>
-    void GetTest()
-    {
-
-        std::cout << "2";
-    }
-
-
-    template  <>
-    void GetTest<uint32_t>()
-    {
-        std::cout << "3";
-    }
-}
-
-template <typename T = std::string>
-void TestAgain()
-{
-
-}
-
-void Funckle(std::initializer_list<int> test)
-{
-    TestAgain();
-}
-
 
 
 void SafeInvoke(std::function<void()> func)
@@ -504,8 +465,6 @@ int main(int argc, char** argv) {
 
     Initializer::Execute();
 
-    Funckle({ 1, 2, 4, 5 });
-
     //GetTest<int64_t>();
     //LEX::Report<LEX::IssueType::Compile>::debug("The numbers {} and {} are {}", 69, 420, "nice");
     //std::system("pause");
@@ -523,6 +482,8 @@ int main(int argc, char** argv) {
         //std::getline(std::cin >> std::ws, formula);
 
         LexTesting("GetValueTest");
+
+        //Formula<float>::Run("'something'.size()", "ActorValueGenerator::Commons");
 
     });
     

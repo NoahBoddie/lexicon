@@ -57,18 +57,7 @@ namespace LEX
 		{
 			CSimpleIniA ini;
 
-			std::string buffer;// = std::format("{}/{}/{}", a_path, a_project, language);
-
-
-			std::string_view path;
-			if (project.empty() == true) {
-				buffer = std::format("{}/report/{}.ini", folders, language);
-			}
-			else{
-				buffer = std::format("{}/report/{}/{}.ini", folders, project, language);
-			}
-
-			path = buffer;
+			std::string path = project.empty() ? std::format("{}/report/{}.ini", folders, language) : std::format("{}/report/{}/{}.ini", folders, project, language);
 
 			if (GetIni(path, ini) == false) {
 				logger::warn("Cannot load {} strings for {} at {}", project, language, folders);
@@ -126,6 +115,9 @@ namespace LEX
 	INITIALIZE_NOW()
 	{
 		//I may reinvent the IssueTable into a string table, something to store translated strings for people to use that vary based on some kind of base string given.
+
+		//Note, I can use the issue table as a method of telling what exactly a 
+
 		auto singleton = SettingManager::GetSingleton();
 
 		IssueTable::LoadIssueStrings(singleton->dataDir, singleton->language);

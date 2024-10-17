@@ -32,8 +32,9 @@ namespace LEX
 				{
 					report::warn("Value for {}::{} is invalid. No enum under '{}'", category, key, value);
 				}
-
-				to = opt_enum.value();
+				else {
+					to = opt_enum.value();
+				}
 			}
 			else
 			{
@@ -103,7 +104,8 @@ namespace LEX
 		{			
 			ini.SetUnicode();
 
-			std::string path = std::format("{}/{}", folders, file);
+			//Do this split in a different way.
+			std::string path = !folders.empty() ? std::format("{}/{}", folders, file) : std::string{ file };
 
 			auto result = GetIni(path, ini);
 
