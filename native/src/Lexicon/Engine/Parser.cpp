@@ -32,15 +32,17 @@ namespace LEX::Impl
 	{
 		//This version of the function should have no checks, it's expected that it should work, then any error fatal to the process.
 		//logger::info("C {}", peek().GetTag());
-		ProcessChain link = contextChain->InheritChain(mdl, contextChain);//(mdl, contextChain, this);
-
-		_LinkContext(link);
+		//ProcessChain link = contextChain->InheritChain(mdl, contextChain);//(mdl, contextChain, this);
+		ProcessChain link{ mdl, contextChain };
+		
+		//I think I want to bake the reset into it's blood
+		//_LinkContext(link);
 		//logger::info("C {}", peek().GetTag());
 		record = mdl->HandleToken(this, rec_nest);
 
 
 
-		_UnlinkContext();
+		//_UnlinkContext();
 	}
 
 	bool Parser::_QueryModule(Record* rec_nest, ParseModule* mdl, ParseFlag flag)
@@ -213,7 +215,11 @@ namespace LEX::Impl
 
 		bool first = true;
 		RGL_LOG(debug, "skipping start '{}'", start);
-		SkipType(TokenType::Punctuation, start);
+		
+		//if it's empty it will consume anything.
+		if (start.empty() == false)
+			SkipType(TokenType::Punctuation, start);
+		
 		while (tokenizer.eof() == false) {
 			//bool start = first;
 
@@ -333,11 +339,6 @@ namespace LEX::Impl
 		return GetInput()->name();
 	}
 
-	std::string Parser::project()// const
-	{
-		return GetInput()->project();
-	}
-
 	//Would like to seperate these from parser
 	// Would also like to make "create header" for this.
 	Record Parser::CreateExpression(std::string str, Syntax expr, std::vector<Record> children)
@@ -357,39 +358,9 @@ namespace LEX::Impl
 	}
 
 
-	Record Parser__::CreateSyntax(std::string text, ParseModule* mdl, Column column, Line line)
-	{
-		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
-		// and it will determine what can be compiled, and also how valid it is.
-
-		InputStream inp_stream{ "<untitled>", "<loose>", text, ParseMode::kBasic, line, column};
-
-		TokenStream tok_stream{ inp_stream };
 
 
-		if (!mdl) {
-			report::fault::critical("No parse module given bruv");
-		}
-		Parser par_stream{ tok_stream,	mdl };
-
-		try
-		{
-			Record result = par_stream._ParseTopLevel();
-
-			return result;
-		}
-		catch (const ParsingError& parse_error)
-		{
-			//This should still include the name if possible.
-			//TODO: Actually report parsing error, and also return a malformed record that can detail what the fuck just happened.
-			RGL_LOG(error, "{}", parse_error._tempWhat);
-			return Parser::CreateExpression(parse_error._tempWhat, SyntaxType::Invalid, Parser::CreateExpression("nameless", SyntaxType::Invalid));
-		}
-
-
-	}
-	
-	Record Parser__::CreateSyntaxTree(std::string project, std::string name, std::string text, ParseModule* mdl, Column column, Line line)
+	bool Parser__::CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name, ParseModule* mdl, Column column, Line line)
 	{
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.
@@ -401,8 +372,12 @@ namespace LEX::Impl
 			mdl = new_mod.get();
 		}
 
+		if (name.empty() == true)
+		{
+			name = "<untitled>";
+		}
 
-		InputStream inp_stream{ name, project, text, mdl->GetParseMode(), line, column };
+		InputStream inp_stream{ name, text, mdl->GetParseMode(), line, column };
 
 		TokenStream tok_stream{ inp_stream };
 
@@ -412,69 +387,40 @@ namespace LEX::Impl
 
 		try
 		{
-			Record result = par_stream._ParseTopLevel();
+			out = par_stream._ParseTopLevel();
 
-			return result;
+			//return APIResult_::Success;
+			//If someone wants 
+			return !par_stream._failure;
 		}
-		catch (const ParsingError& parse_error)
+		catch (const ParsingError& error)
 		{
 			//This should still include the name if possible.
 			//TODO: Actually report parsing error, and also return a malformed record that can detail what the fuck just happened.
-			RGL_LOG(error, "{}", parse_error._tempWhat);
-			return Parser::CreateExpression(parse_error._tempWhat, SyntaxType::Invalid, Parser::CreateExpression(name, SyntaxType::Invalid));
+			report::parse::failure("HEY this is supposed to be a failure, and to print a message. For now it does nothing.");
+			
+			//return error.result;
+			return false;
 		}
 
-
 	}
+
+
+	bool Parser__::CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Column column, Line line)
+	{
+		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
+		// and it will determine what can be compiled, and also how valid it is.
+
+		std::unique_ptr<ParseModule> new_mod;
+
+		if (!mdl) {
+			report::fault::critical("No parse module given bruv");
+		}
+		
+		return CreateSyntaxTree(out, text, "<untitled>", mdl, column, line);
+	}
+
 }
 
 
 
-/*
-
-	//Make a version of this that can take a parser and record, and a version that can take nothing at all.
-std::vector<Record> Parser::Delimited(std::string start, std::string stop, std::string separator, std::function<ParseFunc> func) {
-	//I would like a delimit that expects the seperator to be the second to last, and another that prevents it from being second to last.
-	//Having a version of this with no parameters or just parser would be ideal, that way I can use member functions.
-
-	//Checking for first might not really be that difficult.
-
-	std::vector<Record> result;
-
-	bool first = true;
-	RGL_LOG(debug, "skipping start '{}'", stop);
-	SkipType(TokenType::Punctuation, start);
-	while (tokenizer.eof() == false) {
-		//bool start = first;
-
-		if (IsType(TokenType::Punctuation, stop) == true) break;
-
-		RGL_LOG(debug, "skipping seperator '{}'", separator);
-
-		if (first) first = false; else SkipType(TokenType::Punctuation, separator);
-
-		RGL_LOG(debug, "delimit check b");
-
-		if (IsType(TokenType::Punctuation, stop) == true) break;
-
-		//Thinking of using the second arg for something.
-		//Record entry = start && begin ? begin(this, nullptr) : func(this, nullptr);
-		Record entry = func(this, nullptr);
-
-		if (entry) {
-			RGL_LOG(debug, "push back function");
-			result.push_back(entry);
-		}
-		else {
-			RGL_LOG(debug, "empty record discared");
-		}
-	}
-
-	RGL_LOG(debug, "skipping end '{}'", stop);
-	SkipType(TokenType::Punctuation, stop);
-
-	return result;
-}
-
-
-//*/

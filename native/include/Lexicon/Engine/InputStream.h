@@ -24,7 +24,7 @@ namespace LEX::Impl
 		//*
 		using Iterator = std::string::const_iterator;
 	public:
-		InputStream(std::string n, std::string p, std::string s, ParseMode mode, Line l = 1, Column c = 1);
+		InputStream(std::string_view n, std::string_view s, ParseMode mode, Line l = 1, Column c = 1);
 
 
 		[[deprecated("deprecated due to better version")]]
@@ -66,8 +66,6 @@ namespace LEX::Impl
 
 		void croak(std::string msg, Token* token = nullptr);
 
-		std::string project();
-		
 		std::string name();
 
 
@@ -101,7 +99,6 @@ namespace LEX::Impl
 		// when next is called.
 		RecordData _peek;
 
-		std::string _project;
 		std::string _name;
 
 	};

@@ -128,7 +128,7 @@ namespace LEX::Impl
 		else
 			result = _constRegex + _compRegex;
 			
-		logger::debug("compiled: {}", result);
+		//logger::debug("compiled: {}", result);
 		return result;
 	}
 }

@@ -252,11 +252,16 @@ namespace LEX
 
 	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem)
 	{
-		SyntaxRecord path_record = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(std::string{ path }).Transform<SyntaxRecord>();
+		SyntaxRecord path_record;
+		
+		if (auto result = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(path_record, path); !result){
+			//Error here.
+			return nullptr;
+		}
 
 		//if (path_record.error()) return nullptr;
 
-		report::warn("I'm not checking here, I should be checking :)");
+		
 		//<!> After parsing is done, the top most type needs to be set to the standards of what it's expecting.
 
 		//From here, use the path functions that are in environment.

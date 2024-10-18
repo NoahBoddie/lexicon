@@ -289,8 +289,8 @@ namespace LEX
         limitMap[NumeralType::Floating][Signage::Signed][Size::Bit] = { -1.0, 1.0, INFINITY, -INFINITY };
         limitMap[NumeralType::Floating][Signage::Signed][Size::Byte] = { -100.0, 100.0, INFINITY, -INFINITY };
         limitMap[NumeralType::Floating][Signage::Signed][Size::Word] = { -100.0, 100.0, INFINITY, -INFINITY };
-        limitMap[NumeralType::Floating][Signage::Signed][Size::DWord] = { min_value<float>, max_value<float>, INFINITY, -INFINITY };
-        limitMap[NumeralType::Floating][Signage::Signed][Size::QWord] = { min_value<double>, max_value<double>, INFINITY, -INFINITY };
+        limitMap[NumeralType::Floating][Signage::Signed][Size::DWord] = { std::numeric_limits<float>::lowest(), max_value<float>, INFINITY, -INFINITY };
+        limitMap[NumeralType::Floating][Signage::Signed][Size::QWord] = { std::numeric_limits<double>::lowest(), max_value<double>, INFINITY, -INFINITY };
 
         limitMap[NumeralType::Floating][Signage::Unsigned][Size::Bit] = { 0.0, 1.0, 0, INFINITY };
         limitMap[NumeralType::Floating][Signage::Unsigned][Size::Byte] = { 0.0, 100.0, 0, INFINITY };

@@ -27,6 +27,11 @@ namespace LEX::Impl
 			return false;
 		}
 
+		bool IsType(TokenType t) const
+		{
+			return t == type;
+		}
+
 		std::string Print()
 		{
 			return std::format("Token: {} (col: {}/ line: {}", magic_enum::enum_name(type), column, line);

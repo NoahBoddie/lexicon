@@ -66,7 +66,13 @@ namespace LEX
 		}
 
 
-		SyntaxRecord ast = Impl::Parser__::CreateSyntax<Impl::LineParser>(std::string(routine)).Transform<SyntaxRecord>();
+		SyntaxRecord ast;
+		
+		if (auto result = Impl::Parser__::CreateSyntax<Impl::LineParser>(ast, routine); !result)
+		{
+			//TODO FormulaManager needs to return the APIResult not a random ass integer.
+			return 1;
+		}
 
 
 		Script* perspective;

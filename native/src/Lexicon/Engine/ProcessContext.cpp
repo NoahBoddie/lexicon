@@ -2,7 +2,7 @@
 
 namespace LEX::Impl
 {
-	bool ProcessContext::HasKeyword(std::string_view type)
+	std::optional<bool> ProcessContext::GetKeywordState(std::string_view type)
 	{
 		return false;
 	}
@@ -59,29 +59,61 @@ namespace LEX::Impl
 		return false;
 	}
 
+
+/*
 	bool ProcessChain::HasKeyword(std::string_view type)
 	{
 		if (!this)
 			return false;
-		
+
 		ProcessChain* link = this;
 
 		while (link)
 		{
-			if (link->current && link->current->HasKeyword(type) == true)
+			if (link->current && link->current->HasKeyword(type).value() == true)
 				return true;
 
 			link = link->previous;
 		}
-		
+
+		return false;
+	}
+/*/
+	bool ProcessChain::HasKeyword(std::string_view type)
+	{
+		if (!this)
+			return false;
+
+		ProcessChain* link = this;
+
+		while (link)
+		{
+			if (link->current)
+			{
+				auto res = link->current->GetKeywordState(type);
+
+				if (res == std::nullopt)
+					return false;
+
+				if (res.value() == true)
+					return true;
+
+			}
+
+			link = link->previous;
+		}
+
 		return false;
 	}
 
-	ProcessChain ProcessChain::InheritChain(ProcessContext* cur, ProcessChain* prev)
+	//*/
+	
+	ProcessChain ProcessChain::InheritChain(ProcessContext* cur, ProcessChain*& prev)
 	{
-		return ProcessChain{ cur, prev, process };
+		ProcessChain chain{ cur, prev, process };
+		chain.relink = &prev;
+		return chain;
 	}
-
 
 
 	ProcessChain IProcess::CreateChain()

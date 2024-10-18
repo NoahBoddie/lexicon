@@ -526,7 +526,9 @@ namespace LEX
 		{
 			Impl::PreprocessorParser direct_parse;
 
-			tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+			if (Impl::Parser__::CreateSyntaxTree(tmp_directives, contents, name, &direct_parse) == false) {
+				return APIResult::AbstractFailure;
+			}
 
 			
 
@@ -573,7 +575,12 @@ namespace LEX
 
 			Impl::PreprocessorParser direct_parse;
 
-			tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+
+			//tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+
+			if (Impl::Parser__::CreateSyntaxTree(tmp_directives, contents, name, &direct_parse) == false) {
+				return APIResult::CreationFailed;
+			}
 
 			if (APIResult res = GeneralProcess(test_content, tmp_directives, options); res != APIResult::Success)
 				return res;
@@ -584,7 +591,11 @@ namespace LEX
 		}
 		
 
-		SyntaxRecord ast = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents).Transform<SyntaxRecord>();
+		SyntaxRecord ast;
+		
+		if (Impl::Parser__::CreateSyntaxTree(ast, contents, name) == false) {
+			return APIResult::CreationFailed;
+		}
 
 		ast.EmplaceChild(std::move(tmp_directives));
 
@@ -696,9 +707,6 @@ namespace LEX
 
 		if (!element)
 		{
-			//Record record = LEX::Impl::Parser__::CreateSyntax<PathParser>(std::string{ path });
-			Record record = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(std::string{ path });
-
 			//<!> After parsing is done, the top most type needs to be set to the standards of what it's expecting.
 
 			//From here, use the path functions that are in environment.

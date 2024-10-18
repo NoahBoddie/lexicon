@@ -348,6 +348,7 @@ namespace LEX
 	DECLARE_LOGGER_LEVEL(info, Info)						\
 	DECLARE_LOGGER_LEVEL(debug, Debug)						\
 	DECLARE_LOGGER_LEVEL(warn, Warning)						\
+	DECLARE_LOGGER_LEVEL(failure, Failure)					\
 	DECLARE_LOGGER_LEVEL(error, Error, [[noreturn]])		\
 	DECLARE_LOGGER_LEVEL(critical, Critical, [[noreturn]])
 

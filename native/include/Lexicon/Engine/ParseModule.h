@@ -66,7 +66,7 @@ namespace LEX::Impl
 		//Here I'll place a line of common context keywords that will be enabled by using one of these.
 		virtual ParseKeyword GetKeywords();
 
-		bool HasKeyword(std::string_view str) override;
+		std::optional<bool> GetKeywordState(std::string_view str) override;
 
 
 		//Controls what can be percieved as being part of a single statement when just trying to encapsulate the next valid statement

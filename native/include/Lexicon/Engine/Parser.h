@@ -155,8 +155,6 @@ namespace LEX::Impl
 		
 		std::string name();
 
-		std::string project();
-
 		//Would like to seperate these from parser(steam) and move it to Parser__ (to be named Parser)
 		//Would also like to remove the expression from this, there's no reason for it to be.
 		static Record CreateExpression(std::string str, Syntax expr = SyntaxType::None, std::vector<Record> children = {});
@@ -212,6 +210,14 @@ namespace LEX::Impl
 		//Would like this to be private too honestly, and const when given.
 		ProcessChain* contextChain = &_init;
 
+
+		void FlagFailure()
+		{
+			_failure = true;
+		}
+
+		bool _failure = false;
+
 		//Note, a statement like this would need parser memory
 		//1 < 2 > (4);
 
@@ -229,124 +235,23 @@ namespace LEX::Impl
 		//Syntax created from this is likely at runtime, and genarally will lack any kind of header behaviour. This is primarily to be used for loose
 		// formulas. The module unlike below has to be specified.
 		// That, or I'll make project locations and such sorta suggestions.
-		static Record CreateSyntax(std::string text, ParseModule* mdl, Column column = 1, Line line = 1);
-
 
 		template <std::derived_from<ParseModule> Module>
-		static Record CreateSyntax(std::string text, Column column = 1, Line line = 1)
+		static bool CreateSyntax(RecordBase& out, std::string_view text, Column column = 1, Line line = 1)
 		{
 			std::unique_ptr<ParseModule> mdl;
 
 			mdl = std::make_unique<Module>();
 
-			return CreateSyntax(text, mdl.get(), column, line);
+			return CreateSyntax(out, text, mdl.get(), column, line);
 		}
 
-		static Record CreateSyntaxTree(std::string project, std::string name, std::string text, ParseModule* mdl = nullptr, Column column = 1, Line line = 1);
+
+		static bool CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Column column = 1, Line line = 1);
+
+		static bool CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name = "", ParseModule* mdl = nullptr, Column column = 1, Line line = 1);
 	};
 	
 }
 
 
-
-/*
-//Dump zone
-
-
-//This "should" just parse front line single items.
-		Record ParseAtom() {
-			//I'm well considering making this a parser, just so the context goes off.
-			//Correction, I did make it one.
-			if (IsType(TokenType::Punctuation, "(") == true) {
-				next();
-				Record exp = ParseExpression();
-				SkipType(TokenType::Punctuation, ")");
-				return exp;
-			}
-
-			Record result{};
-
-
-			if (_SearchModule(result, nullptr) == false)
-				unexpected();
-
-			_SearchModule(result, &result);
-
-			return result;
-		}
-
-		//This is to be moved to a specific function, and it's value is that of total. It's a special parsing function that only 1 parser exists for,
-		// the top level
-		//Scratch that.
-		Record parse_toplevel() {
-			//True name is basically parse script
-			Record script{};
-
-			//Make an easier way to initialize a record as a type
-			script.GetTag() = _name;//Set to the name of the scope
-			script.GetEnum<Expression>().type = ExpressionType::Script;
-
-
-
-			while (!tokenizer.eof()) {
-				script.PushBackChild(ParseExpression());
-
-				//I would regardless like to end this off with ";" if possible
-				if (!tokenizer.eof()) SkipType(TokenType::Punctuation, ";");
-			}
-			return script;
-		}
-
-		//This is kinda sorta used to parse new scopes. Might not actually be required, could be a parsing module
-		Record parse_prog() {
-			//Moved to scope parser
-			auto parse_func = [=](Parser*, Record*) -> Record
-			{
-				return ParseExpression();
-			};
-			Record script{};
-
-			std::vector<Record> children = Delimited("{", "}", ";", parse_func);
-			if (children.size() == 0) return {};
-			if (children.size() == 1) return children[0];
-
-			//Add children or fucking whatever
-			return script;
-		}
-
-		//maybe binary is a parse module, do note.
-		// Also note, this does not exist.
-		Record maybe_binary(Record left, int my_prec) {
-			//Just making pretend right now.
-			std::map <std::string, int> PRECEDENCE{};
-
-			bool tok = IsType(TokenType::Operator);
-			if (tok) {
-				RecordData tar = tokenizer.peek();
-				int his_prec = PRECEDENCE[tar.GetTag()];
-				if (his_prec > my_prec) {
-					tokenizer.next();
-					return maybe_binary(Record{ tar.GetTag(), tar.GetEnum<uint64_t>(),
-						Record{"left", left },
-						Record{"right", maybe_binary(ParseAtom(), his_prec)}
-						}, my_prec);
-				}
-			}
-			return left;
-		}
-
-
-		
-		//Keeping this so I can figure out why the fuck maybe binary is called before maybe call?
-		// So atomic has maybe call, so NOW i just need to know, WHY DOES THAT FUCKING HAVE SO MANY CALLS?
-		//Found out, it was so that it could be used for binary op (probably).
-		// keeping here for lack of certainty
-		Record parse_expression() {
-			//return _ExecuteModule()
-			return maybe_call(function() {
-				return maybe_binary(parse_atom(), 0);
-			});
-		}
-		
-
-//*/

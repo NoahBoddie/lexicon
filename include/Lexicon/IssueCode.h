@@ -68,6 +68,11 @@ namespace LEX
 
 		}
 
+		constexpr IssueCode(uint32_t p, uint32_t c) : project{ p }, code { c }
+		{
+
+		}
+
 
 		constexpr operator uint64_t() const
 		{

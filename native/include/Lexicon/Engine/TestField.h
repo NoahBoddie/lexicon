@@ -137,27 +137,7 @@ namespace LEX
 	////////////////////////
 
 
-	struct APIResult_
-	{
-		IssueCode code;
-		//Should the given issue always be in english? maybe i just store both and let them choose which they want.
-		uint64_t messageID;
-
-		[[nodiscard]] std::string Redeem(bool useTranslation)
-		{
-			//The point of redeem is to get the message as printed (mostly) to the logger. This can be useful if you want to print it to your
-			// own logs or something.
-
-			//After redeemed the given message id is killed. Similar things will happen when the API result dies.
-			return {};
-		}
-
-
-		constexpr operator bool() const
-		{
-			return !code;
-		}
-	};
+	
 
 
 
@@ -2076,67 +2056,6 @@ namespace LEX
 
 
 		} while (true);
-
-		return;
-
-		auto path = "Shared::Commons::__float32";
-
-		if constexpr (1)
-		{
-			IElement* floatType = ProjectManager::instance->GetElementFromPath(path, kTypeElement);
-			logger::info("Testing -> {}", !!floatType);
-
-			if (floatType)
-			{
-				logger::info("Full name: {}", floatType->GetFullName());
-
-				auto testType = floatType->GetElementFromPath("::OtherScript::TestType", kTypeElement);
-
-
-
-				logger::info("Testing -> {}", !!testType);
-
-				if (testType)
-					logger::info("Full name: {}", testType->GetFullName());
-
-			}
-
-
-
-			//std::cin << 
-
-
-			return;
-		}
-
-		Record record = LEX::Impl::Parser__::CreateSyntax<control::PathParser>(path);
-
-		PrintAST_(record);
-
-
-		auto test = SearchTypePath(nullptr, record);
-
-
-		logger::info("Testing -> {}", !!test);
-		if (test)
-		{
-			logger::info("Full name: {}", test->GetFullName());
-
-
-			Record record = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>("OtherScript::TestType");
-
-			PrintAST_(record);
-
-
-			auto test2 = SearchTypePath(test, record);
-
-
-			logger::info("Testing -> {}", !!test2);
-
-			if (test2)
-				logger::info("Full name: {}", test2->GetFullName());
-
-		}
 	}
 
 

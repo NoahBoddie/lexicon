@@ -122,12 +122,24 @@ double GetActorValue_backend(double a_this, double othername, double shootfol, d
     return result;;
 }
 
+#ifdef OBSERVE_ME
+float uniqueFloat = 2.0f;
 
+unsigned int uniqueInteger = 2;
+
+float TestingPull()
+{
+    float testFloat = uniqueInteger
+    uniqueInteger = 30 + (HasKeyword(props::PlayerKeyword) * 20) + GetActorValue2("StrengthAdaptive", props::All);
+    return testFloat;
+}
+
+#endif
 
 
 void TestParse()
 {
-    std::string path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon/scripts/parse_test.txt";
+    std::string path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon/scripts/Shared/parse_test.txt";
     std::ifstream file_input;
     file_input.open(path);
 
@@ -146,7 +158,14 @@ void TestParse()
 
     PreprocessorParser parser;
 
-    Record ast = Parser__::CreateSyntaxTree("Fake", "Script", contents, &parser);
+    //Record ast = Parser__::CreateSyntaxTree("Fake", "Script", contents, &parser);
+    Record ast;
+
+    if (Parser__::CreateSyntaxTree(ast, contents, "Script") == false)
+    {
+        logger::info("not viable thing.");
+        return;
+    }
 
     PrintAST(ast);
 
@@ -255,6 +274,7 @@ void LexTesting(std::string formula)
         std::string number = result.AsNumber().string();
 
         logger::info("result of {} = {}", formula, number);
+        std::system("pause");
     }
     else
     {
@@ -469,9 +489,8 @@ int main(int argc, char** argv) {
     //LEX::Report<LEX::IssueType::Compile>::debug("The numbers {} and {} are {}", 69, 420, "nice");
     //std::system("pause");
     //return 0;
+
     
-
-
 
 
     //using input causes a crash for some reason.

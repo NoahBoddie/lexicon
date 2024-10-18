@@ -22,8 +22,14 @@ namespace LEX::Impl
 		//May seperate context from name.
 		virtual std::string_view GetContext() = 0;
 
-		virtual bool HasKeyword(std::string_view type);
+
+		//rename to get keyword state so HasKeyword can be free again.
+		virtual std::optional<bool> GetKeywordState(std::string_view type);
 		
+		bool HasKeyword(std::string_view type)
+		{
+			return GetKeywordState(type).value_or(false);
+		}
 
 		//Idea here is I can have a context respond to if it wants to be able to have a certain thing handle it. if it's damning enough,
 		// I can send an error.
@@ -47,6 +53,17 @@ namespace LEX::Impl
 		ProcessChain(ProcessContext* cur, ProcessChain* prev, IProcess* pro) : current{ cur }, previous{ prev }, process{ pro } {}
 
 
+		ProcessChain(ProcessContext* cur, ProcessChain*& prev) : current{ cur }, previous{ prev }, process{ prev->process }, relink{ &prev }
+		{
+			prev = this;
+		}
+
+		~ProcessChain()
+		{
+			if (relink)
+				*relink = previous;
+		}
+
 		//probably wont even use this.
 		bool IsContextType(std::string_view type);
 
@@ -54,7 +71,7 @@ namespace LEX::Impl
 
 
 
-		ProcessChain InheritChain(ProcessContext* cur, ProcessChain* prev);
+		ProcessChain InheritChain(ProcessContext* cur, ProcessChain*& prev);
 
 
 		bool HasKeyword(std::string_view type);
@@ -62,6 +79,8 @@ namespace LEX::Impl
 
 		ProcessContext* current = nullptr;
 		ProcessChain* previous = nullptr;
+
+		ProcessChain** relink = nullptr;
 
 		IProcess* process = nullptr;
 

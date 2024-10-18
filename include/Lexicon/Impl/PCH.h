@@ -116,6 +116,9 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #pragma warning(pop)
 
+//I don't care who uses them right now.
+#undef min
+#undef max
 
 //This logger is meant to only be used in this project, not to leak this definition into another.
 // Move this bit into a src file.

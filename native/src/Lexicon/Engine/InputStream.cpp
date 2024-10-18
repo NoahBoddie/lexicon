@@ -126,11 +126,6 @@ namespace LEX::Impl
 
 	}
 
-	std::string InputStream::project()
-	{
-		return _project;
-	}
-
 	std::string InputStream::name()
 	{
 		return _name;
@@ -139,7 +134,7 @@ namespace LEX::Impl
 
 	
 
-	InputStream::InputStream(std::string n, std::string p, std::string s, ParseMode mode, Line l, Column c)
+	InputStream::InputStream(std::string_view n, std::string_view s, ParseMode mode, Line l, Column c)
 	{
 		auto _1 = c;
 		auto _2 = l;
@@ -150,9 +145,9 @@ namespace LEX::Impl
 		std::string kinda_basic = TokenHandler::GetRegex(mode == ParseMode::kPreprocess);
 		
 		_regex = boost::regex{ kinda_basic };
-		_project = p;
-		_name = n;
-		stream = s;
+
+		_name = std::string{ n };
+		stream = std::string{ s };
 		_current = stream.cbegin();
 		_end = stream.cend();
 		_CalcColumnLine(_end, _1, _2);

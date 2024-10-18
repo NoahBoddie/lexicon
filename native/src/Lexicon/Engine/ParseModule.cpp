@@ -81,7 +81,7 @@ namespace LEX::Impl
 		return ParseKeyword::None; 
 	}
 
-	bool ParseModule::HasKeyword(std::string_view str)
+	std::optional<bool> ParseModule::GetKeywordState(std::string_view str)
 	{
 		switch (Hash(str))
 		{

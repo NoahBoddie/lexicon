@@ -199,6 +199,9 @@ namespace LEX::Impl
 
 			Record HandleToken(Parser* parser, Record*) override
 			{
+				//At least one is required.
+				parser->SkipType(TokenType::Punctuation, ";");
+
 				while (parser->SkipIfType(TokenType::Punctuation, ";") == true);
 
 				return {};
@@ -214,13 +217,175 @@ namespace LEX::Impl
 		
 
 
+		struct EncapsulateParser : public AutoParser<EncapsulateParser>
+		{
+			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			{
+				//{} can only go in code blocks, while () can only go in expression blocks.
+				//For this, I need better keywords, and the instantiables.
+				if (target)// || parser->contextChain->HasKeyword("code_block") == false)
+					return false;
+
+
+				if (parser->IsType(TokenType::Punctuation, "{") == true) {
+					return !(flag & ParseFlag::Atomic);
+				}
+				else {
+					return parser->IsType(TokenType::Punctuation, "(");
+				}
+			}
+
+			bool SkipIfOrTarget(Parser* parser, TokenType type, std::string_view view, Record* target)
+			{
+				if (!target)
+					return parser->SkipIfType(type, view);
+				else
+					return target->GetView() == view;
+			}
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				Record result;
+
+
+
+				if (SkipIfOrTarget(parser, TokenType::Punctuation, "(", target) == true) {
+					result.SYNTAX().type = SyntaxType::ExpressBlock;
+					//result.GetTag() = parse_strings::expression_block;
+
+					result.EmplaceChild(parser->ParseExpression());
+					//result = parser->ParseExpression();
+
+					parser->SkipType(TokenType::Punctuation, ")");
+				}
+				else {
+					result.SYNTAX().type = SyntaxType::StateBlock;
+					//result.GetTag() = parse_strings::statement_block;
+
+					//std::vector<Record> children = parser->Delimited("{", "}", ";", &Parser::ParseExpression);
+					std::vector<Record> children = parser->Delimited(target ? "" : "{", "}", [&]() { Record out; ParseModule::QueryModule<EndParser>(parser, out, nullptr); }, &Parser::ParseExpression);
+					if (auto size = children.size(); !size)
+						return {};
+					else if (size == 1)
+						result = children[0];
+					else
+						result.EmplaceChildren(std::move(children));
+				}
+
+				return result;
+			}
+
+
+			bool ContextAllowed_(ProcessContext* context, ProcessChain*)//from parenthesis parser.
+			{
+				//parenthesis will not process statements, so no if's no switches, no functions, etc. Probably want to do something to prevent it from handling types as well.
+				// But I'm kinda lazy ngl
+				return !context->IsContextType("Statement");
+			}
+
+
+			bool IsAtomic() const override { return true; }
+		};
+
+
+		struct ErrorParser : ParseModule
+		{
+			//This only really works if something is there to recover from it. Otherwise, it will toss whole variables, functions, etc.
+
+			bool CanHandle(Parser*, Record*, ParseFlag) const override { return true; }
+
+
+
+			struct EncapsuleData
+			{
+				//I think a vector of enums might work better if multiple case arise.
+				uint32_t braces = 0;
+			};
+
+			bool IsSynchronizingToken(RecordData&& peek, Record* target, EncapsuleData& data) const
+			{
+
+				if (peek.TOKEN().type == TokenType::Punctuation)
+				{
+					switch (Hash(peek.GetView()))
+					{
+						//These are the universial punctuators
+					case "}"_h:
+						data.braces++;
+					case ":"_h:
+					case ";"_h:
+						return true;
+					}
+
+
+					if (target) {
+						return peek.GetView() == target->GetView();
+					}
+				}
+
+
+				return false;
+			}
+
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				//I have a theory that when expecting a thing it will throw out input until it either encounters
+				// said desired input, or will take any input at all
+
+				//Seemingly it's a specific type of deal. Like, if you expect "expecting )" to do it, but in the above case it requires {.
+
+				//so largely, it seems that there's specific modes that are given, but universially, ; is the thing that ends all of them.
+				// Characters that seem to upset this process are puncutators like : and }. Possibly because they too end all things, but once it rolls over
+				// it's still an unexpected character. So once it finds it's out character, do not get rid of it.
+
+				//Also in accordance with the above, the beginning character must be evaluated as well.
+
+				//Here's one problem though, these things have to encapsulate, so I think it needs to consume () {} <>
+
+				//I think to safely do this I need to some how jump into the middle of the encapsulateParser.
+				// Which to safely do that I need to be able to have the script/line parser to be nested.
+
+				//		dhd
+				//	parser->next ( heheh (jrjrjr)hheh 
+				//auto query = parserknk-> job next  g jn35uobh35uog  %();
+
+				EncapsuleData data;
+
+				while (IsSynchronizingToken(parser->peek(), target, data) == false) {
+					//Do a possible check here for unrecognized tokens
+
+
+					parser->next();
+				}
+
+
+				if (data.braces) {
+					try
+					{
+						Record brace = Parser::CreateExpression("{");
+						return ParseModule::ExecuteModule<EncapsulateParser>(parser, &brace);
+					}
+					catch (ParseError error)
+					{
+						return HandleToken(parser, target);
+					}
+				}
+				return {};
+			}
+
+			std::string_view GetModuleName() override
+			{
+				return typeid(ErrorParser).name();
+			}
+		};
 
 
 
 		struct ScriptParser : ParseModule//public ParseSingleton<ScriptParser, false>
 		{
 			//Script parser n
-			bool HasKeyword(std::string_view type) override
+			std::optional<bool> GetKeywordState(std::string_view type) override
 			{
 				switch (Hash(type)) {
 				case "decl_block"_h:
@@ -232,21 +397,54 @@ namespace LEX::Impl
 
 			bool CanHandle(Parser*, Record*, ParseFlag) const override { return false; }
 
-			Record HandleToken(Parser* parser, Record* target) override
+
+			void HandleParse(Parser* parser, Record& script)
 			{
-				Record script = Parser::CreateExpression(parser->name(), SyntaxType::Script);
-
-				script.EmplaceChild(Parser::CreateExpression(parser->project(), SyntaxType::Project));
-
-				while (parser->eof() == false) {
-					RGL_LOG(info, "tag: {}", parser->peek().GetTag());
+				try
+				{
+					//Make this a recursive function
 					Record result = parser->ParseExpression();
 
 					if (result)
 						script.EmplaceChild(result);
 					else
 						report::parse::debug("disarding empty record");
+				}
+				catch (ParseError error)
+				{
+					ParseModule::ExecuteModule<ErrorParser>(parser, nullptr);
+					
+				}
+			}
 
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				Record script = Parser::CreateExpression(parser->name(), SyntaxType::Script);
+
+				//script.EmplaceChild(Parser::CreateExpression(parser->project(), SyntaxType::Project));
+				
+				while (parser->eof() == false) {
+					RGL_LOG(info, "tag: {}", parser->peek().GetTag());
+
+					//Please put get line and column so I can store the line and column of this shit. Thanks.
+
+					try
+					{
+						//Make this a recursive function
+						Record result = parser->ParseExpression();
+
+						if (result)
+							script.EmplaceChild(result);
+						else
+							report::parse::debug("disarding empty record");
+					}
+					catch (ParseError error)
+					{
+						ParseModule::ExecuteModule<ErrorParser>(parser, nullptr);
+
+					}
+
+					
 					//I would regardless like to end this off with ";" if possible
 					//Also, this needs a function called Clear instead, where it will continuously loop until it no longer needs to skip.
 
@@ -623,8 +821,24 @@ namespace LEX::Impl
 				return ModulePriority::High;
 			}
 
+
+
+			std::optional<bool> GetKeywordState(std::string_view type) override
+			{
+				switch (Hash(type)) {
+				case "statement"_h:
+				case "temp_variable"_h:
+					return true;
+				}
+
+				return false;
+			}
+
 			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
 			{
+				if (parser->contextChain->HasKeyword("temp_variable") == true)
+					return false;
+
 				if (target && target->SYNTAX().type == SyntaxType::Declare) {
 					return parser->IsType(TokenType::Punctuation, ";") || parser->IsType(TokenType::Operator, "=");
 				}
@@ -661,7 +875,7 @@ namespace LEX::Impl
 				return "FunctionStatement";
 			}
 
-			bool HasKeyword(std::string_view type) override
+			std::optional<bool> GetKeywordState(std::string_view type) override
 			{
 				switch (Hash(type)) {
 				case "code_block"_h:
@@ -885,67 +1099,6 @@ namespace LEX::Impl
 			}
 		};
 
-
-		struct EncapsulateParser : public AutoParser<EncapsulateParser>
-		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
-			{
-				//{} can only go in code blocks, while () can only go in expression blocks.
-				//For this, I need better keywords, and the instantiables.
-				if (target)// || parser->contextChain->HasKeyword("code_block") == false)
-					return false;
-
-				
-				if (parser->IsType(TokenType::Punctuation, "{") == true) {
-					return !(flag & ParseFlag::Atomic);
-				}
-				else {
-					return parser->IsType(TokenType::Punctuation, "(");
-				}
-			}
-
-			Record HandleToken(Parser* parser, Record* target) override
-			{
-				Record result;
-				
-				
-
-				if (parser->SkipIfType(TokenType::Punctuation, "(") == true) {
-					result.SYNTAX().type = SyntaxType::ExpressBlock;
-					//result.GetTag() = parse_strings::expression_block;
-					
-					result.EmplaceChild(parser->ParseExpression());
-					//result = parser->ParseExpression();
-
-					parser->SkipType(TokenType::Punctuation, ")");
-				} else {
-					result.SYNTAX().type = SyntaxType::StateBlock;
-					//result.GetTag() = parse_strings::statement_block;
-
-					//std::vector<Record> children = parser->Delimited("{", "}", ";", &Parser::ParseExpression);
-					std::vector<Record> children = parser->Delimited("{", "}", [&]() { Record out; ParseModule::QueryModule<EndParser>(parser, out, nullptr); }, &Parser::ParseExpression);
-					if (auto size = children.size(); !size)
-						return {};
-					else if (size == 1)
-						result = children[0];
-					else
-						result.EmplaceChildren(std::move(children));
-				}
-
-				return result;
-			}
-
-			
-			bool ContextAllowed_(ProcessContext* context, ProcessChain*)//from parenthesis parser.
-			{
-				//parenthesis will not process statements, so no if's no switches, no functions, etc. Probably want to do something to prevent it from handling types as well.
-				// But I'm kinda lazy ngl
-				return !context->IsContextType("Statement");
-			}
-
-
-			bool IsAtomic() const override { return true; }
-		};
 
 		
 		
@@ -1697,7 +1850,7 @@ namespace LEX::Impl
 
 		struct PreprocessorParser : public ParseModule
 		{
-			bool HasKeyword(std::string_view type) override
+			std::optional<bool> GetKeywordState(std::string_view type) override
 			{
 				switch (Hash(type)) {
 				case "preprocessor"_h:
@@ -1760,7 +1913,7 @@ namespace LEX::Impl
 
 		struct PreprocessorModule : public ParseModule
 		{
-			bool HasKeyword(std::string_view type) override
+			std::optional<bool> GetKeywordState(std::string_view type) override
 			{
 				switch (Hash(type)) {
 				case "preprocessor"_h:
