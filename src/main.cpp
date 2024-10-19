@@ -164,6 +164,7 @@ void TestParse()
     if (Parser__::CreateSyntaxTree(ast, contents, "Script") == false)
     {
         logger::info("not viable thing.");
+        std::system("pause");
         return;
     }
 

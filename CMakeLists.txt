@@ -584,19 +584,20 @@ target_compile_definitions(
 	)
 
 
-	
-target_compile_definitions(
-	"${PROJECT_NAME}"
-	PUBLIC
-		SETTING_PATH=${SETTING_PATH}
+if (SETTING_PATH)
+
+	target_compile_definitions(
+		"${PROJECT_NAME}"
+		PUBLIC
+			SETTING_PATH=${SETTING_PATH}
+		)
+
+	target_compile_definitions(
+		"${PARENT_NAME}"
+		PUBLIC
+			SETTING_PATH=${SETTING_PATH}
 	)
-
-target_compile_definitions(
-	"${PARENT_NAME}"
-	PUBLIC
-		SETTING_PATH=${SETTING_PATH}
-)
-
+endif()
 
 #///Executable Test
 #add_executable (${PROJECT_NAME}_Test ${sources})

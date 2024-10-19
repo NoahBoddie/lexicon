@@ -394,8 +394,7 @@ namespace LEX
 			switch (type)
 			{
 			case ObjectDataType::kNone://None might not report error here.
-				logger::info("object is empty");
-				throw temp_objectExcept;
+				report::fault::critical("object is empty. Cannot access data.");
 
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
@@ -405,8 +404,8 @@ namespace LEX
 				return *policy->RequestPool(_data.idxVal);
 
 			default:
-				logger::info("object data type not found");
-				throw temp_objectExcept;
+				report::fault::critical("object data type {} not valid", magic_enum::enum_name(type));
+				
 			}
 
 			//Use this function more plz.
@@ -558,15 +557,22 @@ namespace LEX
 
 		FillObjectData<_Type>(to, data);
 
-
 		if (policy->IsPooled(to) == true) {
 			result._data = policy->InitializePool(to, stor);
 			result.type = ObjectDataType::kRef;
 		}
 		else {
 			result._data = to;
-			result.type = stor ? ObjectDataType::kVal : ObjectDataType::kPtr;
+			if constexpr (stor) {
+				result.type = ObjectDataType::kVal;
+			}
+			else {
+				result.type = ObjectDataType::kPtr;
+
+			}
 		}
+
+		policy->Initialize(result.data());
 
 		//I would rather construct object on the spot here so we don't trigger any assignments
 		return result;

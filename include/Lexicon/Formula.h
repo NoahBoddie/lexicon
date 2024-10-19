@@ -9,7 +9,7 @@
 
 namespace LEX
 {
-
+	struct IScript;
 
 	template <typename T>
 	struct Formula;
@@ -27,11 +27,15 @@ namespace LEX
 		Formula& operator=(const Formula&) = delete;
 		Formula& operator=(Formula&&) = delete;
 
+		using Ty = std::conditional_t<std::is_void_v<T>, Void, T>;
+
 	public:
 
 		//This sorta needs to be able to make sure that the item can unvariable itself.
 
-		static T Run(std::string_view routine, std::string_view from = ""/*, default here*/)
+
+	private:
+		static T RunImpl(std::string_view routine, std::optional<IScript*> from, std::optional<Ty> def)
 		{
 
 			FormulaHandler self;
@@ -41,18 +45,42 @@ namespace LEX
 			//bool processed = FillSignature<true, R, Args...>(sign);
 			bool processed = base.Fill<SignatureEnum::Result, T, StaticTargetTag>();
 
+			uint64_t temp_cmp_res = 1;
+
 			if (processed)
 			{
 
-				std::vector<std::string_view> params{};
-
-				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from);
+				auto result = FormulaManager::instance->RequestFormula(base, {}, routine, self, from);
 
 				//Send out a message here.
+				temp_cmp_res = result;
+
 			}
+
+			if (temp_cmp_res) {
+				
+				bool def_value = def.has_value();
+
+				
+				report::log("Error occured creating formula '{}'. Error {}.", std::source_location::current(), 
+					IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error,
+					routine, temp_cmp_res);
+
+				if (def_value) {
+					if constexpr (std::is_void_v<T>) {
+						return;
+					}
+					else {
+						return def.value();
+					}
+				}
+					
+
+			}
+
 			
 			if (self) {
-				
+				//For now, this shouldn't catch.
 				RuntimeVariable result = self.formula()->Call();
 				
 				if constexpr (!std::is_same_v<void, T>) {
@@ -61,13 +89,42 @@ namespace LEX
 			}
 
 			//Send an exception. probably.
-			if constexpr (std::is_same_v<void, T>) {
+			if constexpr (std::is_void_v<T>) {
 				return;
 			}
 			else {
 				return {};
 			}
 
+		}
+
+	public:
+		static T Run(std::string_view routine)
+		{
+			return RunImpl(routine, std::nullopt, std::nullopt);
+		}
+
+		//T needs to be able to be inited by default
+		static T RunDefault(std::string_view routine)
+		{
+			return RunImpl(routine, std::nullopt, Ty{});
+		}
+
+
+
+		static T Run(std::string_view routine, Ty def)
+		{
+			return RunImpl(routine, std::nullopt, def);
+		}
+
+		static T Run(std::string_view routine, IScript* from)
+		{
+			return RunImpl(routine, from, std::nullopt);
+		}
+
+		static T Run(std::string_view routine, IScript* from, Ty def)
+		{
+			return RunImpl(routine, from, def);
 		}
 
 	};
@@ -86,15 +143,37 @@ namespace LEX
 		using Self = Formula<R(Args...)>;
 
 
+		using Ry = std::conditional_t<std::is_void_v<R>, Void, R>;
+
+
 		//The idea of this is you cast an IFormula into this forcibly, and this type will then manage all of the function calls for the type.
 		// Basically, think of this as a std::function. it should then translate all the rest of the bullshit around it.
 
 		//Basically, this is a wrapper for a given IFormula.
 
 
-		R operator()(Args... args/*, Variable var*/)
+		R operator()(Args... args, std::optional<Ry> def = std::nullopt)
 		{
 			//What should I do if someone tries to call this and doesn't have the right stuff?
+			if (formula() == nullptr)
+			{
+				bool def_value = def.has_value();
+
+
+				report::log("Formula is null cannot call function.", std::source_location::current(), 
+					IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
+
+
+				if (def_value) {
+					if constexpr (std::is_void_v<R>) {
+						return;
+					}
+					else {
+						return def.value();
+					}
+				}
+			}
+
 
 			RuntimeVariable result = formula()->Call(std::forward<Args>(args)...);
 
@@ -103,9 +182,8 @@ namespace LEX
 			}
 		}
 
-		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::string_view from = "")
+		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt)
 		{
-
 			Self self;
 
 			SignatureBase base{};
@@ -115,12 +193,9 @@ namespace LEX
 
 			if (processed)
 			{
-
 				std::vector<std::string_view> params{ parameters... };
 
 				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from);
-
-				
 			}
 			else {
 				logger::warn("signature not processed");
@@ -162,14 +237,38 @@ namespace LEX
 		using TarType = std::conditional_t<std::is_pointer_v<detail::expected_var_type_t<T>>,
 			detail::expected_var_type_t<T>, detail::expected_var_type_t<T>&>;
 
+
+		using Ry = std::conditional_t<std::is_void_v<R>, Void, R>;
+
+
 		//The idea of this is you cast an IFormula into this forcibly, and this type will then manage all of the function calls for the type.
 		// Basically, think of this as a std::function. it should then translate all the rest of the bullshit around it.
 
 		//Basically, this is a wrapper for a given IFormula.
 
-		R Call(TarType tar, Args&&... args/*, Variable var*/)
+		R Call(TarType tar, Args&&... args, std::optional<Ry> def = std::nullopt)
 		{
 			//What should I do if someone tries to call this and doesn't have the right stuff?
+
+			if (formula() == nullptr)
+			{
+				bool def_value = def.has_value();
+
+
+				report::log("Formula is null cannot call function.", std::source_location::current(), 
+IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
+
+
+				if (def_value) {
+					if constexpr (std::is_void_v<R>) {
+						return;
+					}
+					else {
+						return def.value();
+					}
+				}
+			}
+
 
 			RuntimeVariable result = formula()->Call(std::forward<TarType>(tar), std::forward<Args>(args)...);
 
@@ -179,13 +278,13 @@ namespace LEX
 		}
 
 
-		R operator()(TarType tar, Args... args/*, Variable var*/)
+		R operator()(TarType tar, Args... args, std::optional<T> def = std::nullopt)
 		{
 			return Call(tar, std::forward<Args>(args)...);
 		}
 
 		template <typename T = int>
-		R operator()(TarType&& tar, Args... args/*, Variable var*/, typename std::enable_if_t<!std::is_pointer_v<TarType>, T>* = 0)
+		R operator()(TarType&& tar, Args... args, std::optional<T> def = std::nullopt, typename std::enable_if_t<!std::is_pointer_v<TarType>, T>* = 0)
 		{
 			return Call(tar, std::forward<Args>(args)...);
 		}
@@ -193,7 +292,7 @@ namespace LEX
 		//This version should have a special operator where using -> will yield a helper class that will be able to be called in order to handle the function
 		// So something like formula(target)->Call();  or formula(target)(); Or, I'll just allow the target to be one with the calls. Seems better that way.
 
-		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::string_view from = "")
+		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt)
 		{
 
 			Self self;

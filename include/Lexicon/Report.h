@@ -260,7 +260,7 @@ namespace LEX
 		//THIS
 		//*
 		template <is_not<std::source_location>... Ts>
-		static void Log_(LString& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(LString&& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
 			ValidateMessage(message, args...);
 		
@@ -268,7 +268,27 @@ namespace LEX
 		}
 
 		template <is_not<std::source_location>... Ts>
-		static void Log_(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(LString& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		{
+			return log(std::move(message), loc, type, level, args...);
+		}
+
+
+		template <is_not<std::source_location>... Ts>
+		static void log(LString& message, std::source_location&& loc, IssueType type, IssueLevel level, Ts&... args)
+		{
+			return log(std::move(message), loc, type, level, args...);
+		}
+
+		template <is_not<std::source_location>... Ts>
+		static void log(LString&& message, std::source_location&& loc, IssueType type, IssueLevel level, Ts&... args)
+		{
+			return log(std::move(message), loc, type, level, args...);
+		}
+
+
+		template <is_not<std::source_location>... Ts>
+		static void log(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
 			LString result;
 
@@ -296,19 +316,19 @@ namespace LEX
 		}
 
 		//----------------------*/
-
+	private:
 
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
-		static void Log(LString& message, std::source_location& loc, IssueType type, Ts&... args)
+		static void stat_log(LString& message, std::source_location& loc, IssueType type, Ts&... args)
 		{
 
-			return Log_(message, loc, type, Level, args...);
+			return log(message, loc, type, Level, args...);
 		}
 
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
-		static void Log(IssueCode code, std::source_location& loc, IssueType type, Ts&... args)
+		static void stat_log(IssueCode code, std::source_location& loc, IssueType type, Ts&... args)
 		{
-			return report::Log_(code, loc, type, Level, args...);
+			return report::log(code, loc, type, Level, args...);
 		}
 
 	public:
@@ -320,12 +340,12 @@ namespace LEX
 	template <is_not<std::source_location>... Ts>													\
 	__VA_ARGS__ static void mc_name(SourceAndProxy<std::string> message, Ts&&... args)              \
 	{																								\
-		return Log<IssueLevel::mc_level>(message.prox, message.src, GetIssueType(), args...);		\
+		return stat_log<IssueLevel::mc_level>(message.prox, message.src, GetIssueType(), args...);		\
 	}																								\
 	template <is_not<std::source_location>... Ts>													\
 	__VA_ARGS__ static void mc_name(std::string& message, std::source_location loc, Ts&&... args)   \
 	{																								\
-		return Log<IssueLevel::mc_level>(message, loc, GetIssueType(), args...);					\
+		return stat_log<IssueLevel::mc_level>(message, loc, GetIssueType(), args...);					\
 	}																								\
 	template <is_not<std::source_location>... Ts>													\
 	__VA_ARGS__ static void mc_name(std::string&& message, std::source_location loc, Ts&&... args)  \
@@ -335,12 +355,12 @@ namespace LEX
 	template <is_not<std::source_location>... Ts>													\
 	__VA_ARGS__ static void mc_name(SourceAndProxy<IssueCode> code, Ts&&... args)					\
 	{																								\
-		return Log<IssueLevel::mc_level>(code.prox, code.src, GetIssueType(), args...);				\
+		return stat_log<IssueLevel::mc_level>(code.prox, code.src, GetIssueType(), args...);				\
 	}																								\
 	template <is_not<std::source_location>... Ts>													\
 	__VA_ARGS__ static void mc_name(IssueCode code, std::source_location loc, Ts&&... args)			\
 	{																								\
-		return Log<IssueLevel::mc_level>(code, loc, GetIssueType(), args...);						\
+		return stat_log<IssueLevel::mc_level>(code, loc, GetIssueType(), args...);						\
 	}
 
 #define DECLARE_ALL_LOGGER_LEVELS()							\

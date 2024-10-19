@@ -140,6 +140,10 @@ namespace api
 			return *_elem;
 		}
 
+		constexpr bool empty() const
+		{
+			return GetMode() == kEmptyMode;
+		}
 
 		operator elem& ()
 		{

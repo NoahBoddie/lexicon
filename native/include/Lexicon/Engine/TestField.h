@@ -439,11 +439,12 @@ namespace LEX
 
 		Formula<void(void)>::Create("otherTest() => otherTest() => otherTest() => otherTest()")();
 		
-		Formula<void>::Run("otherTest() => otherTest() => otherTest()");
-		
-		 
 
-		Variable result = Formula<Variable>::Run("(0.0).CouldBeLiterallyAnything()");
+		Formula<void>::RunDefault("otherTest() => otherTest() => otherTest()");
+		
+		std::system("pause");
+
+		Variable result = Formula<Variable>::Run("(25).CouldBeLiterallyAnything()");
 
 		logger::critical("{}", result.PrintString());
 #ifdef KILL

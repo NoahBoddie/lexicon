@@ -41,8 +41,10 @@ namespace LEX
 
 
 
-	[[nodiscard]] uint64_t FormulaManager::RequestFormula(ISignature base, api::vector<std::string_view> params, std::string_view routine, FormulaHandler& out, std::string_view from)
+	[[nodiscard]] uint64_t FormulaManager::RequestFormula(ISignature base, api::vector<std::string_view> params, std::string_view routine, FormulaHandler& out, std::optional<IScript*> from)
 	{
+		//TODO FormulaManager needs to return the APIResult not a random ass integer.
+		std::optional<IScript*> test;
 
 		std::unique_ptr<BasicFormula> formula = std::make_unique<BasicFormula>();
 
@@ -57,37 +59,40 @@ namespace LEX
 			formula->__thisInfo = std::make_unique<ParameterInfo>(target, parse_strings::this_word, 0);
 		}
 
-		auto& f_params = formula->parameters;
-		for (int i = 0; i < parameters.size(); i++)
+		if (params.empty() == false)
 		{
-			logger::info("TEST {} {} {}", params[i], params->size(), parameters.size());
+			auto& f_params = formula->parameters;
+			for (int i = 0; i < parameters.size(); i++)
+			{
+				logger::info("TEST {} {} {}", params[i], params->size(), parameters.size());
 
-			f_params.push_back(ParameterInfo(parameters[i], std::string(params[i]), f_params.size()));
+				f_params.push_back(ParameterInfo(parameters[i], std::string(params[i]), f_params.size()));
+			}
 		}
-
 
 		SyntaxRecord ast;
 		
-		if (auto result = Impl::Parser__::CreateSyntax<Impl::LineParser>(ast, routine); !result)
+		if (Impl::Parser__::CreateSyntax<Impl::LineParser>(ast, routine) == false)
 		{
-			//TODO FormulaManager needs to return the APIResult not a random ass integer.
+			
 			return 1;
 		}
 
 
 		Script* perspective;
 
-		if (from.empty() == false)
-		{
-			perspective = static_cast<Script*>(ProjectManager::instance->GetScriptFromPath(from));
-		}
-		else
-		{
+		if (from.has_value() == false){
 			perspective = ProjectManager::instance->GetShared()->GetCommons();
 		}
+		else {
+			//perspective = static_cast<Script*>(ProjectManager::instance->GetScriptFromPath(from));
+			perspective = static_cast<Script*>(from.value());
+		}
+
 		
 		if (!perspective) {
-			report::apply::error("cannot find script '{}'.", from);
+			report::apply::failure("Launch Script is null.");
+			return 2;
 		}
 		
 		//This needs to confirm it's proper

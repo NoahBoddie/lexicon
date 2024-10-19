@@ -103,7 +103,7 @@ namespace LEX
 			process->_current = &operationList;
 
 			if (_parent && s == ScopeType::Header) {
-				report::compile::critical("invalid header scope with parent detected.");
+				report::fault::critical("invalid header scope with parent detected.");
 			}
 		} 
 		

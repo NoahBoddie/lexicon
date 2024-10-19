@@ -64,25 +64,25 @@ namespace LEX
 		void mc_name(SourceAndProxy<std::string> message, Ts&&... args)\
 		{\
 			ScopedLogger log(Mutator(), true);\
-			return report::Log_(message.prox, message.src, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
+			return report::log(message.prox, message.src, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
 		}\
 		template <is_not<std::source_location>... Ts>\
 		void mc_name(std::string& message, std::source_location loc, Ts&&... args)\
 		{\
 			ScopedLogger log(Mutator(), true);\
-			return report::Log_(message, loc, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
+			return report::log(message, loc, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
 		}\
 		template <is_not<std::source_location>... Ts>\
 		static void mc_name(IssueCode code, Ts&&... args)\
 		{\
 			ScopedLogger log(Mutator(), true);\
-			return report::Log_(code, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
+			return report::log(code, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
 		}\
 		template <is_not<std::source_location>... Ts>\
 		static void mc_name(IssueCode code, std::source_location loc, Ts&&... args)\
 		{\
 			ScopedLogger log(Mutator(), true);\
-			return report::Log_(code, loc, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
+			return report::log(code, loc, ReportManager::instance->GetIssueType(), IssueLevel::mc_level, args...);\
 		}
 
 
@@ -94,13 +94,13 @@ namespace LEX
 
 
 		template <is_not<std::source_location>... Ts> void Note(SourceAndProxy<std::string> message, Ts&&... args) {
-			ScopedLogger log(Mutator(), true); return report::Log_(message.prox, message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+			ScopedLogger log(Mutator(), true); return report::log(message.prox, message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
 		} template <is_not<std::source_location>... Ts> void Note(std::string& message, std::source_location loc, Ts&&... args) {
-			ScopedLogger log(Mutator(), true); return report::Log_(message, loc, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+			ScopedLogger log(Mutator(), true); return report::log(message, loc, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
 		} template <is_not<std::source_location>... Ts> static void Note(IssueCode code, Ts&&... args) {
-			ScopedLogger log(Mutator(), true); return report::Log_(code, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+			ScopedLogger log(Mutator(), true); return report::log(code, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
 		} template <is_not<std::source_location>... Ts> static void Note(IssueCode code, std::source_location loc, Ts&&... args) {
-			ScopedLogger log(Mutator(), true); return report::Log_(code, loc, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+			ScopedLogger log(Mutator(), true); return report::log(code, loc, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
 		}
 
 		/*

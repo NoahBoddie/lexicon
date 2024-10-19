@@ -20,6 +20,8 @@ namespace LEX
 		// They don't have names. Rather they have handles and hashes.
 		// They don't have targets
 
+		//Think this should probably store the string that it came from perhaps. Could be useful.
+
 
 		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
 		{
@@ -57,7 +59,7 @@ namespace LEX
 				return result;
 			}
 		}
-
+		
 
 	};
 

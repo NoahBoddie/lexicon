@@ -75,6 +75,9 @@ namespace LEX
 
 		virtual void Move(ObjectData&, ObjectData&) = 0;
 
+		//Launched when the target is first inducted into an object.
+		virtual void Initialize(ObjectData&) = 0;
+
 		//TODO: Not doing Object::Operate this yet, but figure out what you want to do with it before releasing.
 		//virtual void Operator(std::string_view, ObjectData&, RuntimeVariable&) = 0;
 
@@ -127,7 +130,8 @@ namespace LEX
 
 		uintptr_t GetObjectVersion() override { return 0; }
 		uintptr_t GetVTableVersion() override { return 0; }
-
+		
+		virtual void Initialize(ObjectData&) override {}
 		
 		virtual bool IsCompatible(const IObjectVTable*) override { return true; }
 		

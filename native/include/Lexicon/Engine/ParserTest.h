@@ -350,25 +350,30 @@ namespace LEX::Impl
 				//	parser->next ( heheh (jrjrjr)hheh 
 				//auto query = parserknk-> job next  g jn35uobh35uog  %();
 
+				parser->FlagFailure();
+
 				EncapsuleData data;
 
-				while (IsSynchronizingToken(parser->peek(), target, data) == false) {
+				while (!parser->eof() && IsSynchronizingToken(parser->peek(), target, data) == false) {
 					//Do a possible check here for unrecognized tokens
 
 
 					parser->next();
 				}
 
-
-				if (data.braces) {
-					try
-					{
-						Record brace = Parser::CreateExpression("{");
-						return ParseModule::ExecuteModule<EncapsulateParser>(parser, &brace);
-					}
-					catch (ParseError error)
-					{
-						return HandleToken(parser, target);
+				if (parser->eof() == false)
+				{
+					if (data.braces) {
+						try
+						{
+							Record brace = Parser::CreateExpression("{");
+							return ParseModule::ExecuteModule<EncapsulateParser>(parser, &brace);
+						}
+						catch (ParseError error)
+						{
+							
+							return HandleToken(parser, target);
+						}
 					}
 				}
 				return {};
@@ -400,6 +405,7 @@ namespace LEX::Impl
 
 			void HandleParse(Parser* parser, Record& script)
 			{
+				//Make this easier to use, make it a function called "Recoverable"
 				try
 				{
 					//Make this a recursive function
@@ -470,13 +476,24 @@ namespace LEX::Impl
 
 			Record HandleToken(Parser* parser, Record* target) override
 			{
-				auto result = parser->ParseExpression();
+				try
+				{
+					auto result = parser->ParseExpression();
 
-				if (parser->eof() == false)
-					report::parse::error("End of line not met after line finished parsing. line and column later");
+
+					if (parser->eof() == false)
+						//This is a fault
+						report::parse::error("End of line not met after line finished parsing. line and column later");
 
 
-				return result;
+					return result;
+				}
+				catch (ParseError& error)
+				{
+					//Now, it can actually submit a message, but I'll not care right now.
+					ParseModule::ExecuteModule<ErrorParser>(parser, nullptr);
+					return {};
+				}
 			}
 
 

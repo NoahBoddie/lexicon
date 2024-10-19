@@ -195,15 +195,18 @@ namespace LEX
 			Scope a_scope{ this, ScopeType::Header };
 
 			/*
-			std::vector<ParameterInfo> params = _targetFunc->GetParameters();
+			//Kinda feel like this should be used but it isn't. This could cause some variables to go without value.
+			std::vector<ParameterInfo> params = _callData->GetParameters();
 
 			std::vector<ITypePolicy*> types;
 
 			std::transform(params.begin(), params.end(), std::back_inserter(types), [&](ParameterInfo& it) {return it.GetType(); });
 
 			ModParamCount(types.size(), types);
-			//*/
 
+
+			//*/
+			
 			bool method = false;
 
 			Solution solution{ GetTargetType(), OperandType::Index, 0 };

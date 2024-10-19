@@ -149,6 +149,11 @@ namespace LEX
 			return base->Move(self, other);
 		}
 
+		void Initialize(ObjectData& self) override final
+		{
+			return base->Initialize(self);
+		}
+
 
 		//TODO: Not doing Object::Operate this yet, but figure out what you want to do with it before releasing.
 		//virtual void Operator(std::string_view, Object*, Variable&) = 0;
