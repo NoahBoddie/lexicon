@@ -852,7 +852,7 @@ namespace LEX
 				if (op == InstructType::Invalid) {
 					
 					target.LogCritical("Invalid instruction for operation.");
-					report::compile::critical("Invalid instruction for operation.");
+					report::compile::error("Invalid instruction for operation.");
 				}
 
 				Solution lhs{};
@@ -971,7 +971,7 @@ namespace LEX
 
 				if (to.IsReadOnly() == true) {
 
-					report::compile::critical("target solution is read only.");
+					report::compile::error("target solution is read only.");
 				}
 
 				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true) {
@@ -990,7 +990,7 @@ namespace LEX
 				auto convert = from.IsConvertToQualified(to, nullptr, &out);
 
 				if (convert <= ConvertResult::Failure) {
-					report::compile::critical("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+					report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				}
 
 				CompUtil::HandleConversion(compiler, out, from, convert);
@@ -1034,7 +1034,7 @@ namespace LEX
 			switch (op)
 			{
 			case InstructType::Invalid:
-				report::compile::critical("Unhandled operator"); break;
+				report::compile::error("Unhandled operator"); break;
 
 			case InstructType::Access:
 				return OpProcessors::AccessProcess(compiler, target);
@@ -1087,7 +1087,7 @@ namespace LEX
 				auto convert = query.IsConvertToQualified(QualifiedType{ boolean }, nullptr, &out);
 
 				if (convert <= ConvertResult::Failure) {
-					report::compile::critical("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+					report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				}
 
 				CompUtil::HandleConversion(compiler, out, query, convert);
@@ -1192,7 +1192,7 @@ namespace LEX
 			QualifiedField var = compiler->GetScope()->SearchFieldPath(target);
 
 			if (!var) {
-				report::compile::critical("Cannot find variable '{}'.", target.GetTag());
+				report::compile::error("Cannot find variable '{}'.", target.GetTag());
 			}
 
 			//XTOR
@@ -1223,7 +1223,7 @@ namespace LEX
 			SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
 
 			if (!arg_record) {
-				report::compile::critical("no args record in '{}' detected.", target.GetTag());
+				report::compile::error("no args record in '{}' detected.", target.GetTag());
 			}
 
 			//This is used so that we know what size we're to after the fact, and place it at the head.
@@ -1285,13 +1285,13 @@ namespace LEX
 			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
 
 			if (!info) {
-				report::compile::critical("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
+				report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
 			}
 
 			FunctionBase* func = info->Get();
 
 			if (!func) {
-				report::compile::critical("No callable for info at '{}' detected.", target.GetTag());
+				report::compile::error("No callable for info at '{}' detected.", target.GetTag());
 			}
 
 			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
@@ -1302,7 +1302,7 @@ namespace LEX
 			if constexpr (1)
 			{
 				if (args.size() < req_args) {
-					report::compile::critical("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
+					report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 				}
 
 				if (func->GetTargetType() != nullptr) {
@@ -1366,7 +1366,7 @@ namespace LEX
 			SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
 
 			if (!arg_record) {
-				report::compile::critical("no args record in '{}' detected.", target.GetTag());
+				report::compile::error("no args record in '{}' detected.", target.GetTag());
 			}
 
 			//This is used so that we know what size we're to after the fact, and place it at the head.
@@ -1430,13 +1430,13 @@ namespace LEX
 			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
 
 			if (!info) {
-				report::compile::critical("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
+				report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
 			}
 
 			FunctionBase* func = info->Get();
 
 			if (!func) {
-				report::compile::critical("No callable for info at '{}' detected.", target.GetTag());
+				report::compile::error("No callable for info at '{}' detected.", target.GetTag());
 			}
 
 			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
@@ -1444,7 +1444,7 @@ namespace LEX
 			size_t req_args = func->GetReqArgCount();
 
 			if (args.size() < req_args) {
-				report::compile::critical("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
+				report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 			}
 
 			if (func->GetTargetType() != nullptr) {
@@ -1521,7 +1521,7 @@ namespace LEX
 			SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
 			if (!head_rec)
-				report::compile::critical("No record named header.");
+				report::compile::error("No record named header.");
 
 			Declaration header{ *head_rec, compiler->GetEnvironment() };
 
@@ -1529,7 +1529,7 @@ namespace LEX
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
 			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
 			if (header.Matches(true, Qualifier::Const | Qualifier::Runtime) == false) {
-				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
+				report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
 
 			if (header.flags & Qualifier::Const)
@@ -1550,7 +1550,7 @@ namespace LEX
 				auto convert = result.IsConvertToQualified(header, nullptr, &out);
 
 				if (convert <= ConvertResult::Failure) {
-					report::compile::critical("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+					report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				}
 
 				CompUtil::HandleConversion(compiler, out, result, convert);
@@ -1607,7 +1607,7 @@ namespace LEX
 				//Basically, if one doesn't exist, and they aren't both just void.
 				//TODO: Actually use void for this, at no point should null be used here. Such would be a statement.
 				if (!return_policy) {// && return_policy != result.policy) {
-					report::compile::critical("Expecting return value but value is found.");
+					report::compile::error("Expecting return value but value is found.");
 				}
 
 
@@ -1623,7 +1623,7 @@ namespace LEX
 
 				if (convert_result <= convertFailure)
 				{
-					report::compile::critical("Expression not convertible to return type.");
+					report::compile::error("Expression not convertible to return type.");
 				}
 
 				CompUtil::HandleConversion(compiler, out, result, convert_result);
@@ -1631,7 +1631,7 @@ namespace LEX
 			}
 			else if (return_policy->CheckRuleset(TypeRuleset::NoReturn) == false)
 			{
-				report::compile::critical("Expecting return expression");
+				report::compile::error("Expecting return expression");
 			}
 			else
 			{ 
@@ -1696,7 +1696,7 @@ namespace LEX
 				}
 				else
 				{
-					report::compile::critical("Expression not convertible to cast type.");
+					report::compile::error("Expression not convertible to cast type.");
 				}
 			}
 			else

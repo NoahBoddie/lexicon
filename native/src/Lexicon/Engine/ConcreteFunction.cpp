@@ -10,7 +10,15 @@ namespace LEX
 	{
 		//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
 
-		
+		if (IsValid() == false) {
+			report::log("Function '{}' is not valid. Maybe say error later.", IssueType::Apply, def ? IssueLevel::Failure : IssueLevel::Error, GetName());
+			
+			//disable this warning.
+
+			return *def;
+		}
+
+
 		Variable* target = nullptr;
 
 		if (args->size() != parameters.size())

@@ -62,7 +62,7 @@ namespace LEX
 
 		//Invoke is to be the function that handles external function calls, doing conversions before hand. 
 		// internally, it just calls execute. later, it will call execute after converting and handling some checks.
-		virtual RuntimeVariable Invoke(api::vector<RuntimeVariable> args, Variable* def);
+		virtual RuntimeVariable Invoke(api::vector<RuntimeVariable> args, RuntimeVariable* def);
 
 
 	
@@ -84,7 +84,7 @@ namespace LEX
 		{
 			report _{ IssueType::Apply };
 			std::vector<RuntimeVariable> t_args{ args... };
-			auto value = Invoke(t_args, def.value.Ptr());
+			auto value = Invoke(t_args, &def.value);
 			return value;
 		}
 

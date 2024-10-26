@@ -321,11 +321,14 @@ namespace LEX
 		{
 			return _flags & ComponentFlag::Linked && _linkerContainer.contains(const_cast<Component*>(this));
 		}
-
+	private:
+	
 		void FlagAsValid() const
 		{
 			_flags |= ComponentFlag::Valid;
 		}
+	public:
+
 		void FlagAsInvalid() const
 		{
 			_flags |= ComponentFlag::Invalid;

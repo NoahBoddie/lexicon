@@ -619,25 +619,27 @@ namespace LEX
 
 		RoutineBase CompileRoutine();
 
+		bool CompileRoutine(RoutineBase& routine);
+
 
 		//RoutineCompiler(SyntaxRecord& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }{}
 
 		//function data is no longer an ask, it's a requirement now.
 		// additional. FunctionData can hold its own record.
-		static RoutineBase Compile(SyntaxRecord& ast, FunctionData* owner, Environment* env)
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Environment* env)
 		{
-			return Compile(ast, owner, env, owner->_name, owner->GetTargetType());
+			return Compile(routine, ast, owner, env, owner->_name, owner->GetTargetType());
 		}
 		
-		static RoutineBase Compile(SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name, ITypePolicy* tarType = nullptr)
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name, ITypePolicy* tarType = nullptr)
 		{
 			report _{ IssueType::Compile };
 			RoutineCompiler compiler{ ast, owner, env, name, tarType };
-			RoutineBase result = compiler.CompileRoutine();
+			bool result = compiler.CompileRoutine(routine);
 			RGL_LOG(debug, "Compilation complete.");
 			return result;
 		}
-
-
+		private:
+			bool _success = true;
 	};
 }

@@ -80,7 +80,13 @@ namespace LEX
             {
                 _init = std::make_unique<RoutineBase>();
 
-                *_init = RoutineCompiler::Compile(def->GetFront(), &tempData, GetEnvironment());
+
+                if (RoutineCompiler::Compile(*_init, def->GetFront(), &tempData, GetEnvironment()) == false)
+                {
+                    FlagAsInvalid();
+                }
+                //*_init = RoutineCompiler::Compile(def->GetFront(), &tempData, GetEnvironment());
+                 
             }
 
             break;

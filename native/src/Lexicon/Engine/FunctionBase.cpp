@@ -141,7 +141,10 @@ namespace LEX
             assert(param.GetType());
         }
        
-        _routine = RoutineCompiler::Compile(target, this, GetEnvironment());
+        if (RoutineCompiler::Compile(_routine, target, this, GetEnvironment()) == false)
+        {
+            FlagAsInvalid();
+        }
     }
 
     void FunctionBase::SetReturnType(QualifiedType type)
@@ -264,7 +267,9 @@ namespace LEX
                 if (target.FindChild(parse_strings::code) == nullptr)
                     report::compile::error("Function '{}' doesn't have a body", GetName());
 
-                _routine = RoutineCompiler::Compile(target, this, GetEnvironment());
+                if (RoutineCompiler::Compile(_routine, target, this, GetEnvironment()) == false){
+                    return LinkResult::Failure;
+                }
             }
             break;
         }

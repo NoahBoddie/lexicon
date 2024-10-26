@@ -196,9 +196,13 @@ namespace LEX
 				std::vector<std::string_view> params{ parameters... };
 
 				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from);
+
+				if (result) {
+					report::failure("Formula '{}' failed to resolve. Error value {}", routine, result);
+				}
 			}
 			else {
-				logger::warn("signature not processed");
+				report::failure("signature not processed");
 			}
 			return self;
 		}

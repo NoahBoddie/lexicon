@@ -12,8 +12,12 @@ namespace LEX
 
 	static void HeaderMessage(std::string& message, IssueType type, IssueCode code)
 	{
+		//If there is no code, we don't need to do this. 
+		
 		//might do format instead.
-		LString result;
+		LString result = "[";
+
+		bool mark_unk = false;
 
 		switch (type) {
 		case IssueType::Compile:
@@ -45,7 +49,7 @@ namespace LEX
 			break;
 
 		default:
-			result += "U";
+			mark_unk = true;
 			break;
 		}
 
@@ -53,16 +57,17 @@ namespace LEX
 
 		//"Severity X0000: "
 
-		if (!code) {
-			result += "0000";
-
-		}
-		else {
+		if (code) {
 			LChar str[5];
 			snprintf(str, 5, "%04d", number);
 			result += str;
 		}
-		result += ": ";
+
+		if (mark_unk) {
+			result += "?";
+		}
+
+		result += "] ";
 
 		message.insert(0, result);
 	}
@@ -144,6 +149,9 @@ namespace LEX
 	};
 
 	
+	//I really REALLY want to change how the log mutator works. Namely, I'd like to make it so clients can actually maybe mutate logs?
+	// At the very least I'd like to be able to edit the log at different stages, namely, for a certain period you can edit the string,
+	// and for some other periods you can only edit it for the message that's going to be used.
 
 
 	size_t nextId = 0;

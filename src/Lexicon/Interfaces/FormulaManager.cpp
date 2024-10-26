@@ -96,7 +96,9 @@ namespace LEX
 		}
 		
 		//This needs to confirm it's proper
-		formula->_routine = RoutineCompiler::Compile(ast, formula.get(), perspective, parse_strings::no_name, formula->GetTargetType());
+		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, parse_strings::no_name, formula->GetTargetType()) == false) {
+			return 3;
+		}
 
 
 		formulaMap[formula.get()].refCount = 1;

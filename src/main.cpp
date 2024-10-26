@@ -270,7 +270,7 @@ void LexTesting(std::string formula)
         
         //function->_procedure = TestProcedure;
         //A conversion is supposed to happen here.
-        Variable result = function->Call(68.0, 1.0, 2.0, 3.0, 4.0, 5.0);
+        Variable result = function->Call(Default{ 5 }, 68.0, 1.0, 2.0, 3.0, 4.0, 5.0);
 
         std::string number = result.AsNumber().string();
 

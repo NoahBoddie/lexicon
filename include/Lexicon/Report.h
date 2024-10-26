@@ -48,6 +48,7 @@ namespace LEX
 		Total
 	};
 
+	
 
 	using LChar = char;
 	using LString = std::basic_string<LChar>;
@@ -287,6 +288,7 @@ namespace LEX
 		}
 
 
+
 		template <is_not<std::source_location>... Ts>
 		static void log(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
@@ -314,6 +316,23 @@ namespace LEX
 
 			LogBase(code, result, type, level, loc);
 		}
+
+
+
+		template <is_not<std::source_location>... Ts>
+		static void log(SourceAndProxy<std::string> message, IssueType type, IssueLevel level, Ts&&... args)
+		{
+			return log(std::move(message.prox), message.src, type, level, args...);
+		}
+
+
+
+		template <is_not<std::source_location>... Ts>
+		static void log(SourceAndProxy<IssueCode> code, IssueType type, IssueLevel level, Ts&&... args)
+		{
+			return log(code.prox, code.src, type, level, args...);
+		}
+
 
 		//----------------------*/
 	private:
