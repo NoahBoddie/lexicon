@@ -50,15 +50,7 @@ namespace LEX
 
 	
 
-	using LChar = char;
-	using LString = std::basic_string<LChar>;
-
-	template <typename... Ts>
-	using LFormatString = std::basic_format_string<LChar, Ts...>;
-	//IssueCodes will come with names, at a later point, needing to be picked from a list somewhere, that
-	// isn't the table for codes. That table only cares about the numbers.
-	// But if one tries to print a code it will tell it's name.
-
+	
 
 	template <typename T>
 	struct SourceAndProxy
@@ -77,14 +69,14 @@ namespace LEX
 		//I would like a new sink, failure. Failure will be equal to error but it won't crash.
 
 	protected:
-		static inline LString CreateArgSlots(size_t size)
+		static inline std::string CreateArgSlots(size_t size)
 		{
 			if (!size)
 				return "";
 
-			constexpr const LChar* genericSlot = "{}";
+			constexpr const char* genericSlot = "{}";
 
-			LString result = genericSlot;
+			std::string result = genericSlot;
 
 			for (auto i = 1; i < size; i++) {
 				result += ", "s + genericSlot;
@@ -139,7 +131,7 @@ namespace LEX
 
 
 		template <IssueLevel Level>
-		static void RaiseMessage(LString& message, std::source_location& loc)
+		static void RaiseMessage(std::string& message, std::source_location& loc)
 		{
 			constexpr fmt::format_string<std::string> a_fmt{ "{}" };
 
@@ -153,11 +145,11 @@ namespace LEX
 							loc.file_name(),
 							static_cast<int>(loc.line()),
 							loc.function_name() },
-				spdlog_level, a_fmt, std::forward<LString>(message));
+				spdlog_level, a_fmt, std::forward<std::string>(message));
 		}
 
 
-		static void RaiseMessage(LString& message, IssueLevel level, std::source_location& loc)
+		static void RaiseMessage(std::string& message, IssueLevel level, std::source_location& loc)
 		{
 			constexpr fmt::format_string<std::string> a_fmt{ "{}" };
 
@@ -171,13 +163,13 @@ namespace LEX
 							loc.file_name(),
 							static_cast<int>(loc.line()),
 							loc.function_name() },
-							spdlog_level, a_fmt, std::forward<LString>(message));
+							spdlog_level, a_fmt, std::forward<std::string>(message));
 		}
 
 
 
 		template <typename... Ts>
-		static void ValidateMessage(LString& message, Ts&... args)
+		static void ValidateMessage(std::string& message, Ts&... args)
 		{
 			try {
 				message = std::vformat(message, std::make_format_args(args...));
@@ -196,107 +188,49 @@ namespace LEX
 			}
 		}
 
-		static void HeaderMessage(LString& message, IssueType type, IssueLevel level, IssueCode code)
-		{
-			//might do format instead.
-			LString result;
+		static void LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, std::source_location& loc);
 
-			switch (type) {
-			case IssueType::Compile:
-				result += "C";
-				break;
-
-			case IssueType::Parse:
-				result += "P";
-				break;
-
-			case IssueType::Link:
-				result += "L";
-				break;
-
-			case IssueType::Runtime:
-				result += "R";
-				break;
-
-			case IssueType::Fault:
-				result += "F";
-				break;
-
-			case IssueType::Apply:
-				result += "A";
-				break;
-
-			case IssueType::Message:
-				result += "M";
-				break;
-
-			default:
-				result += "U";
-				break;
-			}
-
-			uint16_t number = code;
-
-			//"Severity X0000: "
-
-			if (!code) {
-				result += "0000";
-
-			} else {
-				LChar str[5];
-				snprintf(str, 5, "%04d", number);
-				result += str;
-			}
-			result += ": ";
-
-			message.insert(0, result);
-		}
-
-		static void LogBase(IssueCode code, std::string_view message, IssueType type, IssueLevel level, std::source_location& loc);
-
-		static std::string_view GetIssueMessage(IssueCode code);
+		static std::string_view GetIssueMessage(IssueCode code, bool translation);
 
 	public:
 
 		//THIS
 		//*
 		template <is_not<std::source_location>... Ts>
-		static void log(LString&& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(std::string&& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
 			ValidateMessage(message, args...);
 		
-			return LogBase(0, message, type, level, loc);
+			return LogBase(0, message, message, type, level, loc);
 		}
 
 		template <is_not<std::source_location>... Ts>
-		static void log(LString& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(std::string& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
 			return log(std::move(message), loc, type, level, args...);
 		}
 
 
 		template <is_not<std::source_location>... Ts>
-		static void log(LString& message, std::source_location&& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(std::string& message, std::source_location&& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
 			return log(std::move(message), loc, type, level, args...);
 		}
 
 		template <is_not<std::source_location>... Ts>
-		static void log(LString&& message, std::source_location&& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(std::string&& message, std::source_location&& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
 			return log(std::move(message), loc, type, level, args...);
 		}
 
 
 
-		template <is_not<std::source_location>... Ts>
-		static void log(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+	private:
+		
+		template <typename... Ts>
+		static std::string HandleCodeMessage(std::string_view message, Ts... args)
 		{
-			LString result;
-
-			std::string_view message = GetIssueMessage(code);
-
-			//LString argSlots;
+			std::string result;
 
 			if (message.empty() == true) {
 				result = "MISSING_ISSUE";
@@ -311,10 +245,22 @@ namespace LEX
 			else {
 				result = message;
 			}
-
+			
 			ValidateMessage(result, args...);
+			
+			return result;
+		}
+	public:
 
-			LogBase(code, result, type, level, loc);
+		template <is_not<std::source_location>... Ts>
+		static void log(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		{
+			std::string main = HandleCodeMessage(GetIssueMessage(code, false), args...);
+			std::string trans = HandleCodeMessage(GetIssueMessage(code, true), args...);
+
+			
+
+			LogBase(code, main, trans, type, level, loc);
 		}
 
 
@@ -338,7 +284,7 @@ namespace LEX
 	private:
 
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
-		static void stat_log(LString& message, std::source_location& loc, IssueType type, Ts&... args)
+		static void stat_log(std::string& message, std::source_location& loc, IssueType type, Ts&... args)
 		{
 
 			return log(message, loc, type, Level, args...);
@@ -408,7 +354,7 @@ namespace LEX
 		DECLARE_LOGGER_TYPE(runtime, Runtime)
 		DECLARE_LOGGER_TYPE(parse, Parse)
 
-//#undef DECLARE_LOGGER_LEVEL
+#undef DECLARE_LOGGER_LEVEL
 #undef DECLARE_LOGGER_TYPE
 #undef DECLARE_ALL_LOGGER_LEVELS
 		

@@ -91,10 +91,9 @@ namespace LEX
 		static bool GetIni(std::string_view path, CSimpleIniA& ini)
 		{
 			ini.SetUnicode();
-
+			logger::debug("path: {}", path);
 			SI_Error rc = ini.LoadFile(path.data());
 
-			assert(rc == SI_OK);
 
 			return rc >= 0;
 

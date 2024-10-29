@@ -77,7 +77,8 @@ namespace LEX
 
 		void SetSyntaxTree(SyntaxRecord& rec) final override;
 
-		void LoadFromRecord(SyntaxRecord& ast) override;
+		//A non-version of LoadFromRecord that is aimed for appending content. May move to environment.
+		void LoadFromSyntaxTree(SyntaxRecord& target);
 
 		void OnAttach() override;
 

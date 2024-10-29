@@ -13,7 +13,14 @@ namespace LEX
 {
 	struct IssueTable : public IniHandler
 	{
-		static void SetValue(IssueCode to, CSimpleIniA& ini, std::string_view category, std::string_view key)
+		enum LanguageType
+		{
+			kOriginal,
+			kTranslation,
+			kMatch,
+		};
+
+		static void SetValue(IssueCode& to, CSimpleIniA& ini, std::string_view category, std::string_view key, bool translation)
 		{
 			try
 			{
@@ -30,30 +37,30 @@ namespace LEX
 
 			if (to.value) {
 
-				auto& str = _table[to.value];
+				auto& str = _table[to.value][translation];
 
 				if (str.empty() == false) {
 					report::apply::warn("Issue at {}::{} already taken.", category, to.code);
 					return;
 				}
 
-				__super::SetValue(_table[to.value], ini, category, key);
+				__super::SetValue(str, ini, category, key);
 			}
 
 		}
 
-		using _Table = std::unordered_map<uint64_t, std::string>;
+		using _Table = std::unordered_map<uint64_t, std::array<std::string, 2>>;
 
 
 
-		static std::string_view GetIssueMessage(uint64_t code)
+		static std::string_view GetIssueMessage(uint64_t code, bool translation)
 		{
 			auto it = _table.find(code);
-			return it != _table.end() ? it->second.c_str() : "";
+			return it != _table.end() ? it->second[translation].c_str() : "";
 		}
 		
-
-		static void LoadIssueStrings(std::string_view folders, std::string_view project, std::string_view language)
+	private:
+		static void LoadIssueStrings(std::string_view folders, std::string_view project, std::string_view language, LanguageType lang_type)
 		{
 			CSimpleIniA ini;
 
@@ -96,17 +103,34 @@ namespace LEX
 			{
 				IssueCode input;
 
-				SetValue(IssueCode{}, ini, section, entry.pItem);
+				SetValue(input, ini, section, entry.pItem, lang_type != kOriginal);
+
+				if (lang_type == kMatch)
+				{
+					_table[input][false] = _table[input][true];
+				}
 
 			}
 
 		}
-
-		static void LoadIssueStrings(std::string_view folders, std::string_view language)
+	
+public:
+		static void LoadStrings(std::string_view folders, std::string_view project = "")
 		{
-			return LoadIssueStrings(folders, "", language);
+			std::string_view language = SettingManager::GetSingleton()->language;
+
+
+			bool is_english = !_stricmp(language.data(), "english");
+
+
+			LoadIssueStrings(folders, project, language, is_english ? kMatch : kTranslation);
+
+			if (!is_english){
+				LoadIssueStrings(folders, project, "english", kOriginal);
+			}
 		}
 		
+
 	private:
 		inline static _Table _table;
 
@@ -120,6 +144,6 @@ namespace LEX
 
 		auto singleton = SettingManager::GetSingleton();
 
-		IssueTable::LoadIssueStrings(singleton->dataDir, singleton->language);
+		IssueTable::LoadStrings(singleton->reportDir);
 	}
 }

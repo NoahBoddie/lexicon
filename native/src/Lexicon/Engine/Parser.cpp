@@ -53,6 +53,11 @@ namespace LEX::Impl
 
 		//Mesures first if the module can handle the current situation, but then measures if the currently loaded context will allow such a thing.
 
+		
+		if (eof() && mdl->CanParseEOF() == false){
+			return false;
+		}
+
 		bool module_check = mdl->CanHandle(this, rec_nest, flag);
 		bool context_check = module_check ? contextChain->current->ContextAllowed(mdl, contextChain) : false;
 		
@@ -284,7 +289,6 @@ namespace LEX::Impl
 		Record* nested = nullptr;
 		do
 		{
-			
 			success = _SearchModule(result, nested, atomic);
 
 			//should only crash if atomic modules fails
@@ -294,7 +298,7 @@ namespace LEX::Impl
 			nested = &result;
 
 			i++;
-		} while (success && eof() == false);//eof to prevent searches once past the point.
+		} while (success &&  (!eof() || nested));//eof to prevent searches once past the point.
 
 		return result;
 	}

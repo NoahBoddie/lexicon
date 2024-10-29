@@ -34,7 +34,7 @@ namespace LEX
 
 
 		std::string dataDir = "lexicon";
-		std::string sReportDir = "lexicon";
+		std::string reportDir = "";
 		std::string language = "english";
 		spdlog::level::level_enum level = spdlog::level::info;
 
@@ -82,6 +82,7 @@ namespace LEX
 
 
 			SetValue(dataDir, ini, "General", "sDataDir");
+			SetValue(reportDir, ini, "Debug", "sReportDir");
 			SetValue(language, ini, "Debug", "sLanguage");
 			SetValue(runtimeBreakpoint, ini, "Debug", "bRuntimeBreakpoint");
 			SetValue(level, ini, "Debug", "sDefaultLogLevel");
@@ -91,5 +92,11 @@ namespace LEX
 			_initialized = true;
 		}
 	
+
+		static bool IsEnglish()
+		{
+			return !stricmp(GetSingleton()->language.c_str(), "english");
+		}
+
 	};
 }

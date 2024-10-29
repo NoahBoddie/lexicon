@@ -136,10 +136,82 @@ namespace LEX
 	//Implementations
 	////////////////////////
 
+#define CONSEAL(mc) //mc
 
+	namespace Version
+	{
+		namespace _1
+		{
+			struct INTERFACE_VERSION(Base)
+			{
+
+				virtual int GetBar() = 0;
+				CONSEAL(int a_1);
+				CONSEAL(int a_2);
+				
+			};
+
+			struct INTERFACE_VERSION(Derives, public Base)
+			{
+				CONSEAL(int b_1);
+				CONSEAL(int b_2);
+			};
+		}
+
+		namespace _2
+		{
+			
+			struct INTERFACE_VERSION(Base)
+			{
+				CONSEAL(int a_3);
+				CONSEAL(int a_4);
+				CONSEAL(int a_5);
+
+			};
+			
+			struct INTERFACE_VERSION(Derives, public Base)
+			{
+				CONSEAL(int b_3);
+			};
+		}
+
+		namespace _3
+		{
+			struct INTERFACE_VERSION(Derives)
+			{
+				CONSEAL(int b_4);
+				CONSEAL(int b_5);
+			};
+		}
+
+		CURRENT_VERSION(Base, 2);
+		namespace Current {
+			struct Derives : public _3::Derives {
+				inline static constexpr uintptr_t version = 3; uintptr_t Version() const override final {
+					return 3;
+				}
+			};
+		};
+	}
+
+
+	struct IMPL_VERSION(Base)
+	{
+		
+	};
 	
 
+	struct Derives : public Version::Current::Derives, public Base
+	{
+		virtual int GetBar() =0;
+	};
 
+	void TestD(Derives& foo)
+	{
+		foo.GetBar();
+
+		Base& bar = foo;
+	}
 
 	
 	/*

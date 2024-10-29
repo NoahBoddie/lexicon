@@ -211,62 +211,8 @@ namespace LEX
 	}
 
 
-	void Script::LoadFromRecord(SyntaxRecord& ast)
+	void Script::LoadFromSyntaxTree(SyntaxRecord& target)
 	{
-		//if (IsInitialized() == true)
-		//	throw EnvironmentError("No Syntax Tree already.");
-
-		//Should chec
-		//_defined = true;
-		//_syntaxTree = ast;
-
-		//CompileExpression(ast);
-	}
-
-	void Script::OnAttach()
-	{
-		//Really I can and probably will just split this shit.
-		//Record& ast = *GetSyntaxTree();
-		//CompileExpression(ast);
-	}
-
-
-	std::string_view Script::GetName() const
-	{
-		if (IsDefined() == false)
-			//This is more than likely a fault actually.
-			throw EnvironmentError("Syntax Tree not defined, script is nameless.");
-
-		return _syntaxTree.GetView();
-	}
-	//SetName will resume having no use here.
-
-	
-	void Script::CompileExpression(Record& target)
-	{
-		
-	}
-
-	bool Script::AppendContent(std::string_view content, api::vector<std::string_view> options)
-	{
-		//In order for append to work, new objects need to  play catch up with already existing things. To do this, we can check if linkage already
-		// finalized, and then finalize it again.
-
-		//I also would need the ability to create scripts from strings, as I wouldn't want appending to be a thing for regular scripts just yet.
-
-		//Ultimately, we just can't quite do it right, so we shouldn't bother right now. Append is important, but I'd rather like to get a make shift
-		// set up going where you can just append to specific files.
-		return false;
-	}
-
-
-	LinkResult Script::OnLink(LinkFlag flags)
-	{
-		SyntaxRecord& target = *GetSyntaxTree();
-
-		if (flags != LinkFlag::Loaded)
-			return LinkResult::Failure;
-
 
 
 		for (auto& node : target.children())
@@ -283,7 +229,7 @@ namespace LEX
 
 				project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
 			}
-		    break;
+			break;
 
 			case SyntaxType::Function:
 			{
@@ -348,12 +294,62 @@ namespace LEX
 
 				}
 			}
-				break;
+			break;
 			default:
 				report::compile::critical("Syntax {} not valid for script", magic_enum::enum_name(switch_value)); break;
 			}
 		}
+
+	}
+
+	void Script::OnAttach()
+	{
+		//Really I can and probably will just split this shit.
+		//Record& ast = *GetSyntaxTree();
+		//CompileExpression(ast);
+	}
+
+
+	std::string_view Script::GetName() const
+	{
+		if (IsDefined() == false)
+			//This is more than likely a fault actually.
+			throw EnvironmentError("Syntax Tree not defined, script is nameless.");
+
+		return _syntaxTree.GetView();
+	}
+	//SetName will resume having no use here.
+
+	
+	void Script::CompileExpression(Record& target)
+	{
 		
+	}
+
+	bool Script::AppendContent(std::string_view content, api::vector<std::string_view> options)
+	{
+		//In order for append to work, new objects need to  play catch up with already existing things. To do this, we can check if linkage already
+		// finalized, and then finalize it again.
+
+		//I also would need the ability to create scripts from strings, as I wouldn't want appending to be a thing for regular scripts just yet.
+
+		//Ultimately, we just can't quite do it right, so we shouldn't bother right now. Append is important, but I'd rather like to get a make shift
+		// set up going where you can just append to specific files.
+		return false;
+	}
+
+
+
+	LinkResult Script::OnLink(LinkFlag flags)
+	{
+		if (flags != LinkFlag::Loaded)
+			return LinkResult::Failure;
+
+
+		SyntaxRecord& target = *GetSyntaxTree();
+
+
+		LoadFromSyntaxTree(target);
 
 		return LinkResult::Success;
 	}

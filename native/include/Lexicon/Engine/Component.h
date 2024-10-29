@@ -31,6 +31,10 @@ namespace LEX
 
 		External	= 1 << 4,	//Used for the reference of properties or formulas and as such must be handled after load.
 		
+		
+		Total,					//Less than an actual total, you use this value to denote when to stop.
+		
+			
 		All			= LinkFlag::Loaded | LinkFlag::Object | LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External,
 
 		//Final happens when all linking is done, notably, what also happens here is a bid for dependency.
@@ -283,6 +287,21 @@ namespace LEX
 
 			//Should it have processed everything it should remove it all.
 		}
+
+		static void RefreshLinkage()
+		{
+			//At a later point, link should just be able to & out the given flags and run all the stuff it wants.
+			// Also this likely will need to be thread locked in the future.
+
+			for (auto flag = (LinkFlag)1; flag != LinkFlag::Total; flag++)
+			{
+				if (_linkCheckFlags | flag)
+				{
+					Link(flag);
+				}
+			}
+		}
+
 
 		static bool HasLinked(LinkFlag flag)
 		{

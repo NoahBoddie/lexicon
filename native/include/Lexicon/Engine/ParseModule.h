@@ -24,6 +24,14 @@ namespace LEX::Impl
 
 	};
 
+
+	ENUM(ModuleFlag, uint32_t)//This is just passed around so it can be as big as it wants to be.
+	{
+		None = 0,
+		Atomic = 1 << 0,
+		Eof = 1 << 1,//Parser can be used at EOF
+	};
+
 	ENUM(ParseFlag, uint32_t)//This is just passed around so it can be as big as it wants to be.
 	{
 		None = 0,
@@ -70,8 +78,7 @@ namespace LEX::Impl
 
 
 		//Controls what can be percieved as being part of a single statement when just trying to encapsulate the next valid statement
-		virtual bool IsAtomic() const { return false; }
-
+		
 
 		//This is what should be used if one wishes to access another parse module
 		// also instead of requiring it derives from this, require that it derive from a singleton class for parse modules.
@@ -167,5 +174,12 @@ namespace LEX::Impl
 		{
 			return ParseMode::kBasic;
 		}
+
+
+
+		virtual bool IsAtomic() const { return false; }
+
+		virtual bool CanParseEOF() const { return false; }
+
 	};
 }

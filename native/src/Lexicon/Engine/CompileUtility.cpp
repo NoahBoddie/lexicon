@@ -63,7 +63,8 @@ namespace LEX
 
 	void CompUtil::PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value)
 	{
-		if (!value && common_type::void_t() != return_type) {
+		auto a_void = common_type::void_t();
+		if ((!value || a_void == value) && a_void != return_type) {
 			//Solution has no value and it is not void
 			
 			//Actually, if it's void you'll want to clear it even more

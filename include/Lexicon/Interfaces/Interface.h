@@ -163,6 +163,36 @@ namespace api
 			return &get();
 		}
 
+		const_pointer data() const
+		{
+			switch (GetMode())
+			{
+			
+			case kPointerMode:
+				return _data;
+				
+			case kElementMode:
+				return _elem->data();
+			}
+		
+			return nullptr;
+		}
+
+		size_t size() const
+		{
+			switch (GetMode())
+			{
+			case kPointerMode:
+				return _size;
+
+			case kElementMode:
+				return _elem->size();
+
+			}
+			
+			return 0;
+		}
+
 	private:
 		//Move some of this to container base so it doesn't make extra functions. Though, this shit is probably inline-able
 		enum Enum
@@ -231,6 +261,76 @@ namespace api
 
 
 	};
+
+	
+	//api::transmitter is a one way object that recieves a container via it's data and size, and uses this to construct it within it's source location.
+	template <detail::container_type T> requires requires { typename T::const_pointer; }
+	struct transmitter final
+	{
+		using const_pointer = T::const_pointer;
+		using elem = T;
+		
+		using data_type = std::add_pointer_t<std::ranges::range_value_t<const std::string>>;
+		//using data_type = decltype(((elem*)(0))->data());
+
+
+	public:
+
+		//destruction is trival stil, so this will due.
+		//~transmitter(){}
+
+		transmitter(elem& e) : _ref{ &e } {}
+
+		
+		transmitter& operator= (const elem& e)
+		{
+			return move(e.data(), e.size());
+		}
+
+		transmitter& operator= (elem&& e)
+		{
+			return move(e.data(), e.size());
+		}
+
+
+		transmitter& operator= (const container<elem>& e)
+		{
+			return move(e.data(), e.size());
+		}
+
+		transmitter& operator= (container<elem>&& e)
+		{
+			return move(e.data(), e.size());
+		}
+
+	private:
+		//This will always copy.
+		virtual transmitter& move(data_type data, size_t size) final
+		{
+			if (_ref)
+			{
+				*_ref = elem{ data, size };
+			}
+
+			return *this;
+		}
+
+
+	private:
+
+		elem* _ref = nullptr;
+	};
+
+	namespace trans
+	{
+		template <class Elem, class Traits = std::char_traits<Elem>, class Alloc = std::allocator<Elem>>
+		using basic_string = transmitter<std::basic_string<Elem, Traits, Alloc>>;
+
+
+
+		using string = transmitter<std::string>;
+
+	}
 
 
 	template <class Elem, class Traits = std::char_traits<Elem>, class Alloc = std::allocator<Elem>>

@@ -1704,6 +1704,11 @@ namespace LEX::Impl
 			{
 				return true;
 			}
+
+			bool CanParseEOF() const override
+			{
+				return true;
+			}
 		};
 
 		struct IfParser : public AutoParser<IfParser>

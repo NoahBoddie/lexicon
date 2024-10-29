@@ -4,7 +4,7 @@
 
 namespace LEX
 {
-	void report::LogBase(IssueCode code, std::string_view message, IssueType type, IssueLevel level, std::source_location& loc)
+	void report::LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, std::source_location& loc)
 	{
 		//HeaderMessage(message, type, level, code);
 		
@@ -19,13 +19,13 @@ namespace LEX
 #endif
 
 
-		ReportManager::instance->SendReport(type, level, to, code, message, a_loc);
+		ReportManager::instance->SendReport(type, level, to, code, main, trans, a_loc);
 
 	}
 
-	std::string_view report::GetIssueMessage(IssueCode code)
+	std::string_view report::GetIssueMessage(IssueCode code, bool translation)
 	{
-		return ReportManager::instance->GetIssueMessage(code);
+		return ReportManager::instance->GetIssueMessage(code, translation);
 	}
 
 	IssueType report::GetIssueType()

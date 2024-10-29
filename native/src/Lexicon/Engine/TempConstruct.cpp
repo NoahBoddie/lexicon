@@ -2065,6 +2065,11 @@ namespace LEX
 
 			instructList[InstructType::EqualTo] = InstructWorkShop::BinaryCompare<std::equal_to<>>;
 			instructList[InstructType::NotEqualTo] = InstructWorkShop::BinaryCompare<std::not_equal_to<>>;
+			instructList[InstructType::LesserThan] = InstructWorkShop::BinaryCompare<std::less<>>;
+			instructList[InstructType::LesserOrEqual] = InstructWorkShop::BinaryCompare<std::less_equal<>>;
+			instructList[InstructType::GreaterThan] = InstructWorkShop::BinaryCompare<std::greater<>>;
+			instructList[InstructType::GreaterOrEqual] = InstructWorkShop::BinaryCompare<std::greater_equal<>>;
+
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
 			//We not ready for this one.
 			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;
