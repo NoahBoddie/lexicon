@@ -151,7 +151,7 @@ namespace LEX
 				
 			};
 
-			struct INTERFACE_VERSION(Derives, public Base)
+			struct INTERFACE_VERSION(Derives)
 			{
 				CONSEAL(int b_1);
 				CONSEAL(int b_2);
@@ -169,7 +169,7 @@ namespace LEX
 
 			};
 			
-			struct INTERFACE_VERSION(Derives, public Base)
+			struct INTERFACE_VERSION(Derives)
 			{
 				CONSEAL(int b_3);
 			};
@@ -259,97 +259,6 @@ namespace LEX
 	//*/
 
 	
-
-	namespace NEW
-	{
-		struct IElement
-		{
-			virtual void* As(std::string_view name) = 0;
-
-			//Each of these muse derive from the same type that IElement does.
-			template<typename T>
-			T* As()
-			{
-				if (!this)
-					return nullptr;
-
-				return reinterpret_cast<T*>(As(typeid(T).name()));
-			}
-
-			template <typename T>
-			operator T& ()
-			{
-				return *As<T>();
-			}
-
-			virtual IProject* GetProject() = 0;
-		};
-		
-		
-		struct IElementProxy : public Interface
-		{
-			virtual IElement* base() = 0;
-			virtual const IElement* base() const = 0;
-
-		};
-
-
-
-
-		struct IElementImpl : public IElement
-		{
-			//This basically allows for some jank ass covariance equivalent so the interface version of these functions are never invited into the main
-			// code
-
-			virtual IProject* GetProject()
-			{
-				return GetProject({});
-			}
-
-
-			virtual Project* GetProject(int = {}) = 0;
-		};
-
-		struct FakeElement : public IElementImpl
-		{
-			Project* proj = nullptr;
-
-			Project* GetProject(int = {}) override
-			{
-				return proj;
-			}
-		};
-		
-	}
-
-
-
-	void TestingTheorem()
-	{
-
-		Project test;
-		//StructC test;
-
-		//test.Foo();
-
-		//Instead of an as function for each, I will just make a single one. This will return a void pointer, and that void pointer will be reinterpreted 
-		// to a different class
-
-		//Only question though, how to make sure these 2 types actually mix properly
-
-		//Instead of deriving interface, they will derive from a special class that will point to the next object back.
-
-		//So project becomes an element, script can become an environment, except environment will not exist, due to environment being a part of type
-		// and not all ITypes will be real elements.
-
-
-		//I think I'll just resolve the differences manually.
-
-
-		//The last addition, the IElement buffers. These basically will take some difficult to use types and sorta launder them for engine use.
-		// IElement becomes Element, IProject just project, etc. This is only needed for return types
-	}
-
 
 
 	namespace _1

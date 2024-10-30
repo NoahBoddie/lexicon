@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/IElementProxy.h"
+#include "Lexicon/Interfaces/IElement.h"
 
 namespace LEX
 {
@@ -11,7 +11,7 @@ namespace LEX
 		namespace _1
 		{
 
-			struct INTERFACE_VERSION_DERIVES(IScript, IElementProxy)
+			struct INTERFACE_VERSION(IScript)
 			{
 				//Relationship information
 
@@ -24,5 +24,8 @@ namespace LEX
 		CURRENT_VERSION(IScript, 1);
 	}
 
-	struct IMPL_VERSION(IScript){};
+	struct IMPL_VERSION(IScript), public IElement
+	{
+
+	};
 }

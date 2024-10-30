@@ -1,15 +1,14 @@
 #pragma once
 
+
 #include "Lexicon/Interfaces/IProject.h"
+
+#include "Lexicon/Engine/IElementImpl.h"
 
 namespace LEX
 {
-	struct IProjectImpl : public IProject
+	struct IProjectImpl : public IElementBase<IProject>
 	{
-	private:
-		IScript* GetCommons() override final;
-
-	public:
-		virtual Script* GetCommons(bool = {}) = 0;
+	
 	};
 }

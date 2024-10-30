@@ -19,6 +19,9 @@ namespace LEX
 			{
 				//TODO: It's my belief that IEnvironment is going to be deprecated
 
+				//Nevermind, I want to use this again.
+
+
 				//All of these basically use the path parser in order to find out what element it's looking for.
 				virtual ITypePolicy* FindTypePath(std::string_view path) = 0;
 				virtual IFunction* FindFunctionPath(std::string_view path) = 0;

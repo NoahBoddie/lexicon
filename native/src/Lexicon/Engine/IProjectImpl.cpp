@@ -5,8 +5,5 @@
 
 namespace LEX
 {
-	IScript* IProjectImpl::GetCommons()
-	{
-		return GetCommons({});
-	}
+	
 }

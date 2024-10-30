@@ -33,9 +33,6 @@ namespace LEX
 
 		void AddFormat(std::string_view name, std::string_view content, Script* source);
 
-		IElement* base() override { return this; }
-		const IElement* base() const override { return this; }
-
 		void* Cast(std::string_view name) override
 		{
 			switch (Hash(name))
@@ -107,9 +104,16 @@ namespace LEX
 			return share == this ? nullptr : share;
 		}
 
-		
+		Script* GetScript(bool = {}) override
+		{
+			return nullptr;
+		}
 
-		
+
+		Element* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) override
+		{
+			return Element::GetElementFromPath(path, elem, {});
+		}
 
 
 

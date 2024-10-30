@@ -25,7 +25,6 @@ namespace LEX
 	class Script : public Environment, public IScriptImpl
 	{
 	public:
-
 		//Scripts have functions/globals(vars)/types/(parents/projects)
 	public:
 		
@@ -50,10 +49,22 @@ namespace LEX
 
 		Script* GetScript(bool = {}) override;
 
+		Project* GetProject(bool = {}) override;
 
-		IElement* base() override { return this; }
-		const IElement* base() const override { return this; }
+		Element* GetParent(bool = {}) override
+		{
+			return Environment::GetParent();
+		}
 
+
+		Environment* GetEnvironment(bool = {}) override
+		{
+			return Environment::GetEnvironment();
+		}
+		Element* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) override
+		{
+			return Environment::GetElementFromPath(path, elem);
+		}
 
 		void* Cast(std::string_view name) override
 		{

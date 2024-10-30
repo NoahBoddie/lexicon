@@ -13,7 +13,7 @@
 #include "Lexicon/Engine/Expression.h"
 
 #include "Lexicon/Interfaces/ProjectClient.h"
-
+#include "Lexicon/Interfaces/IElement.h"
 namespace LEX
 {
 	//TODO: ObtainPolicy needs to be moved else where at some point.
@@ -186,7 +186,11 @@ namespace LEX
 	{
 		return this;
 	}
-
+	
+	Project* Script::GetProject(bool)
+	{
+		return Environment::GetProject();
+	}
 
 	ComponentType Script::GetComponentType()
 	{
