@@ -22,7 +22,14 @@ namespace LEX
 
 
 	inline static Project* _shared;
+	
 	inline static std::vector<Project*> _projects;
+	
+	//This is the core script. Regardless of the name of the script, they all should get included into this, the core script.
+	// This script cannot be added to except by from here.
+	// When shared commons is created, this is automatically added to it.
+	inline static Script* _core = nullptr;
+
 
 
 	inline static std::unordered_map<size_t, std::pair<IElement*, ElementType>> _lookupMap;

@@ -32,15 +32,15 @@ namespace LEX
 				virtual std::string_view GetName() const = 0;
 				//virtual Record* GetSyntaxTree() = 0;//Do not use this, it won't be able to handle the request.
 				
-				virtual IScript* GetScript() = 0;
-				virtual IProject* GetProject() = 0;
-				virtual LEX::IElement* GetParent() = 0;
-				virtual IEnvironment* GetEnvironment() = 0;
-				virtual LEX::IScript* GetCommons() = 0;
+				virtual IScript* GetScript(bool = {}) = 0;
+				virtual IProject* GetProject(bool = {}) = 0;
+				virtual LEX::IElement* GetParent(bool = {}) = 0;
+				virtual IElement* GetEnvironment(bool = {}) = 0;//I might delete this.
+				virtual LEX::IScript* GetCommons(bool = {}) = 0;
 				
 
 				//Will not need an interface name due to being able to be a covariant
-				virtual LEX::IElement* GetElementFromPath(std::string_view path, ElementType elem) = 0;
+				virtual LEX::IElement* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) = 0;
 			protected:
 				virtual void* Cast(std::string_view name) = 0;
 

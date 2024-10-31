@@ -1958,6 +1958,30 @@ namespace LEX
 
 	void TestRun()
 	{
+		logger::info("\nType out a formula you'd like to launch. Type ~exit to leave.");
+		do
+		{
+			std::string path;
+
+			
+
+			std::cin >> path;
+
+
+
+			if (path == "~exit") {
+				break;
+			}
+			
+			auto result = Formula<Variable>::RunDefault(path);
+
+
+			logger::info("result >> {}", result.PrintString());
+
+		} while (true);
+
+		return;
+		//
 
 		bool exit = false;
 

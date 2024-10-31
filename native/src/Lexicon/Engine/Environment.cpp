@@ -210,13 +210,13 @@ namespace LEX
 
 
 
-		Environment* Environment::GetEnvironment(bool)
+		Environment* Environment::GetEnvironment()
 		{
 			return this;
 		}
 
 		//source file type shit
-		Element* Environment::GetParent(bool)
+		Element* Environment::GetParent()
 		{
 			return _parent;
 		}

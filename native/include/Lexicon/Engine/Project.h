@@ -25,7 +25,7 @@ namespace LEX
 	class Project : public Element, public IProjectImpl
 	{
 	public:
-		Script* GetCommons(bool = {}) override;
+		Script* GetCommons() override;
 
 
 		//Needs sourcing
@@ -92,32 +92,32 @@ namespace LEX
 		//*/
 
 
-		Project* GetProject(bool = {}) override
+		Project* GetProject() override
 		{
 			return this;
 		}
 		
-		Element* GetParent(bool = {}) override
+		Element* GetParent() override
 		{
 			auto share = GetShared();
 			//Should return null on shared projects.
 			return share == this ? nullptr : share;
 		}
 
-		Script* GetScript(bool = {}) override
+		Script* GetScript() override
 		{
 			return nullptr;
 		}
 
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem) override
 		{
-			return Element::GetElementFromPath(path, elem, {});
+			return Element::GetElementFromPath(path, elem);
 		}
 
 
 
-		Environment* GetEnvironment(bool = {}) override
+		Environment* GetEnvironment() override
 		{
 			//It has no environment.
 			return nullptr;

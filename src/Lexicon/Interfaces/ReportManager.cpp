@@ -474,8 +474,6 @@ namespace LEX
 
 		fixed.to = to;
 
-		auto spd_lvl = get_spdlog_level(fixed.level);
-
 
 		std::string prefix;
 		std::string suffix;
@@ -486,6 +484,8 @@ namespace LEX
 
 
 		bool log = EditReport(fixed, data, LogState::Log);
+
+		auto spd_lvl = get_spdlog_level(fixed.level);
 
 		
 		if (!log && ReportType::Main != to)
@@ -644,6 +644,8 @@ namespace LEX
 		case ReportType::Main:
 			//Note, that the main logger cannot be stopped if the issue level is large enough to send a crash.
 			if (log || is_critical) {
+				//TODO: As is, these do not fucking work, by extension all translations. Please address.
+				
 				SendLog(fixed, varied, ReportType::Main, true, "");
 
 				//I would like to have this report to the console if it's open, or if a debugger is attached.

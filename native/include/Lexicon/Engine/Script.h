@@ -24,8 +24,20 @@ namespace LEX
 
 	class Script : public Environment, public IScriptImpl
 	{
-	public:
+	protected:
 		//Scripts have functions/globals(vars)/types/(parents/projects)
+		
+		using Prev = Flag;
+		
+		enum Flag
+		{
+			None = 0,
+			Incremental = 1 << (Prev::_next + 0),
+
+			_next = 1 << (Prev::_next + 1),
+
+		};
+
 	public:
 		
 	private:
@@ -44,24 +56,26 @@ namespace LEX
 
 		bool IsDefined() const;
 
-		Script* GetCommons(bool = {}) override;
+		Script* GetCommons() override;
 
 
-		Script* GetScript(bool = {}) override;
+		Script* GetScript() override;
 
-		Project* GetProject(bool = {}) override;
+		Project* GetProject() override;
 
-		Element* GetParent(bool = {}) override
+		Element* GetParent() override
 		{
+
+			GetFlags() | Flag::Incremental;
 			return Environment::GetParent();
 		}
 
 
-		Environment* GetEnvironment(bool = {}) override
+		Environment* GetEnvironment() override
 		{
 			return Environment::GetEnvironment();
 		}
-		Element* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem) override
 		{
 			return Environment::GetElementFromPath(path, elem);
 		}
@@ -78,8 +92,14 @@ namespace LEX
 			return nullptr;
 		}
 
+		bool IsIncremental() const
+		{
+			return GetFlags() & Flag::Incremental;
+		}
 
 		bool AppendContent(std::string_view content, api::vector<std::string_view> options = {}) override;
+
+		bool AppendContent(SyntaxRecord& content);
 
 
 		ComponentType GetComponentType() override;
@@ -89,7 +109,7 @@ namespace LEX
 		void SetSyntaxTree(SyntaxRecord& rec) final override;
 
 		//A non-version of LoadFromRecord that is aimed for appending content. May move to environment.
-		void LoadFromSyntaxTree(SyntaxRecord& target);
+		void LoadFromSyntaxTree(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end);
 
 		void OnAttach() override;
 
@@ -149,7 +169,7 @@ namespace LEX
 	
 	struct CommonScript : public Script
 	{
-		CommonScript* GetCommons(bool);
+		CommonScript* GetCommons();
 
 		bool IsCommons() const override { return true; }
 

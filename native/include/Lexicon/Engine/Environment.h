@@ -268,10 +268,10 @@ namespace LEX
 
 
 
-		Environment* GetEnvironment(bool = {}) override;
+		Environment* GetEnvironment() override;
 
 		//source file type shit
-		Element* GetParent(bool = {}) override;
+		Element* GetParent() override;
 
 		void SetParent(Element* par) override;
 

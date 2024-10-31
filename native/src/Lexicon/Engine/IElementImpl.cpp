@@ -6,38 +6,38 @@
 namespace LEX
 {
 	template <std::derived_from<IElement>  Base>
-	IScript* IElementBase<Base>::GetScript()
+	IScript* IElementBase<Base>::GetScript(bool)
 	{
-		return GetScript({});
+		return GetScript();
 	}
 
 	template <std::derived_from<IElement>  Base>
-	IProject* IElementBase<Base>::GetProject()
+	IProject* IElementBase<Base>::GetProject(bool)
 	{
-		return GetProject({});
+		return GetProject();
 	}
 
 	template <std::derived_from<IElement>  Base>
-	IElement* IElementBase<Base>::GetParent()
+	IElement* IElementBase<Base>::GetParent(bool)
 	{
-		return GetParent({});
+		return GetParent();
 	}
 
 	template <std::derived_from<IElement>  Base>
-	IEnvironment* IElementBase<Base>::GetEnvironment()
+	IElement* IElementBase<Base>::GetEnvironment(bool)
 	{
-		return GetEnvironment({});
+		return GetEnvironment();
 	}
 
 	template <std::derived_from<IElement>  Base>
-	IElement* IElementBase<Base>::GetElementFromPath(std::string_view path, ElementType elem)
+	IElement* IElementBase<Base>::GetElementFromPath(std::string_view path, ElementType elem, bool)
 	{
-		return GetElementFromPath(path, elem, {});
+		return GetElementFromPath(path, elem);
 	}
 	template <std::derived_from<IElement>  Base>
-	IScript* IElementBase<Base>::GetCommons()
+	IScript* IElementBase<Base>::GetCommons(bool)
 	{
-		return GetCommons({});
+		return GetCommons();
 	}
 	
 	void linkworkaround()

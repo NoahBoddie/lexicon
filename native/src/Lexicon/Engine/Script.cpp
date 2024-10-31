@@ -158,7 +158,7 @@ namespace LEX
 
 
 
-	Script* Script::GetCommons(bool)
+	Script* Script::GetCommons()
 	{
 		//This 
 		return _parent->FetchCommons();
@@ -182,12 +182,12 @@ namespace LEX
 
 
 
-	Script* Script::GetScript(bool)
+	Script* Script::GetScript()
 	{
 		return this;
 	}
 	
-	Project* Script::GetProject(bool)
+	Project* Script::GetProject()
 	{
 		return Environment::GetProject();
 	}
@@ -215,12 +215,15 @@ namespace LEX
 	}
 
 
-	void Script::LoadFromSyntaxTree(SyntaxRecord& target)
+	void Script::LoadFromSyntaxTree(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end)
 	{
 
 
-		for (auto& node : target.children())
+		//for (auto& node : target.children())
+		while (begin != end)
 		{
+			auto& node = *begin++;
+
 			//Turn this into a function
 			get_switch(node.SYNTAX().type)
 			{
@@ -230,8 +233,8 @@ namespace LEX
 
 			case SyntaxType::Format: {
 				Project* project = GetProject();
-
-				project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
+				if (project)
+					project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
 			}
 			break;
 
@@ -343,6 +346,28 @@ namespace LEX
 	}
 
 
+	bool Script::AppendContent(SyntaxRecord& content)
+	{
+		if (auto* tree = GetSyntaxTree(); tree) {
+			auto& children = tree->children();
+			
+			auto index = children.size();
+			//TODO: Right here, you'd want to rewrite every single syntax so it appends to the very end, instead of incorrectly being placed later.
+
+			tree->EmplaceChildren(std::move(content.children()));
+			
+			if (HasLinked(LinkFlag::Loaded) == true)
+			{
+				//TODO: If this hasn't reached a certain level of linkage, it shouldn't add this. Notably, loaded must have passed.
+				LoadFromSyntaxTree(children.begin() + index, children.end());
+				RefreshLinkage();
+			}
+			return true;
+		}
+		return false;
+	}
+
+
 
 	LinkResult Script::OnLink(LinkFlag flags)
 	{
@@ -350,10 +375,11 @@ namespace LEX
 			return LinkResult::Failure;
 
 
-		SyntaxRecord& target = *GetSyntaxTree();
+		auto& children = GetSyntaxTree()->children();
 
 
-		LoadFromSyntaxTree(target);
+
+		LoadFromSyntaxTree(children.begin(), children.end());
 
 		return LinkResult::Success;
 	}
@@ -395,7 +421,7 @@ namespace LEX
 
 
 
-	CommonScript* CommonScript::GetCommons(bool)
+	CommonScript* CommonScript::GetCommons()
 	{
 		return this;
 	}

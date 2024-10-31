@@ -137,7 +137,7 @@ float TestingPull()
 #endif
 
 
-void TestParse()
+void TestParse(Script* append_to = nullptr)
 {
     std::string path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon/scripts/Shared/parse_test.txt";
     std::ifstream file_input;
@@ -172,6 +172,12 @@ void TestParse()
 
     logger::info("Record uses {} Kilobytes", ast.GetMemoryUsage() / 1000.f);
 
+    if (append_to)
+    {
+        append_to->AppendContent(ast.Transform<SyntaxRecord>());
+    }
+
+
     std::system("pause");
 
 
@@ -186,20 +192,20 @@ void LexTesting(std::string formula)
     constexpr auto testeetet2 = GetNumberOffset(NumeralType::Integral, Size::QWord, Signage::Unsigned, Limit::Overflow);
     constexpr auto testeetet3 =  GetNumberOffset(NumeralType::Integral, Size::DWord, Signage::Signed, Limit::Overflow);
 
-    TestParse();
-
 
     
     
     ProjectManager::instance->InitMain();
  
     Script* script = ProjectManager::instance->GetShared()->GetCommons();
+
     
+
     Component::Link(LinkFlag::Loaded);
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
 	Component::Link(LinkFlag::External);
-
+    TestParse(script);
     //return;
     //ProjectManager::instance->GetFunctionFromPath("Shared::Commons::size");
     if (1)

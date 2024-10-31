@@ -14,12 +14,12 @@
 namespace LEX
 {
 
-	Script* Element::GetScript(bool)
+	Script* Element::GetScript()
 	{
 		return GetParent()->FetchScript();
 	}
 
-	Project* Element::GetProject(bool)
+	Project* Element::GetProject()
 	{
 		return GetParent()->FetchProject();
 	}
@@ -30,7 +30,7 @@ namespace LEX
 		return ProjectManager::instance->GetShared();
 	}
 	
-	Script* Element::GetCommons(bool) { return GetScript()->FetchCommons(); }
+	Script* Element::GetCommons() { return GetScript()->FetchCommons(); }
 
 
 
@@ -715,12 +715,12 @@ namespace LEX
 	//*/
 
 
-	Environment* SecondaryElement::GetEnvironment(bool)
+	Environment* SecondaryElement::GetEnvironment()
 	{
 		return _parent;
 	}
 
-	Element* SecondaryElement::GetParent(bool)
+	Element* SecondaryElement::GetParent()
 	{
 		return _parent;
 	}

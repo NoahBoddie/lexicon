@@ -58,19 +58,19 @@ namespace LEX
 		virtual SyntaxRecord* GetSyntaxTree() = 0;
 
 	
-		Script* GetScript(bool = {}) override;
+		Script* GetScript() override;
 
-		Project* GetProject(bool = {}) override;
+		Project* GetProject() override;
 
-		Element* GetParent(bool = {}) = 0;
+		Element* GetParent() = 0;
 		
-		Environment* GetEnvironment(bool = {}) = 0;
+		Environment* GetEnvironment() = 0;
 
 	public:
 
 		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem);
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem) override
 		{ 
 			return GetElementFromPath(this, path, elem);
 		}
@@ -214,7 +214,7 @@ namespace LEX
 
 		static Project* GetShared();
 
-		Script* GetCommons(bool = {}) override;
+		Script* GetCommons() override;
 
 		Script* FetchCommons()
 		{
@@ -266,11 +266,12 @@ namespace LEX
 		{
 			return GetFlags() & Flag::Attached;
 		}
-
-		Flag& GetFlags()
+	
+		Flag& GetFlags() const
 		{
 			return GetComponentData<Flag>();
 		}
+		
 
 		void DeclareParentTo(Element* child)
 		{
@@ -292,10 +293,10 @@ namespace LEX
 		Environment* _parent = nullptr;
 	public:
 
-		Environment* GetEnvironment(bool = {}) override;
+		Environment* GetEnvironment() override;
 
 
-		Element* GetParent(bool = {}) override;
+		Element* GetParent() override;
 
 
 		SyntaxRecord* GetSyntaxTree() override

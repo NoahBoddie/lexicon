@@ -67,7 +67,7 @@ namespace LEX
 	}
 
 
-	Script* Project::GetCommons(bool)
+	Script* Project::GetCommons()
 	{
 		return _commons;
 	}
