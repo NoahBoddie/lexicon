@@ -199,31 +199,19 @@ void LexTesting(std::string formula)
  
     Script* script = ProjectManager::instance->GetShared()->GetCommons();
 
-    
+    TestParse(script);
+
 
     Component::Link(LinkFlag::Loaded);
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
 	Component::Link(LinkFlag::External);
-    TestParse(script);
     //return;
     //ProjectManager::instance->GetFunctionFromPath("Shared::Commons::size");
     if (1)
     {
-        auto funcs = script->FindFunctions("size");
-
-        if (funcs.size() != 0)
-        {
-
-            ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
-
-            if (function)
-            {
-				if (ProcedureHandler::instance->RegisterFunction(size_backend, function) == false) {
-					logger::debug("failure");
-				}
-                //function->_procedure = TestProcedure;
-            }
+        if (ProcedureHandler::instance->RegisterCoreFunction(size_backend, "size") == false) {
+            logger::debug("failure");
         }
     }
 
@@ -238,7 +226,7 @@ void LexTesting(std::string formula)
 
     if  constexpr (1)
     {
-        if (ProcedureHandler::instance->RegisterFunction(otherTest, "Shared::Commons::otherTest") == false)
+        if (ProcedureHandler::instance->RegisterCoreFunction(otherTest, "otherTest") == false)
         {
             logger::info("Function couldn't be set");
         }
@@ -308,6 +296,19 @@ void LexTesting(std::string formula)
             logger::info("Function couldn't be found in script");
         }
     }
+
+    std::string_view new_script = R"(
+    float TestingManualCreation()
+    {
+        return 69 * 420;//nice.
+    }
+
+    float manual_object = 26;
+    )";
+
+    auto result = ProjectManager::instance->CreateScript(ProjectManager::instance->GetShared(), "Manual", "", new_script);
+
+    logger::info("manual result >> {}", magic_enum::enum_name(result));
 
 
     TestForm();

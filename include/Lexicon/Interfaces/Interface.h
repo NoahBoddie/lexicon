@@ -84,7 +84,7 @@ namespace api
 
 		container(const container& other)
 		{
-			Obtain(other._size, other._size);
+			Obtain(other._data, other._size);
 		}
 
 		container(container&& other)

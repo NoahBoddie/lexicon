@@ -110,7 +110,7 @@ namespace LEX
 				return result;
 
 			//Simple for now.
-			return policy->IsConvertibleTo(other.policy, scope, out, is_expl ? ConversionType::Implicit : ConversionType::Implicit);
+			return policy->IsConvertibleTo(other.policy, scope, out, is_expl ? ConversionType::Explicit : ConversionType::Implicit);
 		}
 		
 		ConvertResult IsConvertToQualified(QualifiedType&& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const

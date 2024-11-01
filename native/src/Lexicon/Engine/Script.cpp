@@ -164,14 +164,20 @@ namespace LEX
 		return _parent->FetchCommons();
 	}
 
-	void Script::SetParent(Element* env)
+	void Script::SetParent(Element* elem)
 	{
 		//TODO: Script::SetParent is actually supposed to ask if new parent isn't a project. Attend to that when enum is added.
 		//TODO: EnvironmentError in this situation is exclusively an error on my part, need a new exception for that.
-		if (env->IsComponentType<Project>() == false)
-			throw EnvironmentError("Parent of script must be a project.");
+		
+		Project* project = elem->GetProject();
+		
+		//if (elem->IsComponentType<Project>() == false)
+		//	throw EnvironmentError("Parent of script must be a project.");
 
-		_parent = env->GetProject();
+		if (!project || elem != project)
+			report::fault::critical("Parent of script must be project.");
+
+		_parent = project;
 	}
 
 
@@ -346,8 +352,37 @@ namespace LEX
 	}
 
 
+
+	void CorrectRecordPages(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end, Line line)
+	{
+		while (begin != end)
+		{
+			auto& node = *begin++;
+		
+			if (auto& syntax = node.GetSyntax(); syntax.line)
+			{
+				//TODO:Please check this shit for overflow.
+				syntax.line += line;
+
+				if (node.size() != 0)
+					CorrectRecordPages(node.children().begin(), node.children().end(), line);
+			}
+		}
+	}
+
 	bool Script::AppendContent(SyntaxRecord& content)
 	{
+		if (IsIncremental() == false) {
+			report::compile::warn("Script '{}' is not incremental and cannot be appended to.", GetName());
+			return false;
+		}
+
+
+		//Nothing to add, no reason to care.
+		if (content.size() == 0)
+			return true;
+		//if (IsIncremental() == true)
+
 		if (auto* tree = GetSyntaxTree(); tree) {
 			auto& children = tree->children();
 			
@@ -355,12 +390,26 @@ namespace LEX
 			//TODO: Right here, you'd want to rewrite every single syntax so it appends to the very end, instead of incorrectly being placed later.
 
 			tree->EmplaceChildren(std::move(content.children()));
+			auto begin = children.begin() + index;
+			auto end = children.end();
+
+			auto& column = tree->GetSyntax().column;
+			auto& line = tree->GetSyntax().line;
+
+			CorrectRecordPages(begin, end, line);
+			
+			line += content.GetSyntax().line;
+			column = content.GetSyntax().column;
 			
 			if (HasLinked(LinkFlag::Loaded) == true)
 			{
 				//TODO: If this hasn't reached a certain level of linkage, it shouldn't add this. Notably, loaded must have passed.
-				LoadFromSyntaxTree(children.begin() + index, children.end());
+				LoadFromSyntaxTree(begin, end);
 				RefreshLinkage();
+			}
+			else
+			{
+				//TODO: This needs to emit a warning, but the warning should be quelled if some kind of flag is on it, some kind of flag that core would have.
 			}
 			return true;
 		}

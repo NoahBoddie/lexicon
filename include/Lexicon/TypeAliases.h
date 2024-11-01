@@ -5,7 +5,7 @@
 namespace LEX
 {
 	using Column = uint16_t;
-	using Line = uint16_t;
+	using Line = uint32_t;
 
 	//Temporary
 	//using Object = int;

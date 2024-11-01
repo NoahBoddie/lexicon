@@ -456,6 +456,11 @@ namespace LEX::Impl
 
 					//if (parser->eof() == false) parser->SkipType(TokenType::Punctuation, ";");
 				}
+				//Column column() { return _column; }
+				//Line line() { return _line; }
+				
+				script.SYNTAX().column = parser->GetInput()->column();
+				script.SYNTAX().line = parser->GetInput()->line();
 
 				return script;
 			}

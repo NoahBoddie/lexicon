@@ -25,6 +25,9 @@ namespace LEX
 	class Project : public Element, public IProjectImpl
 	{
 	public:
+		friend ProjectManager;
+
+
 		Script* GetCommons() override;
 
 

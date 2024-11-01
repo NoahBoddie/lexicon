@@ -130,7 +130,7 @@ namespace LEX
 
 		std::string log = tree.Print();
 
-		RGL_LOG(info, "{}{}", indent, log);
+		RGL_LOG(debug, "{}{}", indent, log);
 
 		indent += __dent;
 
@@ -169,6 +169,11 @@ namespace LEX
 	Project* ProjectManager::GetShared(INTERN_TYPE)
 	{
 		return static_cast<Project*>(GetShared(EXTERN_TYPE{}));
+	}
+
+	Script* ProjectManager::GetCore()
+	{
+		return _core;
 	}
 
 	Project* ProjectManager::GetProject(std::string_view name, INTERN_TYPE)
@@ -499,10 +504,62 @@ namespace LEX
 		return result;
 	}
 
-	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, Script** out, api::vector<std::string_view> options)
+
+
+	APIResult CreateSyntaxTreeFromString(std::string_view file, std::string& contents, Project* project,
+		std::vector<std::string_view>& options, SyntaxRecord& ast)
 	{
-		//Might break this down into a function that knows it's path and one that doesn't, mostly for scripts created via function.
-		std::string script_path = std::format("{}/{}.lsi", path, name);
+		//For now this won't do anything I guess.
+		if (project)
+		{
+			tmp_AddCompileOptions(options, project);
+
+			if (project->IsShared() == false)
+			{
+				tmp_AddCompileOptions(options, _shared);
+			}
+		}
+
+		ScriptString test_content{ file, contents };
+
+
+		Record tmp_directives;
+
+
+		Impl::PreprocessorParser direct_parse;
+
+
+		//tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+
+		if (Impl::Parser__::CreateSyntaxTree(tmp_directives, contents, file, &direct_parse) == false) {
+			return APIResult::CreationFailed;
+		}
+
+		if (APIResult res = GeneralProcess(test_content, tmp_directives, options); res != APIResult::Success)
+			return res;
+		else
+		{
+			contents = test_content.Clear();
+		}
+
+
+
+		if (Impl::Parser__::CreateSyntaxTree(ast, contents, file) == false) {
+			return APIResult::CreationFailed;
+		}
+
+		ast.EmplaceChild(std::move(tmp_directives));
+
+		PrintAST(ast);
+
+		return APIResult::Success;
+	}
+
+
+	APIResult CreateSyntaxTree(std::string_view file, std::string_view extension, std::string_view path, Project* project, 
+		std::vector<std::string_view>& options, SyntaxRecord& ast)
+	{
+		std::string script_path = std::format("{}/{}{}", path, file, extension);
 
 
 		std::ifstream file_input;
@@ -514,104 +571,39 @@ namespace LEX
 
 		file_input.close();//Don't really need to do this, seeing as the destructor does, but eh
 
-
-
-		tmp_AddCompileOptions(options, project);
-
-		if (project->IsShared() == false)
-		{
-			tmp_AddCompileOptions(options, GetShared());
-		}
-
-		ScriptString test_content{ name, contents };
+		return CreateSyntaxTreeFromString(file, contents, project, options, ast);
 		
-		
-		Record tmp_directives;
+	}
 
 
-		if constexpr (false)
-		{
-			Impl::PreprocessorParser direct_parse;
-
-			if (Impl::Parser__::CreateSyntaxTree(tmp_directives, contents, name, &direct_parse) == false) {
-				return APIResult::AbstractFailure;
-			}
-
-			
-
-			if (tmp_directives.size() != 0) {
-				auto begin = options->begin();
-				auto end = options->end();
-
-				for (auto& directive : tmp_directives.children()) {
-					
-					test_content.SetLines(false, directive.SYNTAX().line);
-
-					switch (directive.SYNTAX().type)
-					{
-						case SyntaxType::Requirement:
-							if (directive.GetView() == parse_strings::option_req) {
-								auto& front = directive.GetFront();
-
-								//if (tmp_CheckCompileOptions(front.GetView()) == false) {
-								if (std::find(begin, end, front.GetView()) == end) {
-									logger::break_warn("Requirement '{}' was not present for {} to load.", front.GetView(), name);
-									return APIResult::MissingRequirement;
-								}
-							}
-							break;
-
-						
-
-					}
-					
-				}
-				std::stringstream result;
-
-				//const boost::regex regex(R"((?<=\A|\n)\s*#[^\n]*)");
-				//const boost::regex regex(R"((?<=\A)|(?<=\n)\s*#[^\n]*)");
-				const boost::regex regex(R"((?:(?<=\A)|(?<=\n))#[^\n]*)");
-				boost::regex_replace(std::ostream_iterator<char>(result), contents.begin(), contents.end(), regex, "");
-				contents = result.str();
-
-				logger::info("TESTING: \n {}", test_content.Clear());
-			}
-		}
-		else
-		{
-
-			Impl::PreprocessorParser direct_parse;
-
-
-			//tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
-
-			if (Impl::Parser__::CreateSyntaxTree(tmp_directives, contents, name, &direct_parse) == false) {
-				return APIResult::CreationFailed;
-			}
-
-			if (APIResult res = GeneralProcess(test_content, tmp_directives, options); res != APIResult::Success)
-				return res;
-			else
-			{
-				contents = test_content.Clear();
-			}
-		}
-		
-
+	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, std::optional<std::string_view> content, Script** out, api::vector<std::string_view> options)
+	{
+		//Path and name are still included, as they can be used to help refer to the location of the file when debugging.
 		SyntaxRecord ast;
-		
-		if (Impl::Parser__::CreateSyntaxTree(ast, contents, name) == false) {
-			return APIResult::CreationFailed;
+	
+		APIResult result;
+
+		bool made_from_script;
+
+		if (content.has_value() == true) {
+			made_from_script = true;
+			std::string send = std::string{ content.value() };
+			result = CreateSyntaxTreeFromString(name, send, project, options, ast);
+		}
+		else {
+			made_from_script = false;
+			result = CreateSyntaxTree(name, ".lsi", path, project, options, ast);
 		}
 
-		ast.EmplaceChild(std::move(tmp_directives));
 
-		PrintAST(ast);
-
-		//std::system("pause");
+		if (result != APIResult::Success)
+		{
+			return result;
+		}
 
 		Script* script = name == "Commons" ? Component::Create<CommonScript>(ast) : Component::Create<Script>(ast);
 
+		//TODO: This is a small memory leak. do this check sooner.
 		if (project->GetCommons() != nullptr && name == "Commons")
 		{
 			return APIResult::ElementExists;
@@ -628,6 +620,8 @@ namespace LEX
 			//TODO: Have project be the thing that sends the failure to the project client, or just logs clientless failures itself.
 			return APIResult::AbstractFailure;
 		}
+
+		Component::RefreshLinkage();
 
 		return APIResult::Success;
 	}
@@ -743,10 +737,47 @@ namespace LEX
 		return element;
 	}
 
+
+
+
+	void CompileCoreScripts(std::string_view path)
+	{
+		//remake to core script
+		_core = Component::Create<Script>(SyntaxRecord{ "__CORE__", Syntax{SyntaxType::Script} });
+
+		_core->SetIncremental(true);
+
+		std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi");
+
+		for (auto full_path : scripts)
+		{
+			std::string path = full_path.first;
+			std::string name = full_path.second;
+			name = name.substr(0, name.size() - 4);
+
+
+			SyntaxRecord ast;
+
+			std::vector<std::string_view> _{};
+
+			if (auto result = CreateSyntaxTree(name, ".lsi", path, _shared, _, ast); result != APIResult::Success)
+			{
+				//report failure
+				break;
+			}
+
+			_core->AppendContent(ast);
+		}
+	}
+
+
+
+
 	APIResult  ProjectManager::InitMain()
 	{
-		if (_shared)
+		if (_shared || _core)
 			return APIResult::ElementExists;
+
 
 		Project* project = nullptr;
 
@@ -754,6 +785,13 @@ namespace LEX
 		auto result = CreateProject("Shared", DefaultClient::GetInstance(), &project);
 
 		_shared = project;
+
+
+		CompileCoreScripts(SettingManager::GetSingleton()->coreDir);
+		
+		project->GetCommons()->AddRelationship(_core, RelateType::Included);
+
+		project->DeclareParentTo(_core);
 
 		return result;
 	}

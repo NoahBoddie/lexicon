@@ -1973,7 +1973,7 @@ namespace LEX
 						//With this, I might as well just be able to convert it and ignore the rest of this shit innit?
 						const NumberType* other_num = dynamic_cast<const NumberType*>(other);
 
-						if (other_num && (!other_num->_settings.IsInteger() || _settings.IsInteger()))
+						if (other_num && (type == ConversionType::Explicit || !other_num->_settings.IsInteger() || _settings.IsInteger()))
 						{
 							logger::info("would {} && {} , {} {}", other_num->_settings.IsInteger(), _settings.IsInteger(), other_num->_settings.GetOffset(), _settings.GetOffset());
 

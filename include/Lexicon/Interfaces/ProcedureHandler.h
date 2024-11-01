@@ -81,6 +81,8 @@ namespace LEX
 
 		//thing to get function here.
 
+		
+
 		template <typename R, typename... Args>
 		bool RegisterFunction(R(*prod)(Args...), std::string_view path)
 		{
@@ -94,6 +96,40 @@ namespace LEX
 			IFunction* func = ProjectManager::instance->GetFunctionFromPath(path);
 
 			return ProcedureHandler::instance->RegisterFunction(procedure, func);
+		}
+
+	INTERNAL:
+
+		//I'd like to just program this into the project manager at some point.
+		IFunction* GetCoreFunction(std::string_view path);
+
+
+		//These allow for the registration of functions that exist within core files.
+		template <typename R, typename... Args>
+		bool RegisterCoreFunction(R(*prod)(Args...), std::string_view path)
+		{
+#ifdef LEX_SOURCE
+
+			IFunction* func = GetCoreFunction(path);
+
+			return RegisterFunction(prod, func);
+#else
+			report::apply::warn("Non-source binaries cannot register core functions.");
+			return false;
+#endif
+		}
+
+		bool RegisterCoreFunction(Procedure procedure, std::string_view path)
+		{
+#ifdef LEX_SOURCE
+
+			IFunction* func = GetCoreFunction(path);
+
+			return ProcedureHandler::instance->RegisterFunction(procedure, func);
+#else
+			report::apply::warn("Non-source binaries cannot register core functions.");
+			return false;
+#endif			
 		}
 	};
 }

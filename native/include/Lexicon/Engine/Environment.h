@@ -54,7 +54,7 @@ namespace LEX
 	struct IFunction;
 
 
-	enum struct SyntaxType;
+	enum struct SyntaxType : uint16_t;
 	struct Syntax;
 
 

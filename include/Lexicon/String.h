@@ -112,16 +112,13 @@ namespace LEX
 		}
 
 
-		operator c_string() const
-		{
-			return c_str();
-		}
 
 
 		void SetData(const char* str, size_t length)
 		{
 			//If ownership becomes a worry, lexicon will be the thing that creates and manages these strings.
 
+			//This needs to add some, due to the null termination
 			if (length == -1)
 				length = std::strlen(str);
 
@@ -190,6 +187,13 @@ namespace LEX
 			return String::GetVariableType(nullptr);
 		}
 	};
+
+	inline void Testing()
+	{
+		String test;
+
+		auto cast = static_cast<std::string>(test);
+	}
 
 
 }

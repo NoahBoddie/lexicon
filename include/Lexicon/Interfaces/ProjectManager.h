@@ -37,7 +37,7 @@ namespace LEX
 
 	//Move
 
-		static std::vector<std::pair<std::string, std::string>> SearchFiles(std::string a_folder, std::string_view a_extension, std::set<std::string_view> ignore = {})
+		static std::vector<std::pair<std::string, std::string>> SearchFiles(std::string_view a_folder, std::string_view a_extension, std::set<std::string_view> ignore = {})
 		{
 			//Having no extension will mean I want to search for folders, which is how I'll say that
 
@@ -80,7 +80,7 @@ namespace LEX
 		}
 
 		//Use as a part of the finish to report project folders that have nothing using them.
-		static std::vector<std::pair<std::string, std::string>> SearchFiles(std::string a_folder, std::string_view a_extension, std::string_view&& ignore)
+		static std::vector<std::pair<std::string, std::string>> SearchFiles(std::string_view a_folder, std::string_view a_extension, std::string_view&& ignore)
 		{
 			return SearchFiles(a_folder, a_extension, { ignore });
 		}
@@ -94,8 +94,10 @@ namespace LEX
 			EXTERNAL:
 				virtual LEX::IProject* GetProject(std::string_view name, EXTERN_NAME) = 0;
 			public:
-				virtual APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::vector<std::string_view> options = {}) = 0;
-				virtual APIResult CreateProject(std::string_view name, ProjectClient* client, Project** out = nullptr, HMODULE source = GetCurrentModule()) = 0;
+				virtual APIResult CreateScript(Project* project, std::string_view name, std::string_view path, 
+					std::optional<std::string_view> content = std::nullopt, Script** out = nullptr, api::vector<std::string_view> options = {}) = 0;
+				
+				virtual APIResult CreateProject(std::string_view name, LEX::ProjectClient * client, Project * *out = nullptr, HMODULE source = GetCurrentModule()) = 0;
 				
 
 				virtual IElement* GetElementFromPath(std::string_view path, ElementType elem) = 0;
@@ -127,19 +129,20 @@ namespace LEX
 	
 
 	public:
-		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script** out = nullptr, api::vector<std::string_view> options = {}) override;
+		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, 
+			std::optional<std::string_view> content = std::nullopt, Script** out = nullptr, api::vector<std::string_view> options = {}) override;
 			
-		APIResult CreateProject(std::string_view name, ProjectClient* client, Project** out = nullptr, HMODULE source = GetCurrentModule()) override;
+		APIResult CreateProject(std::string_view name, LEX::ProjectClient * client, Project** out = nullptr, HMODULE source = GetCurrentModule()) override;
 
 
 		IElement* GetElementFromPath(std::string_view path, ElementType elem) override;
 
 	public://Ease of Use Functions
 
-
-		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, Script*& out)
+		//Make a version without project, something like defaults to a certain project.
+		APIResult CreateScript(Project* project, std::string_view name, std::string_view path, std::string_view content, Script*& out)
 		{
-			return CreateScript(project, name, path, std::addressof(out));
+			return CreateScript(project, name, path, content, std::addressof(out));
 		}
 
 		APIResult CreateProject(std::string_view name, ProjectClient* client, Project*& out, HMODULE source = GetCurrentModule())
@@ -202,6 +205,8 @@ namespace LEX
 
 	INTERNAL://Hidden functions
 		
+		Script* GetCore();
+
 		Project* GetShared(INTERN_NAME);
 
 		Project* GetProject(std::string_view name, INTERN_NAME);

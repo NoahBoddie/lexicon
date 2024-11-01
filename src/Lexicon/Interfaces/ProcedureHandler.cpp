@@ -2,6 +2,7 @@
 
 #include "Lexicon/Engine/Signature.h"
 #include "Lexicon/Engine/FunctionBase.h"
+#include "Lexicon/Engine/Script.h"
 
 #include "Lexicon/AbstractFunction.h"
 #include "Lexicon/Dispatcher.h"
@@ -83,5 +84,13 @@ namespace LEX
 		function->SetProcedureData(procedure, 0);
 
 		return true;
+	}
+
+
+	IFunction* ProcedureHandler::GetCoreFunction(std::string_view path)
+	{
+		auto core = ProjectManager::instance->GetCore();
+
+		return core->GetElementFromPath(path, ElementType::kFuncElement)->As<IFunction>();
 	}
 }

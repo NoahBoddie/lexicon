@@ -44,6 +44,9 @@ namespace LEX
     
     
     //TODO: Remove Array, FunctionHandle, and Delegate from being handled here. All of which are likely to be handled by object.
+
+    //Consider making a type 1 step from void, something that can only exist if explicitly placed there. Possibly an exception basically.
+    // this can basically be the exception system too
     using VariableValue =  std::variant
         <
         //Types that will not need to exist coming soon:
@@ -711,11 +714,20 @@ namespace LEX
 
             To result = {};
 
+            bool triggered = false;
+
             std::visit([&](auto&& self) {
-                logger::info("{} THING", typeid(decltype(self)).name());
-                if constexpr (stl::castable_to<decltype(self), To>)
+                using From = std::remove_reference_t<std::remove_cv_t<decltype(self)>>;
+
+                logger::info("{} THING", typeid(From).name());
+                if constexpr (stl::castable_to<From, To>) {
+                    triggered = true;
                     result = static_cast<To>(self);
+                    
+                }
                 }, _value);
+            if (!triggered)
+                report::critical("Variable of value {} cannot convert to {}.", PrintString(), typeid(Type).name());
 
             return result;
         }

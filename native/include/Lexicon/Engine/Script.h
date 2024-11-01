@@ -65,8 +65,6 @@ namespace LEX
 
 		Element* GetParent() override
 		{
-
-			GetFlags() | Flag::Incremental;
 			return Environment::GetParent();
 		}
 
@@ -95,6 +93,15 @@ namespace LEX
 		bool IsIncremental() const
 		{
 			return GetFlags() & Flag::Incremental;
+		}
+
+		void SetIncremental(bool value) const
+		{
+			//Id like this to be handled via flags later
+			if (value)
+				(uint32_t&)GetFlags() |= Flag::Incremental;
+			else
+				(uint32_t&)GetFlags() &= ~Flag::Incremental;
 		}
 
 		bool AppendContent(std::string_view content, api::vector<std::string_view> options = {}) override;

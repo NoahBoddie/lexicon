@@ -36,7 +36,7 @@ namespace LEX
 		
 			
 		All			= LinkFlag::Loaded | LinkFlag::Object | LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External,
-
+		Any			= LinkFlag::All,
 		//Final happens when all linking is done, notably, what also happens here is a bid for dependency.
 		// Basically by now if it's not loaded properly, it will never be. Final also cannot be manually selected.
 		//TODO: So for the above, Component::Link needs a wrapped function.
@@ -126,6 +126,12 @@ namespace LEX
 
 		template<std::derived_from<Component> D>
 		static D* Create(SyntaxRecord& rec)
+		{
+			return Create<D>(&rec);
+		}
+		
+		template<std::derived_from<Component> D>
+		static D* Create(SyntaxRecord&& rec)
 		{
 			return Create<D>(&rec);
 		}
@@ -290,12 +296,16 @@ namespace LEX
 
 		static void RefreshLinkage()
 		{
+			if (HasLinked(LinkFlag::Any) == false)
+				return;
+
+
 			//At a later point, link should just be able to & out the given flags and run all the stuff it wants.
 			// Also this likely will need to be thread locked in the future.
 
 			for (auto flag = (LinkFlag)1; flag != LinkFlag::Total; flag++)
 			{
-				if (_linkCheckFlags | flag)
+				if (HasLinked(flag) == true)
 				{
 					Link(flag);
 				}

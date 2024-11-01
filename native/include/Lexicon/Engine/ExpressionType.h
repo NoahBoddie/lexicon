@@ -3,7 +3,7 @@
 namespace LEX
 {
 	//Still not feeling the name. maybe statement? More broad.
-	enum struct SyntaxType
+	enum struct SyntaxType : uint16_t
 	{
 		//Things called UNHANDLE should be under total, as they should never make it to the compiler. Anything under that should be removed by compiling time.
 
