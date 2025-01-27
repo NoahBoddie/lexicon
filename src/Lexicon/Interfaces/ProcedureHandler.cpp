@@ -24,12 +24,14 @@ namespace LEX
 
 		bool result;
 
+
+
 		if (flag & OverloadFlag::Failure) {
-			logger::info("FAILED TO MATCH");
+			//logger::info("FAILED TO MATCH");
 			result = false;
 		}
 		else {
-			logger::info("SUCCESS TO MATCH");
+			//logger::info("SUCCESS TO MATCH");
 			result = true;
 		}
 		//Should this fail on any step it needs to report the error to itself.

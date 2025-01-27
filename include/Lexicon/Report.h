@@ -22,7 +22,7 @@ namespace LEX
 
 
 //*/
-
+	//TODO: Report is woefully unable to deal with fmt additions properly. Work that out please. Thanks.
 
 	ENUM(IssueType, uint8_t)
 	{

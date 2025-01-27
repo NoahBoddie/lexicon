@@ -75,11 +75,6 @@ namespace LEX::Impl
 
 		bool handle = _QueryModule(rec_nest, mdl, flag);
 		
-		if (handle)
-		{
-			//RGL_LOG(info, "try success? {} {}", module_check, context_check);
-			logger::info("try module: {}, token: {}: target: {}, success: {}", mdl->GetContext(), peek().GetTag(), !!rec_nest, handle);
-		}
 
 		if (handle) {
 			_ExecuteModule(out, rec_nest, mdl);
@@ -219,7 +214,6 @@ namespace LEX::Impl
 		std::vector<Record> result;
 
 		bool first = true;
-		RGL_LOG(debug, "skipping start '{}'", start);
 		
 		//if it's empty it will consume anything.
 		if (start.empty() == false)
@@ -235,8 +229,6 @@ namespace LEX::Impl
 			if (first) first = false; 
 			else if (separator) separator();
 
-			RGL_LOG(debug, "delimit check b");
-
 			if (IsType(TokenType::Punctuation, stop) == true) break;
 
 			//Thinking of using the second arg for something.
@@ -244,15 +236,13 @@ namespace LEX::Impl
 			Record entry = func(this, nullptr);
 
 			if (entry) {
-				RGL_LOG(debug, "push back function");
 				result.push_back(entry);
 			}
 			else {
-				RGL_LOG(debug, "empty record discared");
+				report::parse::trace("empty record discared");
 			}
 		}
 
-		RGL_LOG(debug, "skipping end '{}'", stop);
 		SkipType(TokenType::Punctuation, stop);
 
 		return result;

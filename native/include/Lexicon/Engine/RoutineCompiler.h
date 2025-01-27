@@ -203,13 +203,10 @@ namespace LEX
 					report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
 					throw nullptr;
 				}
-				logger::info("XXXX {}", varCount[0]);
 
 				if ((varCount[0] += inc) > varCount[1])
 					varCount[1] = varCount[0];
 				
-				logger::info("YYYY {}", varCount[0]);
-
 				auto& op_list = GetOperationList();
 				
 				op_list.emplace_back(InstructionType::IncrementVarStack, Operand{ inc , OperandType::Differ });
@@ -224,7 +221,6 @@ namespace LEX
 						// have an instruction intend to specialize.
 
 						size_t index = count + i;
-						logger::info("MMMM {}", index);
 
 						ITypePolicy* policy = policies[i];
 						op_list.emplace_back(InstructionType::DefineVariable, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
@@ -488,7 +484,7 @@ namespace LEX
 				report::compile::critical("Syntax is not a expression");
 			}
 
-			logger::debug("RoutineCompiler::CompileExpression: Processing {} . . .", magic_enum::enum_name(node.SYNTAX().type));
+			report::compile::trace("RoutineCompiler::CompileExpression: Processing {} . . .", magic_enum::enum_name(node.SYNTAX().type));
 
 
 			//result from expressions are discarded

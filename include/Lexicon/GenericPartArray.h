@@ -10,7 +10,7 @@ namespace LEX
 
 	struct GenericPartArray : public ITemplatePart, public ITemplateInsertPart
 	{
-		GenericPartArray() { logger::info("fff"); }
+		GenericPartArray() { }
 		size_t GetSize() const override { return _types.size(); }
 
 		ITypePolicy* GetPartArgument(size_t i) const override

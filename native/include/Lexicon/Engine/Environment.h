@@ -95,7 +95,8 @@ namespace LEX
 	struct FunctionInfo;
 	struct VariableInfo;
 
-	using FunctionContainer = FunctionInfo*;
+	//change to unique pointer please
+	using FunctionContainer = std::vector<FunctionInfo*>;
 	using TypeContainer = PolicyBase*;
 
 

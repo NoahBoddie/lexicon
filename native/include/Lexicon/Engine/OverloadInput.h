@@ -173,16 +173,16 @@ namespace LEX
 
 
 			if (winner > 0) {
-				logger::info("right winner");
+				logger::trace("right winner");
 				//This is just failure tbh, doing so means I don't need to use move or set the pointer.
 				return *prev;
 			}
 			else if (winner < 0) {
-				logger::info("left winner");
+				logger::trace("left winner");
 				return overload;
 			}
 			else {
-				logger::info("no winner {}" , prev != nullptr);
+				logger::trace("no winner {}" , prev != nullptr);
 				return MatchAmbiguous(a_flag);
 			}
 

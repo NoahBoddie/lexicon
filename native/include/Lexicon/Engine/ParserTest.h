@@ -4,6 +4,8 @@
 #include "HeaderSettings.h"
 #include "parse_strings.h"
 
+#include "Lexicon/Engine/OperatorSetting.h"
+
 namespace LEX::Impl
 {
 	//ENCHAIN::ABACCCAA
@@ -430,7 +432,6 @@ namespace LEX::Impl
 				//script.EmplaceChild(Parser::CreateExpression(parser->project(), SyntaxType::Project));
 				
 				while (parser->eof() == false) {
-					RGL_LOG(info, "tag: {}", parser->peek().GetTag());
 
 					//Please put get line and column so I can store the line and column of this shit. Thanks.
 
@@ -442,7 +443,7 @@ namespace LEX::Impl
 						if (result)
 							script.EmplaceChild(result);
 						else
-							report::parse::debug("disarding empty record");
+							report::parse::trace("disarding empty record");
 					}
 					catch (ParseError error)
 					{
@@ -720,7 +721,7 @@ namespace LEX::Impl
 
 					RecordData peek = parser->peek();
 				
-					logger::info("peek {}", peek.GetTag());
+					
 					auto type = peek.TOKEN().type;
 
 					if (type == TokenType::Keyword) {
@@ -1034,7 +1035,7 @@ namespace LEX::Impl
 				if (atomic && parser->IsType(TokenType::Operator, ".") == false)
 					return false;
 
-				bool is_binary = true;//I don't know how to evaluate this part.
+				bool is_binary = GetPrecedence(parser->peek().GetView(), OperatorType::Binary);//I don't know how to evaluate this part.
 
 				//Target must not be binary either, because it's not possible to have 2 binary next to each other.
 				return target && target->SYNTAX().type != SyntaxType::Declaration && 
@@ -1045,34 +1046,16 @@ namespace LEX::Impl
 			Record _HandleBinary(Parser* parser, Record left, int my_prec)
 			{
 				//Just making pretend right now.
-				//TODO:Need to make an class to manage precedence
-				static std::map<std::string, int> PRECEDENCE{
-					{ "=>", 0},//then has the lowest priority of all.
-					{ "=", 1 },
-					{ "||", 2 },
-					{ "&&", 3 },
-					{ "<", 7 },
-					{ ">", 7 },
-					{ "<=", 7 },
-					{ ">=", 7 },
-					{ "==", 7 },
-					{ "!=", 7 },
-					{ "+", 10 },
-					{ "-", 10 },
-					{ "*", 20 },
-					{ "/", 20 },
-					{ "%", 20 },
-					{ ".", 25 },
-				};
-				//constexpr auto t = '/'
+				
+				
 				RecordData tar = parser->peek();
 
 				//TODO:Binary parser will need to work with unary later on, please be advised.
 				//
 
-				auto it = PRECEDENCE.find(tar.GetTag());
-				if (PRECEDENCE.end() != it) {
-					int his_prec = it->second;
+				int his_prec = GetPrecedence(tar.GetView(), OperatorType::Binary);
+				if (his_prec) {
+					
 
 					if (his_prec > my_prec) {
 						parser->next();
@@ -1191,7 +1174,7 @@ namespace LEX::Impl
 
 						//Only time unknown character is allowed is if it's a float.
 					
-					report::parse::info("thing? {}", tag);
+				
 						try {
 							//Should crash if the value isn't valid. the actual value doesn't matter too much, that will get sorted later.
 							// All the matters is it passes the transfer.
@@ -1349,16 +1332,20 @@ namespace LEX::Impl
 				//I can saw with a fair bit of certainty that this is not going to work well when encountering errors.
 				// The unary CanHandle needs to be far more discriminating.
 
-				bool is_unary = true;
+				
 				//unary is a bit tricker, some things actually have shared symbols (like the minus) so I'll have to be specific
-				if (!is_unary || parser->IsType(TokenType::Operator) == false)
+				if (parser->IsType(TokenType::Operator) == false)
 					return false;
+
+				if (GetPrecedence(parser->peek().GetView(), OperatorType::Unary) == 0) {
+					return false;
+				}
 
 				//If previous cannot have been an operator.
 
 				if (auto prev = parser->prev(); prev.TOKEN().type == TokenType::Operator && prev.GetTag() == ".")
 					return false;
-
+				
 				return !target;
 			}
 
@@ -1372,7 +1359,9 @@ namespace LEX::Impl
 				//	return false;
 				//RGL_LOG(info, "TEST {} {}", BinaryParser::GetSingleton()->GetContext() != context->GetContext(), NULL_OP(parser)->);
 				//And if the parser isn't binary OR is a member access. (This is done to get all member accesses out of the way before it shoves it in it's body.
-				return parser->GetBuiltModule<BinaryParser>()->GetContext() != context->GetContext() || parser->IsType(TokenType::Operator, ".");
+				
+				//This is the problem quite simply it's used an outdated system.
+				return parser->GetBuiltModule<BinaryParser>() != context || parser->IsType(TokenType::Operator, ".");
 			}
 
 			//Precedence mostly follows the thing that's closest to the body, with subscript being the highest of them,

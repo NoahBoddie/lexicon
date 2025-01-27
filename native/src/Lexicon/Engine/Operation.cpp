@@ -18,10 +18,9 @@ namespace LEX
 		
 		try
 		{
-			RGL_LOG(debug, "start {}, ops l {} r {}", magic_enum::enum_name(_instruct), magic_enum::enum_name(_ltype), magic_enum::enum_name(_rtype));
+			report::runtime::trace("Starting: {}; Operands: L: {} R: {}", magic_enum::enum_name(_instruct), magic_enum::enum_name(_ltype), magic_enum::enum_name(_rtype));
 			//It's possible that this should possibly return.
 			instructList[_instruct].Operate(result, runtime, Operand{ _lhs, _ltype }, Operand{ _rhs, _rtype }, _instruct);
-			RGL_LOG(trace, "end");
 		}
 		catch (nullptr_t)
 		{
@@ -33,7 +32,9 @@ namespace LEX
 		//If not void and complete (or just complete because void isn't a complete type
 		//If it's void, that's fine
 		if (_out != Impl::Register::Invalid && result.IsEmpty() == false)
-			runtime->GetRegister(_out) = std::move(result);
+			//runtime->GetRegister(_out) = std::move(result);
+			//TODO:While move would be preferable here, it crashes here right now. Address this at some point. I think maybe cause it doesn't unhandle other?
+			runtime->GetRegister(_out) = result;
 		//*/
 	}
 

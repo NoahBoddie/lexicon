@@ -19,7 +19,7 @@ namespace LEX
 #else
 //#define CREATE_SETTING_PATH(...) STRINGIZE(__VA_ARGS__##__VA_OPT__(/)##{})
 		//constexpr static std::string_view settingPath = CREATE_SETTING_PATH(SETTING_PATH);
-		constexpr static std::string_view settingPath = STRINGIZE(SETTING_PATH);
+		constexpr static std::string_view settingPath = SETTING_PATH;
 //#undef SETTING_PATH
 //#undef CREATE_SETTING_PATH
 
@@ -53,6 +53,7 @@ namespace LEX
 
 		static SettingManager* GetSingleton()
 		{
+			SETTING_PATH;
 			static SettingManager singleton;
 			singleton.Initialize();
 

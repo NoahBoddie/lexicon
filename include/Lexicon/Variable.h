@@ -719,7 +719,6 @@ namespace LEX
             std::visit([&](auto&& self) {
                 using From = std::remove_reference_t<std::remove_cv_t<decltype(self)>>;
 
-                logger::info("{} THING", typeid(From).name());
                 if constexpr (stl::castable_to<From, To>) {
                     triggered = true;
                     result = static_cast<To>(self);

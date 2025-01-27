@@ -40,6 +40,8 @@
 
 #include "Lexicon/Impl/common_type.h"
 
+#include "Lexicon/Number.h"
+
 void TestFunction()
 {
 
@@ -71,9 +73,10 @@ namespace LEX
 
 			Number result = op(back, front);
 
-			
+			//
 			//The below needs to curb "class std::" from the below
-			RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
+			report::runtime::trace("{} {} {} = {}", back.PrintString(), typeid(Operatable).name(), front.PrintString(), result.PrintString());
+			//logger::trace("{} {} {} = {}", back, typeid(Operatable).name(), front, result);
 
 			//Why do I do this again?
 			// ANSWER: because it literally will crash if I do not.
@@ -99,7 +102,7 @@ namespace LEX
 
 			Number result = op(back);
 			//The below needs to curb "class std::" from the below
-			RGL_LOG(trace, "{} on {} = {}", typeid(Operatable).name(), back, result);
+			report::runtime::trace("{} on {} = {}", typeid(Operatable).name(), back.PrintString(), result.PrintString());
 
 
 			a_rhs = Variable{ result };
@@ -246,12 +249,8 @@ namespace LEX
 
 			auto dif = a_lhs.Get<Differ>();
 
-			logger::critical("increment by {}", dif);
-			//std::system("pause");
-
 			//Pretty simple honestly. Increase by the amount.
 			runtime->AdjustStackPointer(StackPointer::Variable, dif);
-			logger::critical("exit out");
 		}
 		
 
@@ -334,10 +333,8 @@ namespace LEX
 			}
 			else									//Move//Copies
 			{
-				logger::critical("*$* before move (other: {})", a_rhs.GetVariable(runtime)->PrintString());
 				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.CopyVariable(runtime);
 				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
-				logger::critical("*$* after move {} (other: {})", a_lhs.GetVariable(runtime)->PrintString(), a_rhs.GetVariable(runtime)->PrintString());
 			}
 		}
 
@@ -358,7 +355,7 @@ namespace LEX
 		{
 			//This is going to have to have an official function to handle this
 			runtime->_flags.Set(RuntimeFlag::RetBit, true);
-			RGL_LOG(trace, "Ret done");
+			report::runtime::trace("Routine returned");
 		}
 
 		static void DropStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType type, Runtime* runtime)
@@ -510,123 +507,11 @@ namespace LEX
 	{
 
 		//
-		using OperatorConstructor = Solution(*)(ExpressionCompiler*, OperatorType, Solution, Solution, Register);
 		//The main function that uses the above is effectively processing ranges. Remember that.
 
 		//The idea of this this is what interprets OPerators and pushes back instructions for the instruct list to use.
 		//TODO: (MakeManager) The Operator Constructor list
-		constexpr std::array<OperatorConstructor, OperatorType::Total> operatorCtorList
-		{
-			{}
-		};
-
-
-		OperatorType GetOperatorType_Old(SyntaxRecord& target)
-		{
-			bool binary = target.SYNTAX().type == SyntaxType::Binary;
-
-			RGL_LOG(trace, "START CTOR");
-
-			switch (Hash(target.GetTag()))
-			{
-			case "|"_h:
-			case "OR"_h:
-				logger::debug("construct symbol '|' / 'OR'");
-				return OperatorType::BitwiseOR;
-
-			case "or"_h:
-			case "||"_h:
-				logger::debug("construct symbol '|' / 'or'");
-				return OperatorType::LogicalOR;
-
-			case "&"_h:
-			case "AND"_h:
-				logger::debug("construct symbol '&' / 'AND'");
-				return OperatorType::BitwiseAND;
-
-			case"&&"_h:
-			case "and"_h:
-				logger::debug("construct symbol '&&' / 'and'");
-				return OperatorType::LogicalAND;
-
-			case ">>"_h:
-				logger::debug("construct symbol '>>'");
-				return OperatorType::RightShift;
-
-			case "<<"_h:
-				logger::debug("construct symbol '<<'");
-				return OperatorType::LeftShift;
-
-			case "!="_h:
-				logger::debug("construct symbol '!='");
-				return OperatorType::NotEqualTo;
-
-			case "!=="_h:
-				logger::debug("construct symbol '!=='");
-				return OperatorType::AbsNotEqualTo;
-
-
-			case "<"_h:
-				logger::debug("construct symbol '<'");
-				return OperatorType::LesserThan;
-				break;
-
-			case ">"_h:
-				logger::debug("construct symbol '>'");
-				return OperatorType::GreaterThan;
-
-			case "<="_h:
-				logger::debug("construct symbol '<='");
-				return OperatorType::LesserOrEqual;
-
-			case ">="_h:
-				logger::debug("construct symbol '>='");
-				return OperatorType::GreaterOrEqual;
-
-			case "=="_h:
-				logger::debug("construct symbol '=='");
-				return OperatorType::EqualTo;
-
-			case "==="_h:
-				logger::debug("construct symbol '==='");
-				return OperatorType::AbsEqualTo;
-
-			case "^"_h:
-			case "XOR"_h:
-				logger::debug("construct symbol '^' / 'OR'");
-				return OperatorType::BitwiseXOR;
-
-			case "*"_h:
-				logger::debug("construct symbol \'*\'");
-				return OperatorType::Multiply;
-
-			case "+"_h:
-				RGL_LOG(debug, "construct symbol '+' ({})", binary ? "binary" : "unary");
-				return binary ? OperatorType::Addition : OperatorType::UnaryPlus;
-
-			case "-"_h:
-				logger::debug("construct symbol \'-\'");
-				return binary ? OperatorType::Subtract : OperatorType::UnaryMinus;
-
-			case "/"_h:
-				logger::debug("construct symbol \'/\'");
-				return OperatorType::Division;
-
-			case "**"_h:
-				logger::debug("construct symbol \'^\'");
-				return OperatorType::Exponent;
-
-			case "%"_h:
-				logger::debug("construct symbol \'%\'");
-				return OperatorType::Modulo;
-
-			default:
-				//ARTHMETIC_LOGGER(info, "Failure to handle operator, value \'{}\'", data->view[0]);
-				return OperatorType::Invalid;
-			}
-		}
-
-
+		
 
 		InstructType GetOperatorType(SyntaxRecord& target)
 		{
@@ -701,41 +586,47 @@ namespace LEX
 				logger::debug("construct symbol '^' / 'OR'");
 				return InstructType::BitwiseXOR;
 
+
+			case "^^"_h:
+			case "pow"_h:
+				logger::debug("construct symbol '^' / 'pow'");
+				return InstructType::Exponent;
+
 			case "*"_h:
 				logger::debug("construct symbol \'*\'");
 				return InstructType::Multiply;
 
 			case "+"_h:
-				RGL_LOG(trace, "construct symbol '+' ({})", binary ? "binary" : "unary");
+				logger::trace("construct symbol '+' ({})", binary ? "binary" : "unary");
 				return binary ? InstructType::Addition : InstructType::UnaryPlus;
 
 			case "-"_h:
-				logger::debug("construct symbol \'-\'");
+				logger::trace("construct symbol \'-\'");
 				return binary ? InstructType::Subtract : InstructType::UnaryMinus;
 
 			case "/"_h:
-				logger::debug("construct symbol \'/\'");
+				logger::trace("construct symbol \'/\'");
 				return InstructType::Division;
 
 			case "**"_h:
-				logger::debug("construct symbol \'^\'");
+				logger::trace("construct symbol \'^\'");
 				return InstructType::Exponent;
 
 			case "%"_h:
-				logger::debug("construct symbol \'%\'");
+				logger::trace("construct symbol \'%\'");
 				return InstructType::Modulo;
 
 			case "."_h:
-				logger::debug("construct symbol \'.\'");
+				logger::trace("construct symbol \'.\'");
 				return InstructType::Access;
 
 			case "="_h:
-				logger::debug("construct symbol \'=\'");
+				logger::trace("construct symbol \'=\'");
 				return InstructType::Assign;
 
 			case "=>"_h:
 			case "then"_h:
-				logger::debug("construct symbol \'=\'");
+				logger::trace("construct symbol \'then/=>\'");
 				return InstructType::Then;
 
 			default:
@@ -745,11 +636,64 @@ namespace LEX
 		}
 
 
-		InstructType OperatorToInstruction(OperatorType op)
-		{
 
-			return InstructType::Invalid;
+
+		Solution BasicUnaryGenerator(ExpressionCompiler* compiler, InstructType op, Solution it, Register out)
+		{
+			//Similar to the way operators and directives are seperated, I'd seek to have 2 types of operator generators,
+			// one that's basic and allows one to create values after it, and another that needs them raw
+
+
+			//No need to deviate for now.
+			//InstructType type = OperatorToInstruction(op);
+
+			ITypePolicy* policy;
+
+			assert(it.policy);
+
+			Number::Settings it_settings = Number::Settings::CreateFromID(it.policy->GetTypeID());
+
+
+
+			//constexpr auto bool_settings = Number::Settings::CreateFromType<bool>();
+
+			//for certain types like boolean, this will not fly. But for most, this works.
+			switch (op)
+			{
+			
+			case InstructType::LogicalNOT:
+				//I will make no checks here for now, but I want this to make sure that the two things are convertible.
+				// a helper function should help with this.
+
+				policy = common_type::boolean();
+				break;
+
+			case InstructType::UnaryMinus:
+			default:
+
+
+				if (!it_settings) {
+					report::compile::error("Unary operand must be a number, '{}' found.", it->GetName());
+				}
+				policy = it.policy;
+				break;
+			}
+
+			//confirm here that the choosen thing is proper.
+
+
+			//The problem with this is if the comparison between the 2 solutions uses registers.
+			// I can't reach that.
+
+
+			compiler->GetOperationList().push_back(Operation{ op, out, it, it });
+
+
+			logger::trace("<!> inst {}, result policy {}", compiler->GetOperationList().back()._instruct,
+				(uint32_t)policy->GetTypeID());
+			return Solution{ policy, OperandType::Register, out };
 		}
+
 
 		Solution BasicBinaryGenerator(ExpressionCompiler* compiler, InstructType op, Solution lhs, Solution rhs, Register out)
 		{
@@ -868,9 +812,9 @@ namespace LEX
 					Register reg2 = Register::Right;
 
 					SyntaxRecord& left = target.FindChild(str1)->GetChild(0);
-					RGL_LOG(debug, "<%>lhs: after find child");
+					
 					lhs = compiler->CompileExpression(left, reg1);
-					RGL_LOG(debug, "<%>lhs: end");
+					
 
 
 					//TODO: If left and right are 2 literals register moving isn't super required.
@@ -889,24 +833,27 @@ namespace LEX
 						compiler->GetOperationList().push_back(CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
 					}
 
-					RGL_LOG(debug, "<%>rhs: after find child");
+					
 					rhs = compiler->CompileExpression(target.FindChild(str2)->GetChild(0), reg2);
-					RGL_LOG(debug, "<%>rhs: end");
+
+
+
+					//Do operation here. Needs solutions, outputs solution.
+					//return operatorCtorList[op](compiler, op, lhs, rhs, prefered);
+					return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered);
+					
 				}
 				else// if syntax == unary blah blah blah
 				{
 					//Unary is a lot simpler to deal with
-					RGL_LOG(debug, "<%>unary: begin");
+					
 					lhs = compiler->CompileExpression(target.GetChild(0), Register::Left);
-					RGL_LOG(debug, "<%>unary: end");
+					
+					return BasicUnaryGenerator(compiler, op, lhs, prefered);
 				}
 
 
-				RGL_LOG(debug, "<%>binary: end");
 				
-				//Do operation here. Needs solutions, outputs solution.
-				//return operatorCtorList[op](compiler, op, lhs, rhs, prefered);
-				return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered);
 
 			}
 
@@ -929,18 +876,14 @@ namespace LEX
 				// instead, all I've actually gotta do continue using the prefered register
 				Register prefered = compiler->GetPrefered();
 
-				std::string str1 = parse_strings::lhs;
-				std::string str2 = parse_strings::rhs;
 
-
-
-				SyntaxRecord& left = target.FindChild(str1)->GetFront();
-				SyntaxRecord& right = target.FindChild(str2)->GetFront();
+				SyntaxRecord& left = target.FindChild(parse_strings::lhs)->GetFront();
+				SyntaxRecord& right = target.FindChild(parse_strings::rhs)->GetFront();
 
 
 
 				Solution tar = compiler->CompileExpression(left, compiler->GetPrefered());
-				logger::info("tar {}?", (int)tar.type);
+
 				//Something is wrong here, member access isn't getting the right thing and I haven't a clue why
 
 				Solution result = compiler->CompileExpression(right, compiler->GetPrefered(), tar);
@@ -1030,6 +973,8 @@ namespace LEX
 		Solution OperatorProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			InstructType op = GetOperatorType(target);
+
+			//Check with the operator list that it can actually handle an operator type that's been gotten.
 
 			switch (op)
 			{
@@ -1180,9 +1125,8 @@ namespace LEX
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
 
-
 			Solution sol{ result->Policy(), OperandType::Literal, result };
-			RGL_LOG(trace, "literal obtained, typeid: {}", (uint32_t)sol.policy->GetTypeID());
+			
 			return sol;
 		}
 
@@ -1203,7 +1147,6 @@ namespace LEX
 
 			assert(result.policy);
 
-			logger::debug("Var__3 {:X}", (uint64_t)result.policy);
 			//TODO: BIG NOTE, the resulting solution should note that it's a reference type.
 
 
@@ -1222,7 +1165,7 @@ namespace LEX
 
 			SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
 
-			if (!arg_record) {
+			if (!arg_record) {//If no args assume no args.
 				report::compile::error("no args record in '{}' detected.", target.GetTag());
 			}
 
@@ -1259,7 +1202,8 @@ namespace LEX
 			for (size_t i = 0; auto & arg : arg_record->children())
 			{
 
-				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
+				//Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
+				Solution result = compiler->CompileExpression(arg, Register::Right, operations[i]);//, ops);
 
 				//compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
 
@@ -1323,7 +1267,7 @@ namespace LEX
 
 			if (func->GetTargetType() != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
-				list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
+				list.push_back(CompUtil::MutateRef(std::as_const(*self->target), Operand{ start, OperandType::Argument }));
 			}
 
 
@@ -1335,7 +1279,7 @@ namespace LEX
 
 				list.append_range(std::move(ops));
 
-				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.convertType);
+				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.convertType, Register::Right);
 
 				list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
 			}
@@ -1387,7 +1331,7 @@ namespace LEX
 
 			if (self) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
-				compiler->GetOperationList().push_back(CompUtil::MutateRef(*self->target, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+				compiler->GetOperationList().push_back(CompUtil::MutateRef(std::as_const(*self->target), Operand{ compiler->ModArgCount(), OperandType::Argument }));
 				dealloc_size++;
 			}
 
@@ -1615,8 +1559,6 @@ namespace LEX
 
 				assert(result.policy);
 
-				target.GetChild(0).LogDebug("result {:X}", (uint64_t)result.policy);
-
 
 
 				auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
@@ -1672,8 +1614,6 @@ namespace LEX
 
 			assert(expression.policy);
 			
-			lhs.LogDebug("result {:X}", (uint64_t)expression.policy);
-
 			//report::compile::debug("result {:X}", (uint64_t)expression.policy);
 
 			if (1 || target.GetView() != "maybe")
@@ -1975,9 +1915,6 @@ namespace LEX
 
 						if (other_num && (type == ConversionType::Explicit || !other_num->_settings.IsInteger() || _settings.IsInteger()))
 						{
-							logger::info("would {} && {} , {} {}", other_num->_settings.IsInteger(), _settings.IsInteger(), other_num->_settings.GetOffset(), _settings.GetOffset());
-
-
 							if (identity.offset >= Number::Settings::length)
 								report::fault::critical("Offset greater than number type length.");
 
@@ -2009,11 +1946,18 @@ namespace LEX
 		};
 
 
+		struct exponent {
+			//TODO: constexpr the exponent function when you can.
+			Number operator()(Number& lhs, Number& rhs) const {
+				return lhs.pow(rhs);
+			}
+
+		};
+
 
 
 		INITIALIZE()
 		{
-			logger::debug("test");
 			//I would like something to make this assign a fuck ton easier
 
 			generatorList[SyntaxType::Return] = ReturnProcess;
@@ -2062,6 +2006,7 @@ namespace LEX
 			instructList[InstructType::Multiply] = InstructWorkShop::BinaryMath<std::multiplies<>, false>;
 			instructList[InstructType::Division] = InstructWorkShop::BinaryMath<std::divides<>, false>;
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
+			instructList[InstructType::Exponent] = InstructWorkShop::BinaryMath<exponent, false>;
 
 			instructList[InstructType::EqualTo] = InstructWorkShop::BinaryCompare<std::equal_to<>>;
 			instructList[InstructType::NotEqualTo] = InstructWorkShop::BinaryCompare<std::not_equal_to<>>;
@@ -2075,8 +2020,7 @@ namespace LEX
 			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;
 			instructList[InstructType::UnaryMinus] = InstructWorkShop::UnaryMath<std::negate<void>>;
 
-			__init = 1;
-
+			
 
 			
 
@@ -2128,7 +2072,7 @@ namespace LEX
 			float64->EmplaceDefault(static_cast<double>(0));
 			float32->EmplaceDefault(static_cast<float>(0));
 			uBoolean->EmplaceDefault(static_cast<bool>(0));
-			constexpr bool test = std::is_same_v<unsigned int, uint32_t>;
+			
 			uInt32->EmplaceDefault(static_cast<uint32_t>(0));
 			sInt32->EmplaceDefault(static_cast<int32_t>(0));
 			sInt64->EmplaceDefault(static_cast<int64_t>(0));
@@ -2141,9 +2085,6 @@ namespace LEX
 			float64->PrintInheritance();
 
 			string8->EmplaceDefault("");
-
-
-			logger::debug("Loaded constructs");
 			
 			//Read some shit here.
 		};

@@ -23,19 +23,17 @@ namespace LEX
 		}
 		else {
 			result = _LiteralList().size();
-			logger::critical("*^*Emplacing literal {} from {}", entry.PrintString(), result);
+
 			_LiteralList().emplace_back(entry);
+			
 			size = result;
 		}
-		RGL_LOG(trace, "<%> hit {} , addr {}", _LiteralList().size(), (uintptr_t)&_LiteralList());
-		//GetLiteral(result);
+	
 		return Literal{ result };
 	}
 
 	Variable* LiteralManager::GetLiteral(size_t index)
 	{
-		RGL_LOG(trace, "<%> get at {}, size {}, addr {}", index, _LiteralList().size(), (uintptr_t)&_LiteralList());
-
 		auto var = &_LiteralList()[index];
 
 		return var;

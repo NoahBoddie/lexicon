@@ -4,7 +4,7 @@
 
 //*
 
-#define SETTING_PATH C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon
+
 #include "Lexicon/Engine/SettingManager.h"
 
 #include "Lexicon.h"
@@ -214,6 +214,8 @@ void LexTesting(std::string formula)
             logger::debug("failure");
         }
     }
+
+    Initializer::Execute("function_register");
 
     auto funcs = script->FindFunctions("GetActorValue");
 

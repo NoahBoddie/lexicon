@@ -143,7 +143,9 @@ namespace LEX
 
 	static void PrintAST(SyntaxRecord& tree)
 	{
-		return PrintAST(tree, "");
+		PrintAST(tree, "");
+		
+		logger::debug("Record uses {} Kilobytes", tree.GetMemoryUsage() / 1000.f);
 	}
 
 
@@ -576,7 +578,7 @@ namespace LEX
 	}
 
 
-	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, std::optional<std::string_view> content, Script** out, api::vector<std::string_view> options)
+	APIResult ProjectManager::CreateScript(IProject* a_project, std::string_view name, std::string_view path, std::optional<std::string_view> content, IScript** out, api::vector<std::string_view> options)
 	{
 		//Path and name are still included, as they can be used to help refer to the location of the file when debugging.
 		SyntaxRecord ast;
@@ -584,6 +586,8 @@ namespace LEX
 		APIResult result;
 
 		bool made_from_script;
+
+		auto project = dynamic_cast<Project*>(a_project);
 
 		if (content.has_value() == true) {
 			made_from_script = true;
@@ -602,6 +606,18 @@ namespace LEX
 		}
 
 		Script* script = name == "Commons" ? Component::Create<CommonScript>(ast) : Component::Create<Script>(ast);
+
+		for (auto& entry : *options)
+		{
+			constexpr std::string_view inc = "incremental";
+
+			if (strnicmp(entry.data(), inc.data(), inc.size()) == 0) {
+				script->SetIncremental(true);
+				report::debug("Script {} made incremental.", script->GetName());
+			}
+		}
+		
+
 
 		//TODO: This is a small memory leak. do this check sooner.
 		if (project->GetCommons() != nullptr && name == "Commons")
@@ -627,7 +643,7 @@ namespace LEX
 	}
 
 
-	APIResult ProjectManager::CreateProject(std::string_view name, ProjectClient* client, Project** out, HMODULE source)
+	APIResult ProjectManager::CreateProject(std::string_view name, ProjectClient* client, IProject** out, HMODULE source)
 	{
 		//I'm thinking no api result for this, just project pointer.
 
@@ -642,10 +658,13 @@ namespace LEX
 
 		//todo - Set client
 		project->_client = client;
+		
+		
 		if (out) {
 			*out = project;
 		}
-		else {
+		
+		if (strnicmp(name.data(), "shared", name.size()) != 0) {
 			_projects.push_back(project);
 		}
 
@@ -692,11 +711,9 @@ namespace LEX
 
 	IElement* ProjectManager::GetElementFromPath(std::string_view path, ElementType elem)
 	{
-		
-
 		//right now, linking isn't really set up so you know.
-		if (1!=1 && Component::HasLinked(LinkFlag::Declaration) == false) {
-			//Tell that this is too early to be valid.
+		if (Component::HasLinked(LinkFlag::Declaration) == false) {
+			report::warn("Declaration linkage hasn't occured, search for {} cannot be completed.", path);
 			return nullptr;
 		}
 
@@ -747,6 +764,9 @@ namespace LEX
 
 		_core->SetIncremental(true);
 
+		std::filesystem::path full_path = std::filesystem::path(path);
+
+		//This doesn't work if not searched from core.
 		std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi");
 
 		for (auto full_path : scripts)
@@ -773,6 +793,30 @@ namespace LEX
 
 
 
+	APIResult ProjectManager::CreateScript(Project* project, std::string_view name, std::string_view path, std::string_view content, Script*& out)
+	{
+		IScript* buffer = nullptr;
+
+		auto result = CreateScript(project, name, path, content, std::addressof(buffer));
+
+		out = static_cast<Script*>(buffer);
+
+		return result;
+	}
+
+	APIResult ProjectManager::CreateProject(std::string_view name, ProjectClient* client, Project*& out, HMODULE source)
+	{
+		IProject* buffer = nullptr;
+
+		auto result = CreateProject(name, client, std::addressof(buffer), source);
+
+		out = static_cast<Project*>(buffer);
+
+		return result;
+	}
+
+
+
 	APIResult  ProjectManager::InitMain()
 	{
 		if (_shared || _core)
@@ -782,7 +826,7 @@ namespace LEX
 		Project* project = nullptr;
 
 		//Shared has no client, mainly because without a client errors are sent here, and there's never a situation where it will want to use format.
-		auto result = CreateProject("Shared", DefaultClient::GetInstance(), &project);
+		auto result = CreateProject("Shared", DefaultClient::GetInstance(), project);
 
 		_shared = project;
 

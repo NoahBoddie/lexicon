@@ -6,7 +6,8 @@ namespace LEX
 
 	//This isn't used anymore but could be useful at defining operators at a later point. if so, just make it so these operators match the operators of
 	// Instruct type exactly, making sure the total value of this is the same as the estimated total value of the other.
-
+	
+	/*
 	ENUM(OperatorType)//Was enum macro
 	{
 		//The unknowns
@@ -89,5 +90,5 @@ namespace LEX
 		Total,
 		Invalid = OperatorType::Total
 	};
-
+	//*/
 }

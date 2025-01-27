@@ -38,7 +38,8 @@ namespace LEX::Impl
 			"&", 
 			"&&", 
 			".",
-			"^", 
+			"^",
+			"^^",
 			"**", 
 			"++", 
 			"--", 
@@ -111,7 +112,7 @@ namespace LEX::Impl
 		//The para's should come predone
 		constexpr static std::string_view format = R"((?:format[\s\S]*end_format))";//((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
 		constexpr static std::string_view digits = R"((?:(?:0[x|X][0-9|A-F|a-f]*)|(?:\.*\d(\d|\.)*f?)))";//(\.*\d(\d|\.)*f?) //((\d|\.)+f?) /// (((\d|\.)(\d|\.)+)f?)
-		constexpr static std::string_view identifiers = R"((?:[_A-z][\w]*))";
+		constexpr static std::string_view identifiers = R"((?:[_A-Za-z][\w]*))";
 		constexpr static std::string_view quotes = R"((?:(?:'''[^']{0,}'{0,3})|(?:"""[^"]{0,}"{0,3})|(?:'[^'\n]{0,}'?)|(?:"[^"\n]{0,}"?)))";
 		constexpr static std::string_view comments = R"((?:\/\/[^\n]{0,})|(?:\/\*([^*]|\*(?!\/)){0,}(?:\*\/)?))";
 		constexpr static std::string_view objects = R"((?::{[^}\n]{0,}}?))";//Currently objects aren't used, but I'm thinking about maybe not having these as a literal.

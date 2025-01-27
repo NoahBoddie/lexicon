@@ -100,7 +100,8 @@ namespace LEX
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
 #include "Lexicon/Interfaces/ProcedureHandler.h"
 #include "Lexicon/Interfaces/ProjectManager.h"
-
+#include "Lexicon/Interfaces/IScript.h"
+#include "Lexicon/Interfaces/LinkMessenger.h"
 
 #include "Lexicon/ProcedureData.h"
 

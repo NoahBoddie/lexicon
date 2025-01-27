@@ -294,7 +294,7 @@ namespace LEX
 #include "Lexicon/Report.h"
 
 
-inline int __init = 0;
+
 
 
 
@@ -307,63 +307,75 @@ struct Initializer
     using def = void(*)();
     using now = void(*)(size_t);
 
-    inline static std::vector<def> executeList;
 
-    inline static size_t immediateNumber = 0;
+    inline static std::vector<std::pair<def, std::string_view>> executeList;
 
-    static bool Finished()
+    inline static std::set<std::string_view> executed;
+
+    inline static bool Finished(std::string_view key = "")
     {
-        return _done;
+        return executed.contains(key);
     }
-    static void Execute()
+
+    static void Execute(std::string_view key = "")
     {
         //Should be run when there's nothing more to initialize.
         if (executeList.empty() == true)
             return;
 
-        logger::debug("executing");
+        logger::debug("executing {}", key);
 
 
-        for (auto func : executeList) {
-            func();
-        }
+        executeList.erase(std::remove_if(executeList.begin(), executeList.end(),
+            [&](auto&& pair) 
+            { 
+                if (key == pair.second) {
+                    pair.first();
+                    return true;
+                }
 
-        executeList.clear();
+                return false; 
+            }),
+            executeList.end());
         
-        _done = true;
+        executed.emplace(key);
+
+        //for (auto func : executeList) {
+        //    func();
+        //}
+        //executeList.clear();
+        //_done = true;
     }
 
 
-    template <std::convertible_to<def> T>
-    Initializer(T func)
+    
+    Initializer(def func, std::string_view key = "")
     {
         if (func)
             //func();
-            executeList.push_back(func);
+            executeList.push_back(std::make_pair(func, key));
     }
 
-    template <std::convertible_to<now> T>
-    Initializer(T func)
+    
+    Initializer(def func, int)
     {
         if (func)
-            func(immediateNumber++);
+            func();
     }
 
-
-private:
-    inline static bool _done = false;
 };
 
+
+//Im thinking of adding keywords to initialize, allowing it to have keywords.
+
 //Initializes something on the spot.
-#define INITIALIZE__COUNTED(mc_counter, ...) inline static void CONCAT(__init_func_,mc_counter)(__VA_ARGS__);\
-volatile inline static Initializer CONCAT(__init_var_,mc_counter) = CONCAT(__init_func_,mc_counter);\
-void CONCAT(__init_func_,mc_counter)(__VA_ARGS__)
+#define INITIALIZE__COUNTED(mc_counter,...) inline extern void CONCAT(__init_func_,mc_counter)();\
+volatile inline extern Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
+inline extern void CONCAT(__init_func_,mc_counter)()
 
-#define INITIALIZE(...) __VA_OPT__(/)##__VA_OPT__(*) __VA_ARGS__ __VA_OPT__(*)##__VA_OPT__(/) \
-INITIALIZE__COUNTED(__COUNTER__)
+#define INITIALIZE(...) INITIALIZE__COUNTED(__COUNTER__,__VA_ARGS__)
 
-#define INITIALIZE_NOW(...) __VA_OPT__(/)##__VA_OPT__(*) __VA_ARGS__ __VA_OPT__(*)##__VA_OPT__(/) \
-INITIALIZE__COUNTED(__COUNTER__, size_t a_count)
+#define INITIALIZE_NOW(...) INITIALIZE__COUNTED(__COUNTER__,0,__VA_ARGS__)
 
 
 //inline static Initializer CONCAT(__init_,__LINE__) = []() -> void

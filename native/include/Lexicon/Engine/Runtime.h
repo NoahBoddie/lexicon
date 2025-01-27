@@ -350,8 +350,6 @@ namespace LEX
 			auto begin = _argStack.begin() + (_asp - i);
 			auto end = _argStack.begin() + _asp;
 
-			logger::debug("range {}/{} vs size {}", _asp, _asp - i, _argStack.size());
-
 
 			std::vector<RuntimeVariable> result;
 			
@@ -360,8 +358,6 @@ namespace LEX
 			std::transform(end - i, end, result.begin(), [&](RuntimeVariable& it) {return it.AsRef(); });
 
 			//std::vector<RuntimeVariable> result{ end + i, end };
-
-			logger::debug("size {} vs I {}", result.size(), i);
 
 			return result;
 		}
@@ -403,6 +399,7 @@ namespace LEX
 			if (_limit == 0)
 				return {};
 
+			size_t loop_no = 1;
 
 			if (_rsp != max_value<size_t>)
 			{
@@ -411,7 +408,7 @@ namespace LEX
 
 				while (_flags.Get(RuntimeFlag::RetBit) == false)
 				{
-					RGL_LOG(trace, "in loop {}", _rsp);
+					report::runtime::trace("In loop {}, stack index at {}", loop_no++, _rsp);
 
 					if (_rsp >= _limit) {
 						report::runtime::critical("Runtime Stack Pointer equals or exceeds op size ({}/{}), terminating program.", _rsp, _limit);

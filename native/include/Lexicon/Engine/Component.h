@@ -1,7 +1,12 @@
 #pragma once
 
+#include "Lexicon/LinkFlag.h"
+
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
+
+#include "Lexicon/Interfaces/LinkMessenger.h"
+
 namespace LEX
 {
 	class RoutineArgument;
@@ -20,28 +25,6 @@ namespace LEX
 		Linked		= 1 << 5  //Flag determines that a check for linking occured, not entirely that all links are done.
 	};
 
-	ENUM(LinkFlag, uint8_t)
-	{
-		None,
-		Loaded		= 1 << 0,   //Used to tell when all scripts have loaded
-		Declaration	= 1 << 1,	//Used when all functions have finished being declared, meaning their names exist.
-		Definition	= 1 << 2,	//Used when all functions have finished being defined, meaning they can be called. Also links external funcs.
-								// (for AVG, called in postpostload)
-		Object		= 1 << 3,	//Used for objects who's reference of may not be visable on the spot.
-
-		External	= 1 << 4,	//Used for the reference of properties or formulas and as such must be handled after load.
-		
-		
-		Total,					//Less than an actual total, you use this value to denote when to stop.
-		
-			
-		All			= LinkFlag::Loaded | LinkFlag::Object | LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External,
-		Any			= LinkFlag::All,
-		//Final happens when all linking is done, notably, what also happens here is a bid for dependency.
-		// Basically by now if it's not loaded properly, it will never be. Final also cannot be manually selected.
-		//TODO: So for the above, Component::Link needs a wrapped function.
-		Final		= 0xFF, 
-	};
 	
 	enum struct LinkResult
 	{
@@ -79,10 +62,6 @@ namespace LEX
 
 	class Component
 	{
-	private:
-	
-	public:
-		
 	public:
 
 
@@ -216,7 +195,7 @@ namespace LEX
 			if (IsInitialized() == false)
 			{
 				if (rec)
-					OnInit(rec->Transform<SyntaxRecord>());
+					OnInit(*rec);
 
 				_flags |= ComponentFlag::Initialized;
 
@@ -287,9 +266,15 @@ namespace LEX
 				}
 			}
 
+			//This removes messages for stuff we already sent.
+			auto message_flags = ~_linkCheckFlags & flags;
+
 			_linkCheckFlags |= flags;
 
-			RGL_LOG(trace, "Finalized linkage: {}", (int)flags);
+			LinkMessenger::instance->Dispatch(message_flags);
+
+
+			logger::trace("Finalized linkage: {}", magic_enum::enum_name(flags));
 
 			//Should it have processed everything it should remove it all.
 		}
@@ -299,11 +284,13 @@ namespace LEX
 			if (HasLinked(LinkFlag::Any) == false)
 				return;
 
+			logger::info("Refreshing linkage. . .");
+
 
 			//At a later point, link should just be able to & out the given flags and run all the stuff it wants.
 			// Also this likely will need to be thread locked in the future.
 
-			for (auto flag = (LinkFlag)1; flag != LinkFlag::Total; flag++)
+			for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
 			{
 				if (HasLinked(flag) == true)
 				{
@@ -317,6 +304,13 @@ namespace LEX
 		{
 			return flag & _linkCheckFlags;
 		}
+
+		static LinkFlag FlagsLinked()
+		{
+			return _linkCheckFlags;
+		}
+
+
 
 		virtual LinkResult OnLink(LinkFlag flags) { return LinkResult::Failure; }
 

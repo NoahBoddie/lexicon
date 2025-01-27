@@ -134,8 +134,6 @@ namespace LEX
 			//Whether it can convert should basically be solved here, this should never return an internal it does not own.
 			const InheritData* convert_data = GetInheritData(other);
 
-			logger::info("running {} -> {}", GetName(), other->GetName());
-
 
 			//Not gonna worry about function conversions for a while.
 			if (!convert_data) {

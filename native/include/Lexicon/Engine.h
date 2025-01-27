@@ -65,3 +65,5 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/Project.h"
 #include "Lexicon/Engine/Script.h"
+
+#include "Lexicon/Engine/Impl/FunctionRegister.h"

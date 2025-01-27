@@ -39,7 +39,6 @@ namespace LEX
 
 		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override
 		{
-			logger::info("HIT:");
 			return this;
 		}
 

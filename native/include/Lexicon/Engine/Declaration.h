@@ -148,6 +148,11 @@ namespace LEX
 			return filter;
 		}
 
+		operator bool() const
+		{
+			return FilterHasValue();
+		}
+
 		//Make some combination functions for these.
 		Declaration Filter(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
 		{

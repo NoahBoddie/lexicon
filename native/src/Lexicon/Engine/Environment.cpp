@@ -61,16 +61,16 @@ namespace LEX
 
 			auto name = tar->GetName();
 
-			if (auto it = functionMap.find(name); end != it) {
-				report::compile::critical("Non - FunctionData IFunction attempted to be added");
-				throw nullptr;
-			}
-			else {
-				auto& info = functionMap[name] = new FunctionInfo;
+			//if (auto it = functionMap.find(name); end != it) {
+			//	report::compile::critical("Non - FunctionData IFunction attempted to be added");
+			//	throw nullptr;
+			//}
+			//else {
+				auto& info = functionMap[name].emplace_back( new FunctionInfo);
 				info->function = tar;
 				info->signature = tar;
 				DeclareParentTo(tar);
-			}
+			//}
 
 		}
 
@@ -95,17 +95,17 @@ namespace LEX
 
 		std::vector<FunctionInfo*> Environment::FindFunctions(std::string_view name)
 		{
-			std::vector<FunctionInfo*> result{};
+			//std::vector<FunctionInfo*> result{};
 
 			auto end = functionMap.end();
 
 			//TODO: FindFunctions is busted because I need to LoadFromRecord for a name but needs to be added to Load.
 			if (auto it = functionMap.find(name); end != it) {
 			//if (auto it = std::find_if(functionMap.begin(), functionMap.end(), [&](auto i) { return name == i.second.Get()->GetName(); }); end != it) {
-				result.push_back(it->second);
+				return it->second;
 			}
 			
-			return result;
+			return {};
 		}
 
 
@@ -254,11 +254,11 @@ namespace LEX
 			auto name = policy->GetName();
 
 			if (auto it = typeMap.find(name); end != it) {
-				report::compile::critical("Non - FunctionData IFunction attempted to be added");
+				report::compile::critical("Type already exists {}.", name);
 				throw nullptr;
 			}
 			else {
-				logger::critical("type {} added", name);
+				report::compile::info("type {} added to {}", name, GetName());
 				typeMap[name] = policy;
 				DeclareParentTo(policy);
 			}

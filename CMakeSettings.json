@@ -25,6 +25,11 @@
           "name": "VCPKG_INSTALLED_DIR",
           "value": "C:/dev/vcpkg/installed/",
           "type": "PATH"
+        },
+        {
+          "name": "SETTING_PATH",
+          "value": "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon",
+          "type": "PATH"
         }
       ],
       "intelliSenseMode": "windows-msvc-x64"
@@ -53,6 +58,11 @@
         {
           "name": "VCPKG_INSTALLED_DIR",
           "value": "C:/dev/vcpkg/installed/",
+          "type": "PATH"
+        },
+        {
+          "name": "SETTING_PATH",
+          "value": "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon",
           "type": "PATH"
         }
       ],

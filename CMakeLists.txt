@@ -140,6 +140,9 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/DefaultClient.h" 
 		"native/include/Lexicon/Engine/SyntaxRecord.h" 
 		"native/include/Lexicon/Engine/BasicFormula.h"
+		"native/include/Lexicon/Engine/Runtime.h"
+		native/include/Lexicon/Engine/OperatorSetting.h
+		native/include/Lexicon/Engine/Impl/FunctionRegister.h
 		native/include/Lexicon/Engine/IElementImpl.h
 		native/include/Lexicon/Engine/Impl/IElementHeader.h
 		native/include/Lexicon/Engine/Impl/IElementSource.h
@@ -187,6 +190,7 @@ if(LEXICON_SOURCE)
 		src/Lexicon/Interfaces/InterfaceManager.cpp
 		src/Lexicon/Interfaces/ProcedureHandler.cpp
 		src/Lexicon/Interfaces/ProjectManager.cpp
+		src/Lexicon/Interfaces/LinkMessenger.cpp
 		"native/src/Lexicon/Engine/GenericType.cpp"
 		"native/src/Lexicon/Engine/TemplateType.cpp" 
 		"native/src/Lexicon/Engine/SpecialPart.cpp" 
@@ -240,7 +244,6 @@ set(headers
 	include/Lexicon/QualifiedType.h
 	include/Lexicon/Qualifier.h
 	include/Lexicon/Report.h
-	"native/include/Lexicon/Engine/Runtime.h"
 	include/Lexicon/RuntimeVariable.h
 	include/Lexicon/String.h
 	include/Lexicon/TypeAliases.h
@@ -253,7 +256,7 @@ set(headers
 	include/Lexicon/Impl/PCH.h
 	include/Lexicon/Interfaces/IdentityManager.h
 	include/Lexicon/Interfaces/Interface.h
-	include/Lexicon/Interfaces/InterfaceManager.h
+	"include/Lexicon/Interfaces/InterfaceManager.h"
 	include/Lexicon/Interfaces/InterfaceSingleton.h
 	include/Lexicon/Interfaces/ProcedureHandler.h
 	include/Lexicon/Interfaces/ProjectManager.h
@@ -280,8 +283,9 @@ set(headers
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/Issue.h"
+	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h" )
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h")
 
 
 set(sources
@@ -591,13 +595,13 @@ if (SETTING_PATH)
 	target_compile_definitions(
 		"${PROJECT_NAME}"
 		PUBLIC
-			SETTING_PATH=${SETTING_PATH}
+			SETTING_PATH="${SETTING_PATH}"
 		)
 
 	target_compile_definitions(
 		"${PARENT_NAME}"
 		PUBLIC
-			SETTING_PATH=${SETTING_PATH}
+			SETTING_PATH="${SETTING_PATH}"
 	)
 endif()
 

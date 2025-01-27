@@ -9,8 +9,8 @@
 #include "Lexicon/Engine/GlobalVariable.h"
 #include "Lexicon/Engine/ConcreteGlobal.h"
 #include "Lexicon/Engine/parse_strings.h"
-
 #include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Parser.h"
 
 #include "Lexicon/Interfaces/ProjectClient.h"
 #include "Lexicon/Interfaces/IElement.h"
@@ -121,7 +121,7 @@ namespace LEX
 					std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
 
 					index = GetProject()->client()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
-					logger::info("offset from args = {}", index);
+					//logger::trace("offset from args = {}", index);
 				}
 				else
 				{
@@ -129,7 +129,7 @@ namespace LEX
 				}
 
 				result = LookUpOrMake(category.GetTag(), index, lookup);
-				logger::debug("looked up {}", (int)result->FetchTypeID());
+
 				break;
 
 			}
@@ -348,7 +348,17 @@ namespace LEX
 
 		//Ultimately, we just can't quite do it right, so we shouldn't bother right now. Append is important, but I'd rather like to get a make shift
 		// set up going where you can just append to specific files.
-		return false;
+
+
+		
+		//Options is ignored for now. Basically does nothing. No compile time stuff either. No system for it.
+		SyntaxRecord ast;
+
+		if (Impl::Parser__::CreateSyntaxTree(ast, content, "") == false) {
+			return false;
+		}
+
+		return AppendContent(ast);
 	}
 
 

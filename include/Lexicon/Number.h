@@ -681,6 +681,12 @@ namespace LEX
         Number BINARY_OPERATOR(%, std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>);
         Number PRE_UNARY_OPERATOR(-);
         
+        Number pow(const Number& other) {
+            Number result = Operator(other, [](auto lhs, auto rhs) { 
+                return std::pow(lhs, rhs);
+              }); return result;
+        };
+
         constexpr std::strong_ordering operator <=> (Number other) const
         {
             
@@ -1139,9 +1145,9 @@ namespace LEX
 			Visit([&]<typename T>(T) { name = typeid(T).name(); });
 
 
-			RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
-				string(),
-				_setting.sign, _setting.size, _setting.type, _setting.limit);
+			//RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", name,
+			//	string(),
+			//	_setting.sign, _setting.size, _setting.type, _setting.limit);
 		}
 
 		template <numeric T>
@@ -1153,9 +1159,9 @@ namespace LEX
 			_data.Get<T>() = v;
 
 
-			RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
-				string(),
-				_setting.sign, _setting.size, _setting.type, _setting.limit);
+			//RGL_LOG(trace, "Number<{}> ctor {}, sets: sign {} size {} num {} lim {}", typeid(T).name(),
+			//	string(),
+			//	_setting.sign, _setting.size, _setting.type, _setting.limit);
 		}
 
 		Number(infinity inf)
@@ -1169,9 +1175,9 @@ namespace LEX
 
 			*this = inf;
 
-			RGL_LOG(trace, "Number<infinity?> ctor {}, sets: sign {} size {} num {} lim {}",
-				string(),
-				_setting.sign, _setting.size, _setting.type, _setting.limit);
+			//RGL_LOG(trace, "Number<infinity?> ctor {}, sets: sign {} size {} num {} lim {}",
+			//	string(),
+			//	_setting.sign, _setting.size, _setting.type, _setting.limit);
 		}
 
 		Number& operator= (infinity inf)
@@ -1220,7 +1226,7 @@ namespace LEX
 			if (GetNumberType() != type)
 				return false;
 
-			Visit([](auto it) {return value = static_cast<T>(it); });
+			Visit([&](auto it) {return value = static_cast<T>(it); });
 
 			return true;
 		}
@@ -1259,17 +1265,9 @@ namespace LEX
                 //offset
                 constexpr auto setting = LEX::Number::Settings::CreateFromType<T>();
 
-                auto test = LEX::IdentityManager::instance.get();
-
-                logger::info("singleton value {}", (uintptr_t)test);
-                logger::info("~A");
                 auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
-                logger::info("~B");
                 
-
                 result = buffer->FetchTypePolicy(nullptr);
-
-                logger::info("id? {}", (int)result->FetchTypeID());
             }
 
             return result;

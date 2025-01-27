@@ -124,6 +124,12 @@ namespace LEX
 
 			_ptr = new char[length];
 			std::strncpy(_ptr, str, length);
+			
+
+			//_ptr = new char[length + 1];
+			//strncpy_s(_ptr, length, str);
+			//_ptr[length] = '\0';
+			
 			_size = length;
 		}
 

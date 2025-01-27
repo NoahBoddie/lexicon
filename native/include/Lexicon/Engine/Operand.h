@@ -53,11 +53,42 @@ namespace LEX
 			return {};
 		}
 
+		template <typename T, OperandType Type>
+		bool _InternalGet(T& result)
+		{
+			//This entire thing needs
+			if constexpr ((uint8_t)Type < (uint8_t)OperandType::Invalid)
+			{
+				if (Type == type)
+				{
+					//Error message should probably be different here.
+					return data().Get<Type>(result);
+					
+				}
+				else
+				{
+					return _InternalGet<T, OperandType((uint8_t)Type + 1)>();
+				}
+
+			}
+
+			//error here.
+			report::compile::critical("Unexpected type in Operand, cannot get value.");
+
+			return false;
+		}
+
 		//Somehow, Operand::Get doesn't seem to crash when getting the wrong underlying type.
 		template <typename T>
 		T Get()
 		{
 			return _InternalGet<T, OperandType::None>();
+		}
+
+		template <typename T>
+		bool Get(T& value)
+		{
+			return _InternalGet<T, OperandType::None>(value);
 		}
 
 

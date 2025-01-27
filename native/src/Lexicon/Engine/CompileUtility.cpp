@@ -3,7 +3,7 @@
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
-	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result)
+	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result, Register reg)
 	{
 
 		if (out) {
@@ -15,16 +15,24 @@ namespace LEX
 
 			bool fall = false;
 
+			
+			//Before using prefered, it should check if the given solution has a register it'd like to use. This makes the most sense to be honest.
+			if (reg == Register::Invalid) {
+				//if (value.Get(reg) == false)
+					reg = compiler->GetPrefered();
+
+			}
+
 			switch (convert_result)
 			{
 			case ConvertResult::ImplDefined:
-				compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.implDefined, OperandType::Callable }, value);
+				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
 				break;
 
 			case ConvertResult::UserDefined:
 			resume:
 
-				compiler->GetOperationList().emplace_back(InstructionType::Convert, compiler->GetPrefered(), Operand{ out.userDefined, OperandType::Function }, value);
+				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
 
 
 				if (!fall)
@@ -40,9 +48,9 @@ namespace LEX
 
 				compiler->GetOperationList().emplace_back(
 					InstructionType::Convert,
-					compiler->GetPrefered(),
+					reg,
 					Operand{ out.userToImpl, OperandType::Callable },
-					Operand{ compiler->GetPrefered(), OperandType::Register });
+					Operand{ reg, OperandType::Register });
 
 				break;
 
@@ -53,7 +61,7 @@ namespace LEX
 
 			//This shouldn't really be using the previous policy, but I kinda don't care for now.
 			//TODO: This should be using CompUtil::Mutate
-			value = Solution{ value.policy, OperandType::Register, compiler->GetPrefered() };
+			value = Solution{ value.policy, OperandType::Register, reg };
 
 			return true;
 		}

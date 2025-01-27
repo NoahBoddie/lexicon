@@ -53,7 +53,7 @@ namespace LEX
 			break;
 		}
 
-		report::compile::error("{} as a {} cannot derive from {} a {}.",
+		report::error("{} as a {} cannot derive from {} a {}.",
 			GetName(), magic_enum::enum_name(l_type),
 			other->GetName(), magic_enum::enum_name(r_type));
 	}
@@ -66,14 +66,14 @@ namespace LEX
 		auto ast = GetSyntaxTree();
 		
 		if (!ast) {
-			report::compile::debug("Type has a missing syntax tree");
+			report::fault::debug("Type {} has a missing syntax tree", GetName());
 			MarkInheritHandled();
 		}
 		else {
 			SyntaxRecord* settings = ast->FindChild(parse_strings::settings);
 
 			if (!settings) {
-				report::compile::critical("setting not found in type policy record");
+				report::fault::critical("setting not found in type policy record");
 			}
 
 			//Doing this early makes circular inheritance not crash things, the inheriting will inheritant 

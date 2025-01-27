@@ -212,15 +212,13 @@ namespace LEX
                 if (!_targetType) {
                     report::link::error("No type found with the name '{}' (tag not accurate anymore)", tag);
                 }
-                else {
-                    logger::debug("I, {}, have type {}", _name, (uint64_t)_targetType);
-                }
+                
 
                 //Qualifiers like const are put here depending on if the function is const. 
                 // We don't have those post declarations yet.
 				auto& param = parameters.emplace_back(QualifiedType{ _targetType }, parse_strings::this_word, 0);
 
-                report::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
+                report::fault::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
                 //Include things like whether this is
                 __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ _targetType }, parse_strings::this_word, 0);
             }

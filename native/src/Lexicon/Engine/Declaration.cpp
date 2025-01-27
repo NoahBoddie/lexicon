@@ -184,7 +184,6 @@ namespace LEX
 			}
 
 			if (search_name.empty() == false) {
-				logger::critical("searching {} (may be a scope operator", type_name->GetTag());
 				result = env->SearchTypePath(*type_name);
 			}
 			else {
@@ -253,7 +252,6 @@ namespace LEX
 				//bool post = child.SYNTAX().type == SyntaxType::Declare;
 
 				HeaderEntry entry;
-				logger::info("{} ???", magic_enum::enum_name(child.SYNTAX().type));
 
 				auto it = headerGuide[type].find(name);
 

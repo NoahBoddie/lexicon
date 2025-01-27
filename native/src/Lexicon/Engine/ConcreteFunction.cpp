@@ -70,10 +70,9 @@ namespace LEX
 			}
 			
 			std::transform(begin, args->end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
-			
-			logger::critical("size check {} {}, {}", args->size(), parameters.size(), send_args.size());
 
 			report _{ IssueType::Runtime };
+			
 			prod(result, target, send_args, data);
 		}
 		else

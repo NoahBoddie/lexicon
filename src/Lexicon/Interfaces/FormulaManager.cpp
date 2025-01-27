@@ -64,8 +64,6 @@ namespace LEX
 			auto& f_params = formula->parameters;
 			for (int i = 0; i < parameters.size(); i++)
 			{
-				logger::info("TEST {} {} {}", params[i], params->size(), parameters.size());
-
 				f_params.push_back(ParameterInfo(parameters[i], std::string(params[i]), f_params.size()));
 			}
 		}
@@ -103,9 +101,7 @@ namespace LEX
 
 		formulaMap[formula.get()].refCount = 1;
 		out._formula = formula.get();
-		logger::info("starteddd {}", (uintptr_t)out._formula);
 		formula.release();
-		logger::info("after release");
 		//Zero means success
 		return 0;
 	}
@@ -126,7 +122,6 @@ namespace LEX
 		if (data && --data->refCount == 0) {
 			delete formula;
 			formulaMap.erase(formula);
-			logger::info("deleteddd {}", (uintptr_t)formula);
 
 			formula = nullptr;
 		}

@@ -92,19 +92,35 @@ namespace LEX
 
 
 		//Changes the solution to be where the operand is similar to mutate, but forces it to ref instead. A temporary function to sus out issue with member accesses.
-		[[nodiscard]] static Operation MutateRef(Solution& sol, Operand op)
+		[[nodiscard]] static Operation MutateRef(const Solution& sol, Operand op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 			
-			Operation result = Operation{ InstructType::Forward, op, sol };
+			return Operation{ InstructType::Forward, op, sol };
+		}
+
+
+		[[nodiscard]] static Operation MutateRef(Solution& sol, Operand op)
+		{
+			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
+
+			Operation result = MutateRef(std::as_const(sol), op);
 
 			sol = op;
 
 			return result;
 		}
+		[[nodiscard]] static Operation MutateRef(Solution&& sol, Operand op)
+		{
+			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
+
+			Operation result = MutateRef(std::as_const(sol), op);
+
+			return result;
+		}
 
 
-		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result);
+		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result, Register reg = Register::Invalid);
 		
 
 		static void PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value);

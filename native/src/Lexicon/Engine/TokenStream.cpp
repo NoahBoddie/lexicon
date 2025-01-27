@@ -189,7 +189,7 @@ namespace LEX::Impl
 		if (IsToken(data, TokenType::Comment) == true) {
 			//Right here is a great place to have special comments that are culled to have special messages.
 			//Clipping these would be nice btw.
-			RGL_LOG(debug, "{}", data.GetTag());
+			report::parse::trace("{}", data.GetTag());
 			return _ReadNext();
 		}
 

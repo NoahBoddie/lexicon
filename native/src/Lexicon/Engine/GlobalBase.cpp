@@ -21,7 +21,7 @@ namespace LEX
 
 	void GlobalBase::OnAttach()
 	{
-        GetSyntaxTree()->Note("New Global {}", GetName());
+        //GetSyntaxTree()->Note("New Global {}", GetName());
 	}
 
 	LinkResult GlobalBase::OnLink(LinkFlag flags)
@@ -58,6 +58,12 @@ namespace LEX
             if (header.Matches(qual, spec) == false) {
                 report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
             }
+
+            //if (auto filter = header.Filter(qual, spec); filter) {
+            //    report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
+            //}
+
+
 
             _declared = header;
 
@@ -99,8 +105,8 @@ namespace LEX
             //Only will attempt to revert to init if init has already been done.
             if (_init) {
                 Revert(false);
-                if (auto self = As<ConcreteGlobal>())
-                    report::compile::debug("Global {} created with the value {}", GetName(), self->PrintString());
+                //if (auto self = As<ConcreteGlobal>())
+                //    report::compile::debug("Global {} created with the value {}", GetName(), self->PrintString());
             }
         }
         break;
