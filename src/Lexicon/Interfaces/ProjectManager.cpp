@@ -17,6 +17,9 @@
 #include "Lexicon/Engine/DefaultClient.h"
 
 #include "Lexicon/Engine/SettingManager.h"
+
+#include "Lexicon/Engine/Signature.h"
+
 namespace LEX
 {
 
@@ -709,7 +712,7 @@ namespace LEX
 	}
 
 
-	IElement* ProjectManager::GetElementFromPath(std::string_view path, ElementType elem)
+	IElement* ProjectManager::GetElementFromPath(std::string_view path, ElementType elem, const ISignature* sign)
 	{
 		//right now, linking isn't really set up so you know.
 		if (Component::HasLinked(LinkFlag::Declaration) == false) {
@@ -718,9 +721,9 @@ namespace LEX
 		}
 
 
-		auto hash = HashPath(path);
-
-		IElement* element = LookupElement(hash, elem);
+		//The hash path system is kinda useless without regard for signatures.
+		//size_t hash = HashPath(path);
+		IElement* element = nullptr;//LookupElement(hash, elem);
 
 
 		if (!element)
@@ -730,6 +733,8 @@ namespace LEX
 			//From here, use the path functions that are in environment.
 			// The project should be found from the first part, and from there we should just keep the environ search should finish it out.
 			
+
+
 			switch (elem)
 			{
 				//Do the search for each type here.
@@ -737,17 +742,21 @@ namespace LEX
 			case kTypeElement:
 			case kGlobElement:
 			case kScrpElement:
-				element = Element::GetElementFromPath(nullptr, path, elem); 
+			{
+				Signature key = sign ? Signature{ *sign } : Signature{};
+				element = Element::GetElementFromPath(nullptr, path, elem, sign ? &key : nullptr);
 				break;
+			}
+				
 			default:
-				report::critical("Unknown element type {} requested, and cannot be processed.", (int)elem);
+				report::critical("Unknown element type {} requested, and cannot be processed.", magic_enum::enum_name(elem));
 				break;
 			}
 
 
-			if (element) {
-				SaveElement(element, hash, elem);
-			}
+			//if (element) {
+			//	SaveElement(element, hash, elem);
+			//}
 
 		}
 

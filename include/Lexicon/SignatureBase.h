@@ -14,6 +14,8 @@ namespace LEX
 
 	struct SignatureBase
 	{
+		//I'm turning my back on this declaration and likely to be giving signature base a vtable.
+
 		//This doesn't use a vtable, just increases the size slightly to ensure that it's not using features
 		// it doesn't have. Due to the structural nature of this object it is unlikely that I'll use a vtable.
 		const size_t size = sizeof(SignatureBase);
@@ -97,8 +99,8 @@ namespace LEX
 		{
 			//Move this to the version stuff pls
 
-#define PULL_FROM_SIG(mc_name)pull_##mc_name(){ return _base->mc_name; }
-#define GET_FROM_SIG(mc_name)mc_name(){ CHECK_INTERFACE_VERSION({}); return pull_##mc_name(); }
+#define PULL_FROM_SIG(mc_name)pull_##mc_name() const { return _base->mc_name; }
+#define GET_FROM_SIG(mc_name)mc_name() const{ CHECK_INTERFACE_VERSION({}); return pull_##mc_name(); }
 
 
 			struct INTERFACE_VERSION(ISignature)

@@ -276,6 +276,8 @@ namespace logger
 #include "RoguesGallery.hpp"
 
 
+#include "boost/regex.hpp"
+
 
 
 

@@ -73,9 +73,9 @@ namespace LEX
 		{
 			return Environment::GetEnvironment();
 		}
-		Element* GetElementFromPath(std::string_view path, ElementType elem) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) override
 		{
-			return Environment::GetElementFromPath(path, elem);
+			return Environment::GetElementFromPath(path, elem, sign);
 		}
 
 		void* Cast(std::string_view name) override

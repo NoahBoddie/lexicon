@@ -3,6 +3,7 @@
 #include "Lexicon/Engine/Script.h"
 #include "Lexicon/Engine/Project.h"
 
+#include "Lexicon/Engine/Signature.h"
 namespace LEX
 {
 	template <std::derived_from<IElement>  Base>
@@ -30,9 +31,15 @@ namespace LEX
 	}
 
 	template <std::derived_from<IElement>  Base>
-	IElement* IElementBase<Base>::GetElementFromPath(std::string_view path, ElementType elem, bool)
+	IElement* IElementBase<Base>::GetElementFromPath(std::string_view path, ElementType elem, SignatureBase* base, bool)
 	{
-		return GetElementFromPath(path, elem);
+		if (base) {
+			Signature sign{ *base };
+			return GetElementFromPath(path, elem, &sign);
+		}
+		else {
+			return GetElementFromPath(path, elem, nullptr);
+		}
 	}
 	template <std::derived_from<IElement>  Base>
 	IScript* IElementBase<Base>::GetCommons(bool)

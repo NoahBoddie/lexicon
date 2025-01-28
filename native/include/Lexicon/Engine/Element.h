@@ -68,11 +68,11 @@ namespace LEX
 
 	public:
 
-		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem);
+		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadKey* sign = nullptr);
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) override
 		{ 
-			return GetElementFromPath(this, path, elem);
+			return GetElementFromPath(this, path, elem, sign);
 		}
 
 		
@@ -132,17 +132,21 @@ namespace LEX
 
 		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 
 		// to handle multiple different functions.
-		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey* key = nullptr, Overload* out = nullptr);
+		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out);
 
-		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out)
+		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key)
 		{
-			return SearchFunctionPath(a_this, path, &key, &out);
+			Overload out{};
+			auto result = SearchFunctionPath(a_this, path, key, out);
+			return result;
 		}
 
-		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key, Overload& out)
-		{
-			return SearchFunctionPath(this, path, key, out);
-		}
+		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key, Overload& out) { return SearchFunctionPath(this, path, key, out); }
+
+		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key) { return SearchFunctionPath(this, path, key); }
+
+
+
 
 		static QualifiedField SearchFieldPath(Element* a_this, SyntaxRecord& path);
 

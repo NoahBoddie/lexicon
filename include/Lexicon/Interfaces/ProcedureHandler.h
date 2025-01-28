@@ -42,7 +42,7 @@ namespace LEX
 
 		bool RegisterFunction(Procedure procedure, IFunction* func) override INTERFACE_FUNCTION;
 
-
+		/*
 	INTERNAL:
 
 		//Only internal stuff can use this version of the function.
@@ -131,5 +131,120 @@ namespace LEX
 			return false;
 #endif			
 		}
+
+		//*/
+
+
+		//////////////////////////////////////////////
+
+	private:
+		template <detail::function_has_var_type R, typename... Args>
+		bool RegisterFunctionImpl(R(*prod)(Args...), SignatureBase& base, IFunction* func)
+		{
+			if (!func) {
+				return false;
+			}
+
+			if (CheckSignatureMatch(base, func) == false) {
+				return false;
+			}
+
+			auto result = BasicDispatcher<R, Args...>::Create(prod, func);
+
+			return result;
+		}
+
+	INTERNAL:
+		template <detail::function_has_var_type R, typename... Args>
+		bool RegisterFunction(R(*prod)(Args...), IFunction* func)
+		{
+
+			SignatureBase base{};
+
+			//bool processed = FillSignature<true, R, Args...>(sign);
+			bool processed = base.Fill<SignatureEnum::Result, R, Args...>();
+
+			if (!processed) {
+				report::link::warn("Signature of function '{}' failed to be created.", typeid(decltype(prod)).name());
+				return false;
+			}
+
+			return RegisterFunctionImpl(prod, base, func);
+		}
+
+
+	public:
+
+		//Only internal stuff can use this version of the function.
+		template <detail::function_has_var_type R, typename... Args>
+		bool RegisterFunction(R(*prod)(Args...), std::string_view path)
+		{
+			SignatureBase base{};
+
+			//bool processed = FillSignature<true, R, Args...>(sign);
+			bool processed = base.Fill<SignatureEnum::Result, R, Args...>();
+
+			if (!processed) {
+				report::link::warn("Signature of function '{}' failed to be created.", typeid(decltype(prod)).name());
+				return false;
+			}
+
+
+			IFunction* func = ProjectManager::instance->GetFunctionFromPath(path, base);
+
+			return RegisterFunctionImpl(prod, base, func);
+		}
+
+		bool RegisterFunction(Procedure procedure, std::string_view path, const SignatureBase& sign)
+		{
+			IFunction* func = ProjectManager::instance->GetFunctionFromPath(path, sign);
+
+			return ProcedureHandler::instance->RegisterFunction(procedure, func);
+		}
+		
+
+	INTERNAL:
+
+		//I'd like to just program this into the project manager at some point.
+		IFunction* GetCoreFunction(std::string_view path, const SignatureBase& base);
+
+
+		//These allow for the registration of functions that exist within core files.
+		template <typename R, typename... Args>
+		bool RegisterCoreFunction(R(*prod)(Args...), std::string_view path)
+		{
+#ifdef LEX_SOURCE
+
+			SignatureBase base{};
+
+			//bool processed = FillSignature<true, R, Args...>(sign);
+			bool processed = base.Fill<SignatureEnum::Result, R, Args...>();
+
+			if (!processed) {
+				report::link::warn("Signature of core function '{}' failed to be created.", typeid(decltype(prod)).name());
+				return false;
+			}
+
+			IFunction* func = GetCoreFunction(path, base);
+
+			return RegisterFunction(prod, func);
+#else
+			report::apply::warn("Non-source binaries cannot register core functions.");
+			return false;
+#endif
+		}
+
+		bool RegisterCoreFunction(Procedure prod, std::string_view path, const SignatureBase& sign)
+		{
+#ifdef LEX_SOURCE
+			IFunction* func = GetCoreFunction(path, sign);
+
+			return RegisterFunction(prod, func);
+#else
+			report::apply::warn("Non-source binaries cannot register core functions.");
+			return false;
+#endif			
+		}
+
 	};
 }

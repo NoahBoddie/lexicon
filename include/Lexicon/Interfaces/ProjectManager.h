@@ -16,6 +16,8 @@ namespace LEX
 	class Script;
 	struct GlobalBase;
 	struct ProjectClient;
+	struct ISignature;
+
 
 	enum ElementType : uint8_t;
 
@@ -123,7 +125,7 @@ namespace LEX
 				virtual APIResult CreateProject(std::string_view name, LEX::ProjectClient* client, LEX::IProject** out = nullptr, HMODULE source = GetCurrentModule()) = 0;
 				
 
-				virtual IElement* GetElementFromPath(std::string_view path, ElementType elem) = 0;
+				virtual IElement* GetElementFromPath(std::string_view path, ElementType elem, const LEX::ISignature* sign = nullptr) = 0;
 						
 			};
 		}
@@ -175,7 +177,7 @@ namespace LEX
 		APIResult CreateProject(std::string_view name, LEX::ProjectClient* client, IProject** out = nullptr, HMODULE source = GetCurrentModule()) override;
 
 
-		IElement* GetElementFromPath(std::string_view path, ElementType elem) override;
+		IElement* GetElementFromPath(std::string_view path, ElementType elem, const ISignature* sign = nullptr) override;
 
 	public://Ease of Use Functions
 
@@ -190,9 +192,9 @@ namespace LEX
 			return CreateProject(name, client, std::addressof(out), source);
 		}
 
-		IFunction* GetFunctionFromPath(std::string_view path)
+		IFunction* GetFunctionFromPath(std::string_view path, const ISignature& sign)
 		{
-			if (auto elem = GetElementFromPath(path, kFuncElement); elem)
+			if (auto elem = GetElementFromPath(path, kFuncElement, &sign); elem)
 				return elem->As<IFunction>();
 
 			return nullptr;

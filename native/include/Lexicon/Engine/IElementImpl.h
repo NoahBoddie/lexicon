@@ -8,6 +8,7 @@ namespace LEX
 	class Project;
 	struct Element;
 	struct Environment;
+	struct OverloadKey;
 
 	template <std::derived_from<IElement> Base>
 	struct IElementBase : public Base
@@ -17,7 +18,7 @@ namespace LEX
 		IProject* GetProject(bool) override final;
 		IElement* GetParent(bool)  override final;
 		IElement* GetEnvironment(bool)  override final;
-		IElement* GetElementFromPath(std::string_view path, ElementType elem, bool) override final;
+		IElement* GetElementFromPath(std::string_view path, ElementType elem, SignatureBase* base, bool) override final;
 		IScript* GetCommons(bool) override final;
 
 	public:
@@ -25,7 +26,7 @@ namespace LEX
 		virtual Project* GetProject() = 0;
 		virtual IElement* GetParent() = 0;
 		virtual Environment* GetEnvironment() = 0;
-		virtual Element* GetElementFromPath(std::string_view path, ElementType elem) = 0;
+		virtual Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) = 0;
 		virtual Script* GetCommons() = 0;
 	};
 

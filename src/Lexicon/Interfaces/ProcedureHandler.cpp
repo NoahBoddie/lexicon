@@ -89,10 +89,13 @@ namespace LEX
 	}
 
 
-	IFunction* ProcedureHandler::GetCoreFunction(std::string_view path)
+	IFunction* ProcedureHandler::GetCoreFunction(std::string_view path, const SignatureBase& base)
 	{
 		auto core = ProjectManager::instance->GetCore();
 
-		return core->GetElementFromPath(path, ElementType::kFuncElement)->As<IFunction>();
+
+		Signature sign{ base };
+
+		return core->GetElementFromPath(path, ElementType::kFuncElement, &sign)->As<IFunction>();
 	}
 }

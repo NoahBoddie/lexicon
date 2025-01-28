@@ -85,7 +85,7 @@ namespace LEX
 		}
 
 
-		void MoveSignature(SignatureBase& other)
+		void MoveSignature(const SignatureBase& other)
 		{
 			result = std::move(other.result);
 			target = std::move(other.target);
@@ -93,7 +93,7 @@ namespace LEX
 		}
 
 
-		void MoveSignature(ISignature& other)
+		void MoveSignature(const ISignature& other)
 		{
 			result = other.result();
 			target = other.target();
@@ -102,8 +102,8 @@ namespace LEX
 
 		constexpr Signature() noexcept = default;
 		//May not need.
-		Signature(SignatureBase& other) { MoveSignature(other); }
-		Signature(ISignature& other) { MoveSignature(other); }
+		Signature(const SignatureBase& other) { MoveSignature(other); }
+		Signature(const ISignature& other) { MoveSignature(other); }
 
 	};
 

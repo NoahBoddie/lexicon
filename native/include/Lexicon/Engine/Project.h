@@ -113,9 +113,9 @@ namespace LEX
 		}
 
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) override
 		{
-			return Element::GetElementFromPath(path, elem);
+			return Element::GetElementFromPath(path, elem, sign);
 		}
 
 

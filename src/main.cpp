@@ -69,6 +69,12 @@ double size_backend(std::string a_this)
 	return a_this.size();
 }
 
+
+double size_for_int(int a_this)
+{
+    return a_this;
+}
+
 void otherTest(StaticTargetTag)
 {
     static int _inc = 0;
@@ -211,6 +217,10 @@ void LexTesting(std::string formula)
     if (1)
     {
         if (ProcedureHandler::instance->RegisterCoreFunction(size_backend, "size") == false) {
+            logger::debug("failure");
+        }
+
+        if (ProcedureHandler::instance->RegisterCoreFunction(size_for_int, "size") == false) {
             logger::debug("failure");
         }
     }

@@ -18,6 +18,7 @@ namespace LEX
 	struct ITypePolicy;
 	struct IFunction;
 	struct IGlobal;
+	struct SignatureBase;
 	
 	//This should not be in interfaces, it's never used.
 
@@ -40,7 +41,7 @@ namespace LEX
 				
 
 				//Will not need an interface name due to being able to be a covariant
-				virtual LEX::IElement* GetElementFromPath(std::string_view path, ElementType elem, bool = {}) = 0;
+				virtual LEX::IElement* GetElementFromPath(std::string_view path, ElementType elem, SignatureBase* sign = nullptr, bool = {}) = 0;
 			protected:
 				virtual void* Cast(std::string_view name) = 0;
 

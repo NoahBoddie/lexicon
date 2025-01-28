@@ -250,7 +250,7 @@ namespace LEX
 		return result;
 	}
 
-	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem)
+	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadKey* sign)
 	{
 		SyntaxRecord path_record;
 		
@@ -275,7 +275,12 @@ namespace LEX
 			return SearchTypePath(a_this, path_record);
 		case kFuncElement:
 		{
-			auto func =  SearchFunctionPath(a_this, path_record);
+			if (!sign) {
+				report::failure("Getting function from path requires a signature.");
+				return nullptr;
+			}
+
+			auto func =  SearchFunctionPath(a_this, path_record, *sign);
 			return func ? func->Get() : nullptr;
 		}
 		case kGlobElement:
@@ -386,7 +391,7 @@ namespace LEX
 
 
 
-	FunctionInfo* Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey* key, Overload* out)
+	FunctionInfo* Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out)
 	{
 		FunctionInfo* result = nullptr;
 
@@ -404,17 +409,16 @@ namespace LEX
 
 					if (funcs.size() != 0)
 					{
-						if (key && out)
+						//Maybe allow it to do this only if the out is to be tossed.
+						//if (funcs.size() == 1)
+						//{
+						//	result = funcs[0];
+						//	return true;
+						//}
+
+						if (CheckOverload(key, { funcs.begin(), funcs.end() }, out) == true)
 						{
-							if (CheckOverload(*key, { funcs.begin(), funcs.end() }, *out) == true)
-							{
-								result = dynamic_cast<FunctionInfo*>(out->clause);
-								return true;
-							}
-						}
-						else if (funcs.size() == 1)
-						{
-							result = funcs[0];
+							result = dynamic_cast<FunctionInfo*>(out.clause);
 							return true;
 						}
 
