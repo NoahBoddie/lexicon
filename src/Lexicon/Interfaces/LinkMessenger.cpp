@@ -28,7 +28,7 @@ namespace LEX
 		}
 		//if catch up is true it will try to play catch up with existing links.
 
-		
+		return true;
 	}
 
 	void LinkMessenger::Dispatch(LinkFlag a_flags)
