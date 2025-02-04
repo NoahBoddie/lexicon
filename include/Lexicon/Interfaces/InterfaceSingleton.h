@@ -53,7 +53,7 @@ namespace LEX
 						//report::fault::
 						logger::warn("interface not returned despite success.");
 					else
-						logger::info("interface success.");
+						logger::info("interface {} success.", TypeName<T>::value);
 					break;//We're all gucci
 				default:
 					logger::info("unknown issue");

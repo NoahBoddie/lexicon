@@ -75,6 +75,16 @@ namespace LEX
 		}
 	};
 
+	struct LogParams
+	{
+		IssueType				type;
+		IssueLevel				level;
+		ReportType				to;
+		const std::string_view	main;
+		const std::string_view	trans;
+		spdlog::source_loc		loc;
+	};
+
 	enum struct LogResult
 	{
 		Show,

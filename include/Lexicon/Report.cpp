@@ -4,7 +4,7 @@
 
 namespace LEX
 {
-	void report::LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, std::source_location& loc)
+	void report::LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, const std::source_location& loc)
 	{
 		//HeaderMessage(message, type, level, code);
 		

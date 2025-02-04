@@ -130,11 +130,12 @@ namespace LEX
 
 
 
+		//Neither one of these should be used.
 		template <IssueLevel Level>
 		static void RaiseMessage(std::string& message, std::source_location& loc)
 		{
 			constexpr fmt::format_string<std::string> a_fmt{ "{}" };
-
+			
 			logger::InitializeLogging();
 
 			//logging level should depend on what this is.
@@ -169,11 +170,15 @@ namespace LEX
 
 
 		template <typename... Ts>
-		static void ValidateMessage(std::string& message, Ts&... args)
+		static void ValidateMessage(std::string& message, std::string_view append, Ts&... args)
 		{
+			namespace fmt_lib = spdlog::fmt_lib;
+
 			try {
-				message = std::vformat(message, std::make_format_args(args...));
-			} catch (std::format_error& f_error) {
+				//message = std::vformat(message, std::make_format_args(args...));
+				message = fmt_lib::vformat(message, fmt_lib::make_format_args(std::forward<Ts>(args)...));
+			} 
+			catch (std::format_error& f_error) {
 				constexpr auto size = sizeof...(Ts);
 
 				message = "INVALID_FORMAT({})"s;
@@ -184,26 +189,36 @@ namespace LEX
 
 				auto what = f_error.what();
 				//This should include what was going to be used maybe?
-				message = std::vformat(message, std::make_format_args(what, args...));
+				//message = std::vformat(message, std::make_format_args(what, args...));
+				message = fmt_lib::vformat(message, fmt_lib::make_format_args(what, std::forward<Ts>(args)...));
 			}
+
+			message += append;
 		}
 
-		static void LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, std::source_location& loc);
+		static void LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, const std::source_location& loc);
 
 		static std::string_view GetIssueMessage(IssueCode code, bool translation);
 
 	public:
 
-		//THIS
-		//*
+
 		template <is_not<std::source_location>... Ts>
-		static void log(std::string&& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(const std::string& message, const std::string& affix, const std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
-			ValidateMessage(message, args...);
-		
+			ValidateMessage(const_cast<std::string&>(message), affix, args...);
+
 			return LogBase(0, message, message, type, level, loc);
 		}
 
+		template <is_not<std::source_location>... Ts>
+		static void log(const std::string& message, const std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		{
+			return log(message, "", loc, type, level, args...);
+		}
+		
+
+		/*
 		template <is_not<std::source_location>... Ts>
 		static void log(std::string& message, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
@@ -222,13 +237,13 @@ namespace LEX
 		{
 			return log(std::move(message), loc, type, level, args...);
 		}
-
+		//*/
 
 
 	private:
 		
 		template <typename... Ts>
-		static std::string HandleCodeMessage(std::string_view message, Ts... args)
+		static std::string HandleCodeMessage(std::string_view message, std::string_view affix, Ts... args)
 		{
 			std::string result;
 
@@ -246,21 +261,27 @@ namespace LEX
 				result = message;
 			}
 			
-			ValidateMessage(result, args...);
+			ValidateMessage(result, affix, args...);
 			
 			return result;
 		}
 	public:
 
 		template <is_not<std::source_location>... Ts>
-		static void log(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		static void log(IssueCode code, const std::string& affix, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
-			std::string main = HandleCodeMessage(GetIssueMessage(code, false), args...);
-			std::string trans = HandleCodeMessage(GetIssueMessage(code, true), args...);
+			std::string main = HandleCodeMessage(GetIssueMessage(code, false), affix, args...);
+			std::string trans = HandleCodeMessage(GetIssueMessage(code, true), affix, args...);
 
-			
+
 
 			LogBase(code, main, trans, type, level, loc);
+		}
+
+		template <is_not<std::source_location>... Ts>
+		static void log(IssueCode code, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
+		{
+			return log(code, "", loc, type, level, args...);
 		}
 
 
@@ -268,7 +289,7 @@ namespace LEX
 		template <is_not<std::source_location>... Ts>
 		static void log(SourceAndProxy<std::string> message, IssueType type, IssueLevel level, Ts&&... args)
 		{
-			return log(std::move(message.prox), message.src, type, level, args...);
+			return log(message.prox, "", message.src, type, level, args...);
 		}
 
 
@@ -276,7 +297,22 @@ namespace LEX
 		template <is_not<std::source_location>... Ts>
 		static void log(SourceAndProxy<IssueCode> code, IssueType type, IssueLevel level, Ts&&... args)
 		{
-			return log(code.prox, code.src, type, level, args...);
+			return log(code.prox, code.src, "", type, level, args...);
+		}
+
+
+		template <is_not<std::source_location>... Ts>
+		static void log(SourceAndProxy<std::string> message, const std::string& affix, IssueType type, IssueLevel level, Ts&&... args)
+		{
+			return log(message.prox, affix, message.src, type, level, args...);
+		}
+
+
+
+		template <is_not<std::source_location>... Ts>
+		static void log(SourceAndProxy<IssueCode> code, const std::string& affix, IssueType type, IssueLevel level, Ts&&... args)
+		{
+			return log(code.prox, affix, code.src, type, level, args...);
 		}
 
 
@@ -287,13 +323,13 @@ namespace LEX
 		static void stat_log(std::string& message, std::source_location& loc, IssueType type, Ts&... args)
 		{
 
-			return log(message, loc, type, Level, args...);
+			return log(message, "", loc, type, Level, args...);
 		}
 
 		template <IssueLevel Level, is_not<std::source_location>... Ts>
 		static void stat_log(IssueCode code, std::source_location& loc, IssueType type, Ts&... args)
 		{
-			return report::log(code, loc, type, Level, args...);
+			return log(code, "", loc, type, Level, args...);
 		}
 
 	public:
