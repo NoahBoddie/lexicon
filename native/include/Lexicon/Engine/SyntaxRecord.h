@@ -53,10 +53,7 @@ namespace LEX
 
 		std::string GetAffix();
 		
-		auto Mutator()
-		{
-			return [this](FixedLogData& fixed, VariedLogData& varied, LogState, LogResult&) -> void { varied.suffix = GetAffix(); };
-		}
+		std::function<LogEditor> Mutator();
 
 
 		//scoped_logger log(Mutator(), LogState::Prep); 
@@ -94,7 +91,10 @@ namespace LEX
 
 		template <is_not<std::source_location>... Ts> void Note(SourceAndProxy<std::string> message, Ts&&... args) 
 		{
-			return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+			auto handle = ReportManager::instance->AddEditor(Mutator());
+		
+			return report::log(message.prox, message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+			//return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
 		} 
 		
 

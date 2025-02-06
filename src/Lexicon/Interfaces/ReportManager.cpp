@@ -156,7 +156,7 @@ namespace LEX
 	// and for some other periods you can only edit it for the message that's going to be used.
 
 
-	LogEditorID nextId = 0;
+	size_t nextId = 0;
 
 	/*
 	
@@ -376,7 +376,6 @@ namespace LEX
 	struct LogEditorEntry
 	{
 		LogEditorID id{};
-		LogState state;
 		std::function<LogEditor> muter;
 
 	};
@@ -384,25 +383,24 @@ namespace LEX
 
 	std::unordered_map<thread_hash, std::vector<LogEditorEntry>> newList;
 
-	LogEditorID ReportManager::AddEditor(std::function<LogEditor> mutator, LogState state)
-	{
-		if (state == LogState::None)
-			return -1;
 
-		auto curr_id = nextId++;
+
+
+	EditorHandle ReportManager::AddEditor(std::function<LogEditor> editor)
+	{
+		EditorHandle handle{ ++nextId };
 
 		std::hash<std::thread::id> hasher{};
 
 		thread_hash hash = hasher(std::this_thread::get_id());
 
-		newList[hash].emplace_back(curr_id, state, std::move(mutator));
+		newList[hash].emplace_back(handle._id, std::move(editor));
 
-		return curr_id;
+		return handle;
 	}
 
-	void ReportManager::RemoveEditor(LogEditorID id)
+	void ReportManager::RemoveEditor(EditorHandle& handle)
 	{
-
 		std::hash<std::thread::id> hasher{};
 
 		size_t hash = hasher(std::this_thread::get_id());
@@ -414,7 +412,7 @@ namespace LEX
 
 			//We look backwards because that is the thing that is most likely to request this, due to it primarily being for 
 			// when self managing objects close
-			auto it = std::find_if(vector.rbegin(), vector.rend(), [id](auto& it) { return it.id == id; });
+			auto it = std::find_if(vector.rbegin(), vector.rend(), [&handle](auto& it) { return it.id == handle._id; });
 
 			if (it != end) {
 				if (vector.size() == 1) {
@@ -432,9 +430,9 @@ namespace LEX
 	}
 
 
-	
 
-	bool EditReport(FixedLogData& fixed, VariedLogData& varied, LogState state)
+
+	bool EditReport(LogParams& params, LogState state)
 	{
 
 		//Look, I'm keeping it a buck fifty. This shit is terrible and it does not fucking work right. Specifically when it comes to appending stuff.
@@ -447,20 +445,13 @@ namespace LEX
 		LogResult out = LogResult::Show;
 
 		if (auto it = newList.find(hash); newList.end() != it) {
-			for (auto& [id, state_flags, func] : it->second) {
-				if (state_flags | state){
-					func(fixed, varied, state, out);
-					
+			for (auto& [id, func] : it->second) {
+					func(params, state, out);
 					//Will only care to stop if it's not an exception.
-
 
 #pragma warning(suppress: 26813)
 					if (out == LogResult::Stop && state != LogState::Except)
 						return false;
-				}
-				
-				
-
 			}
 		}
 	
@@ -468,51 +459,45 @@ namespace LEX
 	}
 
 
-	void SendLog(FixedLogData fixed, VariedLogData& varied, ReportType to, bool use_main, std::function<Outlogger> logger)
+	void SendLog(LogParams& params, std::string_view header, bool use_main, std::function<Outlogger> logger)
 	{
 		constexpr fmt::format_string<std::string_view> a_fmt{ "{}" };
 
-		fixed.to = to;
+		bool log = EditReport(params, LogState::Log);
 
-
-		std::string prefix;
-		std::string suffix;
-
-
-		//This is what gets applied to the mutate function, with VariedLogData providing its input first, then this one applying on top of that.
-		VariedLogData data{ prefix, suffix, varied.loc };
-
-
-		bool log = EditReport(fixed, data, LogState::Log);
-
-		auto spd_lvl = get_spdlog_level(fixed.level);
+		auto spd_lvl = get_spdlog_level(params.level);
 
 		
-		if (!log && ReportType::Main != to)
+		if (!log && ReportType::Main != params.to)
 			return;
 
 		std::shared_ptr<spdlog::logger> log_ptr;
 
 		std::string_view message;
+		
+		logger(params.loc, spd_lvl, std::format("{}{}{}{}", header, params.prefix.str(), params.message, params.suffix.str()));
 
-		if (use_main) {
-			message = fixed.main;
-		}
-		else {
-			message = fixed.trans;
-		}
-
-		if (prefix.empty() && suffix.empty())
-			logger(data.loc, spd_lvl, message);
-		else
-			logger(data.loc, spd_lvl, prefix + message.data() + suffix);
+		//if (params.prefix.tellp() == 0 && params.suffix.tellp() == 0)
+		//	logger(params.loc, spd_lvl, message);
+		//else
+		//	logger(params.loc, spd_lvl, params.prefix.str() + params.message.data() + params.suffix.str());
 
 	}
 
-	void SendLog(FixedLogData& fixed, VariedLogData& varied, ReportType to, bool use_main, const std::string& logger_name)
+	void SendLog(LogParams params, std::string_view header, std::string_view main, std::string_view trans, ReportType to, bool use_main, const std::string& logger_name)
 	{
+		params.to = to;
 
-		SendLog(fixed, varied, to, use_main, [&](spdlog::source_loc& loc, spdlog::level::level_enum level, std::string_view message)
+		if (use_main) {
+			params.message = main;
+			params.note = trans;
+		}
+		else {
+			params.message = trans;
+			params.note = main;
+		}
+
+		SendLog(params, header, use_main, [&](spdlog::source_loc& loc, spdlog::level::level_enum level, std::string_view message)
 			{
 				std::shared_ptr<spdlog::logger> log_ptr{};
 
@@ -589,49 +574,48 @@ namespace LEX
 		bool is_critical = level == IssueLevel::Critical;
 
 
-		std::string prefix;
-		std::string suffix;
+		bool return_back = to & ReportType::Return;
 
-		FixedLogData fixed{ type, level, to, main_view, trans_view };
+		to &= ~ReportType::Return;
 
-		VariedLogData varied{ prefix, suffix, std::move(loc) };
-
-		bool log = EditReport(fixed, varied, LogState::Prep);
-
-		std::string header = HeaderMessage(fixed.type, code);
-
-		//I might have to apply this later, due to a new header having to be put on what with each logger. Sounds like torture.
-		std::string main = header + prefix + main_view.data() + suffix;
-		std::string	trans = SettingManager::IsEnglish() ? main : header + prefix + trans_view.data() + suffix;
+		LogParams params;
+		params.level = level;
+		params.type = type;
+		params.message = trans_view;
+		params.note = main_view;
+		params.loc = loc;
+		params.to = to;
 		
-		fixed.main = main;
-		fixed.trans = trans;
+
+		bool log = EditReport(params, LogState::Prep);
+
+		std::string header = HeaderMessage(params.type, code);
 
 		
 
 		if (is_critical) {
-			fixed.level = level;//An issue level of critical cannot be prevented nor should it be avoided. Which is why it should be sparing.
+			params.level = level;//An issue level of critical cannot be prevented nor should it be avoided. Which is why it should be sparing.
 		}
 			
 
-		bool return_back = to & ReportType::Return;
+		return_back = to & ReportType::Return;
 
 		to &= ~ReportType::Return;
 
 		//Around here fixed should be changed to use the new prefixes
 		
 
-		switch (fixed.to)
+		switch (params.to)
 		{
 		case ReportType::Script:
 			if (log) {
-				SendLog(fixed, varied, ReportType::Script, false, "script");
+				SendLog(params, header, main_view, trans_view, ReportType::Script, false, "script");
 			}
 			[[fallthrough]];
 
 		case ReportType::Program:
 			if (log) {
-				SendLog(fixed, varied, ReportType::Program, false, "program");
+				SendLog(params, header, main_view, trans_view, ReportType::Program, false, "program");
 			}
 			[[fallthrough]];
 
@@ -646,11 +630,11 @@ namespace LEX
 			if (log || is_critical) {
 				//TODO: As is, these do not fucking work, by extension all translations. Please address.
 				
-				SendLog(fixed, varied, ReportType::Main, true, "");
+				SendLog(params, header, main_view, trans_view, ReportType::Main, true, "");
 
 				//I would like to have this report to the console if it's open, or if a debugger is attached.
 				if (GetConsoleWindow() != NULL)
-					SendLog(fixed, varied, ReportType::Main, false, "console");
+					SendLog(params, header, main_view, trans_view, ReportType::Main, false, "console");
 
 			}
 			break;
@@ -659,21 +643,24 @@ namespace LEX
 
 			
 
-		if (return_back)
+		if (return_back && logger) {
 			//Im unsure if I want to use translated errors when sending stuff back, as these are for 
-			SendLog(fixed, varied, ReportType::Return, true, logger);
-			
-		prefix.clear();
-		suffix.clear();
+			params.to = ReportType::Return;
+			SendLog(params, header, true, logger);
+		}
 
-		EditReport(fixed, varied, LogState::Except);
+		std::swap(params.message, params.note);
+
+		EditReport(params, LogState::Except);
+
+		TryThrow(type, level, main_view);
 
 		//Once past the prep state, these are still allowed to be filled and used.
 		
-		if (prefix.empty() && suffix.empty())
-			TryThrow(type, level, trans_view);
-		else
-			TryThrow(type, level, prefix + trans_view.data() + suffix);
+		//if (prefix.empty() && suffix.empty())
+		//	TryThrow(type, level, main_view);
+		//else
+		//	TryThrow(type, level, prefix + trans_view.data() + suffix);
 	}
 
 

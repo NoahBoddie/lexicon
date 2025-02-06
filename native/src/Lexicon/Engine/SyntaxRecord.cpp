@@ -29,6 +29,7 @@ namespace LEX
 
 	std::string SyntaxBody::GetAffix()
 	{
+		//Add project
 		Script* script = GetParent()->FetchScript();
 
 		std::string_view name = script ? script->GetName() : "<no_name>";
@@ -39,5 +40,26 @@ namespace LEX
 		return std::format(" <{}{}: (line: {} / col: {})>", name, extension, syntax.line, syntax.column);
 	}
 
+	std::function<LogEditor> SyntaxBody::Mutator()
+	{
+		//return [this](LogParams& params, LogState state, LogResult&) -> void { if (state == LogState::Prep) params.suffix << GetAffix(); };
+		return [this](LogParams& params, LogState state, LogResult&) -> void
+			{
+				if (state == LogState::Prep)
+				{
+					Script* script = GetParent()->FetchScript();
+					Project* project = GetParent()->FetchProject();
+
+					auto& syntax = GetSyntax();
+					
+					if (script) {
+						params.loc.filename = script->GetName().data();
+						params.loc.line = syntax.line;
+					}
+
+					//params.suffix << GetAffix();
+				}
+			};
+	}
 
 }

@@ -19,87 +19,61 @@ namespace LEX
 		Return = 1 << 7,	//The log is to return to sender, logging how it sees fit.
 	};
 
-	//TODO: Turn log mutator parameters into a struct, this is pretty annoying to remember.
-	
-	
-	using LogMutator_V1 = bool(IssueType&, IssueLevel&, std::string&, ReportType&, spdlog::source_loc&);
 
-	//This will need to be changed. String cannot work.
-	struct LogData
+	enum struct LogState
 	{
-		IssueType			type;
-		IssueLevel			level;
-		std::string			message;
-		ReportType			to;
-		spdlog::source_loc	loc;
+		None,
+		Prep,
+		Log,
+		Except,
 	};
 
-	using LogMutator = bool(LogData&);
 
-
-	ENUM(LogState)
-	{
-		None	= 0,
-		Prep	= 1 << 0,
-		Log		= 1 << 1,
-		Except	= 1 << 2,
-	};
-
-	//Past the prep phase, these are no longer allowed to be edited.
-	struct FixedLogData
-	{
-		//const IssueCode		code;
-		IssueType			type;
-		IssueLevel			level;
-		ReportType			to;
-		std::string_view	main;
-		std::string_view	trans;
-	};
-
-	//Once past the prep state, these are still allowed to be filled and used.
-	struct VariedLogData
-	{
-		api::trans::string		prefix;
-		api::trans::string		suffix;
-		spdlog::source_loc		loc;
-
-
-		VariedLogData(std::string& pre, std::string& suf, const spdlog::source_loc& l) : prefix{ pre }, suffix{ suf }, loc{ l }
-		{
-
-		}
-
-		VariedLogData(std::string& pre, std::string& suf, spdlog::source_loc&& l) : prefix{ pre }, suffix{ suf }, loc{ l }
-		{
-
-		}
-	};
 
 	struct LogParams
-	{
-		IssueType				type;
-		IssueLevel				level;
-		ReportType				to;
-		const std::string_view	main;
-		const std::string_view	trans;
+	{	
+		IssueType				type;		//Issue type. Can only be changed during prep
+		IssueLevel				level;		//Issue level. Can only be changed during prep
+		ReportType				to;			//what we're going to log to. Can only be changed during prep
+		std::string_view		message;	//The primary message to show
+		std::string_view		note;		//The message to be shown.
+		std::ostringstream		prefix;
+		std::ostringstream		suffix;
 		spdlog::source_loc		loc;
+
+		LogParams() = default;
+
+		LogParams(const LogParams& other)
+		{
+			type = other.type;
+			level = other.level;
+			to = other.to;
+			message = other.message;
+			note = other.note;
+			prefix << other.prefix.view();
+			suffix << other.suffix.view();
+			loc = other.loc;
+		}
 	};
+	REQUIRED_SIZE(LogParams, 528);
 
 	enum struct LogResult
 	{
 		Show,
 		DontShow,
 		Stop
-
 	};
 
 
-	using LogEditor = void(FixedLogData&, VariedLogData&, LogState, LogResult&);
+	using LogEditor = void(LogParams&, LogState, LogResult&);
 
+	//I would like to have an object be a handler for this.
+	//TODO: Put inside cpp
 	using thread_hash = uint64_t;
-
 	using LogEditorID = uint32_t;
 
+
+	struct EditorHandle;
 
 
 	namespace detail
@@ -134,20 +108,18 @@ namespace LEX
 					std::string_view main_view, std::string_view trans_view, spdlog::source_loc& loc, Outlogger*) = 0;
 
 			INTERNAL:
-				[[nodiscard]] virtual LogEditorID AddEditor(std::function<LogEditor> mutator, LogState state) = 0;
-				virtual void RemoveEditor(LogEditorID id) = 0;
+				[[nodiscard]] virtual EditorHandle AddEditor(std::function<LogEditor> editor) = 0;
+				virtual void RemoveEditor(EditorHandle& id) = 0;
 			};
 		}
 
 		CURRENT_VERSION(ReportManager, 1);
 	}
 
-	struct scoped_logger;
-
 	struct IMPL_SINGLETON(ReportManager)
 	{
 	public:
-		friend scoped_logger;//TODO: Scoped logger needs to be moved or handled properly.
+		friend EditorHandle;//TODO: EditorHandle needs to be moved or handled properly.
 
 		std::string_view GetIssueMessage(IssueCode code, bool translation) override;
 		
@@ -157,26 +129,54 @@ namespace LEX
 			std::string_view main_view, std::string_view trans_view, spdlog::source_loc& loc, Outlogger* = detail::OutLog) override;
 	
 	INTERNAL:
-		LogEditorID AddEditor(std::function<LogEditor> mutator, LogState state) override;
-		void RemoveEditor(LogEditorID id) override;
+		//I would like some versions of these that target specific functions, as a form of ease of use.
+		EditorHandle AddEditor(std::function<LogEditor> editor) override;
+		void RemoveEditor(EditorHandle& id) override;
 	};
 
 
-	struct scoped_logger
+
+	
+	struct EditorHandle
 	{
-		LogEditorID id = 0;
-
-
-		scoped_logger(std::function<LogEditor> mut, LogState state) : id { ReportManager::instance->AddEditor(mut, state) }
+	INTERNAL:
+		size_t _id = 0;//Might use uint and an optional value.
+	
+		void Release()
 		{
-			
+			if (_id) {
+				ReportManager::instance->RemoveEditor(*this);
+			}
+
+			_id = 0;
 		}
-		
 
-		~scoped_logger()
+	public:
+		auto id() const
 		{
-			ReportManager::instance->RemoveEditor(id);
+			return _id;
+		}
+
+		constexpr EditorHandle(size_t i) : _id {i}{}
+		EditorHandle(const EditorHandle&) = delete;
+		EditorHandle& operator=(const EditorHandle&) = delete;
+		
+		EditorHandle(EditorHandle&& other)
+		{
+			Release();
+			std::swap(_id, other._id);
+		}
+		EditorHandle& operator=(EditorHandle&& other)
+		{
+			Release();
+			std::swap(_id, other._id);
+			return *this;
+		}
+
+		~EditorHandle()
+		{
+			Release();
 		}
 	};
-
+	REQUIRED_SIZE(EditorHandle, 0x8);
 }

@@ -574,6 +574,7 @@ namespace LEX
 				return InstructType::GreaterOrEqual;
 
 			case "=="_h:
+				target.Note("construct symbol '=='");
 				logger::debug("construct symbol '=='");
 				return InstructType::EqualTo;
 
