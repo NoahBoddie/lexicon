@@ -41,7 +41,7 @@ namespace LEX
 
 
 
-	[[nodiscard]] uint64_t FormulaManager::RequestFormula(ISignature base, api::vector<std::string_view> params, std::string_view routine, FormulaHandler& out, std::optional<IScript*> from)
+	[[nodiscard]] uint64_t FormulaManager::RequestFormula(const ISignature& base, api::vector<std::string_view> params, std::string_view routine, FormulaHandler& out, std::optional<IScript*> from)
 	{
 		//TODO FormulaManager needs to return the APIResult not a random ass integer.
 		std::optional<IScript*> test;

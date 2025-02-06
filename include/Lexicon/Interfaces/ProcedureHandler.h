@@ -24,7 +24,7 @@ namespace LEX
 
 			struct INTERFACE_VERSION(ProcedureHandler)
 			{
-				virtual bool CheckSignatureMatch(LEX::ISignature base, IFunction* func) = 0;
+				virtual bool CheckSignatureMatch(const LEX::ISignature& base, IFunction* func) = 0;
 				virtual bool RegisterDispatch(Dispatcher* dispatch, IFunction* func) = 0;
 				virtual bool RegisterFunction(Procedure procedure, IFunction* func) = 0;
 			};
@@ -36,7 +36,7 @@ namespace LEX
 
 	struct IMPL_SINGLETON(ProcedureHandler)
 	{		
-		bool CheckSignatureMatch(LEX::ISignature base, IFunction* func) override INTERFACE_FUNCTION;
+		bool CheckSignatureMatch(const LEX::ISignature& base, IFunction* func) override INTERFACE_FUNCTION;
 
 		bool RegisterDispatch(Dispatcher* dispatch, IFunction* func) override INTERFACE_FUNCTION;
 
@@ -139,7 +139,7 @@ namespace LEX
 
 	private:
 		template <detail::function_has_var_type R, typename... Args>
-		bool RegisterFunctionImpl(R(*prod)(Args...), SignatureBase& base, IFunction* func)
+		bool RegisterFunctionImpl(R(*prod)(Args...), const ISignature& base, IFunction* func)
 		{
 			if (!func) {
 				return false;
@@ -159,7 +159,7 @@ namespace LEX
 		bool RegisterFunction(R(*prod)(Args...), IFunction* func)
 		{
 
-			SignatureBase base{};
+			ISignature base{};
 
 			//bool processed = FillSignature<true, R, Args...>(sign);
 			bool processed = base.Fill<SignatureEnum::Result, R, Args...>();
@@ -179,7 +179,7 @@ namespace LEX
 		template <detail::function_has_var_type R, typename... Args>
 		bool RegisterFunction(R(*prod)(Args...), std::string_view path)
 		{
-			SignatureBase base{};
+			ISignature base{};
 
 			//bool processed = FillSignature<true, R, Args...>(sign);
 			bool processed = base.Fill<SignatureEnum::Result, R, Args...>();
@@ -195,7 +195,7 @@ namespace LEX
 			return RegisterFunctionImpl(prod, base, func);
 		}
 
-		bool RegisterFunction(Procedure procedure, std::string_view path, const SignatureBase& sign)
+		bool RegisterFunction(Procedure procedure, std::string_view path, const ISignature& sign)
 		{
 			IFunction* func = ProjectManager::instance->GetFunctionFromPath(path, sign);
 
@@ -206,7 +206,7 @@ namespace LEX
 	INTERNAL:
 
 		//I'd like to just program this into the project manager at some point.
-		IFunction* GetCoreFunction(std::string_view path, const SignatureBase& base);
+		IFunction* GetCoreFunction(std::string_view path, const ISignature& base);
 
 
 		//These allow for the registration of functions that exist within core files.
@@ -215,7 +215,7 @@ namespace LEX
 		{
 #ifdef LEX_SOURCE
 
-			SignatureBase base{};
+			ISignature base{};
 
 			//bool processed = FillSignature<true, R, Args...>(sign);
 			bool processed = base.Fill<SignatureEnum::Result, R, Args...>();
@@ -234,7 +234,7 @@ namespace LEX
 #endif
 		}
 
-		bool RegisterCoreFunction(Procedure prod, std::string_view path, const SignatureBase& sign)
+		bool RegisterCoreFunction(Procedure prod, std::string_view path, const ISignature& sign)
 		{
 #ifdef LEX_SOURCE
 			IFunction* func = GetCoreFunction(path, sign);

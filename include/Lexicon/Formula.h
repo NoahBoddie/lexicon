@@ -40,7 +40,7 @@ namespace LEX
 
 			FormulaHandler self;
 
-			SignatureBase base{};
+			ISignature base{};
 
 			//bool processed = FillSignature<true, R, Args...>(sign);
 			bool processed = base.Fill<SignatureEnum::Result, T, StaticTargetTag>();
@@ -186,7 +186,7 @@ namespace LEX
 		{
 			Self self;
 
-			SignatureBase base{};
+			ISignature base{};
 
 			//bool processed = FillSignature<true, R, Args...>(sign);
 			bool processed = base.Fill<SignatureEnum::Result, R, StaticTargetTag, Args...>();
@@ -301,7 +301,7 @@ IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
 
 			Self self;
 
-			SignatureBase base{};
+			ISignature base{};
 
 			//bool processed = FillSignature<true, R, Args...>(sign);
 			bool processed = base.Fill<SignatureEnum::Result, R, detail::expected_var_type_t<T>, Args...>();

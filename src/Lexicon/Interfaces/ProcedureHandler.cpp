@@ -13,7 +13,7 @@ namespace LEX
 	inline static std::vector<std::unique_ptr<Dispatcher>> _dispatchList{};
 
 
-	bool ProcedureHandler::CheckSignatureMatch(ISignature base, IFunction* func)
+	bool ProcedureHandler::CheckSignatureMatch(const ISignature& base, IFunction* func)
 	{
 
 		Signature sign{ base };
@@ -89,7 +89,7 @@ namespace LEX
 	}
 
 
-	IFunction* ProcedureHandler::GetCoreFunction(std::string_view path, const SignatureBase& base)
+	IFunction* ProcedureHandler::GetCoreFunction(std::string_view path, const ISignature& base)
 	{
 		auto core = ProjectManager::instance->GetCore();
 

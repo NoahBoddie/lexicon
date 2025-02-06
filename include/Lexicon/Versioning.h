@@ -75,9 +75,12 @@ namespace Version
 //Make only one interface function and use override where it is.
 
 
+//TODO: I would like to use novtable on a the interface and current version to prevent it from having more vtables thatn needed.
+
 //If I can make these the same function some how, that'd be great.
 #define INTERFACE_VERSION_DERIVES(mc_name, mc_base, ...)\
 			mc_name : public std::conditional_t<Previous::version != version, Previous::mc_name, mc_base> __VA_OPT__(,) __VA_ARGS__
+
 
 
 #define INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, Interface __VA_OPT__(,) __VA_ARGS__)
@@ -159,7 +162,7 @@ namespace detail
 
 
 
-#define IMPL_VERSION(mc_type) mc_type :public Version::Current::mc_type
+#define IMPL_VERSION(mc_type,...) mc_type : public Version::Current::mc_type __VA_OPT__(,) __VA_ARGS__
 #define IMPL_SINGLETON(mc_type) IMPL_VERSION(mc_type), public InterfaceSingleton<mc_type>
 
 

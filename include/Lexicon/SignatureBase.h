@@ -18,7 +18,6 @@ namespace LEX
 
 		//This doesn't use a vtable, just increases the size slightly to ensure that it's not using features
 		// it doesn't have. Due to the structural nature of this object it is unlikely that I'll use a vtable.
-		const size_t size = sizeof(SignatureBase);
 		QualifiedType result;
 		QualifiedType target;
 
@@ -90,9 +89,11 @@ namespace LEX
 			}
 		}
 
+	protected:
+		SignatureBase() = default;
 	};
 
-
+	/*
 	namespace Version
 	{
 		namespace _1
@@ -143,4 +144,51 @@ namespace LEX
 		ISignature(SignatureBase&& base) { _base = &base; }
 	};
 	REQUIRED_SIZE(ISignature, 0x10);
+	//*/
+
+
+
+
+	namespace Version
+	{
+		namespace _1
+		{
+
+#define PULL_FROM_SIG(mc_name)mc_name##_impl() const { return base()->mc_name; }
+#define GET_FROM_SIG(mc_name)mc_name() const{ CHECK_INTERFACE_VERSION({}); return  mc_name##_impl(); }
+#define GET_COLL_SIG(mc_name)mc_name() const{ CHECK_INTERFACE_VERSION({}); auto coll = mc_name##_impl(); return  { std::begin(coll), std::end(coll) }; }
+
+			struct INTERFACE_VERSION(ISignature, public SignatureBase)
+			{
+			protected:
+				//ISignature() = default;
+				//ISignature(const ISignature&) = default;
+				//ISignature(ISignature&&) = default;
+				SignatureBase* base() { return this; }
+				const SignatureBase* base() const { return this; }
+
+				virtual QualifiedType PULL_FROM_SIG(result);
+				virtual QualifiedType PULL_FROM_SIG(target);
+				virtual std::span<const QualifiedType> PULL_FROM_SIG(parameters);
+
+			public:
+
+				QualifiedType GET_FROM_SIG(result);
+				QualifiedType GET_FROM_SIG(target);
+				std::vector<QualifiedType> GET_COLL_SIG(parameters);
+			};
+
+		}
+
+#undef GET_FROM_SIG
+#undef PULL_FROM_SIG
+#undef GET_COLL_SIG
+
+		CURRENT_VERSION(ISignature, 1);
+
+	}
+
+	//This is to be used without reference in interfaces, having it plugged in anywhere where there's a signature base.
+	struct IMPL_VERSION(ISignature){};
+	REQUIRED_SIZE(ISignature, sizeof(SignatureBase) + 0x8);
 }
