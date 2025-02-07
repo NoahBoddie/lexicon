@@ -3,7 +3,7 @@
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
-	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result, Register reg)
+	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, const QualifiedType& to, ConvertResult res, Register reg)
 	{
 
 		if (out) {
@@ -23,7 +23,7 @@ namespace LEX
 
 			}
 
-			switch (convert_result)
+			switch (res)
 			{
 			case ConvertResult::ImplDefined:
 				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
@@ -60,14 +60,27 @@ namespace LEX
 
 
 			//This shouldn't really be using the previous policy, but I kinda don't care for now.
-			//TODO: This should be using CompUtil::Mutate
-			value = Solution{ value.policy, OperandType::Register, reg };
-
+			value = Solution{ to.policy, OperandType::Register, reg };
 			return true;
 		}
 
 		return false;
 	}
+
+	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Solution& from, const QualifiedType& to, SyntaxRecord& target, Register reg)
+	{
+		Conversion out;
+
+		auto convert = from.IsConvertToQualified(to, nullptr, &out);
+
+		if (convert <= ConvertResult::Failure) {
+			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+		}
+
+		return CompUtil::HandleConversion(compiler, out, from, to, convert);
+
+	}
+
 
 	void CompUtil::PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value)
 	{

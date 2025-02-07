@@ -929,23 +929,22 @@ namespace LEX
 				Solution from = compiler->CompileExpression(right, reg2, to, TargetObject::Assign);
 
 
-				Conversion out;
+				//Conversion out;
+				//auto convert = from.IsConvertToQualified(to, nullptr, &out);
+				//if (convert <= ConvertResult::Failure) {
+				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+				//}
+				//CompUtil::HandleConversion(compiler, out, from, to, convert);
 
-				auto convert = from.IsConvertToQualified(to, nullptr, &out);
-
-				if (convert <= ConvertResult::Failure) {
-					report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
-				}
-
-				CompUtil::HandleConversion(compiler, out, from, convert);
-
-
+				CompUtil::HandleConversion(compiler, from, to, target);
 
 				//compiler->GetOperationList().push_back(CompUtil::MutateCopy(from, to));
 
 				//return from;
 				//TRANSFOR
-				compiler->GetOperationList().push_back(Operation{ InstructType::Move, to, from });
+				
+				//compiler->GetOperationList().push_back(Operation{ InstructType::Move, to, from });
+				compiler->GetOperationList().push_back(CompUtil::Mutate(from, to));
 
 				return to;
 			}
@@ -1018,27 +1017,25 @@ namespace LEX
 				//For the period of while each statement exists, that is a new scope that will exist.
 				//This one exists for the possibility of making new variables within the if, but that isn't supported right now.
 				//Scope a_scope{ compiler, ScopeType::Conditional };
-				
-				static ITypePolicy* boolean = nullptr;
-				
-				if (!boolean){
-					//This may use a different boolean type eventually.
-					boolean = IdentityManager::instance->GetTypeByOffset("NUMBER", GetNumberOffsetFromType<bool>());
-				}
+
+
+				//*Slated for deletion
+				//static ITypePolicy* boolean = nullptr;
+				//if (!boolean) {
+				//	//This may use a different boolean type eventually.
+				//	boolean = IdentityManager::instance->GetTypeByOffset("NUMBER", GetNumberOffsetFromType<bool>());
+				//}
 				
 				Solution query = compiler->CompileExpression(target.FindChild(parse_strings::expression_block)->GetFront(), compiler->GetPrefered());
+				
+				//Conversion out;
+				//auto convert = query.IsConvertToQualified(QualifiedType{ boolean }, nullptr, &out);
+				//if (convert <= ConvertResult::Failure) {
+				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+				//}
+				//CompUtil::HandleConversion(compiler, out, query, convert);
 
-				Conversion out;
-
-				auto convert = query.IsConvertToQualified(QualifiedType{ boolean }, nullptr, &out);
-
-				if (convert <= ConvertResult::Failure) {
-					report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
-				}
-
-				CompUtil::HandleConversion(compiler, out, query, convert);
-
-
+				CompUtil::HandleConversion(compiler, query, QualifiedType{ common_type::boolean() }, target);
 
 				auto& list = compiler->GetOperationList();
 
@@ -1280,7 +1277,8 @@ namespace LEX
 
 				list.append_range(std::move(ops));
 
-				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.convertType, Register::Right);
+				//This should basically already be successful, no real need for checks
+				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, Register::Right);
 
 				list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
 			}
@@ -1484,21 +1482,21 @@ namespace LEX
 
 			size_t loc_index = loc->_index;
 			if (SyntaxRecord* definition = target.FindChild(parse_strings::def_expression); definition) {
-				Solution result = compiler->CompileExpression(definition->GetChild(0), Register::Result);
+				auto& def = definition->GetChild(0);
+				Solution result = compiler->CompileExpression(def, Register::Result);
 
 
 
 
 				//-QUAL_CONV
-				Conversion out;
+				//Conversion out;
+				//auto convert = result.IsConvertToQualified(header, nullptr, &out);
+				//if (convert <= ConvertResult::Failure) {
+				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+				//}
+				//CompUtil::HandleConversion(compiler, out, result, header, convert);
 				
-				auto convert = result.IsConvertToQualified(header, nullptr, &out);
-
-				if (convert <= ConvertResult::Failure) {
-					report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
-				}
-
-				CompUtil::HandleConversion(compiler, out, result, convert);
+				CompUtil::HandleConversion(compiler, result, header, def);
 
 
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
@@ -1534,7 +1532,7 @@ namespace LEX
 
 			if (target.size() != 0)
 			{
-				
+				auto& ret = target.GetChild(0);
 
 				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result);
 
@@ -1555,21 +1553,17 @@ namespace LEX
 					report::compile::error("Expecting return value but value is found.");
 				}
 
-
-				Conversion out;
-
 				assert(result.policy);
 
 
+				//Conversion out;
+				//auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
+				//if (convert_result <= convertFailure){
+				//	report::compile::error("Expression not convertible to return type.");
+				//}
+				//CompUtil::HandleConversion(compiler, out, result, return_policy, convert_result);
 
-				auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
-
-				if (convert_result <= convertFailure)
-				{
-					report::compile::error("Expression not convertible to return type.");
-				}
-
-				CompUtil::HandleConversion(compiler, out, result, convert_result);
+				CompUtil::HandleConversion(compiler, result, return_policy, ret);
 
 			}
 			else if (return_policy->CheckRuleset(TypeRuleset::NoReturn) == false)
@@ -1622,7 +1616,7 @@ namespace LEX
 				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, true); convert_result > convertFailure)
 				{
 					//If this can convert, it's basically going to be something automatic.
-					CompUtil::HandleConversion(compiler, out, expression, convert_result);
+					CompUtil::HandleConversion(compiler, out, expression, header, convert_result);
 				}
 				//if the type we're trying to go to can convert into ours with only type conversions
 				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, true); convert_result > convertFailure)

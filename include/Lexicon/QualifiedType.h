@@ -64,7 +64,7 @@ namespace LEX
 
 		auto operator <=>(const QualifiedType&) const = default;
 
-		ConvertResult IsQualified(QualifiedType& other) const
+		ConvertResult IsQualified(const QualifiedType& other) const
 		{
 			//This does a conversion but only on the qualifiers.
 
@@ -103,7 +103,7 @@ namespace LEX
 
 
 		//TODO: IsCovertToQualfied needs to hold an ITypePolicy to see if it has permission to this conversion. How I'd do that, is kinda hard.
-		ConvertResult IsConvertToQualified(QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const
+		ConvertResult IsConvertToQualified(const QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const
 		{
 
 			if (auto result = IsQualified(other); result != ConvertResult::Exact)
@@ -112,19 +112,5 @@ namespace LEX
 			//Simple for now.
 			return policy->IsConvertibleTo(other.policy, scope, out, is_expl ? ConversionType::Explicit : ConversionType::Implicit);
 		}
-		
-		ConvertResult IsConvertToQualified(QualifiedType&& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const
-		{
-			//This is the over version of can convert. Accounts for qualifiers and such. Speaking of,
-			// such a thing needs to be able to use the search functions too should it not?
-
-			//Actually, I'm realizing a last thing.
-
-
-			return IsConvertToQualified(other, scope, out, is_expl);
-		}
-
-
-
 	};
 }

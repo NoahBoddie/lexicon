@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/Solution.h"
 #include "Lexicon/Engine/Operation.h"
-
+#include "Lexicon/Engine/SyntaxRecord.h"
 namespace LEX
 {
 	struct ExpressionCompiler;
@@ -120,12 +120,12 @@ namespace LEX
 		}
 
 
-		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, ConvertResult convert_result, Register reg = Register::Invalid);
+		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, const QualifiedType& to, ConvertResult res, Register reg = Register::Invalid);
+		
+		static bool HandleConversion(ExpressionCompiler* compiler, Solution& from, const QualifiedType& to, SyntaxRecord& target, Register reg = Register::Invalid);
 		
 
 		static void PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value);
-
-
 	};
 
 }

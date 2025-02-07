@@ -18,15 +18,13 @@ namespace LEX
 		// They don't have default parameters, 
 		// they don't have procedures. 
 		// They don't have names. Rather they have handles and hashes.
-		// They don't have targets
+		// They don't have targets (SCRATCH, they now have targets)
 
 		//Think this should probably store the string that it came from perhaps. Could be useful.
 
 
 		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
 		{
-			//TODO: Once arrays and the params keyword gets introduced, this will need to be implemented in other ways. Further more, could just bake this into the call.
-
 			if (args->size() != parameters.size())
 				report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
 

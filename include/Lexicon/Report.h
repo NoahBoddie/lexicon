@@ -173,10 +173,10 @@ namespace LEX
 		static void ValidateMessage(std::string& message, std::string_view append, Ts&... args)
 		{
 			namespace fmt_lib = spdlog::fmt_lib;
-
+			//TODO: I feel this should be using forward, but right now just isn't the time for it due to using refs
 			try {
 				//message = std::vformat(message, std::make_format_args(args...));
-				message = fmt_lib::vformat(message, fmt_lib::make_format_args(std::forward<Ts>(args)...));
+				message = fmt_lib::vformat(message, fmt_lib::make_format_args(args...));
 			} 
 			catch (std::format_error& f_error) {
 				constexpr auto size = sizeof...(Ts);
@@ -190,7 +190,7 @@ namespace LEX
 				auto what = f_error.what();
 				//This should include what was going to be used maybe?
 				//message = std::vformat(message, std::make_format_args(what, args...));
-				message = fmt_lib::vformat(message, fmt_lib::make_format_args(what, std::forward<Ts>(args)...));
+				message = fmt_lib::vformat(message, fmt_lib::make_format_args(what, args...));
 			}
 
 			message += append;

@@ -278,18 +278,19 @@ namespace LEX
 					//else//Convert should only take place if the result type isn't void.
 					if (voidable != return_policy && result != void_type)
 					{
+
+						_current = &operations;
+
+						//I won't convenience this one away
 						Conversion out;
-
 						auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
-
 						if (convert_result <= convertFailure)
 						{
 							report::compile::critical("Expression not convertible to return type.");
 						}
+						CompUtil::HandleConversion(this, out, result, return_policy, convert_result);
 
-						_current = &operations;
-
-						CompUtil::HandleConversion(this, out, result, convert_result);
+						//CompUtil::HandleConversion(this, result, return_policy, funcRecord);
 					}
 				}
 
@@ -426,6 +427,8 @@ namespace LEX
 						//else//Convert should only take place if the result type isn't void.
 						if (voidable != return_policy && result != void_type)
 						{
+							_current = &operations;
+
 							Conversion out;
 
 							auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
@@ -435,9 +438,7 @@ namespace LEX
 								report::compile::critical("Expression not convertible to return type.");
 							}
 
-							_current = &operations;
-
-							CompUtil::HandleConversion(this, out, result, convert_result);
+							CompUtil::HandleConversion(this, out, result, return_policy, convert_result);
 						}
 					}
 

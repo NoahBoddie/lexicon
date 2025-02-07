@@ -68,7 +68,7 @@ namespace LEX
 
 	struct ITypePolicy : public ISpecial
 	{
-		constexpr static uint32_t NonGenericIndex = full_value<uint32_t>;
+		constexpr static uint32_t NonGenericIndex = -1;
 
 
 

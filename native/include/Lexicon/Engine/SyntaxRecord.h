@@ -15,6 +15,8 @@ namespace LEX
 
 	struct SyntaxBody
 	{
+		//TODO: I would like to make make access functions for certain common ground stuff like return types and such.
+
 		using Self = BasicRecord<Syntax, SyntaxBody>;
 
 		//I would like to make an over version of syntax record that basically copies all the functions and makes it into a new version, that way find

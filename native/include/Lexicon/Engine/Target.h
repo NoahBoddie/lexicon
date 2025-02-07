@@ -121,7 +121,7 @@ namespace LEX
 	public:
 		union
 		{
-			int64_t raw = full_value<int64_t>;
+			int64_t raw = static_cast<int64_t>(-1);
 			Differ differ;
 			Index index;
 			Register reg;
