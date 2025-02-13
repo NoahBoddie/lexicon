@@ -110,8 +110,7 @@ namespace LEX
 			return a_rhs;
 		}
 
-
-		template<class Operatable>
+		template<class Operatable, StringLiteral Symbol>
 		static RuntimeVariable BinaryCompare(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
 		{
 			//Don't really need a unary compare much, it's basically just '!'. So I could use an std::conditional for it.
@@ -125,7 +124,7 @@ namespace LEX
 			//bool result = op(back, front);
 			bool result = op(a_lhs.Ref(), a_rhs.Ref());
 			//The below needs to curb "class std::" from the below
-			//RGL_LOG(trace, "{} {} {} = {}", back, typeid(Operatable).name(), front, result);
+			report::runtime::trace("{} {} {} = {}", a_lhs->PrintString(), Symbol.value, a_rhs->PrintString(), result);
 
 			//a_rhs = Variable{ result, back.Cmp(front) > 0 ? nullptr : nullptr };
 			a_rhs = Variable{ result };
@@ -1041,57 +1040,87 @@ namespace LEX
 
 				std::vector<Operation> back_list;
 
+				//TODO: I feel I should actually use an out on the dependent one, but do it first. By doing this, I can actually increase the jump
+				// size, and reduce a cycle. Optimizations for AFTER this starts working again
+
 
 				//This order is no longer an important thing, arrange at leisure.
 
 				if (auto else_block = target.FindChild(parse_strings::alternate_block); else_block)
 				{
-					
-					std::vector<Operation> ops;
+					//NEW
+					Scope scope{ compiler, ScopeType::Depedent, back_list };
+					compiler->CompileBlock(*else_block);
+					CompUtil::SkipScope(compiler, Operand::None(), false);
+
+					if constexpr (0)
 					{
-						//This set up will allow for us to include the deallocations included in the death of a scope.
-						Scope a_scope{ compiler, ScopeType::Depedent, ops };
+						std::vector<Operation> ops;
+						{
+							//This set up will allow for us to include the deallocations included in the death of a scope.
+							Scope a_scope{ compiler, ScopeType::Depedent, ops };
 
-						//Allow for some variation here, if it's detected the else was an expression it should parse it like an expression,
-						// if not, it should parse it like a block.
-						//This needs to create a new scope to end, a place to place the 
-						ops = compiler->CompileBlock(*else_block);
-					}
-					//This is to skip over the else, this will not care about anything.
+							//Allow for some variation here, if it's detected the else was an expression it should parse it like an expression,
+							// if not, it should parse it like a block.
+							//This needs to create a new scope to end, a place to place the 
 
-					auto back_size = (int64_t)ops.size();
-
-					if (back_size) {
-
-						back_list.emplace_back(InstructType::DropStack, Operand{ back_size + 1, OperandType::Differ }, Operand::None());
-
-						back_list = std::move(ops);
+							// ops = compiler->CompileBlock(*else_block);
+						}
+						//This is to skip over the else, this will not care about anything.
 
 					
-					}
-				}
+						auto back_size = (int64_t)ops.size();
 
-				std::vector<Operation> ops;
-				{
-					Scope a_scope{ compiler, ScopeType::Conditional, ops };
+						if (back_size) {
 
-					ops = compiler->CompileBlock(*target.FindChild(parse_strings::statement_block));
-				}
-					
+							back_list.emplace_back(InstructType::DropStack, Operand{ back_size + 1, OperandType::Differ }, Operand::None());
 
-				auto size = ops.size();
+							back_list = std::move(ops);
 
-				if (size) {
-					//We'll only place these if there's actually somethin
 
-					list.emplace_back(InstructType::DropStackN, Operand{ (int64_t)size + 1, OperandType::Differ }, query);
+						}
 						
-					list.insert_range(list.end(), std::move(ops));
+					}
+				}
+
+
+
+				//NEW
+				Scope scope{ compiler, ScopeType::Conditional };
+				compiler->CompileBlock(*target.FindChild(parse_strings::statement_block));
+				//CompUtil::SkipScope(compiler, query, true, back_list.size());
+				CompUtil::SkipScope(compiler, query, true, !back_list.empty());
+
+
+				if (back_list.empty() == false){
+					list.append_range(back_list);
 				}
 				
-				if (back_list.empty() == false)
-					list.insert_range(list.end(), std::move(back_list));
+				//I feel like this should... do something?
 
+				if constexpr (0)
+				{
+					std::vector<Operation> ops;
+					{
+						Scope a_scope{ compiler, ScopeType::Conditional, ops };
+
+						//ops = compiler->CompileBlock(*target.FindChild(parse_strings::statement_block));
+					}
+
+
+					auto size = ops.size();
+
+					if (size) {
+						//We'll only place these if there's actually somethin
+
+						list.emplace_back(InstructType::DropStackN, Operand{ (int64_t)size + 1, OperandType::Differ }, query);
+
+						list.insert_range(list.end(), std::move(ops));
+					}
+
+					if (back_list.empty() == false)
+						list.insert_range(list.end(), std::move(back_list));
+				}
 				
 			}
 		};
@@ -2003,12 +2032,12 @@ namespace LEX
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
 			instructList[InstructType::Exponent] = InstructWorkShop::BinaryMath<exponent, false>;
 
-			instructList[InstructType::EqualTo] = InstructWorkShop::BinaryCompare<std::equal_to<>>;
-			instructList[InstructType::NotEqualTo] = InstructWorkShop::BinaryCompare<std::not_equal_to<>>;
-			instructList[InstructType::LesserThan] = InstructWorkShop::BinaryCompare<std::less<>>;
-			instructList[InstructType::LesserOrEqual] = InstructWorkShop::BinaryCompare<std::less_equal<>>;
-			instructList[InstructType::GreaterThan] = InstructWorkShop::BinaryCompare<std::greater<>>;
-			instructList[InstructType::GreaterOrEqual] = InstructWorkShop::BinaryCompare<std::greater_equal<>>;
+			instructList[InstructType::EqualTo] = InstructWorkShop::BinaryCompare<std::equal_to<>, "==">;
+			instructList[InstructType::NotEqualTo] = InstructWorkShop::BinaryCompare<std::not_equal_to<>, "!=">;
+			instructList[InstructType::LesserThan] = InstructWorkShop::BinaryCompare<std::less<>, "<">;
+			instructList[InstructType::LesserOrEqual] = InstructWorkShop::BinaryCompare<std::less_equal<>, "<=">;
+			instructList[InstructType::GreaterThan] = InstructWorkShop::BinaryCompare<std::greater<>, ">">;
+			instructList[InstructType::GreaterOrEqual] = InstructWorkShop::BinaryCompare<std::greater_equal<>, ">=">;
 
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
 			//We not ready for this one.

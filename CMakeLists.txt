@@ -60,7 +60,10 @@ find_package(spdlog REQUIRED CONFIG)
 if(LEXICON_SOURCE)
 	set(master_headers
 		
+
 		native/include/Lexicon/Engine.h
+		native/include/Lexicon/Engine/Impl/EngineEnum.h
+		
 		native/include/Lexicon/Engine/TempConstruct.h
 		"native/include/Lexicon/Engine/TestField.h"
 		"native/include/Lexicon/Engine/TestFieldB.h"
@@ -285,7 +288,7 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h")
 
 
 set(sources

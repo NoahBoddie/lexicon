@@ -31,31 +31,31 @@ namespace LEX
 	using ExpressionGenerator = Solution(*)(ExpressionCompiler*, SyntaxRecord&);//, Solution, Solution);//, Register);
 
 	
-	struct Generator : public ConstClassAlias<std::variant<Void, StatementGenerator, ExpressionGenerator>>
+	struct Generator : public ConstClassAlias<std::variant<std::monostate, StatementGenerator, ExpressionGenerator>>
 	{
 		//I don't quite have the word for this yet, so I'm going to leave it. Module might be it, but dunno.
 		ALIAS_HEADER;
 
-		Solution _PostPrepFunction(RoutineCompiler* compiler, SyntaxRecord& target)
+		Solution GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 			//The factory pieces seem like they need something to plug into
 
-			switch (index())
+			get_switch (index())
 			{
 			case 0:
-				report::compile::critical("Generator index void dumbass"); break;
+				report::fault::critical("Code Generator is neither a statement nor expression.", switch_value); break;
 
-				//I'm doing it this way because I'm tired of making source files
 			case 1:
-				std::get<StatementGenerator>(*this)(reinterpret_cast<RoutineCompiler*>(compiler), target);
-				return {};
+				std::get<StatementGenerator>(*this)(reinterpret_cast<RoutineCompiler*>(compiler), target); break;
 
 			case 2:
 				return std::get<ExpressionGenerator>(*this)(reinterpret_cast<ExpressionCompiler*>(compiler), target);
 
+			default:
+				report::compile::critical("Code Generator is unknown. (type {})", switch_value); break;
 			}
 
-			report::compile::critical("Generator index unknown type");
+			
 			return {};
 		}
 	};
@@ -65,9 +65,28 @@ namespace LEX
 	inline std::map<SyntaxType, Generator> generatorList;//Kinda temp.
 
 
-
 	struct CompilerBase
 	{
+	protected:
+		struct TempListHandle
+		{
+			std::vector<Operation>*& current;
+			std::vector<Operation>* prev = nullptr;
+
+
+			TempListHandle(std::vector<Operation>& out, std::vector<Operation>*& target) :current{ target }
+			{
+				prev = current;
+				current = std::addressof(out);
+			}
+
+			~TempListHandle()
+			{
+				current = prev;
+			}
+		};
+
+	public:
 
 		virtual ~CompilerBase() = default;
 
@@ -82,10 +101,10 @@ namespace LEX
 			return _prefered;
 		}
 
-		std::vector<Operation>& GetOperationList()
-		{
-			return *_current;
-		}
+
+		std::vector<Operation>* GetOperationListPtr();
+
+		std::vector<Operation>& GetOperationList();
 
 
 		size_t GetArgCount() const
@@ -95,6 +114,7 @@ namespace LEX
 
 		size_t ModArgCount(int64_t i = 1)
 		{
+			//Try to unionize this when you can.
 			size_t count = argCount[0];
 
 			if ((argCount[0] += i) > argCount[1])
@@ -114,10 +134,14 @@ namespace LEX
 			return _callData->GetReturnType();
 		}
 
+		
 		Scope* GetScope()
 		{
+			//TODO: GetScope should be const if it's in an expression compiler. Reason being it can only query things, not add stuff like variables.
 			return currentScope;
 		}
+
+
 
 		TargetObject* GetTarget()
 		{
@@ -146,8 +170,10 @@ namespace LEX
 
 		//Please merge these 2 functions. make them mod var count, with a boolean to handle it being a param.
 
+		
 		//Mods the count for parameters, not including the increment instructions.
-		size_t ModParamCount(int64_t inc, std::vector<ITypePolicy*> policies = {})
+		/*
+		size_t ModParamCountOLD(int64_t inc, std::vector<ITypePolicy*> policies = {})
 		{
 			auto size = policies.size();
 
@@ -187,7 +213,7 @@ namespace LEX
 		}
 
 		
-		size_t ModVarCount(int64_t inc, std::vector<ITypePolicy*> policies = {})
+		size_t ModVarCountOLD(int64_t inc, std::vector<ITypePolicy*> policies = {})
 		{
 			size_t count = varCount[0];
 
@@ -232,16 +258,68 @@ namespace LEX
 			return count;
 		}
 
-		size_t ModVarCount(ITypePolicy* policy)
+		size_t ModVarCountOLD(ITypePolicy* policy)
 		{
-			return ModVarCount(1, { policy });
+			return ModVarCountOLD(1, { policy });
 		}
 
 
-		size_t ModParamCount(ITypePolicy* policy)
+		size_t ModParamCountOLD(ITypePolicy* policy)
 		{
-			return ModParamCount(1, { policy });
+			return ModParamCountOLD(1, { policy });
 		}
+		//*/
+
+
+		size_t ModVarCount(int64_t inc);
+
+
+		size_t InitVariables(const std::vector<ITypePolicy*>& types, bool param)
+		{
+			auto size = types.size();
+
+			//make the below use this.
+			size_t count = ModVarCount(static_cast<int64_t>(size));
+
+
+			auto& op_list = GetOperationList();
+
+			auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
+
+			for (auto i = 0; i < size; i++)
+			{
+				//for each policy, starting at count and increasing by i, each policy needs to be loaded into
+				// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
+				// have an instruction intend to specialize.
+
+				size_t index = count + i;
+				ITypePolicy* policy = types[i];
+				op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+			}
+
+			return count;
+		}
+
+		size_t InitLocals(std::vector<ITypePolicy*> types){return InitVariables(types, false);}
+
+		size_t InitParams(std::vector<ITypePolicy*> types){return InitVariables(types, true);}
+
+		size_t InitLocal(ITypePolicy* type){return InitVariables({ type }, false);}
+
+		size_t InitParam(ITypePolicy* type){return InitVariables({ type }, true);}
+
+
+		bool IsDetached() const
+		{
+			//Here's the concept, this remains null if the scope is what handles the object. Basically, it's detached if this is true.
+			// If the code is detached, it will send a fault warning when trying to add a variable or attach a scope. 
+			// Namely, these 2 activities should expect none of the previous code loaded to be attached
+			return _current != nullptr;
+		}
+
+		//I'll try to set this up a bit later.
+		//friend std::vector<Operation>& Scope::GetOperationList();
+
 
 		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Environment* env) : CompilerBase {ast, owner, env, owner->_name, owner->GetTargetType() }
 		{
@@ -262,7 +340,6 @@ namespace LEX
 		//Don't use this no more. Each must provide their own container
 		//std::vector<Operation> _cache;
 
-		std::vector<Operation>* _current = nullptr;
 
 
 		//First is current, second is largest.
@@ -326,6 +403,9 @@ namespace LEX
 
 		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
 		SyntaxRecord& funcRecord;
+		
+		//Here's the concept, this remains null if the scope is what handles the object. Basically, it's detached if this is true.
+		std::vector<Operation>* _current = nullptr;
 
 		Scope* currentScope{};//Scopes are the thing that should handle how many variables are in use, that sort of schtick I think.
 		// as well as the concept of memory being freed.
@@ -334,7 +414,7 @@ namespace LEX
 		TargetObject* _object = nullptr;
 
 		bool implicitReturn = false;
-
+		
 		Register _prefered = Register::Invalid;
 	};
 
@@ -349,14 +429,19 @@ namespace LEX
 		//Obscures statement compiling functions so that  statements can never be compiled where Expressions
 		// are expected. Differed by simply expecting or not execting a solution.
 
+		//TODO: Unvirtual CompileExpression, just private some of the important functions.
+		virtual Solution CompileExpression(SyntaxRecord& node, Register pref) = 0;
 
-		virtual Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out) = 0;
 
-		Solution CompileExpression(SyntaxRecord& node, Register pref)
+		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out)
 		{
-			//uses the current loaded op vector. if non-exists error
-			return CompileExpression(node, pref, *_current);
+			TempListHandle handle{ out, _current };
+
+			auto result = CompileExpression(node, pref);
+			return result;
+
 		}
+
 
 		Solution CompileExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::Explicit)
 		{
@@ -366,7 +451,7 @@ namespace LEX
 
 			PushTargetObject(target);
 
-			Solution result = CompileExpression(node, pref, *_current);
+			Solution result = CompileExpression(node, pref);
 
 			PopTargetObject();
 
@@ -375,11 +460,11 @@ namespace LEX
 
 
 
-		Solution PushExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out)
+		Solution PushExpression(SyntaxRecord& node, Register pref)
 		{
 			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
 			// one.
-			Solution result = CompileExpression(node, pref, out);
+			Solution result = CompileExpression(node, pref);
 
 
 			if (result.type != OperandType::Register) {
@@ -395,10 +480,6 @@ namespace LEX
 			return result;
 		}
 
-		Solution PushExpression(SyntaxRecord& node, Register pref)
-		{
-			return PushExpression(node, pref, *_current);
-		}
 
 		Solution PushExpression(SyntaxRecord& node, Register pref, Solution tar, bool is_expl = true)
 		{
@@ -407,7 +488,7 @@ namespace LEX
 
 			PushTargetObject(target);
 
-			Solution result = PushExpression(node, pref, *_current);
+			Solution result = PushExpression(node, pref);
 
 			PopTargetObject();
 
@@ -435,23 +516,23 @@ namespace LEX
 
 	
 
-		Solution _InteralProcess(Generator& factory, SyntaxRecord& node, std::vector<Operation>& out)
+		Solution _InteralProcess__DEAD(Generator& factory, SyntaxRecord& node)
 		{
-
+			//Dead func
 
 			//this function returns the Expectation instead, and has an out for the vector. As such is the convention for such.
 
 			Solution result;
 
-			auto old = _current;
-			_current = &out;
+			//<KILL>auto old = _current;
+			//<KILL>_current = &out;
 
 
 			//Func records use is temporary
-			result = factory._PostPrepFunction(this, node);
+			result = factory.GenerateSolution(this, node);
 
 
-			_current = old;
+			//<KILL>_current = old;
 			
 			return result;
 		}
@@ -461,7 +542,7 @@ namespace LEX
 		//TODO: I would like try versions of these, mainly for an if statement that could take an statement
 		// in its first part, then expect an expression after. Maybe. Idk
 
-		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out) override
+		Solution CompileExpression(SyntaxRecord& node, Register pref) override
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -488,8 +569,10 @@ namespace LEX
 
 
 			//result from expressions are discarded
-			result = _InteralProcess(it->second, node, out);
-
+			//result = _InteralProcess(it->second, node);
+			
+			result = it->second.GenerateSolution(this, node);
+			
 			_prefered = prev;
 
 			return result;
@@ -518,7 +601,7 @@ namespace LEX
 		//*/
 
 
-		void CompileStatement(SyntaxRecord& node, Register pref, std::vector<Operation>& out)
+		void CompileStatement(SyntaxRecord& node, Register pref)
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -544,15 +627,11 @@ namespace LEX
 			logger::debug("RoutineCompiler::CompileStatement: Processing {} . . .", magic_enum::enum_name(node.SYNTAX().type));
 
 			//result from expressions are discarded
-			_InteralProcess(it->second, node, out);
+			//_InteralProcess(it->second, node);
+
+			it->second.GenerateSolution(this, node);
 
 			_prefered = prev;
-		}
-
-		void CompileStatement(SyntaxRecord& node, Register pref)
-		{
-			//uses the current loaded op vector. if non-exists error
-			return CompileStatement(node, pref, *_current);
 		}
 
 		void CompileStatement(SyntaxRecord& node, Register pref, Solution tar)
@@ -561,7 +640,7 @@ namespace LEX
 
 			PushTargetObject(target);
 
-			CompileStatement(node, pref, *_current);
+			CompileStatement(node, pref);
 
 			PopTargetObject();
 		}
@@ -569,14 +648,11 @@ namespace LEX
 
 
 		//This is probably going to be private. Rule is you set a new prefered with it, then do your business.
-		std::vector<Operation> CompileLine(SyntaxRecord& node, Register pref, Solution& out)
+		Solution CompileLine(SyntaxRecord& node, Register pref)
 		{
-			//NEW NAME: ProcessNode
-
 			//Process line doesn't expect an out, and even if it's an expression it's result will be tossed.
 
-			std::vector<Operation> result;
-
+			
 			Register prev = _prefered;
 
 			_prefered = pref;
@@ -590,30 +666,23 @@ namespace LEX
 
 			if (generatorList.end() == it)
 			{
-				report::compile::critical("SyntaxType unaccounted for whatever whatever {}", magic_enum::enum_name(node.SYNTAX().type));
+				report::fault::critical("SyntaxType '{}' unaccounted for", magic_enum::enum_name(node.SYNTAX().type));
 			}
 
 			//result from expressions are discarded
-			out = _InteralProcess(it->second, node, result);
+			//out = _InteralProcess(it->second, node, result);
+			Solution result = it->second.GenerateSolution(this, node);
 
 			_prefered = prev;
 
 			return result;
 		}
 
-		std::vector<Operation> CompileLine(SyntaxRecord& node, Register pref)
-		{
-			Solution trash;
-
-			return CompileLine(node, pref, trash);
-		}
-
 		//I will begin passing the result vector through this as well.
 
-		std::vector<Operation> CompileBlock(SyntaxRecord& data);
+		void CompileBlock(SyntaxRecord& data);
+		void CompileBlock(SyntaxRecord& data, ScopeType type);
 
-
-		RoutineBase CompileRoutine();
 
 		bool CompileRoutine(RoutineBase& routine);
 

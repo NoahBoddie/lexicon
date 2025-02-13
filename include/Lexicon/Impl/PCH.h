@@ -295,8 +295,9 @@ namespace LEX
 
 #include "Lexicon/Report.h"
 
-
-
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/Impl/EngineEnum.h"
+#endif
 
 
 

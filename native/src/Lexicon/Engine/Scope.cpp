@@ -10,6 +10,12 @@
 
 namespace LEX
 {
+	std::vector<Operation>& Scope::GetOperationList()
+	{
+		return operationList;
+	}
+
+
 	PolicyBase* Scope::SearchTypePath(SyntaxRecord& _path)
 	{
 		SyntaxRecord dummy{ "dummy", Syntax{ SyntaxType::None}, _path };

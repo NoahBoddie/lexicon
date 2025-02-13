@@ -129,6 +129,8 @@ namespace std
 //This is to be my method of hashing.
 inline std::hash<std::vector<uint64_t>> hasher;
 
+
+
 namespace LEX
 {
 	

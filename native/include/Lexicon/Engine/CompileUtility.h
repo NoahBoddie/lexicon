@@ -5,6 +5,7 @@
 #include "Lexicon/Engine/SyntaxRecord.h"
 namespace LEX
 {
+	struct RoutineCompiler;
 	struct ExpressionCompiler;
 
 
@@ -126,6 +127,9 @@ namespace LEX
 		
 
 		static void PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value);
+
+
+		static int64_t SkipScope(RoutineCompiler* compiler, const Operand& query, bool negate, uint64_t offset = 0);
 	};
 
 }

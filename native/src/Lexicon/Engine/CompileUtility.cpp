@@ -1,5 +1,6 @@
 #include "Lexicon/Engine/CompileUtility.h"
 #include "Lexicon/Engine/RoutineCompiler.h"
+#include "Lexicon/Engine/Scope.h"
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
@@ -91,6 +92,45 @@ namespace LEX
 			//Actually, if it's void you'll want to clear it even more
 			
 			compiler->GetOperationList().emplace_back(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
+		}
+	}
+
+	int64_t CompUtil::SkipScope(RoutineCompiler* compiler, const Operand& condition, bool negate, uint64_t offset)
+	{
+		auto scope = compiler->GetScope();
+		auto& list = compiler->GetOperationList();
+
+		if (scope->IsHeader() == true) {
+			report::fault::critical("Header scope cannot be skipped (Also, I need a record pls).");
+		}
+
+		int64_t size = (int64_t)list.size();
+
+		scope->Release([&](std::vector<Operation>* out)
+			{
+				auto size = (int64_t)list.size();
+
+				//if (size +  offset) {
+					//We'll only place these if there's actually somethin
+
+					auto instruct = negate ? InstructType::DropStackN : InstructType::DropStack;
+					
+					//From an optimal standpoint, I'd like to place this first, and have everything else done after.
+					list.insert(list.begin(), { instruct, Operand{ (int64_t)size + offset + 1, OperandType::Differ }, condition });
+					//out->emplace_back(instruct, Operand{ (int64_t)size , OperandType::Differ }, query);
+				//}
+			});
+
+		return size;
+		
+		auto _size = (int64_t)list.size();
+
+		if (size) {
+			//We'll only place these if there's actually somethin
+
+			auto instruct = negate ? InstructType::DropStackN : InstructType::DropStack;
+			//
+			list.emplace_back(instruct, Operand{ (int64_t)size + 1, OperandType::Differ }, condition);
 		}
 	}
 }
