@@ -150,6 +150,7 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/Impl/IElementHeader.h
 		native/include/Lexicon/Engine/Impl/IElementSource.h
 		"native/include/Lexicon/Engine/IssueTable.h")
+		
 
 	set(master_sources
 	

@@ -229,6 +229,7 @@ void LexTesting(std::string formula)
 
     auto funcs = script->FindFunctions("GetActorValue");
 
+
     if (funcs.size() == 0)
     {
         logger::trace("_a");
