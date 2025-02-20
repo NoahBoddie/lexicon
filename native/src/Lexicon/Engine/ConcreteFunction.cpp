@@ -19,29 +19,31 @@ namespace LEX
 
 		Variable* target = nullptr;
 
-		if (args->size() != parameters.size())
+		if (args->size() != GetParamCount())
 			report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
 
-		size_t size = parameters.size();
 
-		for (int i = 0; i < size; i++)
+
+		VisitParameters([&](ParameterInfo& param)
 		{
-			//Cancelling this for now.
-			break;
-			int j = i + IsMethod();
 
-			AbstractTypePolicy* expected = parameters[i].GetType()->FetchTypePolicy(runtime);
-			
-			
+			//Cancelling this for now. It should be used in Invoke, rather than here.
+			return;
+			int i = param.GetFieldIndex();
+
+			AbstractTypePolicy* expected = param.GetType()->FetchTypePolicy(runtime);
+
+
 			if (!expected)
-				throw nullptr;
-			RuntimeVariable check = args[j]->Convert(expected);
+				report::apply::critical("unexpected?");
+
+			RuntimeVariable check = args[i]->Convert(expected);
 
 			if (check.IsVoid() == true)
-				report::apply::critical("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
+				report::apply::critical("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
 
 			args[i] = check;
-		}
+		});
 
 
 
@@ -59,7 +61,7 @@ namespace LEX
 			
 			std::vector<Variable*> send_args;
 			
-			send_args.reserve(parameters.size());
+			send_args.reserve(GetArgCount());
 			
 			if (IsMethod() == true)
 			{

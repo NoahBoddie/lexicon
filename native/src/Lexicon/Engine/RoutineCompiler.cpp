@@ -262,7 +262,7 @@ namespace LEX
 
 			auto& op_list = GetOperationList();
 
-			op_list.emplace_back(InstructionType::IncrementVarStack, Operand{ inc , OperandType::Differ });
+			op_list.emplace_back(InstructionType::ModVarStack, Operand{ inc , OperandType::Differ });
 
 		}
 

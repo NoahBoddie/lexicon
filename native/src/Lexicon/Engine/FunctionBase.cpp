@@ -41,112 +41,6 @@ namespace LEX
         _name = target.GetTag();
 	}
 
-    void FunctionBase::OnAttach()
-    {
-		return;
-        SyntaxRecord& target = *GetSyntaxTree();
-
-
-        Environment* environment = GetEnvironment();
-
-        if (!environment) {
-            report::link::error("environ issues cont.");
-        }
-        
-        SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
-
-        if (!head_rec)
-			report::compile::critical("No record named header.");
-        //LINK_AFTER
-
-        Declaration header{ *head_rec, environment };
-
-        if (header.Matches(true, Qualifier::Const) == false) {
-			report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-        }
-
-        //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
-
-        QualifiedType type = QualifiedType{ header };
-
-        //GENERIC_SPACE
-
-        SetReturnType(type);
-
-
-        //STATIC_CHECK
-
-        bool method = false;
-
-        if (auto extend = target.FindChild(parse_strings::extends); extend)
-        {
-            method = true;
-            
-            auto& tag = extend->GetFront().GetTag();
-
-            _targetType = GetPolicyFromSpecifiers(*extend, environment);
-            //_targetType = environment->TEMPSearchType(tag);
-
-            if (!_targetType) {
-                report::link::error("No type found with the name '{}' (tag not accurate anymore)", tag);
-            }
-            else {
-                logger::debug("I, {}, have type {}", _name, (uint64_t)_targetType);
-            }
-
-            //Is this shit right???? It's using the return type I'm like 100% sure
-
-
-            //Qualifiers like const are put here depending on if the function is const. 
-            // We don't have those post declarations yet.
-            auto& param = parameters.emplace_back(QualifiedType{ type }, parse_strings::this_word, 0);
-
-
-            //Include things like whether this is
-            __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ type }, parse_strings::this_word, 0);
-        }
-
-
-        for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->children())
-        {
-            SyntaxRecord* node_head = node.FindChild(parse_strings::header);
-
-            if (!node_head)
-				report::compile::critical("No record named header.");
-
-            Declaration header{ *node_head, environment };
-
-            //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
-            if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
-				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-            }
-
-            QualifiedType type = QualifiedType{ header };
-
-            //auto& tag = node.FindChild("type")->GetFront().GetTag();
-
-            //ITypePolicy* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
-
-            //if (!policy) {
-            //    report::link::error("Parameter type '{}' couldn't be found", tag);
-            //}
-
-            //GENERIC_SPACE
-            
-            //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
-            auto& param = parameters.emplace_back(type, node.GetTag(), static_cast<uint32_t>(parameters.size()));
-
-            
-
-            assert(param.GetType());
-        }
-       
-        if (RoutineCompiler::Compile(_routine, target, this, GetEnvironment()) == false)
-        {
-            FlagAsInvalid();
-        }
-    }
-
     void FunctionBase::SetReturnType(QualifiedType type)
     {
         _returnType = type;
@@ -206,21 +100,23 @@ namespace LEX
 
                 auto& tag = extend->GetFront().GetTag();
 
-                _targetType = GetPolicyFromSpecifiers(*extend, environment);
-                //_targetType = environment->TEMPSearchType(tag);
+                auto target_type = GetPolicyFromSpecifiers(*extend, environment);
+                
 
-                if (!_targetType) {
+                if (!target_type) {
                     report::link::error("No type found with the name '{}' (tag not accurate anymore)", tag);
                 }
                 
 
+
                 //Qualifiers like const are put here depending on if the function is const. 
                 // We don't have those post declarations yet.
-				auto& param = parameters.emplace_back(QualifiedType{ _targetType }, parse_strings::this_word, 0);
-
-                report::fault::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
+				
+                //auto& param = parameters.emplace_back(QualifiedType{ _targetType }, parse_strings::this_word, 0);
+                //report::fault::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
+                
                 //Include things like whether this is
-                __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ _targetType }, parse_strings::this_word, 0);
+                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type }, parse_strings::this_word, 0);
             }
 
 
@@ -251,7 +147,7 @@ namespace LEX
                 //GENERIC_SPACE
 
                 //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
-                auto& param = parameters.emplace_back(type, node.GetTag(), static_cast<uint32_t>(parameters.size()));
+                auto& param = parameters.emplace_back(type, node.GetTag(), GetParamCount());
                 
                 assert(param.GetType());
             }

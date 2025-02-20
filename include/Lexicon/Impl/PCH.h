@@ -417,7 +417,8 @@ void self_f(); using Self = typename class_t<decltype(&self_f)>::type;
 
 namespace RGL
 {
-    
+
+
     template<typename Test, template<typename...> class Ref>
     struct is_specialization : std::false_type {};
 

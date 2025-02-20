@@ -115,6 +115,10 @@
 
 #include "Lexicon/Formula.h"
 
+#include "Lexicon/Engine/ConcreteGlobal.h"
+
+#include "Lexicon/NativeReference.h"
+
 namespace std
 {
 	template <class _Elem, class _Alloc>
@@ -130,6 +134,25 @@ namespace std
 inline std::hash<std::vector<uint64_t>> hasher;
 
 
+struct TestRef
+{
+	int& ref;
+
+	TestRef(int& r) : ref{ r } {}
+};
+
+
+void TestFunc()
+{
+	int a = 1;
+	LEX::RuntimeVariable var{};
+	
+
+
+	TestRef t{ a };
+
+	TestRef t2 = t;
+}
 
 namespace LEX
 {
@@ -1338,10 +1361,28 @@ namespace LEX
 }
 
 
-#include "Lexicon/Engine/ConcreteGlobal.h"
-
 namespace LEX
 {
+
+	void TestNativeReference()
+	{
+		int test_no = 1;
+
+		logger::info("test_no >> {}", test_no);
+
+		{
+			NativeReference ref { test_no };
+
+			ref.Ref() = 2;
+
+			//Updates can happen in transit if what it's setting to is a native ref
+		}
+	
+
+		logger::info("test_no >> {}", test_no);
+
+	}
+
 
 	void TestRun()
 	{

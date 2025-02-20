@@ -20,8 +20,6 @@ namespace LEX
 
 		void LoadFromRecord(SyntaxRecord& target) override;
 
-		void OnAttach() override;
-		
 		virtual LinkResult OnLink(LinkFlag flags) override;
 
 		virtual LinkFlag GetLinkFlags() override;
@@ -79,7 +77,7 @@ namespace LEX
 
 	public:
 
-		bool IsMethod() const override { return _targetType; }
+		bool IsMethod() const override { return !!_thisInfo; }
 
 		std::string_view GetName() const override
 		{//would an empty check be better?

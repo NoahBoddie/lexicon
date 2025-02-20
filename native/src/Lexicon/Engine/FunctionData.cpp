@@ -21,18 +21,20 @@ namespace LEX
 
 		if (flag & OverloadFlag::UsesDefault)
 		{
-			logger::info("uses defaults");
+			logger::debug("uses defaults");
 			return false;
 		}
 
 		if (optional)
 		{
-			logger::info("uses optionals");
+			logger::debug("uses optionals");
 			return false;
 		}
 	
-		if (parameters.size() - HasTarget() != suggested) {
-			logger::info("uses param diff {} vs {}", parameters.size() - HasTarget(), suggested);
+		auto required = GetArgCountReq();
+
+		if (required != suggested) {
+			logger::debug("uses param diff {} vs {}", required, suggested);
 			return false;
 		}
 		return true;
@@ -46,7 +48,7 @@ namespace LEX
 		OverloadEntry result;
 
 		//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
-		if (index != -1 && index >= parameters.size())
+		if (index != -1 && GetArgCountMax() <= index)
 		{
 			logger::critical("Failure to evaluate");
 			flags |= OverloadFlag::Failure;
@@ -55,10 +57,14 @@ namespace LEX
 
 
 		//I'd maybe like to rework this VariableInfo to work like this.
-		//ParameterInfo* subject = index == -1 ? &thisInfo : &parameters[index];
-		ParameterInfo* subject = index != -1 ?
-			&parameters[index + HasTarget()] : HasTarget() ?
-			&parameters[0] : nullptr;
+		
+		//ParameterInfo* subject = index != -1 ?
+		//	&parameters[index + HasTarget()] : HasTarget() ?
+		//	&parameters[0] : nullptr;
+
+		ParameterInfo* subject = FindParameterByPos(index);
+			
+
 
 		QualifiedType sub_type = subject->FetchQualifiedType();
 

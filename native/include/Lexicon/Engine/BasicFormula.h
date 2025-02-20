@@ -25,27 +25,28 @@ namespace LEX
 
 		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
 		{
-			if (args->size() != parameters.size())
-				report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
-
-			size_t size = parameters.size();
+			if (args->size() != GetParamCount())
+				report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), GetParamCount());
 
 			if (!1)
-			for (int i = 0; i < size; i++) {
-				//Cancelling this for now.
-				break;
-				int j = i;
+				VisitParameters([&](ParameterInfo& param)
+					{
+						//Cancelling this for now. This should be in invoke
+						return;
+						int i = param.GetFieldIndex();
 
-				AbstractTypePolicy* expected = parameters[i].GetType()->FetchTypePolicy(runtime);
-				if (!expected)
-					throw nullptr;
-				RuntimeVariable check = args[j]->Convert(expected);
+						AbstractTypePolicy* expected = param.GetType()->FetchTypePolicy(runtime);
+						if (!expected)
+							report::apply::critical("unexpected?");
 
-				if (check.IsVoid() == true)
-					report::apply::critical("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
+						RuntimeVariable check = args[i]->Convert(expected);
 
-				args[i] = check;
-			}
+						if (check.IsVoid() == true)
+							report::apply::error("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
+
+						args[i] = check;
+					});
+
 
 			{
 				RuntimeVariable result;

@@ -102,7 +102,7 @@ namespace LEX
 		{},//Access
 		OperatorWorkShop::Push,//Push
 		{},//PushVariable
-		OperatorWorkShop::IncArgStack,//IncrementArgStack
+		OperatorWorkShop::ModArgStack,//ModArgStack
 		{},//IncrementTarStack
 		OperatorWorkShop::Test,//Test
 		{},//ObjectTest

@@ -2,7 +2,7 @@
 
 #include "Lexicon/Variable.h"
 #include "Lexicon/Unvariable.h"
-#include "Lexicon/Runtimevariable.h"
+#include "Lexicon/RuntimeVariable.h"
 
 
 //*src

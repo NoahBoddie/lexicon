@@ -158,7 +158,7 @@ namespace LEX
 			if (count) {//Only needs to do this if it had arguments. Handles reference snags basically.
 				auto& arg_var = runtime->GetArgument(runtime->GetStackPointer(StackPointer::Argument) - count);
 				
-				if (arg_var.IsReference() == true)//Ideally, all call stuff is a reference. Im just checking 
+				if (arg_var.IsRuntimeRef() == true)//Ideally, all call stuff is a reference. Im just checking 
 					arg_var.Clear();
 				
 				
@@ -237,13 +237,15 @@ namespace LEX
 
 		//void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
 
-		static void IncArgStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		//TODO: Merge mod arg stack and mod var stack, they roughly do the same thing.
+
+		static void ModArgStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 			//Pretty simple honestly. Increase by the amount.
 			runtime->AdjustStackPointer(StackPointer::Argument, a_lhs.Get<Differ>());
 		}
 
-		static void IncVarStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void ModVarStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 
 			auto dif = a_lhs.Get<Differ>();
@@ -278,7 +280,7 @@ namespace LEX
 			//While this may seem useless, this prevents things like where a float is given where a number is expected, causing any giving of a non-float number
 			// to result in an error within assign.
 
-			RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
+			RuntimeVariable& var = a_lhs.AsVariable(runtime);//s runtime->GetVariable(a_lhs.Get<Index>());
 			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
 
 			//if no policy, fatal fault
@@ -314,26 +316,29 @@ namespace LEX
 			}
 
 
+
 			//Note, these likely are reversed. Move replaces, forward copies.
-			if (instruct == InstructType::Forward)	//Forward//References
+			switch (instruct)
 			{
-				
-				//As shown in the logging, the addresses are not the same.
-				//auto first = (uintptr_t)&a_rhs.GetVariable(runtime).Ref();
-
-				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.GetVariable(runtime).Ref();
-				//a_lhs.ObtainVariable(runtime)->Assign(a_rhs.GetVariable(runtime).Ref());
+			case InstructType::Forward://Actually reference
 				a_lhs.ObtainAsVariable(runtime).AssignRef(a_rhs.GetVariable(runtime));
-				
-				//auto second = (uintptr_t)&a_lhs.ObtainVariable(runtime).Ref();
-				//logger::critical("forward test, {} vs {}", first, second);
-				//std::system("pause");
+				break;
 
-			}
-			else									//Move//Copies
-			{
-				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.CopyVariable(runtime);
+			case InstructType::Move://Actually copy
 				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
+				break;
+			
+			case -1://This is what forward would actually be
+				break;
+
+			case InstructType::Assign://Is called Assign and is actually assign
+				//Similar to how forward works, but submits just the value rather than the whole runtime slot
+				a_lhs.AsVariable(runtime).AssignRef(a_rhs.GetVariable(runtime));
+				break;
+
+			default:
+				report::runtime::critical("Instruct type {} not accounted for.", magic_enum::enum_name(instruct));
+				break;
 			}
 		}
 
@@ -448,6 +453,32 @@ namespace LEX
 
 			logger::critical("type is in result? {}, is void {}", !!result->Policy(), result->IsVoid());
 		}
+
+
+	private:
+
+
+		static void DetachRef(RuntimeVariable& result, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		{
+			if (a_lhs.type == OperandType::Literal || a_rhs.type == OperandType::Literal) {
+				//This is hard enforced because this will impact so much more than this function.
+				report::runtime::critical("DetachRef attempted to set literal value.");
+			}
+
+			auto& variable = a_lhs.AsVariable(runtime);
+
+			//This second one is checking for local
+			if (!variable->IsPolymorphic() && !variable->IsPolymorphic())
+			{
+				decltype(auto) out = variable.Detach();
+
+				if (a_rhs.type != OperandType::None) {
+					
+					a_rhs.AsVariable(runtime) = std::move(out);
+				}
+			}
+		}
+
 
 
 		//Conditional instructions
@@ -622,7 +653,7 @@ namespace LEX
 
 			case "="_h:
 				logger::trace("construct symbol \'=\'");
-				return InstructType::Assign;
+				return InstructType::Assign;//Assign is not a real instruction as it turns out, transfer gets used in it. But it works 2 jobs ig
 
 			case "=>"_h:
 			case "then"_h:
@@ -1162,7 +1193,7 @@ namespace LEX
 			//Currently, this cannot be handled
 			QualifiedField var = compiler->GetScope()->SearchFieldPath(target);
 
-			if (!var) {
+			if (!var) {//Check if the var was this specifically.
 				report::compile::error("Cannot find variable '{}'.", target.GetTag());
 			}
 
@@ -1267,7 +1298,7 @@ namespace LEX
 
 			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
 
-			size_t req_args = func->GetReqArgCount();
+			size_t req_args = func->GetArgCountReq();
 
 
 			if constexpr (1)
@@ -1413,7 +1444,7 @@ namespace LEX
 
 			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
 
-			size_t req_args = func->GetReqArgCount();
+			size_t req_args = func->GetArgCountReq();
 
 			if (args.size() < req_args) {
 				report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
@@ -2015,10 +2046,11 @@ namespace LEX
 			//These 2 are one in the same.
 			instructList[InstructType::Move] = InstructWorkShop::Transfer;
 			instructList[InstructType::Forward] = InstructWorkShop::Transfer;
+			instructList[InstructType::Assign] = InstructWorkShop::Transfer;
 			instructList[InstructType::Return] = InstructWorkShop::Ret;
 			instructList[InstructType::JumpStack] = InstructWorkShop::JumpStack;
-			instructList[InstructType::IncArgStack] = InstructWorkShop::IncArgStack;
-			instructList[InstructType::IncVarStack] = InstructWorkShop::IncVarStack;
+			instructList[InstructType::ModArgStack] = InstructWorkShop::ModArgStack;
+			instructList[InstructType::ModVarStack] = InstructWorkShop::ModVarStack;
 			instructList[InstructType::DefineVariable] = InstructWorkShop::DefineVar;
 			instructList[InstructType::DefineParameter] = InstructWorkShop::DefineParam;
 			instructList[InstructType::DropStack] = InstructWorkShop::DropStack;

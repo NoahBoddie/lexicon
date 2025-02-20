@@ -277,11 +277,16 @@ void LexTesting(std::string formula)
         
         //function->_procedure = TestProcedure;
         //A conversion is supposed to happen here.
-        Variable result = function->Call(Default{ 5 }, 68.0, 1.0, 2.0, 3.0, 4.0, 5.0);
+
+        double a_this = 68.0;
+
+        std::make_unique<int>();
+        
+        Variable result = function->Call(Default{ 5 }, extern_ref(a_this), 1.0, 2.0, 3.0, 4.0, 5.0);
 
         std::string number = result.AsNumber().string();
 
-        logger::info("result of {} = {}", formula, number);
+        logger::info("result of {} = {} (a_this = {})", formula, number, a_this);
         std::system("pause");
     }
     else
@@ -325,6 +330,8 @@ void LexTesting(std::string formula)
 
 
     TestForm();
+
+    TestNativeReference();
     TestRun();
 
     //END OF THE CONTROLLED ENVIRONMENT

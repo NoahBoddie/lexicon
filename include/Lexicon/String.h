@@ -122,9 +122,12 @@ namespace LEX
 			if (length == -1)
 				length = std::strlen(str);
 
-			_ptr = new char[length];
+			if (!str || !length)
+				return;
+
+			_ptr = new char[length + 1];
 			std::strncpy(_ptr, str, length);
-			
+			_ptr[length] = '\0';
 
 			//_ptr = new char[length + 1];
 			//strncpy_s(_ptr, length, str);

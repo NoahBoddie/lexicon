@@ -9,6 +9,8 @@
 
 #include "Lexicon/Engine/OverloadFlag.h"
 
+//*src
+#include "Lexicon/Engine/parse_strings.h"
 
 namespace LEX
 {
@@ -30,7 +32,7 @@ namespace LEX
 
 		//Without a target type, this is a static function.
 		//Target type remains implicit
-		ITypePolicy* _targetType = nullptr;
+		//ITypePolicy* _targetType = nullptr;
 
 		//The actual object for this has severely changed. It's "ParamInfo" I think? But this isn't terribly important
 		// here yet so you know.
@@ -38,12 +40,26 @@ namespace LEX
 		//std::vector<DefinedParam> defParams;
 
 		//TODO: I would like to represent "this" as a unique pointer to a ParamInfo
-		std::unique_ptr<ParameterInfo> __thisInfo;
-		std::vector<ParameterInfo> parameters;
+		std::unique_ptr<ParameterInfo> _thisInfo;
 
+	//protected:
+		std::vector<ParameterInfo> parameters;
+	public:
 
 		RoutineBase _routine;  //actually needs to be a pointer
 
+
+		void VisitParameters(std::function<void(ParameterInfo&)> func)
+		{
+			if (_thisInfo)
+				func(*_thisInfo);
+
+			for (auto& param : parameters)
+			{
+				func(param);
+			}
+		}
+		
 
 		
 		RoutineBase* GetRoutine()
@@ -52,72 +68,46 @@ namespace LEX
 			return &_routine;
 		}
 
-		//I won't care about any of these I'll keep it a buck.
-	protected:
-		auto _ParamBegin()
-		{
-			auto begin = parameters.begin();
-
-			return begin;
-		}
-
-		auto _ParamEnd()
-		{
-			auto end = parameters.end();
-			return end;
-		}
-
-		auto _ParamBegin() const
-		{
-			auto begin = parameters.begin();
-
-			return begin;
-		}
-
-		auto _ParamEnd() const
-		{
-			auto end = parameters.end();
-			return end;
-		}
 
 	public:
-		std::vector<ParameterInfo> GetParameters()
+
+
+		//const std::vector<ParameterInfo>& GetParameters() const
+		//{
+			//return parameters;
+			//return { _ParamBegin(), _ParamEnd() };
+		//}
+
+
+		uint32_t GetParamCount() const
 		{
-			return { _ParamBegin(), _ParamEnd() };
+			return (uint32_t)GetArgCount() + !!_thisInfo;
 		}
 
-		std::vector<ParameterInfo> GetParameters() const
-		{
-			return { _ParamBegin(), _ParamEnd() };
-		}
-
-		size_t GetParamCount() const
+		size_t GetArgCount() const
 		{
 			return parameters.size();
 		}
 
-		size_t GetParamAllocSize() const
-		{
-			return parameters.size();
-		}
 
 		//For now, the maximum and minimum is both the same. Later, defaults will exist, so they don't have to
 		//be exact, and params keyword will hopefully exist at some point.
-		size_t GetReqArgCount()
+		size_t GetArgCountReq()
 		{
-			return GetParamCount();
+			return GetArgCount();
 		}
-		size_t GetMaxArgCount()
+		size_t GetArgCountMax()
 		{
-			return GetParamCount();
+			return GetArgCount();
 		}
+
 
 		std::array<size_t, 2> GetArgRange()
 		{
-			return { GetReqArgCount(), GetMaxArgCount() };
+			return { GetArgCountReq(), GetArgCountMax() };
 		}
 
-		//Needs to be moved into ITypePolicy/AbstractTypePolicy.
+		//Needs to be moved into IFunction/AbstractFunction.
 		QualifiedType GetReturnType() const
 		{
 			return _returnType;
@@ -125,14 +115,18 @@ namespace LEX
 
 		ITypePolicy* GetTargetType() const
 		{
-			return _targetType;
+			return _thisInfo ? _thisInfo->GetType() : nullptr;;
 		}
 
 		//These sorts of things should be protected, not used up front.
 		//std::string name(){return _name;}
 
-		ParameterInfo* FindParameter(std::string a_name)
+		ParameterInfo* FindParameter(std::string_view a_name)
 		{
+			if (a_name == parse_strings::this_word) {
+				return _thisInfo.get();
+			}
+
 			auto end = parameters.end();
 			auto it = std::find_if(parameters.begin(), end, [&](ParameterInfo& q) { return q.GetFieldName() == a_name; });
 			if (it != end) {
@@ -141,6 +135,27 @@ namespace LEX
 			return nullptr;
 		}
 
+
+
+		//-1 is for this
+		ParameterInfo* FindParameterByPos(size_t index)
+		{
+			if (index == -1) {
+				return _thisInfo.get();
+			}
+
+			return std::addressof(parameters.at(index));
+		}
+
+
+		ParameterInfo* FindParameterByIndex(size_t index)
+		{
+			if (!index--) {
+				return _thisInfo.get();
+			}
+
+			return std::addressof(parameters.at(index));
+		}
 
 	};
 
@@ -180,96 +195,9 @@ namespace LEX
 			return _procedure;
 		}
 
-	protected:
-		auto _ParamBegin()
-		{
-			auto begin = parameters.begin();
-
-			if (HasTarget() == true)
-				begin++;
-
-			return begin;
-		}
-
-		auto _ParamEnd()
-		{
-			auto end = parameters.end();
-			return end;
-		}
-		
-		auto _ParamBegin() const
-		{
-			auto begin = parameters.begin();
-
-			if (HasTarget() == true)
-				begin++;
-
-			return begin;
-		}
-
-		auto _ParamEnd() const
-		{
-			auto end = parameters.end();
-			return end;
-		}
-
 	public:
 
 
-		size_t GetParamCount() const
-		{
-			return parameters.size() - HasTarget();
-		}
-
-		size_t GetParamAllocSize() const
-		{
-			return parameters.size();
-		}
-
-		//For now, the maximum and minimum is both the same. Later, defaults will exist, so they don't have to
-		//be exact, and params keyword will hopefully exist at some point. 
-		size_t GetReqArgCount()
-		{
-			return GetParamCount();
-		}
-		size_t GetMaxArgCount()
-		{
-			return GetParamCount();
-		}
-
-		std::array<size_t, 2> GetArgRange()
-		{
-			return { GetReqArgCount(), GetMaxArgCount() };
-		}
-
-		//Needs to be moved into ITypePolicy/AbstractTypePolicy.
-		QualifiedType GetReturnType() const
-		{
-			return _returnType;
-		}
-
-		ITypePolicy* GetTargetType() const
-		{
-			return _targetType;
-		}
-
-		//These sorts of things should be protected, not used up front.
-		//std::string name(){return _name;}
-
-		ParameterInfo* FindParameter(std::string_view a_name)
-		{
-			auto end = parameters.end();
-			auto it = std::find_if(parameters.begin(), end, [&](ParameterInfo& q) {return q.GetFieldName() == a_name; });
-			if ( it != end) {
-				return &*it;
-			}
-			return nullptr;
-		}
-
-		bool HasTarget() const
-		{
-			return _targetType;
-		}
 
 		//AbstractTypePolicy* GetConcreteReturnType();//move to abstractFunction
 

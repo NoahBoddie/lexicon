@@ -283,7 +283,7 @@ namespace LEX
 	}
 
 	template <detail::function_has_var_type T>
-	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>* arg)
+	AbstractTypePolicy* GetVariableType(const detail::custom_decay<T>* arg)
 	{
 		using Ty = detail::remove_qual_t<T>;
 
@@ -310,7 +310,7 @@ namespace LEX
 
 
 	template <detail::function_has_var_type T>
-	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>& arg)
+	AbstractTypePolicy* GetVariableType(const detail::custom_decay<T>& arg)
 	{
 		//using Ty = detail::remove_qual_t<T>;
 
@@ -318,7 +318,8 @@ namespace LEX
 		return GetVariableType<T>(&arg);
 	}
 
-
+	/*
+	//Not required anymore
 	template <detail::function_has_var_type T> requires (!std::is_pointer_v<T>)
 		AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
 	{
@@ -327,9 +328,10 @@ namespace LEX
 
 		return GetVariableType<T>(&arg);
 	}
+	//*/
 
 	template <detail::function_has_var_type T> requires (std::is_pointer_v<T>)
-	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
+	AbstractTypePolicy* GetVariableType(const detail::custom_decay<T>&& arg)
 	{
 		using Ty = detail::remove_qual_t<T>;
 

@@ -1,22 +1,25 @@
 #pragma once
 
 #include "Variable.h"
-
+#include "Lexicon/NativeReference.h"
 
 namespace LEX
 {
-
-	using RunValue = std::variant<Void, Variable, std::reference_wrapper<Variable>>;
+	using VariableRef = std::reference_wrapper<Variable>;
+	using DetachedRef = std::shared_ptr<Variable>;
+	using ExternalRef = NativeReference;//Rename pls
+	using RunValue = std::variant<
+		Void, 
+		Variable, 
+		VariableRef,
+		DetachedRef,
+		ExternalRef
+	>;
 
 	
 
 	
-	enum struct RuntimeVarType
-	{
-		Void,
-		Value, 
-		Ref,
-	};
+
 	struct RunVarData
 	{
 
@@ -43,6 +46,14 @@ namespace LEX
 			Free	= 1 << 2,	//A given runtime variable has freed its index but retains a pointer.
 		};
 
+		enum Type
+		{
+			kInvalid,
+			kVariable,
+			kReference,
+			kDetached,
+			kExternal,
+		};
 
 		//This will help clear the Variable data spot without me having to put clear in every constructor. Hopefully.
 
@@ -92,15 +103,18 @@ namespace LEX
 
 			switch (a_this.index())
 			{
-			case 1:
+			case kVariable:
+			case kDetached:
+			case kExternal:
 				ret = this; break;
 
-			case 2: 
+			case kReference: 
 				ret = reinterpret_cast<RunDataHelper*>(&std::get<_Ref>(a_this).get()); break;
 
 
 			default:
 				ret = nullptr;
+				break;
 			}
 
 
@@ -124,11 +138,11 @@ namespace LEX
 
 		void Unhandle()
 		{
-			if (index() == 2)
+			if (index() == kReference)
 			{
 				GetRefHelper()->Dec();
 			}
-			else if (index() == 1)
+			else if (index() == kVariable)
 			{
 				if (auto refs = GetData().refs; refs) {
 					report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
@@ -141,9 +155,9 @@ namespace LEX
 			if (flags & Flag::Init) {
 				GetData().refs = 0;
 			}
-			if (other && (flags & Flag::Refr || other->index() == 2))
+			if (other && (flags & Flag::Refr || other->index() == kReference))
 			{
-				auto* help = other->GetRefHelper();
+				//auto* help = other->GetRefHelper();
 
 				other->GetRefHelper()->Inc();
 			}
@@ -207,7 +221,9 @@ namespace LEX
 
 
 
-	class RuntimeVariable : protected RunDataHelper, public ClassAlias<std::variant<Void, Variable, std::reference_wrapper<Variable>>>
+	class RuntimeVariable : 
+		protected RunDataHelper, 
+		public ClassAlias<RunValue>
 	{
 	public:
 		
@@ -231,14 +247,14 @@ namespace LEX
 		//struct RuntimeVariable : public Helper, ClassAlias<>...
 
 
-		void _CheckAssign(RuntimeVariable& other)
+		void _CheckAssign(const RuntimeVariable& other)
 		{
 			if (IsEmpty() == true)
 				return;
 
 			if (other.IsEmpty() == true)
 				report::runtime::error("Assigning undefined to a non-undefined?");
-
+			
 			//This should only be checking if this has a type.
 			Ref().CheckAssign(GetVariableType(*other));
 
@@ -258,35 +274,56 @@ namespace LEX
 
 		using VariableRef = std::reference_wrapper<Variable>;
 
-		Variable& Ref()
+		/*
+		//Maybe use later?
+		template <typename Self>
+		decltype(auto) Ref(this Self&& self) {
+			get_switch(self.index()) {
+			default:
+				report::runtime::critical("RuntimeVariable is undefined and cannot be accessed. (val = {})", switch_value);
+				throw nullptr;
+			case 1:
+				return std::get<Variable>(self);
+			case 2:
+				return std::get<VariableRef>(self);
+			}
+		}
+		/*/
+
+		const Variable& Ref() const
 		{
 			get_switch (index())
 			{
 			default:
-				report::runtime::critical("RuntimeVariable is undefined. (val = {})", switch_value);
-				throw nullptr;
+				report::runtime::critical("RuntimeVariable is undefined and cannot be accessed. (val = {})", switch_value);
 
-			case 1:
+			case kVariable:
 				return std::get<Variable>(*this);
 
-			case 2:
+			case kReference:
 				return std::get<VariableRef>(*this);
+
+			case kDetached:
+				return *std::get<DetachedRef>(*this);
+
+			case kExternal:
+				return std::get<ExternalRef>(*this).Ref();
 			}
 		}
 
+		Variable& Ref()
+		{
+			return const_cast<Variable&>(std::as_const(*this).Ref());
+		}
+		//*/
 
-		RuntimeVariable& AssignRef(RuntimeVariable& other)
+		RuntimeVariable& AssignRef(const RuntimeVariable& other)
 		{
 			_CheckAssign(other);
 	
 			*this = other;
 
 			return *this;
-		}
-
-		RuntimeVariable& AssignRef(RuntimeVariable&& other)
-		{
-			return AssignRef(static_cast<RuntimeVariable&>(other));
 		}
 
 		RuntimeVariable& AssignRef(Variable& other)
@@ -304,6 +341,10 @@ namespace LEX
 
 		RuntimeVariable AsRef()
 		{
+			//Detached RuntimeVariable refs aren't actually RuntimeVariables, so that should be 
+			if (IsUniqueRef() == true)
+				return *this;
+
 			//This function turns this into a reference even if it's not one. IE, it will make a runtime that refers
 			// to this. Long story short, ensures it's passed by ref not val. Use with caution.
 			RuntimeVariable result = std::ref(Ref());
@@ -312,6 +353,31 @@ namespace LEX
 
 			return result;
 		}
+
+		RuntimeVariable&& Detach()
+		{
+			//Takes the Variable inside and moves it to a DetachedReference
+
+
+			if (IsUniqueRef() == false) {
+				Unhandle();//Unsure if this part is needed
+
+				//bool is_ref = IsRuntimeRef();
+
+				//auto& ref = Ref();
+				*this = std::make_shared<Variable>(std::move(Ref()));
+				
+				//I don't think this is necessary, but I'm keeping it alive for now
+				//if (is_ref) {
+					//Here we also need to turn the place it came from into this very thing. This way we're still referencing it.
+					// Note, if this isn't the only reference, it's gonna explode.
+					//reinterpret_cast<RuntimeVariable&>(ref) = *this;
+				//}
+			}
+
+			return std::move(*this);
+		}
+
 
 		size_t index() const
 		{
@@ -327,39 +393,44 @@ namespace LEX
 		}
 
 
+		//TODO: Use ptr instead
+		Variable* operator->() { return &Ref(); }
 
-		Variable* operator->()
-		{
-			if (IsEmpty() == true)
-				report::runtime::critical("RuntimeVariable is undefined, cannot be accessed.");
+		const Variable* operator->() const { return &Ref(); }
 
-			return &Ref();
-		}
+		Variable& operator*() { return Ref(); }
+
+		const Variable& operator*() const { return Ref(); }
 
 
-		Variable& operator*()
-		{
-			if (IsEmpty() == true)
-				report::runtime::critical("RuntimeVariable is undefined, cannot be accessed.");
-
-			return Ref();
-		}
 
 		//Used to use is void, but this checks if the ref is void too.
 		bool IsVoid() { return !index() || Ref().IsVoid(); }
 
 		bool IsEmpty() const { return !index(); }
 
+		bool IsDetachedRef() const { return index() == (int)kDetached; }
+
 
 		bool IsValue() const
 		{
-			return index() == 1;
+			return index() == (int)kVariable;
 		}
 
 
-		bool IsReference() const
+		bool IsRuntimeRef() const
 		{
-			return index() == 2;
+			return index() == (int)kReference;
+		}
+
+		bool IsExternRef() const
+		{
+			return index() == (int)kExternal;
+		}
+
+		bool IsUniqueRef() const
+		{
+			return IsExternRef() || IsDetachedRef();
 		}
 
 		operator Variable()

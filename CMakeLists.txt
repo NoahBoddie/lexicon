@@ -289,7 +289,7 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h")
 
 
 set(sources

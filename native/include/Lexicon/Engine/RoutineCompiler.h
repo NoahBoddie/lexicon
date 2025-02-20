@@ -121,7 +121,7 @@ namespace LEX
 				argCount[1] = argCount[0];
 
 			if (i)
-				GetOperationList().emplace_back(InstructionType::IncrementArgStack, Operand{ i , OperandType::Differ });
+				GetOperationList().emplace_back(InstructionType::ModArgStack, Operand{ i , OperandType::Differ });
 
 			return count;
 		}
@@ -235,7 +235,7 @@ namespace LEX
 				
 				auto& op_list = GetOperationList();
 				
-				op_list.emplace_back(InstructionType::IncrementVarStack, Operand{ inc , OperandType::Differ });
+				op_list.emplace_back(InstructionType::ModVarStack, Operand{ inc , OperandType::Differ });
 				
 
 				if (inc > 0)
@@ -367,13 +367,13 @@ namespace LEX
 		BasicCallableData* _callData = nullptr;
 		
 		ITypePolicy* _targetType = nullptr;
-		//std::unique_ptr<ParameterInfo> __thisInfo;
+		//std::unique_ptr<ParameterInfo> _thisInfo;
 		
 		std::string_view _name;
 
 		size_t GetParamAllocSize() const
 		{
-			return  _callData ? _callData->GetParamAllocSize() : 0;
+			return  _callData ? _callData->GetParamCount() : 0;
 		}
 
 

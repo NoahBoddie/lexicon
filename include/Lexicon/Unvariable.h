@@ -6,7 +6,7 @@ namespace LEX
 {
 
 	template <typename T>
-	struct Unvariable
+	struct Unvariable : public detail::not_implemented
 	{
 
 	};

@@ -178,6 +178,7 @@ namespace LEX
 				//std::copy(_varStack.begin(), _varStack.begin(), args.begin());
 				for (int i = 0; i < args.size(); i++)
 				{
+					//TODO:This aspect should probably be handled by the scripts, copying anything that should be copied instead of just referencing.s
 					_varStack[i] = args[i];
 				}
 			}

@@ -70,6 +70,10 @@ namespace LEX
         Readonly        = 1 << 1, //This is a constant that is baked into the variable. Used for things like literals maybe.
         ExternCreated   = 1 << 2, //likely to be unused, but a left over from the previous flag.
         Defined         = 1 << 3, //Used to read if the value is defined. Generally, this will just be ticked in situations like make object, or assigning a value.
+        Local       = 1 << 4, //Used denote variable as being a variable somewhere in runtime rather than an indeterminate one.
+
+
+        //Actually, to reiterate, I think that temporary should be reversed. Persistent is given to any variable that starts
     };
 
     struct VariableData
@@ -498,6 +502,7 @@ namespace LEX
             return nullptr;
         }
         
+        //Basically rename this to it being a global, cause that's entirely what it's for.
         bool IsPolymorphic() const
         {
             return _value.GetData().IsPolymorphic();
