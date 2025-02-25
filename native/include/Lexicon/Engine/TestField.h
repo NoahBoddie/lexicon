@@ -1508,8 +1508,18 @@ namespace LEX
 
 		struct wrapper_settings// : public nothing
 		{
-			//using nothing::noone;
 		protected:
+			struct jank_ass_idea
+			{
+				jank_ass_idea(wrapper_settings* a_self)
+				{
+					a_self->refState = kActive;
+				}
+			};
+
+
+			//using nothing::noone;
+		
 			enum State
 			{
 				kInactive,	//Cannot create active wrappers or set the current value of refs.
@@ -1587,42 +1597,8 @@ namespace LEX
 
 
 
-		template <typename T1, ref_type T2>//This doesn't super need a second type?
-		struct ref_wrapper : public basic_wrapper<T1>
-		{
-		public:
-			using basic_wrapper<T1>::basic_wrapper;
-
-		public:
-			constexpr static auto Type = T2;
-
-			//It would seem this is useless now
-
-			ref_wrapper(const ref_wrapper& other) : basic_wrapper{other}
-			{
-				//I want to move this into wrapper settings.
-				setOriginal = other.setOriginal;
-				other.setOriginal = false;
-			}
-		protected:
-			
-			ref_wrapper(ref_wrapper&& other) : ref_wrapper{ other } {}
-			ref_wrapper() = default;
-			
-			~ref_wrapper() = default;
-
-			mutable bool setOriginal = false;
-
-
-			T1& pull_ref() const
-			{
-				return *const_cast<ref_wrapper*>(this);
-			}
-		};
-
-
 		template <typename T1, ref_type T2>
-		struct new_ref_wrapper : public basic_wrapper<T1>
+		struct ref_wrapper : public basic_wrapper<T1>
 		{
 			using basic_wrapper<T1>::basic_wrapper;
 
@@ -1637,34 +1613,32 @@ namespace LEX
 			//So small ish problem, I want this to be able to take raw values, rather, I want the instantiable to be able to take raw
 			// values. So the problem is moving the constructor to instantiable, rn.
 
-			struct jank_ass_idea
-			{
-				jank_ass_idea(new_ref_wrapper* a_self)
-				{
-					a_self->_reference = std::ref<T1>(*a_self);
-				}
-			};
 
 
-			new_ref_wrapper() : _reference {std::ref<T1>(*this)}
-			{
-			}
+			ref_wrapper() = default;// : _reference {std::ref<T1>(*this)}{}
 
-			new_ref_wrapper(const std::reference_wrapper<T1>& other) : _reference{ other }
+			ref_wrapper(const std::reference_wrapper<T1>& other) : _reference{ other }
 			{
 				//_reference = std::nullopt;
 			}
 
 
+			/*
+			ref_wrapper(const ref_wrapper& other) requires(!k_maybeRef) = default;
+			ref_wrapper(ref_wrapper&& other) requires(!k_maybeRef) = default;
 
-			new_ref_wrapper(const new_ref_wrapper& other) requires(!k_maybeRef) = default;
-			new_ref_wrapper(new_ref_wrapper&& other) requires(!k_maybeRef) = default;
+			ref_wrapper(const ref_wrapper& other) requires(k_maybeRef) : basic_wrapper{ other }, _reference{ std::nullopt } {}
+			ref_wrapper(ref_wrapper&& other) requires(k_maybeRef) : basic_wrapper{ other }, _reference{ std::nullopt } {}
+			/*/
+			template <ref_type Ty>
+			ref_wrapper(const ref_wrapper<T1, Ty>& other) : basic_wrapper<T1>{ other }, _reference{ get_ref_value() } {}
+			
+			template <ref_type Ty>
+			ref_wrapper(ref_wrapper<T1, Ty>&& other) : basic_wrapper<T1>{ other }, _reference{ get_ref_value() } {}
+			//*/
 
-			new_ref_wrapper(const new_ref_wrapper& other) requires(k_maybeRef) : basic_wrapper{ other }, _reference{ std::nullopt } {}
-			new_ref_wrapper(new_ref_wrapper&& other) requires(k_maybeRef) : basic_wrapper{ other }, _reference{ std::nullopt } {}
 
-
-			~new_ref_wrapper()
+			~ref_wrapper()
 			{
 				if (this->refState == wrapper_settings::kActive) {
 					if (auto ref = reference())
@@ -1689,7 +1663,18 @@ namespace LEX
 				}
 			}
 
-			//new_ref_wrapper(new_ref_wrapper&& other){}
+			ValueType get_ref_value()
+			{
+
+				if constexpr (k_maybeRef) {
+					return std::nullopt;
+				}
+				else {
+					return _reference;
+				}
+			}
+
+			//ref_wrapper(ref_wrapper&& other){}
 
 			ValueType _reference = std::ref<T1>(*this);
 
@@ -1699,17 +1684,17 @@ namespace LEX
 
 		
 		template <typename T1, ref_type T2>
-		struct _complex_wrapper : public new_ref_wrapper<T1, T2>
+		struct complex_wrapper : public ref_wrapper<T1, T2>
 		{
 		private:
-			using Base = new_ref_wrapper<T1, T2>;
-			//using new_ref_wrapper<T1, T2>::new_ref_wrapper;
-			//using new_ref_wrapper<T1, T2>::basic_wrapper;
+			using Base = ref_wrapper<T1, T2>;
+			//using ref_wrapper<T1, T2>::ref_wrapper;
+			//using ref_wrapper<T1, T2>::basic_wrapper;
 		public:
 			//Make it so I don't need 2 versions for this pls.
 			friend struct LEX::TEST_REF;
 			
-			using Self = _complex_wrapper<T1, T2>;
+			using Self = complex_wrapper<T1, T2>;
 
 		public:
 			constexpr static auto Type = T2;
@@ -1719,13 +1704,13 @@ namespace LEX
 			//This solely can be created by a reference of the type T
 
 			//This is what is supposed to handle the reference hand off I believe.
-			_complex_wrapper(T1& other) requires(T2 != ref_type::kMaybeRef) /*: value{other}*/ { logger::info("test"); }//Enable this only if it's not maybe ref
+			complex_wrapper(T1& other) requires(T2 != ref_type::kMaybeRef) /*: value{other}*/ { logger::info("test"); }//Enable this only if it's not maybe ref
 			
 		//*
-		private:
+		protected:
 			template <typename... TArgs>
-			requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, remove_qualifier_t<TArgs>>...>::value)
-			constexpr _complex_wrapper(TArgs&&... args)  
+			requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, std::remove_cvref_t<TArgs>>...>::value)
+			constexpr complex_wrapper(TArgs&&... args)  
 				noexcept(noexcept(Base(std::forward<TArgs...>(args...)))) 
 				requires (T2 != ref_type::kMaybeRef) : Base(std::forward<TArgs...>(args...))
 			{
@@ -1735,36 +1720,52 @@ namespace LEX
 		//*
 		public:
 			template <typename... TArgs>
-				requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, remove_qualifier_t<TArgs>>...>::value)
-			constexpr _complex_wrapper(TArgs&&... args) noexcept(noexcept(Base(std::forward<TArgs...>(args...)))) 
+				requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, std::remove_cvref_t<TArgs>>...>::value)
+			constexpr complex_wrapper(TArgs&&... args) noexcept(noexcept(Base(std::forward<TArgs...>(args...)))) 
 				requires (T2 == ref_type::kMaybeRef) : Base(std::forward<TArgs...>(args...))
-			{}
+			{
+			}
 		//*/
 		
 		public:
 
 
-			_complex_wrapper(const std::reference_wrapper<T1>& other) :
-				new_ref_wrapper{ other }
+			complex_wrapper(const std::reference_wrapper<T1>& other) :
+				Base{ other }
 			{}
 
-			//*
+			/*
 			template<ref_type T> requires(T > Type)
-				_complex_wrapper(const _complex_wrapper<T1, T>& other) : new_ref_wrapper{ other }
+				complex_wrapper(const complex_wrapper<T1, T>& other) : Base{ other }
 			{
 			
 			}
 			//*/
 
+			//*
+			template<std::convertible_to<T1> Tx, ref_type Ty> requires(Ty > Type)
+				complex_wrapper(const complex_wrapper<Tx, Ty>& other) : Base{ other }
+			{
+
+			}
+			//*/
+
 
 			//Basically prohibits scoped from passing to itself, forcing it to be demoted.
-			_complex_wrapper(const _complex_wrapper& other) requires (passable_ref_v<Type>) = default;
-			_complex_wrapper(_complex_wrapper&& other) requires (passable_ref_v<Type>) = default;
-
+			complex_wrapper(const complex_wrapper& other) requires (passable_ref_v<Type>) = default;
+			complex_wrapper(complex_wrapper&& other) requires (passable_ref_v<Type>) = default;
 			
+			//*
+			template<std::convertible_to<T1> Tx>
+			complex_wrapper(const complex_wrapper<Tx, T2>& other) requires (passable_ref_v<Type>) : Base{ other } {};
+			
+			template<std::convertible_to<T1> Tx>
+			complex_wrapper(complex_wrapper<Tx, T2>&& other) requires (passable_ref_v<Type>) : Base{ other } {}
+			//*/
+
 			//NOTE: Want to see if the looks fit
-			_complex_wrapper(const _complex_wrapper& other) = delete;
-			_complex_wrapper(_complex_wrapper&& other) = delete;
+			complex_wrapper(const complex_wrapper& other) = delete;
+			complex_wrapper(complex_wrapper&& other) = delete;
 
 
 
@@ -1775,10 +1776,10 @@ namespace LEX
 
 			//This should be literal and pulls the entire value.
 			//template<ref_type RT>
-			//_complex_wrapper(const _complex_wrapper<T1, RT>& other) : _complex_wrapper{ other.pull_ref() } {}
+			//complex_wrapper(const complex_wrapper<T1, RT>& other) : complex_wrapper{ other.pull_ref() } {}
 
 
-			//_complex_wrapper(const std::reference_wrapper<T1>& other) :
+			//complex_wrapper(const std::reference_wrapper<T1>& other) :
 			//	value{ other }
 			//{}
 			//Note, ONLY construct. Nothing else.
@@ -1793,29 +1794,11 @@ namespace LEX
 			//	ComplexWrapper(complex_wrapper<T, _D>&&) {}
 
 		//protected:
-			~_complex_wrapper() = default;
+			~complex_wrapper() = default;
 		};
 
-
-
-		//The idea I'll use is likely that the basic includes, the ref_wrap includes, the complex has a privated variable constructor,
-		// and the instantiable has a 2 way as well.
-		void TestThis()
-		{
-			using Self = _complex_wrapper<int, kLocalRef>;
-			int testIn = 1;
-
-			//_complex_wrapper<int, kLocalRef> test1 = testIn;
-			_complex_wrapper<int, kLocalRef>* test1 = nullptr;
-			//*_complex_wrapper<int, kMaybeRef> test2 = 1;//constructor destroyed?
-
-			_complex_wrapper<int, kLocalRef> test3a  = *test1;//constructor destroyed?
-			constexpr auto test = !any_true<std::is_base_of_v<wrapper_settings, decltype(test3a)>>::value;
-			//Now that I think of it, this should be allowed no? It would either give you the reference of the maybe ref slot, or it would
-			// give the reference it has stored. But it wouldn't give it to a local.
-			//_complex_wrapper<int, kLocalRef> test4 = test2;
-		}
-
+		template<typename T>
+		struct complex_wrapper<T, kNoRef>;
 
 
 		//These complex wrappers when recieving input mustn't use the value. that much is off limits.
@@ -1823,121 +1806,78 @@ namespace LEX
 		//Both of these should have some derived from business going on here where it can accept reference_wrappers that derive
 		// from the target type.
 
-		template <typename T1, ref_type T2>
-		struct complex_wrapper : public ref_wrapper<T1, T2>
-		{
-			friend struct LEX::TEST_REF;
-
-			template <class... Ts>
-			friend class ::std::tuple;
-
-			using Self = complex_wrapper<T1, T2>;
-
-		public:
-			constexpr static auto Type = T2;
-
-		public:
-			//This solely can be created by a reference of the type T
-
-			complex_wrapper(T1& other) : value{ other } {}
-			
-			complex_wrapper(const std::reference_wrapper<T1>& other) : 
-				value{ other } 
-			{}
-			
-			
-			template<ref_type T> requires(T > Type)
-			complex_wrapper(const complex_wrapper<T1, T>& other) : value{ std::ref(other.pull_ref()) } {}
-			
-			//Basically prohibits scoped from passing to itself, forcing it to be demoted.
-			complex_wrapper(const complex_wrapper<T1, T2>& other) requires (passable_ref_v<Type>) : value{ std::ref(other.pull_ref()) } {}
-			
-			complex_wrapper(const complex_wrapper& other) = delete;
-			//complex_wrapper(complex_wrapper&& other) = delete;
-
-
-
-			//I think this remains deleted
-			//template<int _D>requires(_D > D)
-			//	ComplexWrapper(complex_wrapper<T, _D>&&) {}
-
-		private:
-			~complex_wrapper() = default;
-
-			std::reference_wrapper<T1> value;
-		};
-
-
-		template<typename T>
-		struct complex_wrapper<T, kMaybeRef> : public ref_wrapper<T, kMaybeRef>
-		{
-			friend struct LEX::TEST_REF;
-			
-
-			template <class... Ts>
-			friend class ::std::tuple;
-		public:
-			using ref_wrapper<T, kMaybeRef>::ref_wrapper;
-
-			constexpr static auto Type = kMaybeRef;
-
-		public:
-
-			//This should be literal and pulls the entire value.
-			template<ref_type RT>
-			complex_wrapper(const complex_wrapper<T, RT>& other) : complex_wrapper{ other.pull_ref() } {}
-
-			
-			complex_wrapper(const std::reference_wrapper<T>& other) : 
-				value{ other } 
-			{}
-			//Note, ONLY construct. Nothing else.
-
-
-		private:
-			~complex_wrapper() = default;
-
-
-		private:
-			//DO NOT USE THIS UNLESS YOU KNOW WHAT YOU"RE DOING. 
-			// this member type can be used as a wrapper for regular references, and as such the unique ptr may not be real.
-			// additionally, do not move this
-
-			//Ok actually, nvm.
-
-
-			std::optional<std::reference_wrapper<T>> value = std::nullopt;
-
-
-
-		};
-
-		template<typename T>
-		struct complex_wrapper<T, kNoRef>;
-
 		template <std::derived_from<wrapper_settings> Base_Wrapper>
 		struct instantiable_wrapper : public Base_Wrapper
 		{
 			//The instantiable wrapper should probably take non-reference values.
 		public:
+			using Base = Base_Wrapper;
 			using Self = instantiable_wrapper<Base_Wrapper>;
 			using Base_Wrapper::Base_Wrapper;
-		
-		protected:
-			struct jank_ass_idea
-			{
-				jank_ass_idea(instantiable_wrapper* a_self)
-				{
-					a_self->setOriginal = true;
-				}
-			};
 
-			jank_ass_idea jankness = this;
+			//Make this a macro I can design
+			//template <typename... TArgs>
+			//	requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, std::remove_cvref_t<TArgs>>...>::value)
+			//constexpr complex_wrapper(TArgs&&... args) noexcept(noexcept(Base(std::forward<TArgs...>(args...))))
+			//	requires (T2 == ref_type::kMaybeRef) : Base(std::forward<TArgs...>(args...))
+			//{
+			//}
+
+		protected:
+			//TODO: Put this is wrapper settings, and make it take a setting. I do not want or need multiple versions of this
+			
+			wrapper_settings::jank_ass_idea jankness = this;
 
 		public:
 			//This gives us the ability to create. I unfortunately need to do it like this.
 			~instantiable_wrapper() {}
 		};
+
+		struct base{};
+		struct derived : public base {};
+
+
+		//The idea I'll use is likely that the basic includes, the ref_wrap includes, the complex has a privated variable constructor,
+		// and the instantiable has a 2 way as well.
+		void TestThis()
+		{
+			constexpr bool cont = std::convertible_to<int, int>;
+
+
+			using Self = complex_wrapper<int, kLocalRef>;
+			int testIn = 1;
+
+			complex_wrapper<int, kLocalRef> test1 = testIn;
+			
+			complex_wrapper<int, kMaybeRef> test2 = 1;//constructor destroyed?
+
+			complex_wrapper<int, kLocalRef> test3a  = test1;//constructor destroyed?
+			ref_wrapper<int, kLocalRef> test4{ test1 };
+			//complex_wrapper<int, kLocalRef> test5 = test2;
+			
+			derived* _derived;
+			complex_wrapper<derived*, kLocalRef> base1 = _derived;
+			//complex_wrapper<base, kLocalRef> base2 = _derived;//This should be allowed but it isn't
+			//complex_wrapper<base*, kLocalRef> base3 = base1;//This should also be allowed.
+
+			test1 = test2;
+			//Next I need to set up operator usage
+
+			
+			constexpr auto test = !any_true<std::is_base_of_v<wrapper_settings, decltype(test3a)>>::value;
+			//Now that I think of it, this should be allowed no? It would either give you the reference of the maybe ref slot, or it would
+			// give the reference it has stored. But it wouldn't give it to a local.
+			//complex_wrapper<int, kLocalRef> test4 = test2;
+		}
+
+
+
+
+
+
+
+
+
 
 		template<typename T>
 		struct try_wrap_param
@@ -2149,7 +2089,7 @@ namespace LEX
 
 	struct TEST_REF
 	{
-		static local_ref<int> TestTing(local_ref<int> do_it)
+		static local_ref<int> TestTing(scoped_ref<int> do_it)
 		{
 			return do_it;
 		}
@@ -2163,17 +2103,7 @@ namespace LEX
 			if constexpr (std::derived_from<T, detail::wrapper_settings>)
 			{
 				//maybe I can make a function that does this bit manually
-
-				if constexpr (T::Type == detail::ref_type::kMaybeRef)
-				{
-					//this can maybe not return a null pointer. Needs to do processing there.
-					return nullptr;
-				}
-				else
-				{
-					//This needs to pull the reference instead, thx
-					return std::addressof(value);
-				}
+				return value.reference();
 			}
 			else
 			{
@@ -2353,9 +2283,8 @@ namespace LEX
 			using Type = detail::try_wrap_param_t<const local_ref<int>&>;
 			using TheLook = std::tuple<StaticTargetTag, local_ref<int>&, int&>;
 			using TheCook = std::tuple<StaticTargetTag, detail::try_wrap_param_t<const local_ref<int>&>, int>;
-			int temp1 = 2;
 			
-			TheCook tuple{ StaticTargetTag{}, temp1, 3 };
+			TheCook tuple{ StaticTargetTag{}, 2, 3 };
 			decltype(auto) result = LaunderDispatch(TestRefDispatch, tuple);
 			ValueExport<TheLook>(out, result, tuple, nullptr, front_args);
 		}
