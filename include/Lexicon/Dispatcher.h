@@ -83,7 +83,7 @@ namespace LEX
 
 			if (auto list_size = args.size(); list_size != arg_size) {
 				//Shit isn't the same fucking size I'm losing my mind.
-				throw nullptr;
+				report::apply::error("Dispatch args and expected args do not match.");
 			}
 
 			//typename function_traits<std::remove_pointer_t<decltype(T)>>::arguments args;

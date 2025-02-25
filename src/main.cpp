@@ -280,8 +280,6 @@ void LexTesting(std::string formula)
 
         double a_this = 68.0;
 
-        std::make_unique<int>();
-        
         Variable result = function->Call(Default{ 5 }, extern_ref(a_this), 1.0, 2.0, 3.0, 4.0, 5.0);
 
         std::string number = result.AsNumber().string();

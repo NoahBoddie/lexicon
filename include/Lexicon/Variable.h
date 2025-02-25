@@ -650,7 +650,7 @@ namespace LEX
         //Assign is kinda rough, for starters, it needs something to exist to work. Second, I'm not 100% sure where it would actually be used.
         // I guess it would be used in situation where I need to guard a given variable. Thus, if I'm working with RuntimeVariables, and I'm NOT
         // intending on setting 
-        Variable& Assign(Variable& other)
+        Variable& Assign(const Variable& other)
         {
             if (_type)
                 CheckAssign(LEX::GetVariableType(other));
@@ -666,20 +666,16 @@ namespace LEX
             _SetChanged(true);
 
             
-
+            
             return *this;
         }
-
-        Variable& Assign(Variable&& other)
-        {
-            return Assign(other);
-        }
-
+        
+        //TODO: Conversion the non-variable assign with an AssignImpl function
         template <Constructible<VariableComponent> T>
-        Variable& Assign(T&& other)
+        Variable& Assign(const T& other)
         {
             if (_type)
-                CheckAssign(GetValueType(other));
+                CheckAssign(LEX::GetVariableType(other));
            
             _value = other;
             

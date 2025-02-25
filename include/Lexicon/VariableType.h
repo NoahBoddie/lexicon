@@ -393,6 +393,7 @@ namespace LEX
 		}
 	};
 
+	//TODO:I'd like to make whatever this is seen as variable, definable via macro or something like that. Perhaps through settings.
 	struct StaticTargetTag {};
 
 	template <>

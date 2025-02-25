@@ -225,6 +225,11 @@ namespace LEX
 		size_t _asp{ 0 };		//Argument StackPointer, denotes the current size of the argument stack. A function exiting with it !0 should crash.
 		size_t _rsp{ 0 };		//Runtime Stack Pointer, denotes the index at which the runtime is currently. If exceeds the operation count it should crash
 
+		//This will help check if something was stack allocated, and if that stack allocated 
+		// object is being passed by reference some place it shouldn't be.
+		// Expand on when references become more important, as well as give it a fancy type to aide its struggles
+		void* _cxxStackIndex = nullptr;
+
 
 		size_t AdjustStackPointer(StackPointer type, int64_t step)
 		{
@@ -391,8 +396,11 @@ namespace LEX
 		}
 
 		//TODO:Make a static function do Run and construct, no need to wait right? Doing so means I can also make a function called "Test"
-		RuntimeVariable Run()
+		RuntimeVariable Run(bool temp = false)
 		{
+			//TODO: An object to manage this would be great
+			_cxxStackIndex = &temp;
+
 			report _{ IssueType::Runtime };
 
 			size_t _limit = _data.GetOperativeCapacity();
@@ -440,6 +448,9 @@ namespace LEX
 
 				_rsp = max_value<size_t>;
 			}
+			
+			//Handle garbage stack protection shit right here please.
+			_cxxStackIndex = nullptr;
 
 			//TODO: As is, this can possibly return garbage. This is a behaviour that needs to be curbed.
 
@@ -463,6 +474,9 @@ namespace LEX
 			return _registers[Register::Reg0];
 			//*/
 		}
+
+
+
 
 		//THIS is the gist of what I'd like.
 		static RuntimeVariable Run(ICallableUnit* unit, container<RuntimeVariable> args, Runtime* from = nullptr)

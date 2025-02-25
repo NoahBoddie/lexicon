@@ -43,7 +43,8 @@ namespace LEX
 			None	= 0,
 			Init	= 1 << 0,
 			Refr	= 1 << 1,
-			Free	= 1 << 2,	//A given runtime variable has freed its index but retains a pointer.
+			Ptr		= 1 << 2,	//Should establish a pointer ref, and needs no ref value. Best used when it's unknown if var is a RuntimeVariable
+			Free	= 1 << 3,	//A given runtime variable has freed its index but retains a pointer.
 		};
 
 		enum Type
@@ -91,6 +92,11 @@ namespace LEX
 			return GetValue().index();
 		}
 
+		bool IsReference() const
+		{
+			return index() == (int)kReference;
+		}
+
 
 		const RunDataHelper* GetRefHelper() const
 		{
@@ -122,7 +128,9 @@ namespace LEX
 		}
 
 
-		protected:
+	protected:
+
+		
 
 		auto Inc() const
 		{
@@ -136,11 +144,32 @@ namespace LEX
 			return --GetData().refs;
 		}
 
+		bool IsRefNegated() const
+		{
+			return index() == kReference && Refs();
+		}
+		private:
+		void SetNegate(bool value) const 
+		{
+			GetData().refs = value ? -1 : 0;
+		}
+
+	protected:
+
+		void TrySetNegated(bool value) const
+		{
+			if (index() == kReference)
+			{
+				SetNegate(value);
+			}
+		}
+
 		void Unhandle()
 		{
 			if (index() == kReference)
 			{
-				GetRefHelper()->Dec();
+				if (!Refs())
+					GetRefHelper()->Dec();
 			}
 			else if (index() == kVariable)
 			{
@@ -152,14 +181,14 @@ namespace LEX
 		
 		void Handle(const RunDataHelper* other, Flag flags = Flag::None)
 		{
-			if (flags & Flag::Init) {
+			if (IsReference() || flags & Flag::Init) {
 				GetData().refs = 0;
 			}
 			if (other && (flags & Flag::Refr || other->index() == kReference))
 			{
 				//auto* help = other->GetRefHelper();
-
-				other->GetRefHelper()->Inc();
+				if (!other->IsRefNegated())
+					other->GetRefHelper()->Inc();
 			}
 			
 
@@ -175,10 +204,10 @@ namespace LEX
 		public:
 
 
-			int32_t Refs() const
-			{
-				return GetData().refs;
-			}
+		int32_t Refs() const
+		{
+			return GetData().refs;
+		}
 
 
 		
@@ -265,6 +294,24 @@ namespace LEX
 
 
 	public:
+
+		static RuntimeVariable CreateTempRef(Variable* var)
+		{
+			if (!var)
+				report::fault::critical("Variable for temporary ref is null");
+
+			RuntimeVariable result = std::ref(*var);
+
+			result.TrySetNegated(true);
+
+			return result;
+		}
+
+		static RuntimeVariable CreateTempRef(Variable& var)
+		{
+			return CreateTempRef(&var);
+		}
+
 
 
 		~RuntimeVariable()

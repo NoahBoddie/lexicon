@@ -1361,12 +1361,1226 @@ namespace LEX
 }
 
 
+struct MOV
+{
+
+	friend class REC;
+	int a = 1;
+	
+	MOV(const MOV&) = default;
+private:
+	MOV() = default;
+	MOV(MOV&&) = default;
+	~MOV() = default;
+	//MOV& operator=(const MOV&) = delete;
+	//MOV& operator=(MOV&&) = delete;
+};
+
+
+
+
+namespace std
+{
+	//Thinking of specialing this in such a way that I redirect what would be returned from this.
+	//_EXPORT_STD template <class _Ty>
+	_NODISCARD _CONSTEXPR20 std::reference_wrapper<int> ref(MOV& _Val) noexcept {
+		return std::reference_wrapper<int>(_Val.a);
+	}
+}
+
+
+
+MOV funcMOV(MOV& test1)
+{
+	//equals should only work on the non-reference part of stuff when it comes to the equals operator maybe?
+	//Wrong, I just want the move to not include the reference part.
+	//I need both to exist. If it's being done via reference, no pointer. If I'm moving I want to be transfering the pointer.
+	
+	//Thinking about it, I think when this takes a copy, it gets the location. Basically, the creation of this function should really only be given
+	// to dispatch. The ability to 
+
+
+	//WAIT, I DON'T NEED MOVE. THIS SHOULD NEVER EXIST IN ANY NORMAL CAPACITY
+	//The problem is, a deleted copy constructor is what I'm looking to get rid of in this situation, as it prevents copying.
+	//I think to solve this, a friendship to a handler like dispatch would be functional, and to prevent it from ever being copied, it wild
+
+
+	//MOV test1 = MOV{};
+	//MOV test2;// = test1;
+
+	//By rerouting this and using ref like this, it will turn the reference into a reference_wrapper through reinterpret_casting
+	// all in all boil it down like this. In a parameter in a dispatched, the reference is to never be trusted. As a variable, it however can be.
+
+
+	//dispatch could also probably use a friend function or something like that. As soon as I figure out how to set it the fuck up.
+	//std::reference_wrapper<int> t3 = std::ref(test2);
+	return test1;
+	//return test2;
+	//return MOV{};
+}
+
+void funcMOV2(MOV test)
+{
+
+}
+
+void funcOTHER()
+{
+	//funcMOV2({});
+}
+
+struct REC
+{
+	void Test()
+	{
+		funcMOV2({});
+		MOV t1{};
+
+		MOV t2 = funcMOV(t2);
+	}
+};
+
 namespace LEX
 {
 
+
+	struct test_proxy
+	{
+		int value;
+
+
+		operator int()
+		{
+			return value;
+		}
+
+		test_proxy() = default;
+
+		test_proxy(int v) : value{ v } {}
+		test_proxy& operator=(int v)
+		{
+			value = v;
+			return *this;
+		}
+	};
+
+	//This is the ideal
+	class intWrapper {
+	private:
+		int val;
+	public:
+		intWrapper(int val = 0) : val(val) {}
+		operator int& () { return val; }
+		int* operator &() { return &val; }
+	};
+	//Or this
+
+	struct TEST_REF;
+	//*
+	namespace detail
+	{
+		enum ref_type
+		{
+			kNoRef,
+			kMaybeRef,
+			kLocalRef,
+			kScopeRef,
+			kGlobalRef,
+		};
+
+		template <ref_type T>
+		struct passable_ref : public std::bool_constant<true> {};
+		
+		template <>
+		struct passable_ref<kScopeRef> : public std::bool_constant<false> {};
+	
+
+
+		template <ref_type T>
+		constexpr bool passable_ref_v = passable_ref<T>::value;
+
+		template <typename T>
+		concept primitive = std::is_scalar_v<T>;
+
+		//struct noone {};
+
+		//struct nothing : public noone {};
+
+		struct wrapper_settings// : public nothing
+		{
+			//using nothing::noone;
+		protected:
+			enum State
+			{
+				kInactive,	//Cannot create active wrappers or set the current value of refs.
+				kActive,	//While active it can set its reference to its current value but it cannot make more active wrappers
+				kTransmit,	//While transmitting, it makes active wrappers, but cannot be active itself.
+			};
+
+		public:
+			wrapper_settings() = default;
+			wrapper_settings(const wrapper_settings& other)
+			{
+				refState = other.refState;
+				Demote();
+			}
+			wrapper_settings(wrapper_settings&& other)
+			{
+				refState = other.refState;
+				Demote();
+			}
+
+		protected:
+			void Demote()
+			{
+				switch (refState)
+				{
+				case kTransmit:
+					refState = kActive;
+					break;
+				case kActive:
+					refState = kInactive;
+				}
+			}
+
+		
+			State refState = kInactive;
+		
+		};
+
+		template <typename T, typename = void>
+		struct basic_wrapper : public T, public wrapper_settings
+		{
+		public:
+			using Elem = T;
+
+		public:
+			using T::T;
+
+			//Break this down into 2 parts, the basic wrapper will be both primitive and complex. This one with the auto template param
+			// will be what handles different reference types.
+
+			basic_wrapper(const T& other) : T{ other } {}
+			basic_wrapper(T&& other) : T{ other } {}
+
+			//This system is how I could possibly handle the situation of preventing certain types fall into certain hands.
+			basic_wrapper() = default;//This is required if I do the below
+		};
+
+
+		template <primitive T>
+		struct basic_wrapper <T> : public wrapper_settings
+		{
+		public:
+			using Elem = T;
+
+		private:
+			T _value{};
+
+		public:
+			basic_wrapper() = default;
+			basic_wrapper(const T& val) : _value(val) {}
+			basic_wrapper(T&& val) : _value(val) {}
+			constexpr operator T& () { return _value; }
+			constexpr T* operator &() { return &_value; }
+		};
+
+
+
+		template <typename T1, ref_type T2>//This doesn't super need a second type?
+		struct ref_wrapper : public basic_wrapper<T1>
+		{
+		public:
+			using basic_wrapper<T1>::basic_wrapper;
+
+		public:
+			constexpr static auto Type = T2;
+
+			//It would seem this is useless now
+
+			ref_wrapper(const ref_wrapper& other) : basic_wrapper{other}
+			{
+				//I want to move this into wrapper settings.
+				setOriginal = other.setOriginal;
+				other.setOriginal = false;
+			}
+		protected:
+			
+			ref_wrapper(ref_wrapper&& other) : ref_wrapper{ other } {}
+			ref_wrapper() = default;
+			
+			~ref_wrapper() = default;
+
+			mutable bool setOriginal = false;
+
+
+			T1& pull_ref() const
+			{
+				return *const_cast<ref_wrapper*>(this);
+			}
+		};
+
+
+		template <typename T1, ref_type T2>
+		struct new_ref_wrapper : public basic_wrapper<T1>
+		{
+			using basic_wrapper<T1>::basic_wrapper;
+
+
+			static constexpr bool k_maybeRef = T2 == ref_type::kMaybeRef;
+			using Refr = std::reference_wrapper<T1>;
+			using ValueType = std::conditional_t<k_maybeRef, std::optional<Refr>, Refr>;
+			//The idea of this object is effectively unifying the ValueTypes into one, as well as having the function that pulls them
+			// united into one. As well as the function that moves them uniting into one.
+
+
+			//So small ish problem, I want this to be able to take raw values, rather, I want the instantiable to be able to take raw
+			// values. So the problem is moving the constructor to instantiable, rn.
+
+			struct jank_ass_idea
+			{
+				jank_ass_idea(new_ref_wrapper* a_self)
+				{
+					a_self->_reference = std::ref<T1>(*a_self);
+				}
+			};
+
+
+			new_ref_wrapper() : _reference {std::ref<T1>(*this)}
+			{
+			}
+
+			new_ref_wrapper(const std::reference_wrapper<T1>& other) : _reference{ other }
+			{
+				//_reference = std::nullopt;
+			}
+
+
+
+			new_ref_wrapper(const new_ref_wrapper& other) requires(!k_maybeRef) = default;
+			new_ref_wrapper(new_ref_wrapper&& other) requires(!k_maybeRef) = default;
+
+			new_ref_wrapper(const new_ref_wrapper& other) requires(k_maybeRef) : basic_wrapper{ other }, _reference{ std::nullopt } {}
+			new_ref_wrapper(new_ref_wrapper&& other) requires(k_maybeRef) : basic_wrapper{ other }, _reference{ std::nullopt } {}
+
+
+			~new_ref_wrapper()
+			{
+				if (this->refState == wrapper_settings::kActive) {
+					if (auto ref = reference())
+					{
+						*ref = *this;
+					}
+					
+				}
+			}
+		protected:
+			T1* reference()
+			{
+
+				if constexpr (k_maybeRef){
+					if (!_reference)
+						return nullptr;
+
+					return std::addressof(_reference->get());
+				}
+				else{
+					return std::addressof(_reference.get());
+				}
+			}
+
+			//new_ref_wrapper(new_ref_wrapper&& other){}
+
+			ValueType _reference = std::ref<T1>(*this);
+
+			//jank_ass_idea _jank = this;
+
+		};
+
+		
+		template <typename T1, ref_type T2>
+		struct _complex_wrapper : public new_ref_wrapper<T1, T2>
+		{
+		private:
+			using Base = new_ref_wrapper<T1, T2>;
+			//using new_ref_wrapper<T1, T2>::new_ref_wrapper;
+			//using new_ref_wrapper<T1, T2>::basic_wrapper;
+		public:
+			//Make it so I don't need 2 versions for this pls.
+			friend struct LEX::TEST_REF;
+			
+			using Self = _complex_wrapper<T1, T2>;
+
+		public:
+			constexpr static auto Type = T2;
+
+		public:
+			
+			//This solely can be created by a reference of the type T
+
+			//This is what is supposed to handle the reference hand off I believe.
+			_complex_wrapper(T1& other) requires(T2 != ref_type::kMaybeRef) /*: value{other}*/ { logger::info("test"); }//Enable this only if it's not maybe ref
+			
+		//*
+		private:
+			template <typename... TArgs>
+			requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, remove_qualifier_t<TArgs>>...>::value)
+			constexpr _complex_wrapper(TArgs&&... args)  
+				noexcept(noexcept(Base(std::forward<TArgs...>(args...)))) 
+				requires (T2 != ref_type::kMaybeRef) : Base(std::forward<TArgs...>(args...))
+			{
+			}
+		//*/
+
+		//*
+		public:
+			template <typename... TArgs>
+				requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, remove_qualifier_t<TArgs>>...>::value)
+			constexpr _complex_wrapper(TArgs&&... args) noexcept(noexcept(Base(std::forward<TArgs...>(args...)))) 
+				requires (T2 == ref_type::kMaybeRef) : Base(std::forward<TArgs...>(args...))
+			{}
+		//*/
+		
+		public:
+
+
+			_complex_wrapper(const std::reference_wrapper<T1>& other) :
+				new_ref_wrapper{ other }
+			{}
+
+			//*
+			template<ref_type T> requires(T > Type)
+				_complex_wrapper(const _complex_wrapper<T1, T>& other) : new_ref_wrapper{ other }
+			{
+			
+			}
+			//*/
+
+
+			//Basically prohibits scoped from passing to itself, forcing it to be demoted.
+			_complex_wrapper(const _complex_wrapper& other) requires (passable_ref_v<Type>) = default;
+			_complex_wrapper(_complex_wrapper&& other) requires (passable_ref_v<Type>) = default;
+
+			
+			//NOTE: Want to see if the looks fit
+			_complex_wrapper(const _complex_wrapper& other) = delete;
+			_complex_wrapper(_complex_wrapper&& other) = delete;
+
+
+
+
+
+
+
+
+			//This should be literal and pulls the entire value.
+			//template<ref_type RT>
+			//_complex_wrapper(const _complex_wrapper<T1, RT>& other) : _complex_wrapper{ other.pull_ref() } {}
+
+
+			//_complex_wrapper(const std::reference_wrapper<T1>& other) :
+			//	value{ other }
+			//{}
+			//Note, ONLY construct. Nothing else.
+
+
+
+
+
+
+			//I think this remains deleted
+			//template<int _D>requires(_D > D)
+			//	ComplexWrapper(complex_wrapper<T, _D>&&) {}
+
+		//protected:
+			~_complex_wrapper() = default;
+		};
+
+
+
+		//The idea I'll use is likely that the basic includes, the ref_wrap includes, the complex has a privated variable constructor,
+		// and the instantiable has a 2 way as well.
+		void TestThis()
+		{
+			using Self = _complex_wrapper<int, kLocalRef>;
+			int testIn = 1;
+
+			//_complex_wrapper<int, kLocalRef> test1 = testIn;
+			_complex_wrapper<int, kLocalRef>* test1 = nullptr;
+			//*_complex_wrapper<int, kMaybeRef> test2 = 1;//constructor destroyed?
+
+			_complex_wrapper<int, kLocalRef> test3a  = *test1;//constructor destroyed?
+			constexpr auto test = !any_true<std::is_base_of_v<wrapper_settings, decltype(test3a)>>::value;
+			//Now that I think of it, this should be allowed no? It would either give you the reference of the maybe ref slot, or it would
+			// give the reference it has stored. But it wouldn't give it to a local.
+			//_complex_wrapper<int, kLocalRef> test4 = test2;
+		}
+
+
+
+		//These complex wrappers when recieving input mustn't use the value. that much is off limits.
+
+		//Both of these should have some derived from business going on here where it can accept reference_wrappers that derive
+		// from the target type.
+
+		template <typename T1, ref_type T2>
+		struct complex_wrapper : public ref_wrapper<T1, T2>
+		{
+			friend struct LEX::TEST_REF;
+
+			template <class... Ts>
+			friend class ::std::tuple;
+
+			using Self = complex_wrapper<T1, T2>;
+
+		public:
+			constexpr static auto Type = T2;
+
+		public:
+			//This solely can be created by a reference of the type T
+
+			complex_wrapper(T1& other) : value{ other } {}
+			
+			complex_wrapper(const std::reference_wrapper<T1>& other) : 
+				value{ other } 
+			{}
+			
+			
+			template<ref_type T> requires(T > Type)
+			complex_wrapper(const complex_wrapper<T1, T>& other) : value{ std::ref(other.pull_ref()) } {}
+			
+			//Basically prohibits scoped from passing to itself, forcing it to be demoted.
+			complex_wrapper(const complex_wrapper<T1, T2>& other) requires (passable_ref_v<Type>) : value{ std::ref(other.pull_ref()) } {}
+			
+			complex_wrapper(const complex_wrapper& other) = delete;
+			//complex_wrapper(complex_wrapper&& other) = delete;
+
+
+
+			//I think this remains deleted
+			//template<int _D>requires(_D > D)
+			//	ComplexWrapper(complex_wrapper<T, _D>&&) {}
+
+		private:
+			~complex_wrapper() = default;
+
+			std::reference_wrapper<T1> value;
+		};
+
+
+		template<typename T>
+		struct complex_wrapper<T, kMaybeRef> : public ref_wrapper<T, kMaybeRef>
+		{
+			friend struct LEX::TEST_REF;
+			
+
+			template <class... Ts>
+			friend class ::std::tuple;
+		public:
+			using ref_wrapper<T, kMaybeRef>::ref_wrapper;
+
+			constexpr static auto Type = kMaybeRef;
+
+		public:
+
+			//This should be literal and pulls the entire value.
+			template<ref_type RT>
+			complex_wrapper(const complex_wrapper<T, RT>& other) : complex_wrapper{ other.pull_ref() } {}
+
+			
+			complex_wrapper(const std::reference_wrapper<T>& other) : 
+				value{ other } 
+			{}
+			//Note, ONLY construct. Nothing else.
+
+
+		private:
+			~complex_wrapper() = default;
+
+
+		private:
+			//DO NOT USE THIS UNLESS YOU KNOW WHAT YOU"RE DOING. 
+			// this member type can be used as a wrapper for regular references, and as such the unique ptr may not be real.
+			// additionally, do not move this
+
+			//Ok actually, nvm.
+
+
+			std::optional<std::reference_wrapper<T>> value = std::nullopt;
+
+
+
+		};
+
+		template<typename T>
+		struct complex_wrapper<T, kNoRef>;
+
+		template <std::derived_from<wrapper_settings> Base_Wrapper>
+		struct instantiable_wrapper : public Base_Wrapper
+		{
+			//The instantiable wrapper should probably take non-reference values.
+		public:
+			using Self = instantiable_wrapper<Base_Wrapper>;
+			using Base_Wrapper::Base_Wrapper;
+		
+		protected:
+			struct jank_ass_idea
+			{
+				jank_ass_idea(instantiable_wrapper* a_self)
+				{
+					a_self->setOriginal = true;
+				}
+			};
+
+			jank_ass_idea jankness = this;
+
+		public:
+			//This gives us the ability to create. I unfortunately need to do it like this.
+			~instantiable_wrapper() {}
+		};
+
+		template<typename T>
+		struct try_wrap_param
+		{
+			using type = T;
+		};
+
+		template<std::derived_from<wrapper_settings> T>
+		struct try_wrap_param<T>
+		{
+			using type = instantiable_wrapper<T>;
+		};
+
+		template<typename T>
+		struct try_wrap_param<T&> : public try_wrap_param<T> {};
+
+		template<typename T>
+		struct try_wrap_param<T&&> : public try_wrap_param<T> {};
+
+		template<typename T>
+		using try_wrap_param_t = try_wrap_param<T>::type;
+
+
+
+
+		template<typename T>
+		struct simplify_wrapper
+		{
+			using type = T;
+		};
+
+		template<std::derived_from<wrapper_settings> T>
+		struct simplify_wrapper<T>
+		{
+			using type = T::Elem;
+		};
+
+
+
+		template<typename T>
+		using simplify_wrapper_t = simplify_wrapper<T>::type;
+		
+
+		template<typename T, bool Ret>
+		struct reference_type
+		{
+			static constexpr auto value = kNoRef;
+		};
+
+
+		template<std::derived_from<wrapper_settings> T, bool Ret>
+		struct reference_type<T, Ret>
+		{
+			static constexpr auto value = T::Type;
+		};
+
+		//Here's what I could do instead. Remove the reference and try to get the reference type, then comparre
+		template<typename T, bool Ret>
+		struct reference_type<T&, Ret>
+		{
+		private:
+			using Type = std::remove_reference_t<T>;
+			static constexpr auto _underlying = reference_type<Type, Ret>::value;
+		
+		public:
+
+			static constexpr auto value = _underlying != kNoRef ? 
+				_underlying : Ret ? 
+				kLocalRef : kScopeRef;
+		};
+
+		template<typename T, bool Ret>
+		struct reference_type<T&&, Ret> : public reference_type<T&, Ret> {};
+
+		//template<typename T, bool Ret>
+		//struct reference_type<const T, Ret> : reference_type<T> {};
+
+
+		template<typename T, bool Ret>
+		constexpr auto reference_type_v = reference_type<T, Ret>::value;
+
+		constexpr auto TVal = reference_type_v<complex_wrapper<int, kGlobalRef>&&, false>;
+	}
+	//*/
+}
+
+namespace std
+{
+	//Thinking of specialing this in such a way that I redirect what would be returned from this.
+	//_EXPORT_STD template <class _Ty>
+	//_NODISCARD _CONSTEXPR20 std::reference_wrapper<int> ref(MOV& _Val) noexcept {
+	//	return std::reference_wrapper<int>(_Val.a);
+	//}
+
+	//This may only be required for maybe ref
+	template <typename T1, LEX::detail::ref_type T2>
+	std::reference_wrapper<T1> ref(LEX::detail::complex_wrapper<T1, T2>& _Val) noexcept {
+		return std::reference_wrapper<T1>(_Val);
+	}
+}
+
+namespace LEX
+{
+
+	template <class T>
+	class PrimitiveWrapper {
+	private:
+		T val{};
+
+	public:
+		PrimitiveWrapper() = default;
+		PrimitiveWrapper(T val) : val(val) {}
+		operator T& () { return val; }
+		T* operator &() { return &val; }
+
+		PrimitiveWrapper(const PrimitiveWrapper&) = delete;
+		PrimitiveWrapper(PrimitiveWrapper&&) = delete;
+	};
+
+
+	
+	template <typename T>
+	class RefRetWrapper : public T
+	{
+		//If this was given a ref, it will be sent via a wrapper. If not, it will come empty. The ability to inspect this wrapper
+		// will be determined elsewhere. Copies of this type will not be allowed to be made, however of other times, yes
+
+		//Also notable is, the clean up function will move what's in T into what's in value. I don't like this however, it may lead to creation.
+		// instead, and this is a dangerous idea, I cast a reference to this ref wrapper. Ensuring it will never copy over will prevent it from having issues
+		// and making sure that the reference is NEVER able to be friended by anything will allow for us to have a reference going when it isn't a reference.
+		// It's kinda UB, but I think it'll still work if I put proper guards in place.
+
+	public:
+		using T::T;
+
+
+
+		std::optional<std::reference_wrapper<T>> value = std::nullopt;
+		RefRetWrapper() = default;
+
+		//Note, ONLY construct. Nothing else.
+		RefRetWrapper(const std::reference_wrapper<T>& other) {}
+	
+		RefRetWrapper(const RefRetWrapper&) = delete;
+		RefRetWrapper(RefRetWrapper&&) = delete;
+	};
+
+	template <typename T, int D = 0>
+	class ComplexWrapper : public T
+	{
+	public:
+		using T::T;
+
+		//Break this down into 2 parts, the basic wrapper will be both primitive and complex. This one with the auto template param
+		// will be what handles different reference types.
+		
+		ComplexWrapper(const T& other) : T{ other } {}
+		ComplexWrapper(T&& other) : T{ other } {}
+
+		//This system is how I could possibly handle the situation of preventing certain types fall into certain hands.
+		ComplexWrapper() = default;//This is required if I do the below
+		template<int _D>requires(_D > D)
+		ComplexWrapper(const ComplexWrapper<T, _D>&) {}
+		template<int _D>requires(_D > D)
+		ComplexWrapper(ComplexWrapper<T, _D>&&) {}
+
+		ComplexWrapper(const ComplexWrapper&) = delete;
+		ComplexWrapper(ComplexWrapper&&) = delete;
+	};
+	
+	//The idea of these type traits is that they'll help represent what they should represent. So for example, 
+	// local ref here will have it's type trait give an rvalue reference, so whatever's being used can
+	template <typename T>
+	using maybe_ref = detail::complex_wrapper<T, detail::ref_type::kMaybeRef>;
+
+	template <typename T>
+	using local_ref = detail::complex_wrapper<T, detail::ref_type::kLocalRef>;
+
+	template <typename T>
+	using scoped_ref = detail::complex_wrapper<T, detail::ref_type::kScopeRef>;
+
+	template <typename T>
+	using global_ref = detail::complex_wrapper<T, detail::ref_type::kGlobalRef>;
+
+
+
+	template <typename T>
+	struct ref_type_trait;
+
+	int& function(int t)
+	{
+		std::vector<int> m{ 1, 23, 4, 5, 6 };
+		return m[1];
+
+		//static int v = 5;
+		//return v;
+		//So when using a function like this as a procedure, it will check the address of the returned against the addresses of all the 
+		// entries in the tuple, if it matches no entries in the tuple, and/or falls within a range
+		
+		
+		//Some notice should be given, I think I'll largely make it ill advised to use such a thing.
+		
+		return t;
+
+		
+	}
+
+	int idiot1;
+
+	struct TEST_REF
+	{
+		static local_ref<int> TestTing(local_ref<int> do_it)
+		{
+			return do_it;
+		}
+
+
+
+
+		template <typename T>
+		void* PointerGetto(const T& value)
+		{
+			if constexpr (std::derived_from<T, detail::wrapper_settings>)
+			{
+				//maybe I can make a function that does this bit manually
+
+				if constexpr (T::Type == detail::ref_type::kMaybeRef)
+				{
+					//this can maybe not return a null pointer. Needs to do processing there.
+					return nullptr;
+				}
+				else
+				{
+					//This needs to pull the reference instead, thx
+					return std::addressof(value);
+				}
+			}
+			else
+			{
+				return std::addressof(value);
+			}
+		}
+
+		template <class TParam, class TResult, typename TArgs, size_t I = 0>
+		static void ValueExport(RuntimeVariable& out, TResult& result, TArgs& tuple, Variable* target, std::vector<Variable*>& args)
+		{
+			/*
+
+			Export proceedings
+			Preparing: We'll need the original parameters of the given function to know what we should really do, so template will be a tuple of the raw types,
+			 he return type or NI for void, and the argument types for the tuple to be loaded. And of course the loading index.
+			The actual parameters are the ReturnType, should be a reference maybe?, the RuntimeVariable for return (so no move has to take place and better for NI too),
+			 the args given, and the VariableArray. Note, maybe that should be using a ref_wrapper instead.
+
+
+			For each step, there's a simple question, is this a referencable type? First we check it to be one of the types plainly (this is genuinely more important),
+			 then we check if it's a reference. If either is true, we dereference the variable and stick it into that. If not no activation is handled here.
+
+			Second application. If the return runvar is empty and if the proposed pointer (this will need a dedicated function too) from the return value (if it has one,
+			 if it doesn't it will be null) is equal to the current step, put the coresponding variable pointer into a closed RuntimeVariable.
+			 This bit too requires the queries in the first actually.
+
+			*Actually I just realized it's also going to care about what the return type is too. I'll be including that in the tuple as well.
+			 Third application, go next.
+
+			When we finally reach the end, what should we do?
+
+			Probably handle raw returns. There are a few situations to account for, but at the very least, we know that it isn't ever going to be one of the parameters,
+			 which means it must have come from the outside.
+
+			So if the param return type is a reference (same rules as before) and is currently holding a reference, it creates an extern ref,
+			 but not before making a check to make sure it follows the rules of engagement.
+
+			Local must not be before this stack, and if Global must not be from any stack that the runtimes hold.
+
+			If either not a pointer type or not holding a reference, we send it back with as a regular filled variable.
+
+			Of course, if the return type is not_implemented, none of this will occur. This being the literal return type rather than the stored one,
+			 but either could work.
+
+			//*/
+
+			using RetElem = std::tuple_element_t<0, TParam>;
+			using FocusElem = std::tuple_element_t<1, TParam>;
+
+			constexpr auto k_ret_type = detail::reference_type_v<RetElem, true>;
+
+			constexpr auto k_ignore_ret = std::is_same_v<detail::not_implemented, TResult>;
+
+
+
+			if constexpr (I < std::tuple_size_v<TArgs>) {
+				using ElemO = std::tuple_element_t<I, TArgs>;
+				using Elem = std::tuple_element_t<I, TParam>;
+				using ElemArg = std::tuple_element_t<I, TArgs>;
+
+				constexpr auto k_param_type = detail::reference_type_v<Elem, false>;
+
+
+				//For each step, there's a simple question, is this a referencable type? First we check it to be one of the types plainly 
+				// (this is genuinely more important), 
+				// then we check if it's a reference. If either is true, we dereference the variable and stick it into that. If not no activation is handled here.
+
+
+				if constexpr (!std::is_same_v<StaticTargetTag, Elem>)//This should use args
+				{
+					if constexpr (k_param_type != detail::ref_type::kNoRef)
+					{
+						Variable* arg;
+						
+						if constexpr (I)
+							arg = args[I - 1];
+						else
+							arg = target;
+						
+						if (arg)
+						{
+							auto& entry = std::get<I>(tuple);
+
+							//Needs to check for const before doing this.
+							//TODO: Make this another move, I don't need what we got here.
+							arg->Assign(static_cast<detail::simplify_wrapper_t<ElemArg>&>(entry));
+
+
+							if constexpr (!k_ignore_ret && k_ret_type != detail::ref_type::kNoRef)
+							{
+								if (!out.IsEmpty() && PointerGetto(result) == std::addressof(entry))
+								{
+									out = RuntimeVariable::CreateTempRef(*arg);
+								}
+							}
+						}
+						
+					}
+				}
+
+				ValueExport<TParam, TResult, TArgs, I + 1>(out, result, tuple, target, args);
+			}
+			else if constexpr (!k_ignore_ret && I == std::tuple_size_v<TArgs>)
+			{
+
+				if constexpr (k_ret_type != detail::ref_type::kNoRef)
+				{
+					bool local_check = 1;
+					bool global_check = 1;
+
+					void* ptr = PointerGetto(result);
+
+					//Do checks right here.
+
+					if (ptr) {//This check first accounts for maybe ref btw, important.
+						out = extern_ref(*reinterpret_cast<detail::simplify_wrapper_t<TResult>*>(ptr));
+						return;
+					}
+
+					//This doesn't work like this, I know this. However
+					//
+
+
+					//out = RuntimeVariable::CreateTempRef(*arg);
+				}
+
+				if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
+				{
+					out = Variable{ result, GetVariableType<RetElem>() };
+				}
+
+			}
+		}
+
+		//This is probably what I should use here. A laundered reference. The point of this is to inherit the expectations of the thing that came
+		// previous.
+
+		//Largely the idea is that we use this version, and everything else uses the public version.
+
+
+		static void TestRefDispatch(StaticTargetTag, local_ref<int>& a2, int& a3)
+		{
+
+		}
+
+		template<typename T, typename R, typename... Args>
+		static decltype(auto) HandleDispatch(R(*func)(Args...), T& tuple)
+		{
+			if constexpr (std::is_same_v<R, void>) {
+				std::apply(func, tuple);
+				return detail::not_implemented{};
+			}
+			else {
+				return std::apply(func, tuple);
+			}
+		}
+
+		template<typename T, typename R, typename... Args>
+		static decltype(auto) LaunderDispatch(R(*func)(Args...), T& tuple)
+		{
+			return HandleDispatch(func, tuple);
+		}
+
+
+		void PsuedoDispatch()
+		{
+			RuntimeVariable out;
+			std::vector<Variable> back_args;
+			back_args.emplace_back(2);
+			back_args.emplace_back(3);
+
+			std::vector<Variable*> front_args;
+
+			front_args.push_back(&back_args[0]);
+			front_args.push_back(&back_args[1]);
+
+			using Type = detail::try_wrap_param_t<const local_ref<int>&>;
+			using TheLook = std::tuple<StaticTargetTag, local_ref<int>&, int&>;
+			using TheCook = std::tuple<StaticTargetTag, detail::try_wrap_param_t<const local_ref<int>&>, int>;
+			int temp1 = 2;
+			
+			TheCook tuple{ StaticTargetTag{}, temp1, 3 };
+			decltype(auto) result = LaunderDispatch(TestRefDispatch, tuple);
+			ValueExport<TheLook>(out, result, tuple, nullptr, front_args);
+		}
+
+
+
+
+
+
+
+
+		static void TestNativeReference()
+		{
+
+			int refA = 1;
+
+			scoped_ref<int> testA = refA;
+
+			//scoped_ref<int> testB = testA;
+
+			maybe_ref<int> testC = std::ref(testA);
+
+			
+
+			Variable testVar = 1;
+
+			RuntimeVariable testTheTransfer = RuntimeVariable::CreateTempRef(testVar);
+			testTheTransfer = 2;
+			RefRetWrapper<std::string> testRef = "";
+
+			std::string str = ";";
+			//testRef = std::ref(str);
+
+			std::optional<std::reference_wrapper<int>> testRefRap;
+
+			static int idiot2 = idiot1;
+			int dummy1;
+			int& crash = function(2);
+			uint8_t space1[0x20];
+			uint8_t space2[0x20];
+			int dummy2;//This is the location of where the allocation should end, but this doesn't account for other function calls does it?
+			//dummy1 and dummy2 
+
+
+			//The idea here is that function returns something made on the stack.
+			//The problem with this is it only works on stack allocated objects, but not something where it comes from a stack allocated
+			// object but is located in the heap
+			assert(std::addressof(dummy1) < std::addressof(crash));//Remember with stack allocation lesser is greater.
+
+			logger::info("The worrisome {}", crash);
+
+			PrimitiveWrapper<int> prox;
+
+
+
+			auto t = prox + 1;
+			prox += 1;
+			int& prox2 = prox;
+			int test_no = 1;
+
+			ComplexWrapper<std::string, 1> prod;
+			ComplexWrapper<std::string> prod2;
+			ComplexWrapper<std::string> test = prod;
+
+
+
+			////////////////////////////
+
+			logger::info("test_no >> {}", test_no);
+
+			{
+				NativeReference ref{ test_no };
+
+				ref.Ref() = 2;
+
+				//Updates can happen in transit if what it's setting to is a native ref
+			}
+
+
+			logger::info("test_no >> {}", test_no);
+
+		}
+
+	};
+	
+	void RunMe(int& t)
+	{
+		logger::info("T = {}", t);
+		t = 2;
+	}
+
+
+	INITIALIZE()
+	{
+		std::vector<Variable> raw_args{ (Variable)1 };
+		std::tuple tup_args{ 1 };
+
+		std::apply(RunMe, tup_args);
+
+		logger::info("after = {}", std::get<0>(tup_args));
+
+	}
+
+
+	
+
+
+	//Need a copy of this called value export.
+	template <class T1, size_t I = 1>
+	static inline void ValueImport(T1& tuple, std::vector<Variable*>& args)
+	{
+		if constexpr (I < std::tuple_size_v<T1>) {
+			using _Elem = std::tuple_element_t<I, T1>;
+
+			std::get<I>(tuple) = Unvariable<_Elem>{}(args[I - 1]);
+
+			//if constexpr (std::is_same_v<EntryType>) {
+			//The actual version will test for the parameters.
+			//}
+
+			ValueImport<T1, I + 1>(tuple, args);
+		}
+	}
+	
+	/*
+	void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*>& args, ProcedureData& data)
+	{
+		//Unload that shit.
+		//using Arg1 = std::tuple_element_t<0, std::tuple<Args...>>;
+
+		constexpr size_t arg_size = std::tuple_size_v<std::tuple<Args...>>;
+
+		if (auto list_size = args.size(); list_size != arg_size) {
+			//Shit isn't the same fucking size I'm losing my mind.
+			report::apply::error("Dispatch args and expected args do not match.");
+		}
+
+		//typename function_traits<std::remove_pointer_t<decltype(T)>>::arguments args;
+
+		//I'll want to remove the references due to being unable to load them like this.
+		std::tuple<T, std::remove_reference_t<Args>...> tuple;
+		//static_assert(std::is_same_v<std::tuple<Target, int, int, int>,
+		//	function_traits<std::remove_pointer_t<decltype(T)>>::arguments>, "GN  NE NIP");
+
+		if constexpr (!std::is_same_v<T, StaticTargetTag>)
+		{
+			std::get<0>(tuple) = Unvariable<T>{}(target);
+		}
+
+		ValueImport(tuple, args);
+		//Here we get the return type and switch up on it.
+
+		//Confirm if the types are correct.
+
+		if constexpr (std::is_same_v<R, void>) {
+			std::apply(_callback, tuple);
+		}
+		else {
+			R to_result = std::apply(_callback, tuple);
+
+			//under more normal situations, vary this by whether it's a ref or not.
+
+			result = Variable{ to_result, GetVariableType<R>() };
+		}
+	}
+	//*/
+
 	void TestNativeReference()
 	{
+		detail::simplify_wrapper_t<local_ref<int>>;
+		return;
+
+		int refA = 1;
+		//local_ref<int> testWrap1 = refA;
+		detail::try_wrap_param_t<local_ref<int>> testWrap2 = refA;
+		//detail::complex_wrapper<int, detail::ref_type::kScopeRef> testA = refA;
+
+		//detail::complex_wrapper<int, detail::ref_type::kScopeRef> testB = testA;
+
+		//std::ref(testA);
+
+		Variable testVar = 1;
+
+		RuntimeVariable testTheTransfer = RuntimeVariable::CreateTempRef(testVar);
+		testTheTransfer = 2;
+		RefRetWrapper<std::string> testRef = "";
+		
+		std::string str = ";";
+		//testRef = std::ref(str);
+
+		std::optional<std::reference_wrapper<int>> testRefRap;
+
+
+		static int idiot2 = idiot1;
+		int dummy1;
+		int& crash = function(2);
+		uint8_t space1[0x20];
+		uint8_t space2[0x20];
+		int dummy2;//This is the location of where the allocation should end, but this doesn't account for other function calls does it?
+		//dummy1 and dummy2 
+
+
+		//The idea here is that function returns something made on the stack.
+		//The problem with this is it only works on stack allocated objects, but not something where it comes from a stack allocated
+		// object but is located in the heap
+		assert(std::addressof(dummy1) < std::addressof(crash));//Remember with stack allocation lesser is greater.
+
+		logger::info("The worrisome {}", crash);
+
+		PrimitiveWrapper<int> prox;
+
+		
+
+		auto t = prox + 1;
+		prox += 1;
+		int& prox2 = prox;
 		int test_no = 1;
+
+		ComplexWrapper<std::string, 1> prod;
+		ComplexWrapper<std::string> prod2;
+		ComplexWrapper<std::string> test = prod;
+		
+		
+
+		////////////////////////////
 
 		logger::info("test_no >> {}", test_no);
 

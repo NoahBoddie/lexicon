@@ -84,35 +84,47 @@ namespace api
 
 		container(const container& other)
 		{
-			Obtain(other._data, other._size);
+			if(other.IsElement())
+				Obtain(other._data, other._size);
+			else
+				Copy(other);
 		}
 
 		container(container&& other)
 		{
-			Move(other);
+			if (other.IsElement())
+				Obtain(other._data, other._size);
+			else
+				Move(other);
 		}
 
 
 
 		container& operator= (const elem& e)
 		{
-			return Obtain(e.data(), e.size());
+			return Copy(e.data(), e.size());
 		}
 
 		container& operator= (elem&& e)
 		{
-			return Obtain(e.data(), e.size());
+			return Copy(e.data(), e.size());
 		}
 
 
-		container& operator= (const container& c)
+		container& operator= (const container& other)
 		{
-			return Obtain(c._size, c._size);
+			if (other.IsElement())
+				return Obtain(other._data, other._size);
+			else
+				return Copy(other);
 		}
 
-		container& operator= (container&& c)
+		container& operator= (container&& other)
 		{
-			return Move(c);
+			if (other.IsElement())
+				return Obtain(other._data, other._size);
+			else
+				return Move(other);
 		}
 
 		//make const version of this, ensure that it only exists in the event that the self actually has a [].
@@ -209,6 +221,11 @@ namespace api
 			}
 		}
 
+		bool IsElement() const
+		{
+			return GetMode() == kElementMode;
+		}
+		
 
 
 		elem& Obtain(const_pointer data, size_t size)
@@ -221,16 +238,39 @@ namespace api
 			return *_elem;
 		}
 
+
+
+		container& Copy(uint64_t raw, size_t size)
+		{
+			Clear();
+			
+			//_elem = size ? new elem(data, data + size) : new elem;
+			//_size = k_elementMode;
+			_raw = raw;
+			_size = size;
+
+			return *this;
+		}
+		container& Copy(void* data, size_t size)
+		{
+			return Copy((uintptr_t)data, size);
+		}
+
+		container& Copy(const container& other)
+		{
+			return Copy(other._raw, other._size);
+		}
+
 		container& Move(container& other)
 		{
-			_raw = other._raw;
-			_size = other._size;
+			Copy(other);
 
 			other._raw = 0;
 			other._size = 0;
 
 			return *this;
 		}
+
 
 
 		Enum GetMode() const
