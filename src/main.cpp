@@ -277,7 +277,8 @@ void LexTesting(std::string formula)
         
         //function->_procedure = TestProcedure;
         //A conversion is supposed to happen here.
-
+        TEST_REF::PsuedoDispatch();
+        std::system("pause");
         double a_this = 68.0;
 
         Variable result = function->Call(Default{ 5 }, extern_ref(a_this), 1.0, 2.0, 3.0, 4.0, 5.0);

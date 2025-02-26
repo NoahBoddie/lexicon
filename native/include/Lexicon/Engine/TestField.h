@@ -1443,38 +1443,6 @@ struct REC
 namespace LEX
 {
 
-
-	struct test_proxy
-	{
-		int value;
-
-
-		operator int()
-		{
-			return value;
-		}
-
-		test_proxy() = default;
-
-		test_proxy(int v) : value{ v } {}
-		test_proxy& operator=(int v)
-		{
-			value = v;
-			return *this;
-		}
-	};
-
-	//This is the ideal
-	class intWrapper {
-	private:
-		int val;
-	public:
-		intWrapper(int val = 0) : val(val) {}
-		operator int& () { return val; }
-		int* operator &() { return &val; }
-	};
-	//Or this
-
 	struct TEST_REF;
 	//*
 	namespace detail
@@ -1500,7 +1468,7 @@ namespace LEX
 		constexpr bool passable_ref_v = passable_ref<T>::value;
 
 		template <typename T>
-		concept primitive = std::is_scalar_v<T>;
+		concept primitive = std::is_scalar_v<T> || std::is_reference_v<T>;
 
 		//struct noone {};
 
@@ -1522,6 +1490,7 @@ namespace LEX
 		
 			enum State
 			{
+				kImmutable, //Created when a reference is transfered. Means it is undoubtedly a reference. Exists for maybe's benefit
 				kInactive,	//Cannot create active wrappers or set the current value of refs.
 				kActive,	//While active it can set its reference to its current value but it cannot make more active wrappers
 				kTransmit,	//While transmitting, it makes active wrappers, but cannot be active itself.
@@ -1572,6 +1541,17 @@ namespace LEX
 
 			basic_wrapper(const T& other) : T{ other } {}
 			basic_wrapper(T&& other) : T{ other } {}
+			
+			/*
+			basic_wrapper& operator= (const basic_wrapper& other)
+			{
+				return T::operator=(other);
+			}
+			basic_wrapper& operator= (const T& other)
+			{
+				return T::operator=(other);
+			}
+			//*/
 
 			//This system is how I could possibly handle the situation of preventing certain types fall into certain hands.
 			basic_wrapper() = default;//This is required if I do the below
@@ -1582,17 +1562,57 @@ namespace LEX
 		struct basic_wrapper <T> : public wrapper_settings
 		{
 		public:
-			using Elem = T;
+			using Elem = std::remove_reference_t<T>;
+
+			static constexpr bool k_isReference = std::is_reference_v<T>;
 
 		private:
 			T _value{};
 
 		public:
-			basic_wrapper() = default;
-			basic_wrapper(const T& val) : _value(val) {}
-			basic_wrapper(T&& val) : _value(val) {}
-			constexpr operator T& () { return _value; }
-			constexpr T* operator &() { return &_value; }
+			basic_wrapper() requires(!k_isReference) = default;
+			basic_wrapper(const Elem& val) requires(!k_isReference) : _value(val) {}
+			basic_wrapper(Elem&& val) requires(!k_isReference) : _value(val) {}
+			
+			basic_wrapper(Elem& val) requires(k_isReference) : _value{ val } {}
+
+
+
+			template<std::convertible_to<T> Tx>
+			basic_wrapper& operator=(const basic_wrapper<Tx>& other)
+			{
+				_value = other;
+				return *this;
+			}
+			//*
+			basic_wrapper& operator= (const basic_wrapper& other)
+			{
+				//This and the thing above should be the exact same fucking thing. No idea why it isn't.
+				_value = other;
+				return *this;
+			}
+			//*/
+			basic_wrapper& operator= (const T& other)
+			{
+				_value = other;
+				return *this;
+			}
+			
+			/*
+			basic_wrapper& operator= (const basic_wrapper& other)
+			{
+				_value = other;
+				return *this;
+			}
+			
+			//*/
+
+			constexpr operator Elem& () { return _value; }
+			constexpr Elem* operator &() { return &_value; }
+
+
+			constexpr operator const Elem& () const { return _value; }
+			constexpr const Elem* operator &() const { return &_value; }
 		};
 
 
@@ -1600,12 +1620,22 @@ namespace LEX
 		template <typename T1, ref_type T2>
 		struct ref_wrapper : public basic_wrapper<T1>
 		{
-			using basic_wrapper<T1>::basic_wrapper;
+			using Elem = std::remove_reference_t<T1>;
 
+			static constexpr bool k_isReference = std::is_reference_v<T1>;
+
+
+
+			using basic_wrapper<T1>::basic_wrapper;
+			using basic_wrapper<T1>::operator=;
+
+
+			template<typename Tx, ref_type Ty>
+			friend struct ref_wrapper;
 
 			static constexpr bool k_maybeRef = T2 == ref_type::kMaybeRef;
-			using Refr = std::reference_wrapper<T1>;
-			using ValueType = std::conditional_t<k_maybeRef, std::optional<Refr>, Refr>;
+			using Refr = std::reference_wrapper<Elem>;
+			
 			//The idea of this object is effectively unifying the ValueTypes into one, as well as having the function that pulls them
 			// united into one. As well as the function that moves them uniting into one.
 
@@ -1617,9 +1647,9 @@ namespace LEX
 
 			ref_wrapper() = default;// : _reference {std::ref<T1>(*this)}{}
 
-			ref_wrapper(const std::reference_wrapper<T1>& other) : _reference{ other }
+			ref_wrapper(const std::reference_wrapper<Elem>& other) requires(!k_isReference) : _reference{other}
 			{
-				//_reference = std::nullopt;
+				this->refState = wrapper_settings::kImmutable;
 			}
 
 
@@ -1631,10 +1661,10 @@ namespace LEX
 			ref_wrapper(ref_wrapper&& other) requires(k_maybeRef) : basic_wrapper{ other }, _reference{ std::nullopt } {}
 			/*/
 			template <ref_type Ty>
-			ref_wrapper(const ref_wrapper<T1, Ty>& other) : basic_wrapper<T1>{ other }, _reference{ get_ref_value() } {}
+			ref_wrapper(const ref_wrapper<T1, Ty>& other) : basic_wrapper<T1>{ other }, _reference{ other._reference } {}
 			
 			template <ref_type Ty>
-			ref_wrapper(ref_wrapper<T1, Ty>&& other) : basic_wrapper<T1>{ other }, _reference{ get_ref_value() } {}
+			ref_wrapper(ref_wrapper<T1, Ty>&& other) : basic_wrapper<T1>{ other }, _reference{ other._reference } {}
 			//*/
 
 
@@ -1649,34 +1679,19 @@ namespace LEX
 				}
 			}
 		protected:
-			T1* reference()
+			Elem* reference()
 			{
-
 				if constexpr (k_maybeRef){
-					if (!_reference)
+					if (!this->refState != wrapper_settings::kImmutable)
 						return nullptr;
-
-					return std::addressof(_reference->get());
 				}
-				else{
-					return std::addressof(_reference.get());
-				}
+				return std::addressof(_reference.get());
 			}
 
-			ValueType get_ref_value()
-			{
-
-				if constexpr (k_maybeRef) {
-					return std::nullopt;
-				}
-				else {
-					return _reference;
-				}
-			}
 
 			//ref_wrapper(ref_wrapper&& other){}
 
-			ValueType _reference = std::ref<T1>(*this);
+			std::reference_wrapper<Elem> _reference = std::ref<Elem>(*this);
 
 			//jank_ass_idea _jank = this;
 
@@ -1686,6 +1701,8 @@ namespace LEX
 		template <typename T1, ref_type T2>
 		struct complex_wrapper : public ref_wrapper<T1, T2>
 		{
+			using Elem = std::remove_reference_t<T1>;
+
 		private:
 			using Base = ref_wrapper<T1, T2>;
 			//using ref_wrapper<T1, T2>::ref_wrapper;
@@ -1704,7 +1721,7 @@ namespace LEX
 			//This solely can be created by a reference of the type T
 
 			//This is what is supposed to handle the reference hand off I believe.
-			complex_wrapper(T1& other) requires(T2 != ref_type::kMaybeRef) /*: value{other}*/ { logger::info("test"); }//Enable this only if it's not maybe ref
+			complex_wrapper(Elem& other) requires(T2 != ref_type::kMaybeRef) : Base { std::ref(other) } { logger::info("test"); }//Enable this only if it's not maybe ref
 			
 		//*
 		protected:
@@ -1730,7 +1747,7 @@ namespace LEX
 		public:
 
 
-			complex_wrapper(const std::reference_wrapper<T1>& other) :
+			complex_wrapper(const std::reference_wrapper<Elem>& other) :
 				Base{ other }
 			{}
 
@@ -1768,7 +1785,17 @@ namespace LEX
 			complex_wrapper(complex_wrapper&& other) = delete;
 
 
+			using ref_wrapper<T1, T2>::operator=;
 
+			/*
+			template <typename TArg>
+			//requires (std::is_constructible_v<Base, TArgs...>)
+			constexpr complex_wrapper& operator=(TArg&& arg)// noexcept(noexcept(Base(std::forward<TArgs...>(args...))))
+				//requires (T2 == ref_type::kMaybeRef) : Base(std::forward<TArgs...>(args...))
+			{
+				return Base::operator=(arg);
+			}
+			//*/
 
 
 
@@ -1816,12 +1843,12 @@ namespace LEX
 			using Base_Wrapper::Base_Wrapper;
 
 			//Make this a macro I can design
-			//template <typename... TArgs>
-			//	requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, std::remove_cvref_t<TArgs>>...>::value)
-			//constexpr complex_wrapper(TArgs&&... args) noexcept(noexcept(Base(std::forward<TArgs...>(args...))))
-			//	requires (T2 == ref_type::kMaybeRef) : Base(std::forward<TArgs...>(args...))
-			//{
-			//}
+			template <typename... TArgs>
+				requires (std::is_constructible_v<Base, TArgs...> && !any_true<std::is_base_of_v<wrapper_settings, std::remove_cvref_t<TArgs>>...>::value)
+			constexpr instantiable_wrapper(TArgs&&... args) noexcept(noexcept(Base(std::forward<TArgs...>(args...)))) : 
+				Base(std::forward<TArgs...>(args...))
+			{
+			}
 
 		protected:
 			//TODO: Put this is wrapper settings, and make it take a setting. I do not want or need multiple versions of this
@@ -1857,17 +1884,32 @@ namespace LEX
 			
 			derived* _derived;
 			complex_wrapper<derived*, kLocalRef> base1 = _derived;
-			//complex_wrapper<base, kLocalRef> base2 = _derived;//This should be allowed but it isn't
-			//complex_wrapper<base*, kLocalRef> base3 = base1;//This should also be allowed.
+			base1 = _derived;
+			//complex_wrapper<base*, kLocalRef> base2 = _derived;//This should be allowed but it isn't
+			complex_wrapper<base*, kLocalRef> base3 = base1;//This should also be allowed.
+			
+			
+			base3 = base1;
+			base3 = _derived;
 
+			basic_wrapper<int> test5 = 1;
+			test5 = 1;
+
+			test4 = 1;
+			int out1 = test2;
 			test1 = test2;
 			//Next I need to set up operator usage
 
-			
+			int& out2 = test2;
+
+
+			complex_wrapper<int&, kLocalRef> test6 = testIn;
+
+			complex_wrapper<int, kLocalRef> test7 = test6;
 			constexpr auto test = !any_true<std::is_base_of_v<wrapper_settings, decltype(test3a)>>::value;
 			//Now that I think of it, this should be allowed no? It would either give you the reference of the maybe ref slot, or it would
 			// give the reference it has stored. But it wouldn't give it to a local.
-			//complex_wrapper<int, kLocalRef> test4 = test2;
+			//instantiable_wrapper<complex_wrapper<int, kLocalRef>> test4 = test2;
 		}
 
 
@@ -2098,7 +2140,7 @@ namespace LEX
 
 
 		template <typename T>
-		void* PointerGetto(const T& value)
+		static void* PointerGetto(T& value)
 		{
 			if constexpr (std::derived_from<T, detail::wrapper_settings>)
 			{
@@ -2150,18 +2192,16 @@ namespace LEX
 
 			//*/
 
-			using RetElem = std::tuple_element_t<0, TParam>;
-			using FocusElem = std::tuple_element_t<1, TParam>;
+			using RetElem = detail::simplify_wrapper_t<TResult>;
 
-			constexpr auto k_ret_type = detail::reference_type_v<RetElem, true>;
+			constexpr auto k_ret_type = detail::reference_type_v<std::tuple_element_t<0, TParam>, true>;
 
 			constexpr auto k_ignore_ret = std::is_same_v<detail::not_implemented, TResult>;
 
 
 
 			if constexpr (I < std::tuple_size_v<TArgs>) {
-				using ElemO = std::tuple_element_t<I, TArgs>;
-				using Elem = std::tuple_element_t<I, TParam>;
+				using Elem = std::tuple_element_t<I + 1, TParam>;
 				using ElemArg = std::tuple_element_t<I, TArgs>;
 
 				constexpr auto k_param_type = detail::reference_type_v<Elem, false>;
@@ -2232,7 +2272,8 @@ namespace LEX
 
 				if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
 				{
-					out = Variable{ result, GetVariableType<RetElem>() };
+					static_assert(k_ret_type != detail::ref_type::kLocalRef);
+					out = Variable{ static_cast<RetElem&>(result), GetVariableType<RetElem>() };
 				}
 
 			}
@@ -2244,9 +2285,14 @@ namespace LEX
 		//Largely the idea is that we use this version, and everything else uses the public version.
 
 
-		static void TestRefDispatch(StaticTargetTag, local_ref<int>& a2, int& a3)
+		static local_ref<int> TestRefDispatch(StaticTargetTag, local_ref<int>& a2, int& a3)
 		{
+			//In hindsight, I'm actually unsure how this worked given the way it does it's business.
+			a3 = a2;
 
+			a2 = 47;
+
+			return a3;
 		}
 
 		template<typename T, typename R, typename... Args>
@@ -2267,26 +2313,44 @@ namespace LEX
 			return HandleDispatch(func, tuple);
 		}
 
+		static void PrintArgs(std::vector<Variable>& args)
+		{
+			logger::info("Parameters of Dispatch");
+			for (int i = 0; i < args.size(); i++)
+			{
+				logger::info("|    a{} => {}", i + 2, args[i].PrintString());
+			}
+		}
 
-		void PsuedoDispatch()
+		static void PsuedoDispatch()
 		{
 			RuntimeVariable out;
 			std::vector<Variable> back_args;
 			back_args.emplace_back(2);
 			back_args.emplace_back(3);
-
+			PrintArgs(back_args);
 			std::vector<Variable*> front_args;
 
 			front_args.push_back(&back_args[0]);
 			front_args.push_back(&back_args[1]);
 
 			using Type = detail::try_wrap_param_t<const local_ref<int>&>;
-			using TheLook = std::tuple<StaticTargetTag, local_ref<int>&, int&>;
+			using TheLook = std::tuple<local_ref<int>, StaticTargetTag, local_ref<int>&, int&>;
 			using TheCook = std::tuple<StaticTargetTag, detail::try_wrap_param_t<const local_ref<int>&>, int>;
 			
-			TheCook tuple{ StaticTargetTag{}, 2, 3 };
+			TheCook tuple{ StaticTargetTag{}, Unvariable<int>{}(front_args[0]), Unvariable<int>{}(front_args[1]) };
 			decltype(auto) result = LaunderDispatch(TestRefDispatch, tuple);
 			ValueExport<TheLook>(out, result, tuple, nullptr, front_args);
+			
+			PrintArgs(back_args);
+
+			if (!out.IsEmpty())
+				logger::info("Result => {} (ptr: {:X})", out->PrintString(), (uintptr_t)out.Ptr());
+
+			out->Assign(69);
+
+			if (!out.IsEmpty())
+				logger::info("Result => {} (ptr: {:X})", out->PrintString(), (uintptr_t)out.Ptr());
 		}
 
 
