@@ -1439,7 +1439,7 @@ struct REC
 		MOV t2 = funcMOV(t2);
 	}
 };
-
+//Native Reference Experiment, Status: Success
 namespace LEX
 {
 
@@ -2021,6 +2021,7 @@ namespace std
 	}
 }
 
+
 namespace LEX
 {
 
@@ -2283,16 +2284,18 @@ namespace LEX
 		// previous.
 
 		//Largely the idea is that we use this version, and everything else uses the public version.
-
+		
+		inline static int testThing = 42;
 
 		static local_ref<int> TestRefDispatch(StaticTargetTag, local_ref<int>& a2, int& a3)
 		{
+			
 			//In hindsight, I'm actually unsure how this worked given the way it does it's business.
 			a3 = a2;
 
 			a2 = 47;
 
-			return a3;
+			return testThing;
 		}
 
 		template<typename T, typename R, typename... Args>
@@ -2345,12 +2348,18 @@ namespace LEX
 			PrintArgs(back_args);
 
 			if (!out.IsEmpty())
-				logger::info("Result => {} (ptr: {:X})", out->PrintString(), (uintptr_t)out.Ptr());
+				logger::info("Result => {} (ptr: {:X})(tar: {})", out->PrintString(), (uintptr_t)out.Ptr(), testThing);
 
 			out->Assign(69);
+			//out.TryUpdate(true);
 
 			if (!out.IsEmpty())
-				logger::info("Result => {} (ptr: {:X})", out->PrintString(), (uintptr_t)out.Ptr());
+				logger::info("Result => {} (ptr: {:X})(tar: {})", out->PrintString(), (uintptr_t)out.Ptr(), testThing);
+
+			testThing = 420;
+
+			if (!out.IsEmpty())
+				logger::info("Result => {} (ptr: {:X})(tar: {})", out->PrintString(), (uintptr_t)out.Ptr(), testThing);
 		}
 
 
@@ -2702,6 +2711,150 @@ namespace LEX
 
 }
 
+namespace LEX
+{
+
+
+
+	enum struct Reference : uint8_t
+	{
+		Temp,			//The result of an expression, a value with no home
+		Maybe,			//May be a reference to a variable or a temporary value
+		Var,			//A local variable declared within this scope. Cannot be promoted, implicitly local
+		Local,			//A reference to a possible local variable. Can be promoted to Scoped
+		Scoped,			//A reference to a variable created outside of this
+		Global,			//A reference to a global variable, existing externally, as a global variable, or detached and shared.
+	};
+
+	enum struct Constness : uint8_t
+	{
+		Modable,
+		Mutable,
+		Const,
+		Readonly,
+	};
+
+	enum struct QualifierFlag : int8_t
+	{
+		None = 0,
+
+
+		All = -1,
+	};
+
+
+	struct NewQualifier
+	{
+		enum ShortHand
+		{
+			Const,
+		};
+
+
+
+		QualifierFlag flags{};
+		
+		//This will be 64 bytes to allow for fixed size
+		
+	private:
+
+		//This fills the padding for future expansions to qualifiers. The budget having value means that it's unable to be read properly.
+		uint8_t _budget[5]{};
+		
+	public:
+		Reference reference = Reference::Temp;
+		Constness constness = Constness::Modable;
+		
+		NewQualifier() = default;
+
+		NewQualifier(Reference ref, Constness cnst, QualifierFlag flgs) :
+			reference{ ref },
+			constness{ cnst },
+			flags{ flgs }
+		{}
+		
+	};
+	REQUIRED_SIZE(NewQualifier, 0x8);
+
+	enum struct SpecifierFlag : int8_t
+	{
+		None		= 0,
+		Static		= 1 << 0,
+		Readonly	= 1 << 1,
+		Const		= 1 << 2,
+		Virtual		= 1 << 3,
+		External	= 1 << 4,
+
+		All			= -1,
+	};
+
+	enum struct AccessType : uint8_t
+	{
+		Private,
+		Protected,
+		Public,
+		Internal = 1 << 3,
+		InternalPrivate = Private | Internal,
+		InteralProtected = Protected | Internal,
+		InternalPublic = Public | Internal,
+	};
+
+
+	struct Specifier_
+	{
+		SpecifierFlag flags = SpecifierFlag::None;
+
+	private:
+		uint8_t _budget[6]{};
+	public:
+		AccessType access = AccessType::Public;
+	};
+	REQUIRED_SIZE(Specifier_, 0x8);
+
+		//This will likely need expansion
+		ENUM(DeclareSpecifier_, uint8_t)
+		{
+			None = 0,
+			Static = 1 << 0,
+			Readonly = 1 << 1,
+			Const = 1 << 2,
+			Virtual = 1 << 3,
+
+			Access = 0b111 << 4,
+			Private = 0b000 << 4,
+			Protected = 0b001 << 4,
+			Public = 0b011 << 4,
+			Internal = 0b100 << 4,
+			InternalPrivate = 0b100 << 4,
+			InteralProtected = 0b101 << 4,
+			InternalPublic = 0b111 << 4,
+
+			External = 1 << 7,
+
+			All = static_cast<std::underlying_type_t<DeclareSpecifier_>>(-1),
+		};
+
+
+		//A group of flags to check matching for when it comes to declarations
+		enum struct DeclareMatchFlag
+		{
+			
+			None = 0,
+			Type = 1 << 0,
+			Constness = 1 << 1,
+			Reference = 1 << 2,
+		};
+
+		bool Matches(DeclareMatchFlag match_flags, QualifierFlag qual_flags = QualifierFlag::All, SpecifierFlag spec_flags = SpecifierFlag::All);
+
+
+	void TESTSTRUCT()
+	{
+		RuntimeVariable::Test thing{ nullptr };
+
+		thing->AsString();
+	}
+}
 
 
 namespace fmt

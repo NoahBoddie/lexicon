@@ -13,8 +13,8 @@ namespace LEX
 		/// </summary>
 		/// <param name="proxy"></param>
 		/// <param name="dest"></param>
-		/// <param name="input">If true assigns data from proxy to the target, if false vice versa</param>
-		virtual void Assign(Variable& proxy, void* target, bool input) const = 0;
+		/// <param name="value">If true assigns data from proxy to the target, if false vice versa</param>
+		virtual void Assign(Variable& proxy, void* target, bool value) const = 0;
 
 	};
 
@@ -28,15 +28,16 @@ namespace LEX
 		}
 
 
-		void Assign(Variable& proxy, void* target, bool input) const override
+		void Assign(Variable& proxy, void* target, bool value) const override
 		{
 			T& dest = *reinterpret_cast<T*>(target);
 
-			if (input) {
-				dest = Unvariable<T>{}(std::addressof(proxy));
+			if (value) {
+				proxy = MakeVariable(dest);
 			}
 			else {
-				proxy = MakeVariable(dest);
+				//Here I would like some way to define equivalency so setting isn't required.
+				dest = Unvariable<T>{}(std::addressof(proxy));
 			}
 		}
 
@@ -57,12 +58,25 @@ namespace LEX
 		//This should never change, unless the new target does too.
 		std::shared_ptr<Variable> proxy = std::make_shared<Variable>();
 
-		void Update(bool in)
+		//TODO:Instead of owning a shared pointer of this, I'm thinking why not have a shared pointer of a native reference be how we access it?
+		// This would take away the size constraints, and it largely makes the most sense
+
+		void Update(bool value)
 		{
-			handler->Assign(Ref(), target, in);
+			handler->Assign(Ref(), target, value);
 
 		}
 
+		void UpdateVal()
+		{
+			Update(true);
+		}
+
+
+		void UpdateRef()
+		{
+			Update(false);
+		}
 
 		Variable* Ptr() { return proxy.get(); }
 		const Variable* Ptr() const { return proxy.get(); }
@@ -83,13 +97,14 @@ namespace LEX
 			target{ std::addressof(tar) },
 			handler{ ReferenceHandler<T>::GetSingleton() }
 		{
-			Update(false);
+			//Is there an actual reason to do this right here?
+			Update(true);
 		}
 
 
 		~NativeReference()
 		{
-			Update(true);
+			Update(false);
 		}
 
 	};

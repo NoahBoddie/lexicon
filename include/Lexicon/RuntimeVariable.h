@@ -259,6 +259,36 @@ namespace LEX
 		ALIAS_HEADER;
 
 	private: 
+	public:
+
+		struct VariableHandler
+		{
+			RuntimeVariable* self= nullptr;
+
+			Variable* operator->() { self->TryUpdateVal();  return self->Ptr(); }
+
+			const Variable* operator->() const { self->TryUpdateVal(); return self->Ptr(); }
+
+			VariableHandler(const RuntimeVariable* a) : self{ const_cast<RuntimeVariable*>(a) } {};
+
+
+			~VariableHandler()
+			{
+				self->TryUpdateRef();
+			}
+		};
+
+
+		struct Test
+		{
+
+			RuntimeVariable* self;
+
+			VariableHandler operator->() { return self; }
+
+			const VariableHandler operator->() const { return self; }
+
+		};
 
 		//TODO: Ref count idea for RuntimeVariable below
 		// The concept is for every reference to a Variable that's housed within the runtime variable, that's an additional reference.
@@ -386,6 +416,11 @@ namespace LEX
 			return &Ref();
 		}
 
+		const Variable* Ptr() const
+		{
+			return &Ref();
+		}
+
 		RuntimeVariable AsRef()
 		{
 			//Detached RuntimeVariable refs aren't actually RuntimeVariables, so that should be 
@@ -441,14 +476,34 @@ namespace LEX
 
 
 		//TODO: Use ptr instead
-		Variable* operator->() { return &Ref(); }
+		VariableHandler operator->() { return { this }; }
 
-		const Variable* operator->() const { return &Ref(); }
+		const VariableHandler operator->() const { return { this }; }
 
 		Variable& operator*() { return Ref(); }
 
 		const Variable& operator*() const { return Ref(); }
 
+		void TryUpdate(bool value)
+		{
+			if (index() == (int)kExternal)
+			{
+				auto& extern_ref = std::get<ExternalRef>(*this);
+				extern_ref.Update(value);
+			}
+		}
+
+
+		void TryUpdateVal()
+		{
+			TryUpdate(true);
+		}
+
+
+		void TryUpdateRef()
+		{
+			TryUpdate(false);
+		}
 
 
 		//Used to use is void, but this checks if the ref is void too.
