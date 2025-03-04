@@ -263,7 +263,7 @@ namespace LEX
 
 		struct VariableHandler
 		{
-			RuntimeVariable* self= nullptr;
+			RuntimeVariable* self = nullptr;
 
 			Variable* operator->() { self->TryUpdateVal();  return self->Ptr(); }
 
@@ -394,14 +394,29 @@ namespace LEX
 		}
 		//*/
 
-		RuntimeVariable& AssignRef(const RuntimeVariable& other)
+
+		RuntimeVariable& TransferRef(const RuntimeVariable& other, bool move)
 		{
 			_CheckAssign(other);
-	
-			*this = other;
 
+			if (move)
+				*this = std::move(other);
+			else
+				*this = other;
 			return *this;
 		}
+
+		RuntimeVariable& AssignRef(const RuntimeVariable& other)
+		{
+			return TransferRef(other, false);
+		}
+
+		RuntimeVariable& AssignRef(RuntimeVariable&& other)
+		{
+			//This version may not be required
+			return TransferRef(other, true);
+		}
+
 
 		RuntimeVariable& AssignRef(Variable& other)
 		{

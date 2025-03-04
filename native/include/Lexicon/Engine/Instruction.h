@@ -35,7 +35,7 @@ namespace LEX
 	//Should probably call this instructions
 	//The public one are likely called operators, these just take variables. The other one is instructions or destiction like that.
 	// I have plenty of names for the inbetweens of them.
-	struct Instruction : public ConstClassAlias<std::variant<Operator, Directive>>
+	struct Instruction : public ConstClassAlias<std::variant<std::monostate, Operator, Directive>>
 	{
 		Instruction() = default;
 		ALIAS_HEADER;
@@ -52,6 +52,10 @@ namespace LEX
 
 			if (index() == 0)
 			{
+				report::fault::critical("Instruct '{}' Has no function.", magic_enum::enum_name(type));
+			}
+			if (index() == 1)
+			{
 				RuntimeVariable left = a_lhs.GetVariable(process);
 
 				RuntimeVariable right = a_rhs.GetVariable(process);
@@ -60,7 +64,7 @@ namespace LEX
 				//Note, the routine process should likely handle the base transfer to turn the index into a variable.
 				result = std::get<Operator>(*this)(left, right, type, process);
 			}
-			else if (index() == 1)
+			else if (index() == 2)
 			{
 				std::get<Directive>(*this)(result, a_lhs, a_rhs, type, process);
 			}

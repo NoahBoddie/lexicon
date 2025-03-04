@@ -293,17 +293,7 @@ namespace LEX
 			var->SetPolicy(policy);
 
 		}
-
-
-		static void Push(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-		{
-			//This is deprecated at this point,
-			//Not much else needs to be known.
-			// The destination is upto the operation out.
-			
-			//Push is going to become move. There's no merit in this being as it is.
-			ret = a_lhs.GetVariable(runtime);
-		}
+		
 
 
 		static void Transfer(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
@@ -312,7 +302,7 @@ namespace LEX
 
 			if (a_lhs.type == OperandType::Literal) {
 				//This is hard enforced because this will impact so much more than this function.
-				report::runtime::critical("Move attempted to set literal value.");
+				report::fault::critical("Transfer attempted to set literal value.");
 			}
 
 
@@ -320,20 +310,31 @@ namespace LEX
 			//Note, these likely are reversed. Move replaces, forward copies.
 			switch (instruct)
 			{
-			case InstructType::Forward://Actually reference
+			case InstructType::Reference://Actually reference
+				//Attempts to get a reference to the variable and will present a copy if not possible (think literals and such).
+				// Best used on a call target, or when a parameter is a reference
 				a_lhs.ObtainAsVariable(runtime).AssignRef(a_rhs.GetVariable(runtime));
 				break;
 
-			case InstructType::Move://Actually copy
-				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
+			case InstructType::Move:
+				//Similar copy, but moves the resources
+				// Best used when pulling something from a register
+				a_lhs.ObtainVariable(runtime)->Assign(std::move(a_rhs.AsVariable(runtime).Ref()));
 				break;
 			
-			case -1://This is what forward would actually be
+			case InstructType::Forward:
+				//Sets the lhs to be the exact type as the left hand side.
+				// best used when it's unknown whether the rhs is a reference or not
+				a_lhs.ObtainAsVariable(runtime).AssignRef(a_rhs.AsVariable(runtime));
 				break;
 
-			case InstructType::Assign://Is called Assign and is actually assign
-				//Similar to how forward works, but submits just the value rather than the whole runtime slot
-				a_lhs.AsVariable(runtime).AssignRef(a_rhs.GetVariable(runtime));
+			case InstructType::Copy:
+				//Copies the value of the rhs into the lhs.
+				// Best used when not transfering between registers and references aren't involved
+				
+				
+				//a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
+				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.GetVariable(runtime).Ref());//Trying it this way because it doesn't need to copy
 				break;
 
 			default:
@@ -2039,11 +2040,14 @@ namespace LEX
 			instructList[InstructType::Convert] = InstructWorkShop::Convert;
 			instructList[InstructType::Construct] = InstructWorkShop::Construct;
 
-			instructList[InstructType::Push] = InstructWorkShop::Push;//deprecated
+
 			//These 2 are one in the same.
 			instructList[InstructType::Move] = InstructWorkShop::Transfer;
-			instructList[InstructType::Forward] = InstructWorkShop::Transfer;
+			instructList[InstructType::Copy] = InstructWorkShop::Transfer;
+			instructList[InstructType::Reference] = InstructWorkShop::Transfer;
 			instructList[InstructType::Assign] = InstructWorkShop::Transfer;
+
+
 			instructList[InstructType::Return] = InstructWorkShop::Ret;
 			instructList[InstructType::JumpStack] = InstructWorkShop::JumpStack;
 			instructList[InstructType::ModArgStack] = InstructWorkShop::ModArgStack;

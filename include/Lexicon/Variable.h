@@ -650,15 +650,22 @@ namespace LEX
         //Assign is kinda rough, for starters, it needs something to exist to work. Second, I'm not 100% sure where it would actually be used.
         // I guess it would be used in situation where I need to guard a given variable. Thus, if I'm working with RuntimeVariables, and I'm NOT
         // intending on setting 
-        Variable& Assign(const Variable& other)
+
+        Variable& Transfer(const Variable& other, bool move)
         {
+
+            //I'd like to seperate this into 2 functions
             if (_type)
                 CheckAssign(LEX::GetVariableType(other));
 
             if (!Policy() && _value.index() == 0)
                 SetPolicy(other.Policy());
 
-            _value = other._value;
+
+            if (move)
+                _value = std::move(other._value);
+            else
+                _value = other._value;
 
             
 
@@ -669,7 +676,19 @@ namespace LEX
             
             return *this;
         }
-        
+
+
+        Variable& Assign(const Variable& other)
+        {
+            return Transfer(other, false);
+        }
+
+        Variable& Assign(Variable&& other)
+        {
+            return Transfer(other, true);
+        }
+
+
         //TODO: Conversion the non-variable assign with an AssignImpl function
         template <Constructible<VariableComponent> T>
         Variable& Assign(const T& other)
@@ -677,7 +696,11 @@ namespace LEX
             if (_type)
                 CheckAssign(LEX::GetVariableType(other));
            
-            _value = other;
+            //I will make a transfer pivot for this later
+            //if (move)
+            //    _value = std::forward<T>(other);
+            //else
+                _value = other;
             
             _SetDefined(true);
             

@@ -112,7 +112,7 @@ namespace LEX
 
 		RuntimeVariable& AsVariable(Runtime* runtime);
 
-
+		//Returns a RuntimeVariable that's either a viable reference to a Variable, or a pure variable if able
 		RuntimeVariable GetVariable(Runtime* runtime);
 
 

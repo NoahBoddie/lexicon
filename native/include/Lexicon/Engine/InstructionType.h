@@ -44,14 +44,12 @@ namespace LEX
 
 		Then, 
 		//Directives (Instructions created don't match 1 to 1 the operator used)	
-		Push,
-		Move,		//TODO: Should be named Copy
-		Forward,	//TODO: Should be named Reference or something
-					//TODO: Needs a new instruct called forward, which Copies something into a new spot or moves it depending on if what's found is a ref or not
-					//Honestly, I think I actually need to revise these, I'd like something like "move" which would be more efficient in situations
-					// between registers or something like that.		
-		Assign,
+		Copy,
+		Move,		
+		Reference,	//Attempts to reference the value in the rhs and move that reference to the lhs
+		Forward,	//If the given operand is loaded with a variable, send variable. if any kind of reference, push the reference. This is just assign ref.
 
+		
 
 		PushVariable,//Pushes something from the left to a variable spot in the right. Perhaps in the future I could make registers spot just do this.
 
@@ -79,6 +77,9 @@ namespace LEX
 		Return,
 		//ReturnScoped,//DEPRECATED//exactly the same as return, but helps specify that it's scoped and may be skipped.
 		Total,
+
+		//Inert Instructions- Instructions that don't link to a function, just used to serve as a slot of some kind.
+		Assign = InstructionType::Copy,		//Used to tell when the equals sign is used
 
 		Invalid = InstructionType::Total,
 	};

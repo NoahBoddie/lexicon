@@ -17,7 +17,7 @@ namespace LEX
 	private:
 		static Operation _Transfer(Operand& left, Operand& right, bool is_ref)
 		{
-			return Operation{ false ? InstructType::Forward : InstructType::Move, left, right };
+			return Operation{ false ? InstructType::Reference : InstructType::Copy, left, right };
 		}
 	public:
 
@@ -83,7 +83,7 @@ namespace LEX
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 
-			Operation result = Operation{ InstructType::Move, op, sol };
+			Operation result = Operation{ InstructType::Copy, op, sol };
 
 			sol = op;
 
@@ -97,7 +97,7 @@ namespace LEX
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 			
-			return Operation{ InstructType::Forward, op, sol };
+			return Operation{ InstructType::Reference, op, sol };
 		}
 
 
