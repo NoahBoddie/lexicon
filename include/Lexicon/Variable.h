@@ -586,7 +586,7 @@ namespace LEX
         //destroy
         void SetBasicType__(BasicType a_rhs)
         {
-            //When doing something like this, clear flags
+            //When doing something like this, clear qualifiers
 
             switch (a_rhs)
             {

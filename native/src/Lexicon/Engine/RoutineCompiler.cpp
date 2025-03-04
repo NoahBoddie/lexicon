@@ -176,7 +176,7 @@ namespace LEX
 
 							Conversion out;
 
-							auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
+							auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out, ConversionFlag::Return);
 
 							if (convert_result <= convertFailure)
 							{

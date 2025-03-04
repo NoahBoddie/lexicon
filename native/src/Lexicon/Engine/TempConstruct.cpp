@@ -208,7 +208,7 @@ namespace LEX
 					auto to_type = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
 
 					
-					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionType::Explicit); convert_result > convertFailure)
+					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
 					{
 						ret = var.Ref();
 						ret->SetPolicy(to_type->FetchTypePolicy(runtime));
@@ -347,12 +347,12 @@ namespace LEX
 		static void Test(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 			//Not actually sure how this would work, the idea is basically that I implicit bool cast to it, and output the result
-			// to the process flags.
+			// to the process qualifiers.
 
 
 
 			//bool value = process->GetVariable(a_lhs).GetImplicit<ValueType::Boolean>();
-			//process->flags.Set(ProcessFlags::TestBit, value);
+			//process->qualifiers.Set(ProcessFlags::TestBit, value);
 		}
 
 		static void Ret(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
@@ -1531,12 +1531,9 @@ namespace LEX
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
 			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
-			if (header.Matches(true, Qualifier::Const | Qualifier::Runtime) == false) {
+			if (header.Matches(DeclareMatches::Constness | DeclareMatches::Reference) == false) {
 				report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
-
-			if (header.flags & Qualifier::Const)
-				logger::info("{} is const", target.GetTag());
 
 			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);
 
@@ -1556,7 +1553,7 @@ namespace LEX
 				//}
 				//CompUtil::HandleConversion(compiler, out, result, header, convert);
 				
-				CompUtil::HandleConversion(compiler, result, header, def);
+				CompUtil::HandleConversion(compiler, result, header, def, ConversionFlag::Initialize);
 
 
 				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
@@ -1623,7 +1620,7 @@ namespace LEX
 				//}
 				//CompUtil::HandleConversion(compiler, out, result, return_policy, convert_result);
 
-				CompUtil::HandleConversion(compiler, result, return_policy, ret);
+				CompUtil::HandleConversion(compiler, result, return_policy, ret, ConversionFlag::Return);
 
 			}
 			else if (return_policy->CheckRuleset(TypeRuleset::NoReturn) == false)
@@ -1673,13 +1670,13 @@ namespace LEX
 
 			if (1 || target.GetView() != "maybe")
 			{
-				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, true); convert_result > convertFailure)
+				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, ConversionFlag::Explicit); convert_result > convertFailure)
 				{
 					//If this can convert, it's basically going to be something automatic.
 					CompUtil::HandleConversion(compiler, out, expression, header, convert_result);
 				}
 				//if the type we're trying to go to can convert into ours with only type conversions
-				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, true); convert_result > convertFailure)
+				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
 				{
 					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
 
@@ -1699,7 +1696,7 @@ namespace LEX
 
 
 
-				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, true); convert_result > convertFailure)
+				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
 				{
 					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
 
@@ -1909,14 +1906,14 @@ namespace LEX
 		{
 			using ConcretePolicy::ConcretePolicy;
 
-			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
 
 				static StrConvert converter{};
 
-				ConvertResult result = __super::IsConvertibleTo(other, scope, out, type);
+				ConvertResult result = __super::IsConvertibleTo(other, scope, out, flags);
 
 
 				if (out && result <= ConvertResult::Failure)
@@ -1943,12 +1940,12 @@ namespace LEX
 			//please, make this with a setting attached.
 
 
-			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
 
-				ConvertResult result = __super::IsConvertibleTo(other, scope, out, type);
+				ConvertResult result = __super::IsConvertibleTo(other, scope, out, flags);
 				
 				
 				
@@ -1968,7 +1965,7 @@ namespace LEX
 						//With this, I might as well just be able to convert it and ignore the rest of this shit innit?
 						const NumberType* other_num = dynamic_cast<const NumberType*>(other);
 
-						if (other_num && (type == ConversionType::Explicit || !other_num->_settings.IsInteger() || _settings.IsInteger()))
+						if (other_num && (flags & ConversionFlag::Explicit || !other_num->_settings.IsInteger() || _settings.IsInteger()))
 						{
 							if (identity.offset >= Number::Settings::length)
 								report::fault::critical("Offset greater than number type length.");

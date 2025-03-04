@@ -49,22 +49,17 @@ namespace LEX
 	
 
 	//use this instead of the other.
-	enum struct ConversionFlag
+	ENUM(ConversionFlag)
 	{
 		None = 0 << 0,
 		Explicit = 1 << 0,
-		Initialize = 1 << 1,
-		IgnoreAccess = 1 << 2,
+		Return = 1 << 1,
+		Parameter = 1 << 2,
+		Initialize = 1 << 3,
+		IgnoreAccess = 1 << 4,
 	};
 
 
-
-	enum struct ConversionType
-	{
-		Implicit,
-		Explicit,
-
-	};
 
 	struct ITypePolicy : public ISpecial
 	{
@@ -132,7 +127,7 @@ namespace LEX
 		}
 
 		//Scope should be an environment that turns itself into an ITypePolicy.
-		virtual ConvertResult IsConvertibleTo(const ITypePolicy* rhs, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const
+		virtual ConvertResult IsConvertibleTo(const ITypePolicy* rhs, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			//The function to tell if this is convertiable to the rhs. the out function is the required conversion
 			// function. Unsure about what type to use right now, so it's void and defaulted to nothig.
@@ -147,10 +142,10 @@ namespace LEX
 
 		}
 
-		ConvertResult IsConvertibleTo(const ITypePolicy* rhs, const ITypePolicy* scope, Conversion& out, ConversionType type = ConversionType::Implicit) const
+		ConvertResult IsConvertibleTo(const ITypePolicy* rhs, const ITypePolicy* scope, Conversion& out, ConversionFlag flags = ConversionFlag::None) const
 		{
 			//TODO: this is going to be hidden once specialized, so rename this and make the main version a pivot
-			return IsConvertibleTo(rhs, scope, &out, type);
+			return IsConvertibleTo(rhs, scope, &out, flags);
 		}
 		//Make some safe functions for these.
 

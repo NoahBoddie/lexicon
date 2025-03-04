@@ -14,7 +14,7 @@ namespace LEX
 	struct ITypePolicy;
 	struct OverloadCode;
 
-
+	//TODO: Merge Qualified Type with it's qualifiers
 	struct QualifiedType
 	{
 		//Within the compiling process, this is more often than not what should be used.
@@ -25,7 +25,7 @@ namespace LEX
 		QualifiedType(std::nullptr_t) {}
 
 		explicit QualifiedType(ITypePolicy* p) : policy{ p } {}
-		QualifiedType(ITypePolicy* p, Qualifier q) : policy{ p }, flags{ q } {}
+		QualifiedType(ITypePolicy* p, Qualifier q) : policy{ p }, qualifiers{ q } {}
 
 
 	//private://Temporary to sus out where policy is expected from solutions and declarations.
@@ -33,7 +33,7 @@ namespace LEX
 
 	public:
 
-		Qualifier flags = Qualifier::None;
+		Qualifier qualifiers{};
 		//bool isDefInput = false;
 		//Right here in qualified type, I can put a set of bits that I can use to relay some ideas of what I can turn it into.
 
@@ -64,22 +64,79 @@ namespace LEX
 
 		auto operator <=>(const QualifiedType&) const = default;
 
-		ConvertResult IsQualified(const QualifiedType& other) const
+		ConvertResult IsQualified(const QualifiedType& other, ConversionFlag flags) const
 		{
+
+			//Reference section
+			bool init = flags & ConversionFlag::Initialize;
+			bool param = flags & ConversionFlag::Parameter;
+			bool ret = flags & ConversionFlag::Return;
+			if (init || param || ret)
+			{
+				//We only care about references if they're being initialized
+				Reference refl = qualifiers.reference;
+				Reference refr = other.qualifiers.reference;
+
+				//While maybe ref is technically a reference, it needs to be promoted first
+				bool not_ref = refr == Reference::Temp || refr ==  Reference::Maybe;
+				bool equals = refl == refr;
+				switch (refl)
+				{
+				case Reference::Global://For global it must be equal, no exceptions
+					if (!equals)
+						return ConvertResult::QualError5;
+					break;
+
+				case Reference::Scoped:
+				case Reference::Local:
+					if (not_ref)
+						return ConvertResult::QualError6;
+					
+					if (!param)//If this is a param, anything goes accept for maybe ref stuff.
+					{
+						if (ret && equals)
+							return ConvertResult::QualError7;
+
+						if (init && refr < refl)
+							return ConvertResult::QualError8;
+					}
+					break;
+
+				case Reference::Var://This literally should never be a return type, and assign wise, this has no issues.
+				case Reference::Maybe:
+				case Reference::Temp://Is this immutable?
+					//Anything can go into these, there's no restrictions
+					break;
+
+				case Reference::Generic:
+					if (refr == Reference::Temp) {
+						return ConvertResult::QualError5;//I have no idea if this is the right one, I just don't much care right now.
+					}
+						
+					break;
+				}
+
+				//Var cannot be accepted by anything at all
+			}
+			
+			
+
+
+
 			//This does a conversion but only on the qualifiers.
 
-			//auto comp = flags & other.flags;
+			//auto comp = qualifiers & other.qualifiers;
 
 			//These in essence did a switch. need to rename to To and from.
-			Qualifier l_comp = flags & Qualifier::Const;
-			Qualifier r_comp = other.flags & Qualifier::Const;
+			Constness l_comp = qualifiers.constness;
+			Constness r_comp = other.qualifiers.constness;
 
 			if (l_comp != r_comp) {
 
 				//this  first bit makes no sense, if the left side is const anything can still go into it (as long as we are initializing).
 				if (1 != 1) {
 					//if (l_comp == Qualifier::Const)
-					if (r_comp == Qualifier::Const)
+					if (r_comp == Constness::Const)
 					{
 						//If left is const, it must be a class type.
 						if (IsDataTypeRef(policy->FetchDataType()) == false)
@@ -88,7 +145,7 @@ namespace LEX
 				}
 				//This doesn't seem to work, but it will be hit by a forcible transfer issue.
 				//if (r_comp == Qualifier::Const)
-				if (l_comp == Qualifier::Const)
+				if (l_comp == Constness::Const)
 				{
 					//If right is const, it must be a value.
 					if (IsDataTypeVal(other.policy->FetchDataType()) == false)
@@ -103,14 +160,14 @@ namespace LEX
 
 
 		//TODO: IsCovertToQualfied needs to hold an ITypePolicy to see if it has permission to this conversion. How I'd do that, is kinda hard.
-		ConvertResult IsConvertToQualified(const QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, bool is_expl = false) const
+		ConvertResult IsConvertToQualified(const QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 
-			if (auto result = IsQualified(other); result != ConvertResult::Exact)
+			if (auto result = IsQualified(other, flags); result != ConvertResult::Exact)
 				return result;
 
 			//Simple for now.
-			return policy->IsConvertibleTo(other.policy, scope, out, is_expl ? ConversionType::Explicit : ConversionType::Implicit);
+			return policy->IsConvertibleTo(other.policy, scope, out, flags);
 		}
 	};
 }

@@ -9,7 +9,10 @@ namespace LEX
 
 	enum struct ConvertResult
 	{
-
+		QualError8 = -11,
+		QualError7 = -10,
+		QualError6 = -9,
+		QualError5 = -8,
 		QualError4 = -7,
 		QualError3 = -6,
 		QualError2 = -5,

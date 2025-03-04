@@ -72,11 +72,11 @@ namespace LEX
 
             Declaration header{ *head_rec, environment };
 
-            if (header.Matches(true, Qualifier::Const) == false) {
+            if (header.Matches(DeclareMatches::Constness) == false) {
 				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 
-            if (header.declare & Specifier::External)
+            if (header.specifiers.flags & SpecifierFlag::External)
             {
                 procedureData = -1;
             }
@@ -130,7 +130,7 @@ namespace LEX
                 Declaration header{ *node_head, environment };
 
                 //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
-                if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
+                if (header.Matches(DeclareMatches::Constness | DeclareMatches::Reference) == false) {
 					report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
                 }
 

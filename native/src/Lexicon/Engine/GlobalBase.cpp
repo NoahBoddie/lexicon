@@ -50,12 +50,10 @@ namespace LEX
             Declaration header{ *head_rec, environment };
             
             
-            //This lies, there is no error.
-            constexpr auto qual = Qualifier::Constness_;
-            constexpr auto spec = ~(Specifier::External | Specifier::Virtual) & Specifier::All;
+            constexpr auto spec = ~(SpecifierFlag::External | SpecifierFlag::Virtual) & SpecifierFlag::All;
             
 
-            if (header.Matches(qual, spec) == false) {
+            if (header.Matches(DeclareMatches::Constness, spec) == false) {
                 report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
             }
 

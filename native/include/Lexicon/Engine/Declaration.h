@@ -19,12 +19,39 @@ namespace LEX
 
 	class TempTest;
 	
+
+
+	//A group of flags to check matching for when it comes to declarations
+	ENUM(DeclareMatches, int8_t)
+	{
+
+		None = 0,
+		//Type = 1 << 0,//This was taken away due to not being relevant, declarations always have types
+		Constness = 1 << 1,
+		Reference = 1 << 2,
+
+		All = -1,
+	};
+
+	bool Matches(DeclareMatches match_flags, QualifierFlag qual_flags = QualifierFlag::All, SpecifierFlag spec_flags = SpecifierFlag::All);
+
+
+
+
 	//TODO: I'd like to have GetPolicyFromSpecifiers dealt with via strings, and/or able to be dealt with via a record.
 	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Environment* env);
 
+
+
+
+
+
+
+
+
 	inline Qualifier GetQualifiersFromStrings(SyntaxRecord& node)
 	{
-		Qualifier flags{};
+		Qualifier qualifiers{};
 
 		for (auto& entry : node.children())
 		{
@@ -33,26 +60,27 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case "mutable"_h:
-				flags |= Qualifier::Mutable;
+				qualifiers = Constness::Mutable;
 				break;
 
 			case "const"_h:
-				flags |= Qualifier::Const;
+				qualifiers = Constness::Const;
 				break;
 
 			case "ref"_h:
-				flags |= Qualifier::Reference_;
+				report::error("Sorry dumbo, don't know how to handle refs yet");
+				//flags |= Qualifier::Reference_;
 				break;
 
 			}
 		}
 
-		return flags;
+		return qualifiers;
 	}
 
-	inline DeclareSpecifier GetSpecifiersFromStrings(SyntaxRecord& node)
+	inline Specifier GetSpecifiersFromStrings(SyntaxRecord& node)
 	{
-		DeclareSpecifier decl{};
+		Specifier specifiers{};
 
 		for (auto& entry : node.children())
 		{
@@ -60,36 +88,36 @@ namespace LEX
 
 			switch (Hash(name))
 			{
-			case "readonly"_h:
-				decl |= DeclareSpecifier::Readonly;
-				break;
+			//case "readonly"_h:
+			//	specifiers = SpecifierFlag::Readonly;
+			//	break;
 
 			case "static"_h:
-				decl |= DeclareSpecifier::Static;
+				specifiers = SpecifierFlag::Static;
 				break;
 
 			case "const"_h:
-				decl |= DeclareSpecifier::Const;
+				specifiers = SpecifierFlag::Const;
 				break;
 				//case "mutable~"_h://I don't think I actually intend to have mutables of this.
 			case "public"_h:
-				decl |= DeclareSpecifier::Public;
+				specifiers = Access::Public;
 				break;
 
 			case "private"_h:
-				decl |= DeclareSpecifier::Private;
+				specifiers = Access::Private;
 				break;
 
 			case "protected"_h:
-				decl |= DeclareSpecifier::Protected;
+				specifiers = Access::Protected;
 				break;
 
 			case "internal"_h:
-				decl |= DeclareSpecifier::Internal;
+				specifiers.access |= Access::Internal;
 				break;
 
 			case "external"_h:
-				decl |= DeclareSpecifier::External;
+				specifiers.flags |= SpecifierFlag::External;
 				break;
 
 			default:
@@ -97,9 +125,9 @@ namespace LEX
 			}
 		}
 
-		return decl;
+		return specifiers;
 	}
-
+	//TODO: Merge declaration with Specifier. No reason to be seperate
 	struct Declaration : public QualifiedType
 	{
 		//Declaration(ITypePolicy* policy, BasicQualifier b, RuntimeQualifier r, DeclareSpecifier d){}
@@ -124,7 +152,7 @@ namespace LEX
 		//Qualifier flags{};
 
 		//StoreSpecifier _3;//Declare Specs ARE store specs.
-		DeclareSpecifier declare{};
+		Specifier specifiers{};
 
 		//ITypePolicy* policy = nullptr;
 
@@ -133,42 +161,69 @@ namespace LEX
 		bool FilterHasValue() const
 		{
 			//compare the rest of this shit. This is a struct, you should be able to do whatever the fuck you want to do, BUT, be careful.
-			return (flags || declare || policy || _filterByte);
+			return (qualifiers || specifiers || policy || _filterByte);
 		}
 
-		Declaration Filter(Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		Declaration Filter(DeclareMatches match_flags, QualifierFlag qual = QualifierFlag::All, SpecifierFlag spec = SpecifierFlag::All)
 		{
-			//static_assert(false, "This filter is not correct, it's supposed to remove stuff, and move it into a different header. this just moves the left overs into the new one.");
-
 			Declaration filter{};
+
+			//TODO: This is cycle switch. Please replicate it in RGL
+			for (int i = 1; i; i <<= 1)
+			{
+				if (match_flags & i)
+				{
+					switch ((DeclareMatches)i)
+					{
+					case DeclareMatches::Reference:
+						if (!qualifiers.reference)
+							filter.qualifiers.reference = qualifiers.reference;
+						break;
+
+					case DeclareMatches::Constness:
+						if (!qualifiers.constness)
+							filter.qualifiers.constness = qualifiers.constness;
+						break;
+					}
+				}
+				
+			}
+
+			
 			filter._filterByte = !policy;
-			filter.flags = flags & ~qual;
-			filter.declare = declare & ~decl;
+			filter.qualifiers = qualifiers.flags & ~qual;
+			filter.specifiers = specifiers.flags & ~spec;
 
 			return filter;
 		}
+
 
 		operator bool() const
 		{
 			return FilterHasValue();
 		}
 
-		//Make some combination functions for these.
-		Declaration Filter(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		bool Matches(DeclareMatches match_flags, QualifierFlag qual = QualifierFlag::All, SpecifierFlag spec = SpecifierFlag::All)
 		{
-			return Filter(qual, decl);
+			return !Filter(match_flags, qual, spec).FilterHasValue();
 		}
 
-		bool Matches(Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		bool Matches(DeclareMatches match_flags, SpecifierFlag spec)
 		{
-			return !Filter(qual, decl).FilterHasValue();
+			return Matches(match_flags, QualifierFlag::All, spec);
 		}
 
 
-		bool Matches(bool type, Qualifier qual = Qualifier::All, DeclareSpecifier decl = DeclareSpecifier::All)
+		bool Matches(QualifierFlag qual)
 		{
-			return !Filter(type, qual, decl).FilterHasValue();
+			return Matches(DeclareMatches::All, qual, SpecifierFlag::All);
 		}
+
+		bool Matches(SpecifierFlag spec)
+		{
+			return Matches(DeclareMatches::All, QualifierFlag::All, spec);
+		}
+
 
 
 

@@ -11,7 +11,7 @@ namespace LEX
 		constexpr LocalInfo() noexcept = default;
 
 		LocalInfo(QualifiedType t, uint32_t i) : 
-			InfoBase {t.flags, Specifier::None, i},
+			InfoBase{ t.qualifiers, Specifier{}, i },
 			_type {t.policy}
 		{
 		}

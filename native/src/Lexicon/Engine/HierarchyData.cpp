@@ -160,8 +160,8 @@ namespace LEX
 			case Access::Private:
 				data.access = Access::None;
 				break;
-			case Access::PrivateInternal:
-				data.access = Access::NoneInternal;
+			case Access::InternalPrivate:
+				data.access = Access::Internal;
 				break;
 			}
 
@@ -352,16 +352,16 @@ namespace LEX
 				access = "no access";
 				break;
 
-			case Access::PublicInternal:
+			case Access::InternalPublic:
 				access = "public internal";
 				break;
-			case Access::ProtectedInternal:
+			case Access::InternalProtected:
 				access = "protected internal";
 				break;
-			case Access::PrivateInternal:
+			case Access::InternalPrivate:
 				access = "private internal";
 				break;
-			case Access::NoneInternal:
+			case Access::Internal:
 				access = "internal";
 				break;
 			}

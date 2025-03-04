@@ -34,9 +34,8 @@ namespace LEX
 
 		bool IsReadOnly() const
 		{
-			return type == OperandType::Literal || 
-				FilterEquals<Qualifier::Constness_>(flags, Qualifier::Const) || 
-				FilterEquals<Qualifier::Constness_>(flags, Qualifier::Readonly);
+			//TODO: Literals should be qualified as const. If they are not please address this.
+			return type == OperandType::Literal || qualifiers.IsConst();
 		}
 
 		bool IsReference() const

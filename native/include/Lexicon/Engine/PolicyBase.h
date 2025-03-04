@@ -113,7 +113,7 @@ namespace LEX
 
 
 		//This needs some form of conversion result.
-		ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+		ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 		{
 			if (this == other) {
 				return ConvertResult::Exact;

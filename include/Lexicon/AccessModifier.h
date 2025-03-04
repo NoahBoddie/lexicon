@@ -2,9 +2,10 @@
 
 #include "DeclareSpecifier.h"
 
+//TODO: Delete AccessModifier or use it to hold access (i'd prefer it in an enum file)
 namespace LEX
 {
-	//Is access specifier.
+	/*
 
 	ENUM(Access, uint8_t)
 	{//The base struct that handles this might be later named "ClassicInfos". Maybe. Will decide if it sounds dumb.
@@ -60,4 +61,6 @@ namespace LEX
 			}
 		}
 	}
+
+	//*/
 }

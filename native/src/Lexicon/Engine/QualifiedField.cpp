@@ -13,14 +13,14 @@ namespace LEX
 
 			Solution result{ GetType(), OperandType::Variable, var };
 
-			result.flags = GetQualifiers();
+			result.qualifiers = GetQualifiers();
 
 			return result;
 		}
 
 		Solution result{ GetType(), OperandType::Index, (size_t)GetFieldIndex() };
 
-		result.flags = GetQualifiers();
+		result.qualifiers = GetQualifiers();
 
 
 		return result;

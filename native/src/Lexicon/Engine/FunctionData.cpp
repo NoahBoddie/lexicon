@@ -70,7 +70,7 @@ namespace LEX
 
 		if (type && sub_type)
 		{
-			ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &result.convert);
+			ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &result.convert, ConversionFlag::Parameter);
 
 			result.convertType = convertType;
 

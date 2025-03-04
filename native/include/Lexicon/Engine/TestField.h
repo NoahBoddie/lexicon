@@ -2379,8 +2379,8 @@ namespace LEX
 			//scoped_ref<int> testB = testA;
 
 			maybe_ref<int> testC = std::ref(testA);
-
-			
+			//static_assert(false, "What compels this to work?");
+			//testC += 1;
 
 			Variable testVar = 1;
 
@@ -2713,126 +2713,6 @@ namespace LEX
 
 namespace LEX
 {
-
-
-
-	enum struct Reference : uint8_t
-	{
-		Temp,			//The result of an expression, a value with no home
-		Maybe,			//May be a reference to a variable or a temporary value
-		Var,			//A local variable declared within this scope. Cannot be promoted, implicitly local
-		Local,			//A reference to a possible local variable. Can be promoted to Scoped
-		Scoped,			//A reference to a variable created outside of this
-		Global,			//A reference to a global variable, existing externally, as a global variable, or detached and shared.
-	};
-
-	enum struct Constness : uint8_t
-	{
-		Modable,
-		Mutable,
-		Const,
-		Readonly,
-	};
-
-	enum struct QualifierFlag : int8_t
-	{
-		None = 0,
-
-
-		All = -1,
-	};
-
-
-	struct NewQualifier
-	{
-		enum ShortHand
-		{
-			Const,
-		};
-
-
-
-		QualifierFlag flags{};
-		
-		//This will be 64 bytes to allow for fixed size
-		
-	private:
-
-		//This fills the padding for future expansions to qualifiers. The budget having value means that it's unable to be read properly.
-		uint8_t _budget[5]{};
-		
-	public:
-		Reference reference = Reference::Temp;
-		Constness constness = Constness::Modable;
-		
-		NewQualifier() = default;
-
-		NewQualifier(Reference ref, Constness cnst, QualifierFlag flgs) :
-			reference{ ref },
-			constness{ cnst },
-			flags{ flgs }
-		{}
-		
-	};
-	REQUIRED_SIZE(NewQualifier, 0x8);
-
-	enum struct SpecifierFlag : int8_t
-	{
-		None		= 0,
-		Static		= 1 << 0,
-		Readonly	= 1 << 1,
-		Const		= 1 << 2,
-		Virtual		= 1 << 3,
-		External	= 1 << 4,
-
-		All			= -1,
-	};
-
-	enum struct AccessType : uint8_t
-	{
-		Private,
-		Protected,
-		Public,
-		Internal = 1 << 3,
-		InternalPrivate = Private | Internal,
-		InteralProtected = Protected | Internal,
-		InternalPublic = Public | Internal,
-	};
-
-
-	struct Specifier_
-	{
-		SpecifierFlag flags = SpecifierFlag::None;
-
-	private:
-		uint8_t _budget[6]{};
-	public:
-		AccessType access = AccessType::Public;
-	};
-	REQUIRED_SIZE(Specifier_, 0x8);
-
-		//This will likely need expansion
-		ENUM(DeclareSpecifier_, uint8_t)
-		{
-			None = 0,
-			Static = 1 << 0,
-			Readonly = 1 << 1,
-			Const = 1 << 2,
-			Virtual = 1 << 3,
-
-			Access = 0b111 << 4,
-			Private = 0b000 << 4,
-			Protected = 0b001 << 4,
-			Public = 0b011 << 4,
-			Internal = 0b100 << 4,
-			InternalPrivate = 0b100 << 4,
-			InteralProtected = 0b101 << 4,
-			InternalPublic = 0b111 << 4,
-
-			External = 1 << 7,
-
-			All = static_cast<std::underlying_type_t<DeclareSpecifier_>>(-1),
-		};
 
 
 		//A group of flags to check matching for when it comes to declarations

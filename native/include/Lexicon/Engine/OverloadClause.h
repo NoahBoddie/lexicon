@@ -7,38 +7,11 @@
 
 namespace LEX
 {
-	//TODO: Move these to their own space, or just merge them with OverloadClause. Don't really care which.
-	ENUM(WriteType)
-	{
-		//Mutable,	//Mutable isn't stored, instead it is a modifier that determents how the below are seen.
-		Modable,	//With mutable, even through the lens of const,
-			Const,
-			Readonly,	//Only used on functions
-	};
-
-
-	inline WriteType GetWriteType(Qualifier q)
-	{
-		//This should just put things in a way I can use easier and filter out the shit I don't need.
-
-		switch (q)
-		{
-		//case Qualifier::Modable:
-		//case Qualifier::Mutable:
-		case Qualifier::Const:
-			return WriteType::Const;
-
-		default:
-			return WriteType::Modable;
-		}
-	}
-
 
 	inline int CompareConstness(Qualifier lhs, Qualifier rhs)
 	{
-		WriteType left = GetWriteType(lhs);
-		WriteType right = GetWriteType(rhs);
-
+		Constness left = lhs.GetConstNormalized();
+		Constness right = rhs.GetConstNormalized();
 
 		return right - left;
 	}

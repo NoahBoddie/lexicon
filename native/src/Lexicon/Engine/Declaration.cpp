@@ -275,10 +275,10 @@ namespace LEX
 
 			type = static_cast<decltype(type)>(type + 1);
 		}
-
-		this->flags = GetQualifiersFromStrings(type_qual);
+		
 		policy = GetPolicyFromSpecifiers(type_spec, env);
-		declare = GetSpecifiersFromStrings(decl_spec);
+		qualifiers = GetQualifiersFromStrings(type_qual);
+		specifiers = GetSpecifiersFromStrings(decl_spec);
 
 
 	}

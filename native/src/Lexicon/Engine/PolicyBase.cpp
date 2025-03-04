@@ -90,7 +90,7 @@ namespace LEX
 
 					if (auto decl = inherit.FindChild(parse_strings::declare_specifier); decl) {
 						auto buff = GetSpecifiersFromStrings(*decl);
-						access = Misc::DeclareToAccess(buff);
+						access = buff.access;
 					}
 
 					if (access == Access::None) {
@@ -98,7 +98,7 @@ namespace LEX
 					}
 
 					if (!type)  //I'd actually rather report.
-						throw nullptr;
+						report::critical("no type, I dont actually know where I am right now, please figure out what this means later thx");
 
 					SetDerivesTo(type, access);
 				}

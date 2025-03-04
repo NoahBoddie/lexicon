@@ -68,11 +68,11 @@ namespace LEX
 		return false;
 	}
 
-	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Solution& from, const QualifiedType& to, SyntaxRecord& target, Register reg)
+	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Solution& from, const QualifiedType& to, SyntaxRecord& target, Register reg, ConversionFlag flags)
 	{
 		Conversion out;
 
-		auto convert = from.IsConvertToQualified(to, nullptr, &out);
+		auto convert = from.IsConvertToQualified(to, nullptr, &out, flags);
 
 		if (convert <= ConvertResult::Failure) {
 			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));

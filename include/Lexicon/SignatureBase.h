@@ -64,12 +64,12 @@ namespace LEX
 
 
 			if constexpr (std::is_const_v<_Naked>) {
-				entry.flags |= Qualifier::Const;
+				entry.qualifiers |= Qualifier::Const;
 			}
 
 			//For right now it really doesn't matter.
 			if constexpr (std::is_reference_v<E>) {
-				entry.flags |= Qualifier::RefL;
+				entry.qualifiers |= Qualifier::RefL;
 			}
 
 

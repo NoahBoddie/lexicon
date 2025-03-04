@@ -57,7 +57,7 @@ namespace LEX
 
 		bool IsVirtual() const
 		{
-			return specifiers & Specifier::Virtual;
+			return specifiers.flags & SpecifierFlag::Virtual;
 		}
 
 		FunctionType* Get() const
@@ -74,7 +74,7 @@ namespace LEX
 		ITypePolicy* GetType() const override { return nullptr; }
 
 
-		Qualifier GetQualifiers() const override { return Qualifier::Const; }	//Functions do not have qualifiers.
+		Qualifier GetQualifiers() const override { return Qualifier{ Reference{}, Constness::Const, {} }; }	//Functions do not have qualifiers.
 		Specifier GetSpecifiers() const override { return specifiers; }
 
 		std::string GetFieldName() const override { return std::string{ Get()->GetName() }; }

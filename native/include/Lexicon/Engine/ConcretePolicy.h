@@ -84,9 +84,9 @@ namespace LEX
 
 		//TODO: This needs to be able to convert to bool, as most types should be capable of such a feat.
 		// but I'll need to make something for each type
-		ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+		ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 		{
-			return __super::IsConvertibleTo(other, scope, out, type);
+			return __super::IsConvertibleTo(other, scope, out, flags);
 		}
 
 

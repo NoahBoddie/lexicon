@@ -10,7 +10,7 @@ namespace LEX
 
         AbstractTypePolicy* from = Policy();
 
-        bool success = from && from->IsConvertibleTo(to, to, convert, ConversionType::Explicit) > convertFailure;
+        bool success = from && from->IsConvertibleTo(to, to, convert, ConversionFlag::Explicit) > convertFailure;
         
         if (success)
         {
