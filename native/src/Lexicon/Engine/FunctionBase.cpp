@@ -76,7 +76,7 @@ namespace LEX
 				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
             }
 
-            if (header.specifiers.flags & SpecifierFlag::External)
+            if (header.SpecifierFlags() & SpecifierFlag::External)
             {
                 procedureData = -1;
             }

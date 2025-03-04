@@ -103,15 +103,20 @@ namespace LEX
 			return reinterpret_cast<const uint64_t&>(*this);
 		}
 
-		operator Reference& () { return reference; }
-		operator Constness& () { return constness; }
-		operator QualifierFlag& () { return flags; }
+		//operator Reference& () { return reference; }
+		//operator Constness& () { return constness; }
+		//operator QualifierFlag& () { return flags; }
 
-		Qualifier& operator=(const Reference& other) { reference = other; return *this; }
-		Qualifier& operator=(const Constness& other) { constness = other; return *this; }
-		Qualifier& operator=(const QualifierFlag& other) { flags = other; return *this; }
+		//Qualifier& operator=(const Reference& other) { reference = other; return *this; }
+		//Qualifier& operator=(const Constness& other) { constness = other; return *this; }
+		//Qualifier& operator=(const QualifierFlag& other) { flags = other; return *this; }
 		
 		auto operator <=>(const Qualifier&) const = default;
+
+		auto& QualifierFlags()
+		{
+			return flags;
+		}
 
 		QualifierFlag flags = QualifierFlag::None;
 

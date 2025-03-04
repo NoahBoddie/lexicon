@@ -277,8 +277,8 @@ namespace LEX
 		}
 		
 		policy = GetPolicyFromSpecifiers(type_spec, env);
-		qualifiers = GetQualifiersFromStrings(type_qual);
-		specifiers = GetSpecifiersFromStrings(decl_spec);
+		*this = GetQualifiersFromStrings(type_qual);
+		*this = GetSpecifiersFromStrings(decl_spec);
 
 
 	}

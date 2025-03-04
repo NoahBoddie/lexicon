@@ -45,12 +45,17 @@ namespace LEX
 			return reinterpret_cast<const uint64_t&>(*this);
 		}
 
-		operator Access& () { return access; }
-		operator SpecifierFlag& () { return flags; }
+		//operator Access& () { return access; }
+		//operator SpecifierFlag& () { return flags; }
 
-		
-		Specifier& operator=(const Access& other) { access = other; return *this; }
-		Specifier& operator=(const SpecifierFlag& other) { flags = other; return *this; }
+		//Specifier& operator=(const Access& other) { access = other; return *this; }
+		//Specifier& operator=(const SpecifierFlag& other) { flags = other; return *this; }
+
+
+		auto& SpecifierFlags()
+		{
+			return flags;
+		}
 
 
 		bool IsStatic() const noexcept

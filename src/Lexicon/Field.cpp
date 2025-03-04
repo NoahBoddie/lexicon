@@ -10,7 +10,7 @@ namespace LEX
 		
 		result.policy = GetType();
 
-		result.qualifiers = GetQualifiers();
+		result = GetQualifiers();
 
 		return result;
 	}

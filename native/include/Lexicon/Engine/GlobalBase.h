@@ -87,12 +87,12 @@ namespace LEX
 
 		virtual Qualifier GetQualifiers() const override
 		{
-			return _declared.qualifiers;
+			return _declared;
 		}
 
 		virtual Specifier GetSpecifiers() const override
 		{
-			return _declared.specifiers.CopyWithFlags(SpecifierFlag::Static);
+			return _declared.CopyWithFlags(SpecifierFlag::Static);
 		}
 
 		virtual ITypePolicy* GetType() const

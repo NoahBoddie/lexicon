@@ -60,16 +60,16 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case "mutable"_h:
-				qualifiers = Constness::Mutable;
+				qualifiers.constness = Constness::Mutable;
 				break;
 
 			case "const"_h:
-				qualifiers = Constness::Const;
+				qualifiers.constness = Constness::Const;
 				break;
 
 			case "ref"_h:
-				report::error("Sorry dumbo, don't know how to handle refs yet");
-				//flags |= Qualifier::Reference_;
+				report::break_warn("Sorry dumbo, don't know how to handle refs yet");
+				qualifiers.reference = Reference::Generic;
 				break;
 
 			}
@@ -93,23 +93,23 @@ namespace LEX
 			//	break;
 
 			case "static"_h:
-				specifiers = SpecifierFlag::Static;
+				specifiers.flags = SpecifierFlag::Static;
 				break;
 
 			case "const"_h:
-				specifiers = SpecifierFlag::Const;
+				specifiers.flags = SpecifierFlag::Const;
 				break;
 				//case "mutable~"_h://I don't think I actually intend to have mutables of this.
 			case "public"_h:
-				specifiers = Access::Public;
+				specifiers.access = Access::Public;
 				break;
 
 			case "private"_h:
-				specifiers = Access::Private;
+				specifiers.access = Access::Private;
 				break;
 
 			case "protected"_h:
-				specifiers = Access::Protected;
+				specifiers.access = Access::Protected;
 				break;
 
 			case "internal"_h:
@@ -128,13 +128,18 @@ namespace LEX
 		return specifiers;
 	}
 	//TODO: Merge declaration with Specifier. No reason to be seperate
-	struct Declaration : public QualifiedType
+	struct Declaration : public QualifiedType, public Specifier
 	{
 		//Declaration(ITypePolicy* policy, BasicQualifier b, RuntimeQualifier r, DeclareSpecifier d){}
 	public:
 		Declaration() = default;
 
 		Declaration(SyntaxRecord& header, Environment* env);
+
+		using QualifiedType::operator=;
+		Declaration& operator=(const Specifier& other) { __super::operator=(other); return *this; }
+		
+
 
 
 		//This is a declaration header. It stores declarations of functions, globals, members, methods etc.
@@ -152,7 +157,6 @@ namespace LEX
 		//Qualifier flags{};
 
 		//StoreSpecifier _3;//Declare Specs ARE store specs.
-		Specifier specifiers{};
 
 		//ITypePolicy* policy = nullptr;
 
@@ -161,7 +165,7 @@ namespace LEX
 		bool FilterHasValue() const
 		{
 			//compare the rest of this shit. This is a struct, you should be able to do whatever the fuck you want to do, BUT, be careful.
-			return (qualifiers || specifiers || policy || _filterByte);
+			return (Qualifier::operator bool() || Specifier::operator bool() || policy || _filterByte);
 		}
 
 		Declaration Filter(DeclareMatches match_flags, QualifierFlag qual = QualifierFlag::All, SpecifierFlag spec = SpecifierFlag::All)
@@ -176,13 +180,13 @@ namespace LEX
 					switch ((DeclareMatches)i)
 					{
 					case DeclareMatches::Reference:
-						if (!qualifiers.reference)
-							filter.qualifiers.reference = qualifiers.reference;
+						if (!reference)
+							filter.reference = reference;
 						break;
 
 					case DeclareMatches::Constness:
-						if (!qualifiers.constness)
-							filter.qualifiers.constness = qualifiers.constness;
+						if (!constness)
+							filter.constness = constness;
 						break;
 					}
 				}
@@ -191,8 +195,8 @@ namespace LEX
 
 			
 			filter._filterByte = !policy;
-			filter.qualifiers = qualifiers.flags & ~qual;
-			filter.specifiers = specifiers.flags & ~spec;
+			filter.QualifierFlags() = QualifierFlags() & ~qual;
+			filter.SpecifierFlags() = SpecifierFlags() & ~spec;
 
 			return filter;
 		}

@@ -18,6 +18,8 @@ namespace LEX
 	struct Solution : public Operand, public QualifiedType
 	{
 
+		using QualifiedType::operator=;
+
 
 		//Solution needs some qualifiers, but to that it needs 3 types
 		// PassByValue-Copy it, and send it. Invalid to be used where PassByRefR/L are used.
@@ -35,7 +37,7 @@ namespace LEX
 		bool IsReadOnly() const
 		{
 			//TODO: Literals should be qualified as const. If they are not please address this.
-			return type == OperandType::Literal || qualifiers.IsConst();
+			return type == OperandType::Literal || IsConst();
 		}
 
 		bool IsReference() const

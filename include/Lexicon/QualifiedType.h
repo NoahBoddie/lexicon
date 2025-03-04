@@ -15,7 +15,7 @@ namespace LEX
 	struct OverloadCode;
 
 	//TODO: Merge Qualified Type with it's qualifiers
-	struct QualifiedType
+	struct QualifiedType : public Qualifier
 	{
 		//Within the compiling process, this is more often than not what should be used.
 		//TODO: QualifiedType replaces param input.
@@ -25,15 +25,16 @@ namespace LEX
 		QualifiedType(std::nullptr_t) {}
 
 		explicit QualifiedType(ITypePolicy* p) : policy{ p } {}
-		QualifiedType(ITypePolicy* p, Qualifier q) : policy{ p }, qualifiers{ q } {}
+		QualifiedType(ITypePolicy* p, Qualifier q) : policy{ p }, Qualifier{ q } {}
+
+		QualifiedType& operator=(const Qualifier& other) { __super::operator=(other); return *this; }
 
 
 	//private://Temporary to sus out where policy is expected from solutions and declarations.
 		ITypePolicy* policy = nullptr;
 
 	public:
-
-		Qualifier qualifiers{};
+		
 		//bool isDefInput = false;
 		//Right here in qualified type, I can put a set of bits that I can use to relay some ideas of what I can turn it into.
 
@@ -74,8 +75,8 @@ namespace LEX
 			if (init || param || ret)
 			{
 				//We only care about references if they're being initialized
-				Reference refl = qualifiers.reference;
-				Reference refr = other.qualifiers.reference;
+				Reference refl = reference;
+				Reference refr = other.reference;
 
 				//While maybe ref is technically a reference, it needs to be promoted first
 				bool not_ref = refr == Reference::Temp || refr ==  Reference::Maybe;
@@ -128,8 +129,8 @@ namespace LEX
 			//auto comp = qualifiers & other.qualifiers;
 
 			//These in essence did a switch. need to rename to To and from.
-			Constness l_comp = qualifiers.constness;
-			Constness r_comp = other.qualifiers.constness;
+			Constness l_comp = constness;
+			Constness r_comp = other.constness;
 
 			if (l_comp != r_comp) {
 
