@@ -68,7 +68,7 @@ namespace LEX
 				break;
 
 			case "ref"_h:
-				report::break_warn("Sorry dumbo, don't know how to handle refs yet");
+				//report::break_warn("Sorry dumbo, don't know how to handle refs yet");
 				qualifiers.reference = Reference::Generic;
 				break;
 
@@ -127,6 +127,8 @@ namespace LEX
 
 		return specifiers;
 	}
+
+
 	//TODO: Merge declaration with Specifier. No reason to be seperate
 	struct Declaration : public QualifiedType, public Specifier
 	{

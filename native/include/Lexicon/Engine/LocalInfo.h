@@ -26,6 +26,26 @@ namespace LEX
 		std::string GetFieldName() const override { return std::format("<local var {}>", _index); }
 
 
+		void MutateReference(Reference ref)
+		{
+			if (qualifiers.reference == Reference::Generic)
+			{
+				switch (ref)
+				{
+				case Reference::Global:
+				case Reference::Local:
+				case Reference::Scoped:
+					qualifiers.reference = ref;
+					break;
+					//return true;
+
+				//default:
+					//return false;
+				}
+			}
+
+			//return 
+		}
 
 		operator bool() const override
 		{

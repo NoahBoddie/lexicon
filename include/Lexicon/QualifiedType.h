@@ -164,6 +164,10 @@ namespace LEX
 		ConvertResult IsConvertToQualified(const QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 
+			//TODO: ConvertQualified needs 2 rules, read below
+			// first if ref types are used, no conversions are allowed (return to nullptr). Also that Conversion on maybe refs should present a warning
+			// due to not actually using a reference if a reference was desired.
+
 			if (auto result = IsQualified(other, flags); result != ConvertResult::Exact)
 				return result;
 

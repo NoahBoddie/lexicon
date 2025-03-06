@@ -40,11 +40,42 @@ namespace LEX
 			return type == OperandType::Literal || IsConst();
 		}
 
-		bool IsReference() const
+		std::optional<bool> IsReference() const
 		{
-			return false;
+			switch (reference)
+			{
+			case Reference::Maybe:
+				return std::nullopt;
+			
+			case Reference::Global:
+			case Reference::Local:
+			case Reference::Scoped:
+				return true;
+			
+			default:
+				return false;
+			}
 		}
 
+		//Is Solution capable of being referenced in its current capacity
+		bool IsReferential() const
+		{
+			switch (reference)
+			{
+			case Reference::Global:
+			case Reference::Local:
+			case Reference::Scoped:
+			case Reference::Var:
+				return true;
+
+			default:
+				return false;
+			}
+		}
+
+
+
+		
 		Solution() = default;
 
 
@@ -53,8 +84,9 @@ namespace LEX
 			policy = a_policy;
 		}
 
-
-		constexpr Solution& operator= (Operand& rhs) noexcept
+		using Operand::operator=;
+		/*
+		constexpr Solution& operator= (const Operand& rhs) noexcept
 		{
 			Operand::operator=(rhs);
 			return *this;
@@ -64,7 +96,7 @@ namespace LEX
 		{
 			return Solution::operator=(rhs);
 		}
-
+		//*/
 		
 	};
 }

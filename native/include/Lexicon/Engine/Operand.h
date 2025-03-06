@@ -119,6 +119,20 @@ namespace LEX
 		RuntimeVariable ObtainVariable(Runtime* runtime);
 		RuntimeVariable& ObtainAsVariable(Runtime* runtime);
 
+		constexpr bool IsTemporary() const noexcept
+		{
+			switch (type)
+			{
+			case OperandType::Register:
+			case OperandType::Literal:
+			//case OperandType::Argument://Argument is pretty temporary
+				return true;
+			default:
+				return false;
+			}
+		}
+
+
 		constexpr static Operand None()
 		{
 			return Operand{ 0, OperandType::None };

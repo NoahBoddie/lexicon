@@ -15,7 +15,7 @@ namespace LEX
 		None = KeywordType::Total,
 	};
 
-	ENUM(HeaderFlag, uint16_t)
+	ENUM(HeaderFlag, int16_t)
 	{
 		None		= 0 << 0,
 		Signable	= 1 << 0,
@@ -28,7 +28,7 @@ namespace LEX
 		Primary		= 1 << 7,
 		Access1st	= 1 << 8,
 		Access2nd	= 1 << 9,
-		All			= (std::underlying_type_t<HeaderFlag>)-1,
+		All			= -1,
 		MostlyAll	= HeaderFlag::All & ~HeaderFlag::Storage,
 	};
 
@@ -48,7 +48,13 @@ namespace LEX
 	{
 		//TODO: Keywords should probably be made incrementally, with this contributing to the list of keywords. Just to make it easy.
 
+		//In of itself, reference might basically be redundant if the below are used.
 		headerGuide[KeywordType::TypeQual]["ref"] = { HeaderFlag::Reference, HeaderFlag::None };
+		headerGuide[KeywordType::TypeQual]["local"] = { HeaderFlag::Reference, HeaderFlag::None };
+		headerGuide[KeywordType::TypeQual]["global"] = { HeaderFlag::Reference, HeaderFlag::None };
+		headerGuide[KeywordType::TypeQual]["maybe"] = { HeaderFlag::Reference, HeaderFlag::None };
+		headerGuide[KeywordType::TypeQual]["scoped"] = { HeaderFlag::Reference, HeaderFlag::None };
+		
 		headerGuide[KeywordType::TypeQual]["const"] = { HeaderFlag::Constness, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["mutable"] = { HeaderFlag::Constness, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["readonly"] = { HeaderFlag::Constness, HeaderFlag::None };

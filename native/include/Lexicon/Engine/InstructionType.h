@@ -48,7 +48,7 @@ namespace LEX
 		Move,		
 		Reference,	//Attempts to reference the value in the rhs and move that reference to the lhs
 		Forward,	//If the given operand is loaded with a variable, send variable. if any kind of reference, push the reference. This is just assign ref.
-
+		ForwardMove,//Similar to forward but makes it a move operation
 		
 
 		PushVariable,//Pushes something from the left to a variable spot in the right. Perhaps in the future I could make registers spot just do this.

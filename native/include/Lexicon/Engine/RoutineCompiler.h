@@ -468,7 +468,7 @@ namespace LEX
 
 
 			if (result.type != OperandType::Register) {
-				//TODO: this should use Mutate
+				//TODO: this should use Mutate, Scratch, it will want to use Load, maybe a combo of the 2
 
 				//GetOperationList().emplace_back(InstructType::Forward, Operand{ pref, OperandType::Register }, result);
 				GetOperationList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));

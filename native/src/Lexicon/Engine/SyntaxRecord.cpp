@@ -45,19 +45,22 @@ namespace LEX
 		//return [this](LogParams& params, LogState state, LogResult&) -> void { if (state == LogState::Prep) params.suffix << GetAffix(); };
 		return [this](LogParams& params, LogState state, LogResult&) -> void
 			{
-				if (state == LogState::Prep)
+				if (this)
 				{
-					Script* script = GetParent()->FetchScript();
-					Project* project = GetParent()->FetchProject();
+					if (state == LogState::Prep)
+					{
+						Script* script = GetParent()->FetchScript();
+						Project* project = GetParent()->FetchProject();
 
-					auto& syntax = GetSyntax();
-					
-					if (script) {
-						params.loc.filename = script->GetName().data();
-						params.loc.line = syntax.line;
+						auto& syntax = GetSyntax();
+
+						if (script) {
+							params.loc.filename = script->GetName().data();
+							params.loc.line = syntax.line;
+						}
+
+						//params.suffix << GetAffix();
 					}
-
-					//params.suffix << GetAffix();
 				}
 			};
 	}

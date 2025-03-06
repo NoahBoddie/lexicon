@@ -87,6 +87,7 @@ namespace LEX
 
 		DECLARE_SYNTAX_LOGGER(LogInfo, Info);
 		DECLARE_SYNTAX_LOGGER(LogDebug, Debug);
+		DECLARE_SYNTAX_LOGGER(error, Error);
 
 
 

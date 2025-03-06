@@ -328,6 +328,13 @@ namespace LEX
 				a_lhs.ObtainAsVariable(runtime).AssignRef(a_rhs.AsVariable(runtime));
 				break;
 
+
+			case InstructType::ForwardMove:
+				//Same as Forward but uses a move instead
+				// best used when it's unknown whether the rhs is a reference or not, AND when coming from a temporary location such as a register
+				a_lhs.ObtainAsVariable(runtime).AssignRef(std::move(a_rhs.AsVariable(runtime)));
+				break;
+
 			case InstructType::Copy:
 				//Copies the value of the rhs into the lhs.
 				// Best used when not transfering between registers and references aren't involved
@@ -1326,7 +1333,7 @@ namespace LEX
 
 			if (func->GetTargetType() != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
-				list.push_back(CompUtil::MutateRef(std::as_const(*self->target), Operand{ start, OperandType::Argument }));
+				list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
 			}
 
 
@@ -1391,7 +1398,7 @@ namespace LEX
 
 			if (self) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
-				compiler->GetOperationList().push_back(CompUtil::MutateRef(std::as_const(*self->target), Operand{ compiler->ModArgCount(), OperandType::Argument }));
+				compiler->GetOperationList().push_back(CompUtil::MutateRef(*self->target, Operand{ compiler->ModArgCount(), OperandType::Argument }));
 				dealloc_size++;
 			}
 
@@ -1543,7 +1550,7 @@ namespace LEX
 				auto& def = definition->GetChild(0);
 				Solution result = compiler->CompileExpression(def, Register::Result);
 
-
+				//TODO: Here' try to adapt this to be the reference type loaded if it's generic
 
 
 				//-QUAL_CONV
@@ -2045,7 +2052,8 @@ namespace LEX
 			instructList[InstructType::Move] = InstructWorkShop::Transfer;
 			instructList[InstructType::Copy] = InstructWorkShop::Transfer;
 			instructList[InstructType::Reference] = InstructWorkShop::Transfer;
-			instructList[InstructType::Assign] = InstructWorkShop::Transfer;
+			instructList[InstructType::Forward] = InstructWorkShop::Transfer;
+			instructList[InstructType::ForwardMove] = InstructWorkShop::Transfer;
 
 
 			instructList[InstructType::Return] = InstructWorkShop::Ret;
