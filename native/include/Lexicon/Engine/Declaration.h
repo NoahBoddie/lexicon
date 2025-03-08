@@ -136,7 +136,8 @@ namespace LEX
 	public:
 		Declaration() = default;
 
-		Declaration(SyntaxRecord& header, Environment* env);
+		//Do this via function
+		Declaration(SyntaxRecord& header, Environment* env, Reference genericRef, Reference defaultRef = Reference::Temp);
 
 		using QualifiedType::operator=;
 		Declaration& operator=(const Specifier& other) { __super::operator=(other); return *this; }

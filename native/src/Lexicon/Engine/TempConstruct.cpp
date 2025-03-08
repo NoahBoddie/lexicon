@@ -148,21 +148,19 @@ namespace LEX
 			Index count = a_rhs.Get<Index>();
 
 			
-			
-			std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
+			{//Needs to be scoped for now so args don't maintain references longer than they should
+				std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
 
-			ret = func->Execute(args, runtime, nullptr);
-
+				ret = func->Execute(args, runtime, nullptr);
+			}
 			//I may actually just include the decrement in here myself.
 
 			if (count) {//Only needs to do this if it had arguments. Handles reference snags basically.
-				auto& arg_var = runtime->GetArgument(runtime->GetStackPointer(StackPointer::Argument) - count);
+				runtime->AdjustStackPointer(StackPointer::Argument, -static_cast<int64_t>(count));
 				
-				if (arg_var.IsRuntimeRef() == true)//Ideally, all call stuff is a reference. Im just checking 
-					arg_var.Clear();
-				
-				
-				//Personally, I would actually like to bake the decrement into the call, as there's never a situation where you wouldn't want it.
+				//auto& arg_var = runtime->GetArgument(runtime->GetStackPointer(StackPointer::Argument) - count);
+				//if (arg_var.IsRuntimeRef() == true)//Ideally, all call stuff is a reference. Im just checking 
+				//	arg_var.Clear();
 			}
 		}
 
@@ -319,7 +317,7 @@ namespace LEX
 			case InstructType::Move:
 				//Similar copy, but moves the resources
 				// Best used when pulling something from a register
-				a_lhs.ObtainVariable(runtime)->Assign(std::move(a_rhs.AsVariable(runtime).Ref()));
+				a_lhs.ObtainVariable(runtime)->Assign(std::move(a_rhs.GetVariable(runtime).Ref()));
 				break;
 			
 			case InstructType::Forward:
@@ -1348,7 +1346,8 @@ namespace LEX
 				//This should basically already be successful, no real need for checks
 				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, Register::Right);
 
-				list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
+				//list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
+				list.push_back(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
 			}
 
 			//default is dealt with here.
@@ -1360,7 +1359,7 @@ namespace LEX
 				Operand{ func, OperandType::Function },
 				Operand{ alloc_size, OperandType::Index });
 
-			compiler->ModArgCount(-static_cast<int64_t>(alloc_size));
+			compiler->ModArgCount(-static_cast<int64_t>(alloc_size), !THING_TEST_ADJUST);
 
 
 
@@ -1534,7 +1533,7 @@ namespace LEX
 			if (!head_rec)
 				report::compile::error("No record named header.");
 
-			Declaration header{ *head_rec, compiler->GetEnvironment() };
+			Declaration header{ *head_rec, compiler->GetEnvironment(), Reference::Generic, Reference::Auto };
 
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
@@ -1553,6 +1552,8 @@ namespace LEX
 				//TODO: Here' try to adapt this to be the reference type loaded if it's generic
 
 
+				loc->MutateReference(result.reference);//TODO: This needs some point of failure
+
 				//-QUAL_CONV
 				//Conversion out;
 				//auto convert = result.IsConvertToQualified(header, nullptr, &out);
@@ -1564,9 +1565,9 @@ namespace LEX
 				CompUtil::HandleConversion(compiler, result, header, def, ConversionFlag::Initialize);
 
 
-				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
-				//compiler->GetOperationList().emplace_back(InstructType::Forward, Operand{ var_index, OperandType::Index }, result);
-				compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
+				
+				//compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
+				compiler->GetOperationList().push_back(CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
 			}
 
 
@@ -1599,7 +1600,7 @@ namespace LEX
 			{
 				auto& ret = target.GetChild(0);
 
-				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result);
+				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result, compiler->IsReturnReference());
 
 				//Right here the solutions given type should be evaluated to see if a correct type is being returned.
 
@@ -1657,15 +1658,19 @@ namespace LEX
 
 			auto& rhs = target.FindChild(parse_strings::rhs)->GetFront();
 
-			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetEnvironment() };
+			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetEnvironment(), Reference::Temp };
 
 			if (!header) {
 				report::compile::error("No type found for cast");
 			}
 
+			if (header.Matches(DeclareMatches::Constness) == false) {
+				report::compile::error("Unexpected qualifiers detected.");
+			}
+
 			auto& lhs = target.FindChild(parse_strings::lhs)->GetFront();
 
-			Solution expression = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered());
+			Solution expression = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered(), false);
 
 
 

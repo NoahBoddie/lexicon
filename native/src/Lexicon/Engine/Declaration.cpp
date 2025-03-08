@@ -204,7 +204,7 @@ namespace LEX
 	}
 
 
-	Declaration::Declaration(SyntaxRecord& header, Environment* env)
+	Declaration::Declaration(SyntaxRecord& header, Environment* env, Reference genericRef, Reference defaultRef)
 	{
 		if (header.GetTag() != parse_strings::header) {
 			report::fault::critical("header not found.");
@@ -281,5 +281,16 @@ namespace LEX
 		*this = GetSpecifiersFromStrings(decl_spec);
 
 
+
+		switch (reference)
+		{
+		case Reference::Generic:
+			reference = genericRef;
+			break;
+
+		case Reference::Temp:
+			reference = defaultRef;
+			break;
+		}
 	}
 }

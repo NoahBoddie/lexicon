@@ -1,6 +1,6 @@
 #pragma once
 
-namespace LEX::Impl
+namespace LEX
 {
 	ENUM(Register, uint8_t)
 	{
@@ -13,13 +13,11 @@ namespace LEX::Impl
 
 		//Alias names.
 		Result		= Register::Reg0,
-		Left		= Register::Reg1,
-		Right		= Register::Reg2,
-		Array		= Register::Reg3,
+		Middle		= Register::Reg1,
+		Left		= Register::Reg2,
+		Right		= Register::Reg3,
 		MultComp	= Register::Reg4,
 		Invalid = Register::Total,
 	};
 
 }
-
-using Register = LEX::Impl::Register;

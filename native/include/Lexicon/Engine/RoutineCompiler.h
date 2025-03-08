@@ -112,7 +112,7 @@ namespace LEX
 			return argCount[0];
 		}
 
-		size_t ModArgCount(int64_t i = 1)
+		size_t ModArgCount(int64_t i = 1, bool append = true)
 		{
 			//Try to unionize this when you can.
 			size_t count = argCount[0];
@@ -120,7 +120,7 @@ namespace LEX
 			if ((argCount[0] += i) > argCount[1])
 				argCount[1] = argCount[0];
 
-			if (i)
+			if (i && append)
 				GetOperationList().emplace_back(InstructionType::ModArgStack, Operand{ i , OperandType::Differ });
 
 			return count;
@@ -128,10 +128,15 @@ namespace LEX
 
 
 
-		QualifiedType GetReturnType()
+		QualifiedType GetReturnType() const
 		{
 			//this return type doesn't need to be the specialized one. In fact, for now it's better that it isn't.
 			return _callData->GetReturnType();
+		}
+
+		std::optional<bool> IsReturnReference() const
+		{
+			return GetReturnType().IsReference();
 		}
 
 		
@@ -460,7 +465,7 @@ namespace LEX
 
 
 
-		Solution PushExpression(SyntaxRecord& node, Register pref)
+		Solution PushExpression(SyntaxRecord& node, Register pref, std::optional<bool> is_ref)//is_ref is false by default I guess??
 		{
 			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
 			// one.
@@ -470,8 +475,9 @@ namespace LEX
 			if (result.type != OperandType::Register) {
 				//TODO: this should use Mutate, Scratch, it will want to use Load, maybe a combo of the 2
 
-				//GetOperationList().emplace_back(InstructType::Forward, Operand{ pref, OperandType::Register }, result);
-				GetOperationList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
+				
+				//GetOperationList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
+				GetOperationList().emplace_back(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
 				
 				//This uses the policy of the solution, but uses the register that the above uses.
 				return Solution{ result.policy, OperandType::Register, pref };
@@ -488,7 +494,7 @@ namespace LEX
 
 			PushTargetObject(target);
 
-			Solution result = PushExpression(node, pref);
+			Solution result = PushExpression(node, pref, false);
 
 			PopTargetObject();
 

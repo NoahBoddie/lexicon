@@ -150,7 +150,10 @@ namespace LEX
 		static Operation Transfer(const Operand& left, const Solution& right)
 		{
 
+			//When would transfer want to forward move?
 			InstructType instruct;
+#ifdef THE_SUGGESTED
+			
 			//For us to be able to move it, it must not be a reference
 			if (right.IsTemporary() && right.IsReference().value_or(false) == true)
 			{
@@ -161,7 +164,7 @@ namespace LEX
 				instruct = InstructType::Copy;
 			}
 			//I think this may come up some
-#ifdef THE_SUGGESTED
+#else
 			//The take away from this is when is it that we'll want to take a reference, or forward move
 			if (left.IsTemporary())
 			{
@@ -180,12 +183,16 @@ namespace LEX
 					instruct = InstructType::Reference;
 				}
 			}
+			else
+			{
+				instruct = InstructType::Copy;
+			}
 #endif
 			return Operation{ instruct, left, right };
 		}
 
 
-		static Operation Load(const Operand& left, const Solution& right, std::optional<bool> is_ref, SyntaxRecord* from)
+		static Operation Load(const Operand& left, const Solution& right, std::optional<bool> is_ref)
 		{
 			//return Operation{ InstructType::Copy, left, right };
 
@@ -222,7 +229,7 @@ namespace LEX
 						if (right.IsReferential())
 							instruct = InstructType::Reference;
 						else
-							from->error("Cannot convert non-reference type to reference type");
+							report::compile::error("Cannot convert non-reference type to reference type");
 					}
 					else
 					{
@@ -252,9 +259,9 @@ namespace LEX
 			return Operation{ instruct, left, right };
 		}
 
-		static Operation Load(const Solution& left, const Solution& right, SyntaxRecord* from)
+		static Operation Load(const Solution& left, const Solution& right)
 		{
-			return Load(left, right, left.IsReference(), from);
+			return Load(left, right, left.IsReference());
 		}
 
 
@@ -358,12 +365,21 @@ namespace LEX
 		}
 
 
-		[[nodiscard]] static Operation MutateLoad(Solution& sol,  const Solution& to, SyntaxRecord* rec)
+
+
+
+		static Operation MutateLoad(Solution& sol, const Operand& to, std::optional<bool> is_ref)
 		{
-			//Using transfer ensures safety for literals.
-			Operation result = CompUtil::Load(to, sol, rec);
+			Operation result = Load(to, sol, is_ref);
 			sol = static_cast<const Operand&>(to);
 			return result;
+		}
+
+
+
+		[[nodiscard]] static Operation MutateLoad(Solution& sol,  const Solution& to)
+		{
+			return MutateLoad(sol, to, to.IsReference());
 		}
 
 		//*/

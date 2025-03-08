@@ -39,7 +39,9 @@ namespace LEX
 					break;
 					//return true;
 
-				//default:
+				default:
+					qualifiers.reference = Reference::Local;
+					break;
 					//return false;
 				}
 			}

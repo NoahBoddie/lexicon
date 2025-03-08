@@ -70,7 +70,7 @@ namespace LEX
 				report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, environment };
+            Declaration header{ *head_rec, environment, Reference::Local };
 
             if (header.Matches(DeclareMatches::Constness) == false) {
 				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
@@ -127,7 +127,7 @@ namespace LEX
                 if (!node_head)
 					report::compile::critical("No record named header.");
 
-                Declaration header{ *node_head, environment };
+                Declaration header{ *node_head, environment, Reference::Scoped, Reference::Auto };
 
                 //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
                 if (header.Matches(DeclareMatches::Constness | DeclareMatches::Reference) == false) {

@@ -44,7 +44,7 @@ namespace LEX
 
 		InstructType _instruct = InstructType::Invalid;//2?
 
-		Impl::Register _out = Register::Invalid;//1
+		Register _out = Register::Invalid;//1
 
 		//This exists as an index for "failable action". Will stop recording at a certain point, but basically along side of compilation, should be a list of record pointers
 		// which allow one to get the line and column of its failure. Will not be used for something that wasn't given a place to allocate record pointers to. Also, if it runs out of

@@ -65,7 +65,7 @@ namespace LEX
 
 		auto operator <=>(const QualifiedType&) const = default;
 
-		ConvertResult IsQualified(const QualifiedType& other, ConversionFlag flags) const
+		ConvertResult IsQualified(const QualifiedType& other, ConversionFlag flags, Conversion** out) const
 		{
 
 			//Reference section
@@ -74,6 +74,12 @@ namespace LEX
 			bool ret = flags & ConversionFlag::Return;
 			if (init || param || ret)
 			{
+				if (out && IsReference().value_or(false) == true) {
+					//No conversions allowed with references
+					*out = nullptr;
+				}
+
+
 				//We only care about references if they're being initialized
 				Reference refl = reference;
 				Reference refr = other.reference;
@@ -84,7 +90,7 @@ namespace LEX
 				switch (refl)
 				{
 				case Reference::Global://For global it must be equal, no exceptions
-					if (!equals)
+					if (!equals && refr != Reference::Static)
 						return ConvertResult::QualError5;
 					break;
 
@@ -103,7 +109,8 @@ namespace LEX
 					}
 					break;
 
-				case Reference::Var://This literally should never be a return type, and assign wise, this has no issues.
+				case Reference::Static://These 2 literally should never be a return type, and assign wise, this has no issues.
+				case Reference::Auto:
 				case Reference::Maybe:
 				case Reference::Temp://Is this immutable?
 					//Anything can go into these, there's no restrictions
@@ -117,7 +124,7 @@ namespace LEX
 					break;
 				}
 
-				//Var cannot be accepted by anything at all
+				//Auto cannot be accepted by anything at all
 			}
 			
 			
@@ -168,7 +175,7 @@ namespace LEX
 			// first if ref types are used, no conversions are allowed (return to nullptr). Also that Conversion on maybe refs should present a warning
 			// due to not actually using a reference if a reference was desired.
 
-			if (auto result = IsQualified(other, flags); result != ConvertResult::Exact)
+			if (auto result = IsQualified(other, flags, &out); result != ConvertResult::Exact)
 				return result;
 
 			//Simple for now.

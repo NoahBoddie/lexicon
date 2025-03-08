@@ -52,7 +52,8 @@ namespace LEX
 	{
 		Temp,			//The result of an expression, a value with no home
 		Maybe,			//May be a reference to a variable or a temporary value
-		Var,			//A local variable declared within this scope. Cannot be promoted, implicitly local
+		Auto,			//A local variable declared within this scope. Cannot be promoted, implicitly local
+		Static,			//A global variable that isn't a reference
 		Local,			//A reference to a possible local variable. Can be promoted to Scoped
 		Scoped,			//A reference to a variable created outside of this
 		Global,			//A reference to a global variable, existing externally, as a global variable, or detached and shared.
@@ -96,6 +97,40 @@ namespace LEX
 		constexpr Constness GetConstNormalized() const
 		{
 			return constness == Constness::Mutable ? Constness::Modable : constness;
+		}
+
+		constexpr std::optional<bool> IsReference() const noexcept
+		{
+			switch (reference)
+			{
+			case Reference::Maybe:
+				return std::nullopt;
+
+			case Reference::Global:
+			case Reference::Local:
+			case Reference::Scoped:
+				return true;
+
+			default:
+				return false;
+			}
+		}
+
+		//Is Solution capable of being referenced in its current capacity
+		constexpr bool IsReferential() const noexcept
+		{
+			switch (reference)
+			{
+			case Reference::Global:
+			case Reference::Local:
+			case Reference::Scoped:
+			case Reference::Auto:
+			case Reference::Static:
+				return true;
+
+			default:
+				return false;
+			}
 		}
 
 		operator bool() const

@@ -31,7 +31,7 @@ namespace LEX
 
 		//If not void and complete (or just complete because void isn't a complete type
 		//If it's void, that's fine
-		if (_out != Impl::Register::Invalid && result.IsEmpty() == false)
+		if (_out != Register::Invalid && result.IsEmpty() == false)
 			//runtime->GetRegister(_out) = std::move(result);
 			//TODO:While move would be preferable here, it crashes here right now. Address this at some point. I think maybe cause it doesn't unhandle other?
 			runtime->GetRegister(_out) = result;

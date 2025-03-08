@@ -149,7 +149,7 @@ namespace LEX
 
 					implicitReturn = true;
 					//operations.insert_range(end, CompileLine(funcRecord, Register::Result, result));
-					result = PushExpression(funcRecord, Register::Result);
+					result = PushExpression(funcRecord, Register::Result, GetReturnType().IsReference());
 
 
 

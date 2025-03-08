@@ -40,38 +40,7 @@ namespace LEX
 			return type == OperandType::Literal || IsConst();
 		}
 
-		std::optional<bool> IsReference() const
-		{
-			switch (reference)
-			{
-			case Reference::Maybe:
-				return std::nullopt;
-			
-			case Reference::Global:
-			case Reference::Local:
-			case Reference::Scoped:
-				return true;
-			
-			default:
-				return false;
-			}
-		}
-
-		//Is Solution capable of being referenced in its current capacity
-		bool IsReferential() const
-		{
-			switch (reference)
-			{
-			case Reference::Global:
-			case Reference::Local:
-			case Reference::Scoped:
-			case Reference::Var:
-				return true;
-
-			default:
-				return false;
-			}
-		}
+		
 
 
 

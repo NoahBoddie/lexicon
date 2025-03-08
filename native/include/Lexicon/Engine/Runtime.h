@@ -195,7 +195,7 @@ namespace LEX
 
 		RoutineBase& _data;
 
-		std::array<RuntimeVariable, Impl::Register::Total> _registers;
+		std::array<RuntimeVariable, Register::Total> _registers;
 
 		RuntimeFlag _flags{};
 		//Free 7 bytes. or more flags who knows. I could make a set of user defined flags, but I wouldn't know what to use them for that a variable wouldn't suffice
@@ -335,7 +335,7 @@ namespace LEX
 		RuntimeVariable& GetArgument(size_t i)
 		{
 			if (i >= _asp) {
-				report::runtime::critical("Argument stack index larger than current stack size. ({}/{})", i, _vsp);
+				report::runtime::critical("Argument stack index larger than current stack size. ({}/{})", i, _asp);
 			}
 
 			//I'm thinking this should be input only, with a different function that gets a vector of the given arguments.
@@ -369,7 +369,7 @@ namespace LEX
 		}
 
 		//May be replaced in the coming times.
-		RuntimeVariable& GetRegister(Impl::Register reg)
+		RuntimeVariable& GetRegister(Register reg)
 		{
 			return _registers[reg];
 		}

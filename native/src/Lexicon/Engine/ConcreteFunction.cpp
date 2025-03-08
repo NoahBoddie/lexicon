@@ -83,9 +83,6 @@ namespace LEX
 
 			//verify
 
-			if (result.index() == 2)
-				report::fault::break_warn("index is 2. Not currently handled. {}", result.index());
-		
 			return result;
 		}
 
