@@ -330,7 +330,7 @@ void LexTesting(std::string formula)
 
     TestForm();
 
-    TestNativeReference();
+    
     TestRun();
 
     //END OF THE CONTROLLED ENVIRONMENT

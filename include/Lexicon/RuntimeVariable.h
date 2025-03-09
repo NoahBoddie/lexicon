@@ -87,14 +87,14 @@ namespace LEX
 			return *reinterpret_cast<const RunValue*>(this);
 		}
 
-		size_t index() const
+		Type index() const
 		{
-			return GetValue().index();
+			return static_cast<Type>(GetValue().index());
 		}
 
 		bool IsReference() const
 		{
-			return index() == (int)kReference;
+			return index() == kReference;
 		}
 
 
@@ -143,12 +143,12 @@ namespace LEX
 			//logger::critical("dec {:X}", (uintptr_t)this);
 			return --GetData().refs;
 		}
-
+	public:
 		bool IsRefNegated() const
 		{
 			return index() == kReference && Refs();
 		}
-		private:
+	private:
 		void SetNegate(bool value) const 
 		{
 			GetData().refs = value ? -1 : 0;
@@ -181,6 +181,12 @@ namespace LEX
 		
 		void Handle(const RunDataHelper* other, Flag flags = Flag::None)
 		{
+			if (other && other->IsRefNegated() == true) {
+				GetData().refs = other->GetData().refs;
+				return;
+			}
+
+
 			if (IsReference() || flags & Flag::Init) {
 				GetData().refs = 0;
 			}
@@ -257,9 +263,12 @@ namespace LEX
 	public:
 		
 		ALIAS_HEADER;
+		
+		using RunDataHelper::IsRefNegated;
 
 	private: 
 	public:
+
 
 		struct VariableHandler
 		{
@@ -529,9 +538,15 @@ namespace LEX
 		bool IsDetachedRef() const { return index() == (int)kDetached; }
 
 
+
 		bool IsValue() const
 		{
 			return index() == (int)kVariable;
+		}
+
+		bool IsReference() const
+		{
+			return index() >= kReference;
 		}
 
 

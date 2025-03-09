@@ -2025,72 +2025,6 @@ namespace std
 namespace LEX
 {
 
-	template <class T>
-	class PrimitiveWrapper {
-	private:
-		T val{};
-
-	public:
-		PrimitiveWrapper() = default;
-		PrimitiveWrapper(T val) : val(val) {}
-		operator T& () { return val; }
-		T* operator &() { return &val; }
-
-		PrimitiveWrapper(const PrimitiveWrapper&) = delete;
-		PrimitiveWrapper(PrimitiveWrapper&&) = delete;
-	};
-
-
-	
-	template <typename T>
-	class RefRetWrapper : public T
-	{
-		//If this was given a ref, it will be sent via a wrapper. If not, it will come empty. The ability to inspect this wrapper
-		// will be determined elsewhere. Copies of this type will not be allowed to be made, however of other times, yes
-
-		//Also notable is, the clean up function will move what's in T into what's in value. I don't like this however, it may lead to creation.
-		// instead, and this is a dangerous idea, I cast a reference to this ref wrapper. Ensuring it will never copy over will prevent it from having issues
-		// and making sure that the reference is NEVER able to be friended by anything will allow for us to have a reference going when it isn't a reference.
-		// It's kinda UB, but I think it'll still work if I put proper guards in place.
-
-	public:
-		using T::T;
-
-
-
-		std::optional<std::reference_wrapper<T>> value = std::nullopt;
-		RefRetWrapper() = default;
-
-		//Note, ONLY construct. Nothing else.
-		RefRetWrapper(const std::reference_wrapper<T>& other) {}
-	
-		RefRetWrapper(const RefRetWrapper&) = delete;
-		RefRetWrapper(RefRetWrapper&&) = delete;
-	};
-
-	template <typename T, int D = 0>
-	class ComplexWrapper : public T
-	{
-	public:
-		using T::T;
-
-		//Break this down into 2 parts, the basic wrapper will be both primitive and complex. This one with the auto template param
-		// will be what handles different reference types.
-		
-		ComplexWrapper(const T& other) : T{ other } {}
-		ComplexWrapper(T&& other) : T{ other } {}
-
-		//This system is how I could possibly handle the situation of preventing certain types fall into certain hands.
-		ComplexWrapper() = default;//This is required if I do the below
-		template<int _D>requires(_D > D)
-		ComplexWrapper(const ComplexWrapper<T, _D>&) {}
-		template<int _D>requires(_D > D)
-		ComplexWrapper(ComplexWrapper<T, _D>&&) {}
-
-		ComplexWrapper(const ComplexWrapper&) = delete;
-		ComplexWrapper(ComplexWrapper&&) = delete;
-	};
-	
 	//The idea of these type traits is that they'll help represent what they should represent. So for example, 
 	// local ref here will have it's type trait give an rvalue reference, so whatever's being used can
 	template <typename T>
@@ -2141,7 +2075,7 @@ namespace LEX
 
 
 		template <typename T>
-		static void* PointerGetto(T& value)
+		static void* PullAddress(T& value)
 		{
 			if constexpr (std::derived_from<T, detail::wrapper_settings>)
 			{
@@ -2199,6 +2133,7 @@ namespace LEX
 
 			constexpr auto k_ignore_ret = std::is_same_v<detail::not_implemented, TResult>;
 
+			constexpr auto _I = I;//For visibility in debugging
 
 
 			if constexpr (I < std::tuple_size_v<TArgs>) {
@@ -2232,12 +2167,14 @@ namespace LEX
 							//TODO: Make this another move, I don't need what we got here.
 							arg->Assign(static_cast<detail::simplify_wrapper_t<ElemArg>&>(entry));
 
+							auto* res = PullAddress(result);
+							auto* en = PullAddress(entry);
 
 							if constexpr (!k_ignore_ret && k_ret_type != detail::ref_type::kNoRef)
 							{
-								if (!out.IsEmpty() && PointerGetto(result) == std::addressof(entry))
+								if (out.IsEmpty() && PullAddress(result) == PullAddress(entry))
 								{
-									out = RuntimeVariable::CreateTempRef(*arg);
+									out = RuntimeVariable::CreateTempRef(arg);
 								}
 							}
 						}
@@ -2249,34 +2186,35 @@ namespace LEX
 			}
 			else if constexpr (!k_ignore_ret && I == std::tuple_size_v<TArgs>)
 			{
-
-				if constexpr (k_ret_type != detail::ref_type::kNoRef)
+				if (out.IsEmpty() == true)
 				{
-					bool local_check = 1;
-					bool global_check = 1;
+					if constexpr (k_ret_type != detail::ref_type::kNoRef)
+					{
+						bool local_check = 1;
+						bool global_check = 1;
 
-					void* ptr = PointerGetto(result);
+						void* ptr = PullAddress(result);
 
-					//Do checks right here.
+						//Do checks right here.
 
-					if (ptr) {//This check first accounts for maybe ref btw, important.
-						out = extern_ref(*reinterpret_cast<detail::simplify_wrapper_t<TResult>*>(ptr));
-						return;
+						if (ptr) {//This check first accounts for maybe ref btw, important.
+							out = extern_ref(*reinterpret_cast<detail::simplify_wrapper_t<TResult>*>(ptr));
+							return;
+						}
+
+						//This doesn't work like this, I know this. However
+						//
+
+
+						//out = RuntimeVariable::CreateTempRef(*arg);
 					}
 
-					//This doesn't work like this, I know this. However
-					//
-
-
-					//out = RuntimeVariable::CreateTempRef(*arg);
+					if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
+					{
+						static_assert(k_ret_type != detail::ref_type::kLocalRef);
+						out = Variable{ static_cast<RetElem&>(result), GetVariableType<RetElem>() };
+					}
 				}
-
-				if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
-				{
-					static_assert(k_ret_type != detail::ref_type::kLocalRef);
-					out = Variable{ static_cast<RetElem&>(result), GetVariableType<RetElem>() };
-				}
-
 			}
 		}
 
@@ -2294,7 +2232,7 @@ namespace LEX
 			a3 = a2;
 
 			a2 = 47;
-
+			return a2;
 			return testThing;
 		}
 
@@ -2316,35 +2254,66 @@ namespace LEX
 			return HandleDispatch(func, tuple);
 		}
 
-		static void PrintArgs(std::vector<Variable>& args)
+		static void PrintArgs(std::vector<RuntimeVariable>& args)
 		{
 			logger::info("Parameters of Dispatch");
 			for (int i = 0; i < args.size(); i++)
 			{
-				logger::info("|    a{} => {}", i + 2, args[i].PrintString());
+				logger::info("|    a{} => {}", i + 2, args[i]->PrintString());
 			}
 		}
 
 		static void PsuedoDispatch()
 		{
+			RuntimeVariable ref_var = 2;
+
 			RuntimeVariable out;
-			std::vector<Variable> back_args;
-			back_args.emplace_back(2);
+			std::vector<RuntimeVariable> back_args;//This would actually be 
+			back_args.emplace_back(ref_var.AsRef());
 			back_args.emplace_back(3);
 			PrintArgs(back_args);
 			std::vector<Variable*> front_args;
 
-			front_args.push_back(&back_args[0]);
-			front_args.push_back(&back_args[1]);
+			front_args.push_back(back_args[0].Ptr());
+			front_args.push_back(back_args[1].Ptr());
 
 			using Type = detail::try_wrap_param_t<const local_ref<int>&>;
 			using TheLook = std::tuple<local_ref<int>, StaticTargetTag, local_ref<int>&, int&>;
 			using TheCook = std::tuple<StaticTargetTag, detail::try_wrap_param_t<const local_ref<int>&>, int>;
 			
+			detail::try_wrap_param_t<const local_ref<int>&> start = Unvariable<int>{}(front_args[0]);
+
 			TheCook tuple{ StaticTargetTag{}, Unvariable<int>{}(front_args[0]), Unvariable<int>{}(front_args[1]) };
 			decltype(auto) result = LaunderDispatch(TestRefDispatch, tuple);
 			ValueExport<TheLook>(out, result, tuple, nullptr, front_args);
 			
+			//This is a resolving function, it should be done whenever a procedure is completed, to make sure that the return type is proper.
+			if (out.IsRefNegated())
+			{
+				logger::debug("triggered");
+				void* ptr = out.Ptr();
+
+				for (auto& rvar : back_args)
+				{
+					if (rvar.Ptr() == ptr)
+					{
+						if (rvar.IsReference() == false) {
+							report::fault::critical("Non-reference argument referenced in return.");
+						}
+
+						out = rvar.AsRef();
+
+						break;
+					}
+				}
+
+			}
+
+			//Here, we attempt to update
+			for (auto &rvar : back_args){
+				rvar.TryUpdateRef();
+			}
+
 			PrintArgs(back_args);
 
 			if (!out.IsEmpty())
@@ -2364,103 +2333,16 @@ namespace LEX
 
 
 
+		//So, function calls will actually forward everything it can, and then use that in order to return something
+		//I think the soft calls will be unable to return references (due to the function signature not being the same as the native types,
+		// regular invoke (the fancy one?) doesn't know what the rules of the function are.
+
+		//However formulas are able to handle it properly
 
 
-
-
-
-		static void TestNativeReference()
-		{
-
-			int refA = 1;
-
-			scoped_ref<int> testA = refA;
-
-			//scoped_ref<int> testB = testA;
-
-			maybe_ref<int> testC = std::ref(testA);
-			//static_assert(false, "What compels this to work?");
-			//testC += 1;
-
-			Variable testVar = 1;
-
-			RuntimeVariable testTheTransfer = RuntimeVariable::CreateTempRef(testVar);
-			testTheTransfer = 2;
-			RefRetWrapper<std::string> testRef = "";
-
-			std::string str = ";";
-			//testRef = std::ref(str);
-
-			std::optional<std::reference_wrapper<int>> testRefRap;
-
-			static int idiot2 = idiot1;
-			int dummy1;
-			int& crash = function(2);
-			uint8_t space1[0x20];
-			uint8_t space2[0x20];
-			int dummy2;//This is the location of where the allocation should end, but this doesn't account for other function calls does it?
-			//dummy1 and dummy2 
-
-
-			//The idea here is that function returns something made on the stack.
-			//The problem with this is it only works on stack allocated objects, but not something where it comes from a stack allocated
-			// object but is located in the heap
-			assert(std::addressof(dummy1) < std::addressof(crash));//Remember with stack allocation lesser is greater.
-
-			logger::info("The worrisome {}", crash);
-
-			PrimitiveWrapper<int> prox;
-
-
-
-			auto t = prox + 1;
-			prox += 1;
-			int& prox2 = prox;
-			int test_no = 1;
-
-			ComplexWrapper<std::string, 1> prod;
-			ComplexWrapper<std::string> prod2;
-			ComplexWrapper<std::string> test = prod;
-
-
-
-			////////////////////////////
-
-			logger::info("test_no >> {}", test_no);
-
-			{
-				NativeReference ref{ test_no };
-
-				ref.Ref() = 2;
-
-				//Updates can happen in transit if what it's setting to is a native ref
-			}
-
-
-			logger::info("test_no >> {}", test_no);
-
-		}
 
 	};
 	
-	void RunMe(int& t)
-	{
-		logger::info("T = {}", t);
-		t = 2;
-	}
-
-
-	INITIALIZE()
-	{
-		std::vector<Variable> raw_args{ (Variable)1 };
-		std::tuple tup_args{ 1 };
-
-		std::apply(RunMe, tup_args);
-
-		logger::info("after = {}", std::get<0>(tup_args));
-
-	}
-
 
 	
 
@@ -2524,80 +2406,6 @@ namespace LEX
 		}
 	}
 	//*/
-
-	void TestNativeReference()
-	{
-		detail::simplify_wrapper_t<local_ref<int>>;
-		return;
-
-		int refA = 1;
-		//local_ref<int> testWrap1 = refA;
-		detail::try_wrap_param_t<local_ref<int>> testWrap2 = refA;
-		//detail::complex_wrapper<int, detail::ref_type::kScopeRef> testA = refA;
-
-		//detail::complex_wrapper<int, detail::ref_type::kScopeRef> testB = testA;
-
-		//std::ref(testA);
-
-		Variable testVar = 1;
-
-		RuntimeVariable testTheTransfer = RuntimeVariable::CreateTempRef(testVar);
-		testTheTransfer = 2;
-		RefRetWrapper<std::string> testRef = "";
-		
-		std::string str = ";";
-		//testRef = std::ref(str);
-
-		std::optional<std::reference_wrapper<int>> testRefRap;
-
-
-		static int idiot2 = idiot1;
-		int dummy1;
-		int& crash = function(2);
-		uint8_t space1[0x20];
-		uint8_t space2[0x20];
-		int dummy2;//This is the location of where the allocation should end, but this doesn't account for other function calls does it?
-		//dummy1 and dummy2 
-
-
-		//The idea here is that function returns something made on the stack.
-		//The problem with this is it only works on stack allocated objects, but not something where it comes from a stack allocated
-		// object but is located in the heap
-		assert(std::addressof(dummy1) < std::addressof(crash));//Remember with stack allocation lesser is greater.
-
-		logger::info("The worrisome {}", crash);
-
-		PrimitiveWrapper<int> prox;
-
-		
-
-		auto t = prox + 1;
-		prox += 1;
-		int& prox2 = prox;
-		int test_no = 1;
-
-		ComplexWrapper<std::string, 1> prod;
-		ComplexWrapper<std::string> prod2;
-		ComplexWrapper<std::string> test = prod;
-		
-		
-
-		////////////////////////////
-
-		logger::info("test_no >> {}", test_no);
-
-		{
-			NativeReference ref { test_no };
-
-			ref.Ref() = 2;
-
-			//Updates can happen in transit if what it's setting to is a native ref
-		}
-	
-
-		logger::info("test_no >> {}", test_no);
-
-	}
 
 
 	void TestRun()

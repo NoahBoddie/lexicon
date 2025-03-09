@@ -1359,7 +1359,7 @@ namespace LEX
 				Operand{ func, OperandType::Function },
 				Operand{ alloc_size, OperandType::Index });
 
-			compiler->ModArgCount(-static_cast<int64_t>(alloc_size), !THING_TEST_ADJUST);
+			compiler->ModArgCount(-static_cast<int64_t>(alloc_size), false);
 
 
 
