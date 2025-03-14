@@ -258,6 +258,7 @@ set(headers
 	include/Lexicon/VersionDeclareSpace.h
 	include/Lexicon/Versioning.h
 	include/Lexicon/Impl/PCH.h
+	include/Lexicon/Impl/ref_wrapper.h
 	include/Lexicon/Interfaces/IdentityManager.h
 	include/Lexicon/Interfaces/Interface.h
 	"include/Lexicon/Interfaces/InterfaceManager.h"

@@ -41,6 +41,12 @@ namespace LEX
 		OverloadCode code;
 
 		size_t index;//The guide of where to put the given entries routine information.
+
+
+		QualifiedType Sanitize(const QualifiedType& type)
+		{
+			return type;
+		}
 	};
 
 }

@@ -99,22 +99,29 @@ namespace LEX
 			return constness == Constness::Mutable ? Constness::Modable : constness;
 		}
 
-		constexpr std::optional<bool> IsReference() const noexcept
+		constexpr std::optional<bool> IsReference(std::optional<bool> if_null = std::nullopt) const noexcept
 		{
+			std::optional<bool> result;
 			switch (reference)
 			{
 			case Reference::Maybe:
-				return std::nullopt;
+				result = std::nullopt;
 
 			case Reference::Global:
 			case Reference::Local:
 			case Reference::Scoped:
-				return true;
+				result = true;
 
 			default:
-				return false;
+				result = false;
 			}
+
+			if (result.has_value() == false)
+				result = if_null;
+
+			return result;
 		}
+
 
 		//Is Solution capable of being referenced in its current capacity
 		constexpr bool IsReferential() const noexcept

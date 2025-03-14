@@ -60,6 +60,8 @@ namespace LEX
 				return left.distance - right.distance;
 			}
 
+			//We do reference comparison here
+
 			return 0;
 		}
 
@@ -79,6 +81,8 @@ namespace LEX
 
 		static int _ConvertComp(OverloadEntry& tar, OverloadEntry& entry, QualifiedType& arg)
 		{
+			//Arg is unused
+
 			//These should remove const conversions and stuff like that
 			//
 			bool prev_pure = tar.convertType < ConvertResult::Transformative;
@@ -148,6 +152,11 @@ namespace LEX
 
 		int SafeCompare(size_t i, OverloadEntry& entry, QualifiedType& arg)
 		{
+			//TODO:Right here, safe compare should be viewing this through the qualified type through the lens of what the overload expects
+			// So it should
+
+			//The idex can just use the entry btw
+
 			if (!this)
 				return -1;
 

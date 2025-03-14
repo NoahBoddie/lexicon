@@ -67,6 +67,8 @@ namespace LEX
 
 		ConvertResult IsQualified(const QualifiedType& other, ConversionFlag flags, Conversion** out) const
 		{
+			auto result = ConvertResult::Exact;
+
 
 			//Reference section
 			bool init = flags & ConversionFlag::Initialize;
@@ -74,7 +76,7 @@ namespace LEX
 			bool ret = flags & ConversionFlag::Return;
 			if (init || param || ret)
 			{
-				if (out && IsReference().value_or(false) == true) {
+				if (out && IsReference(false) == true) {
 					//No conversions allowed with references
 					*out = nullptr;
 				}
@@ -87,6 +89,9 @@ namespace LEX
 				//While maybe ref is technically a reference, it needs to be promoted first
 				bool not_ref = refr == Reference::Temp || refr ==  Reference::Maybe;
 				bool equals = refl == refr;
+
+				bool ref_check = true;
+
 				switch (refl)
 				{
 				case Reference::Global://For global it must be equal, no exceptions
@@ -124,6 +129,11 @@ namespace LEX
 					break;
 				}
 
+
+				if (IsReference(true) && other.IsReferential() && !equals) {
+					result = ConvertResult::RefConvert;
+				}
+
 				//Auto cannot be accepted by anything at all
 			}
 			
@@ -159,10 +169,13 @@ namespace LEX
 					if (IsDataTypeVal(other.policy->FetchDataType()) == false)
 						return ConvertResult::QualError2;
 				}
+
+				if (result == ConvertResult::Exact)
+					result = ConvertResult::ConstConvert;
 			}
 
 			//Simple for now.
-			return ConvertResult::Exact;
+			return result;
 		}
 
 
@@ -175,10 +188,31 @@ namespace LEX
 			// first if ref types are used, no conversions are allowed (return to nullptr). Also that Conversion on maybe refs should present a warning
 			// due to not actually using a reference if a reference was desired.
 
+
+
+
 			if (auto result = IsQualified(other, flags, &out); result != ConvertResult::Exact)
 				return result;
 
 			//Simple for now.
+			return policy->IsConvertibleTo(other.policy, scope, out, flags);
+
+
+			//TODO: ConverstResult needs to be comprised of more types.  \/
+			// Namely, something to tell what error it should give, as well as a function that takes the qualified types that failed
+
+			ConvertResult qual_result = IsQualified(other, flags, &out);
+
+			if (qual_result <= ConvertResult::Failure)
+				return qual_result;
+
+			if (auto type_result = policy->IsConvertibleTo(other.policy, scope, out, flags); type_result != ConvertResult::Exact)
+				return type_result;
+
+			return qual_result;
+
+
+
 			return policy->IsConvertibleTo(other.policy, scope, out, flags);
 		}
 	};

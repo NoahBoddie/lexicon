@@ -9,6 +9,9 @@ namespace LEX
 
 	enum struct ConvertResult
 	{
+		//TODO: I want to combine all errors into 1, and instead use the convert result as a way to tell what step failed.
+		// Example, 1 would be reference, 2 constness, 3 an incompatible flag or something rather other. Then, the only thing we need to do
+		// is load the strings up differently
 		QualError8 = -11,
 		QualError7 = -10,
 		QualError6 = -9,
@@ -23,6 +26,8 @@ namespace LEX
 		IllegalIntern = -1,
 		//Might rearrange these to be greater
 		Exact = 0,
+		RefConvert,
+		ConstConvert,
 		TypeDefined,
 		VarDefined,//This is the conversion to implicit derives such as var, that next to everything has. Better than a conversion, but implicit in nature.
 		ImplDefined,
@@ -32,7 +37,7 @@ namespace LEX
 
 
 		Failure = -1,//Anything under or equal to failure doesn't need it's value recorded for anything, it's just a conversion error code.
-		Transformative = 2,//Anything equal or greater than transformative is not valid to be used against something under said value.
+		Transformative = VarDefined,//2,//Anything equal or greater than transformative is not valid to be used against something under said value.
 	};
 
 	constexpr ConvertResult convertFailure = ConvertResult::Failure;

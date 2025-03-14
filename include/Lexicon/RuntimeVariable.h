@@ -287,18 +287,6 @@ namespace LEX
 			}
 		};
 
-
-		struct Test
-		{
-
-			RuntimeVariable* self;
-
-			VariableHandler operator->() { return self; }
-
-			const VariableHandler operator->() const { return self; }
-
-		};
-
 		//TODO: Ref count idea for RuntimeVariable below
 		// The concept is for every reference to a Variable that's housed within the runtime variable, that's an additional reference.
 		//  When a runtime variable that holds a simple variable ends, it will check if the ref count is 0. 

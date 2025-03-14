@@ -116,6 +116,8 @@ namespace LEX
                 //report::fault::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
                 
                 //Include things like whether this is
+
+                
                 _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type }, parse_strings::this_word, 0);
             }
 

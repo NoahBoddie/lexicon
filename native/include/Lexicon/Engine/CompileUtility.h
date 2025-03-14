@@ -324,6 +324,12 @@ namespace LEX
 			return result;
 		}
 
+		//May move this, it takes a solution and it's reported going to location, and gets what it should be treated as. 
+		// Say in a place where it copies, it will become modable, since it will be copied.
+		static Solution Sanitize(const Solution& from, const Qualifier& to)
+		{
+			return from;
+		}
 
 
 		//Changes the solution to be where the operand is similar to mutate, but forces it to copy instead.
