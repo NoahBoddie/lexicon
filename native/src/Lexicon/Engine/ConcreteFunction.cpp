@@ -74,6 +74,32 @@ namespace LEX
 			report _{ IssueType::Runtime };
 			
 			prod(result, target, send_args, data);
+
+			if (result.IsRefNegated())
+			{
+				logger::debug("triggered");
+				void* ptr = result.Ptr();
+
+				for (auto& rvar : *args)
+				{
+					if (rvar.Ptr() == ptr)
+					{
+						if (rvar.IsReference() == false) {
+							report::fault::critical("Non-reference argument referenced in return.");
+						}
+
+						result = rvar.AsRef();
+
+						break;
+					}
+				}
+
+			}
+
+
+			for (auto& rvar : *args) {
+				rvar.TryUpdateRef();
+			}
 		}
 		else
 		{

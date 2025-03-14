@@ -75,6 +75,16 @@ double size_for_int(int a_this)
     return a_this;
 }
 
+static int ref = 50;
+
+int& RefTest2(StaticTargetTag)
+{
+    
+
+    return ref;
+}
+
+
 void otherTest(StaticTargetTag)
 {
     static int _inc = 0;
@@ -222,6 +232,10 @@ void LexTesting(std::string formula)
 
         if (ProcedureHandler::instance->RegisterCoreFunction(size_for_int, "size") == false) {
             logger::debug("failure");
+        }
+
+        if (ProcedureHandler::instance->RegisterFunction(RefTest2, "Shared::Commons::RefTest2") == false) {
+            logger::break_debug("failure");
         }
     }
 

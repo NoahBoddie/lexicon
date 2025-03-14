@@ -25,7 +25,7 @@ namespace LEX
 			struct INTERFACE_VERSION(ProcedureHandler)
 			{
 				virtual bool CheckSignatureMatch(const LEX::ISignature& base, IFunction* func) = 0;
-				virtual bool RegisterDispatch(Dispatcher* dispatch, IFunction* func) = 0;
+				virtual bool RegisterDispatch(Dispatcher* dispatch, IFunction* func) = 0;//This isn't supposed to be visible
 				virtual bool RegisterFunction(Procedure procedure, IFunction* func) = 0;
 			};
 		}

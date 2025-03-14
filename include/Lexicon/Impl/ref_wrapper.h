@@ -1,9 +1,15 @@
+#pragma once
+
 namespace LEX
 {
 	//TODO: Clean the ref_wrapper pls, thanks
 
+	struct Dispatcher;
+
 	template <class R, class T, class... Args>
 	struct BasicDispatcher;
+
+	
 	struct TEST_REF;
 	//*
 	namespace detail
@@ -274,6 +280,8 @@ namespace LEX
 				
 			template <class R, class T, class... Args>
 			friend struct LEX::BasicDispatcher;
+
+			friend struct LEX::Dispatcher;
 
 
 			using Self = complex_wrapper<T1, T2>;
