@@ -728,7 +728,7 @@ namespace LEX
 
 			logger::trace("<!> inst {}, result policy {}", compiler->GetOperationList().back()._instruct,
 				(uint32_t)policy->GetTypeID());
-			return Solution{ policy, OperandType::Register, out };
+			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
 
 
@@ -808,7 +808,7 @@ namespace LEX
 
 			logger::trace("<!> inst {}, result policy {}", compiler->GetOperationList().back()._instruct,
 				(uint32_t)policy->GetTypeID());
-			return Solution{ policy, OperandType::Register, out };
+			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
 
 
@@ -1189,7 +1189,9 @@ namespace LEX
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
 
-			Solution sol{ result->Policy(), OperandType::Literal, result };
+			//TODO: I think GetVariableType would be prefered here
+			//Solution sol{ QualifiedType{ result->Policy(), Constness::Const }, OperandType::Literal, result };
+			Solution sol{ QualifiedType{ result->GetVariableType(), Constness::Const }, OperandType::Literal, result };
 			
 			return sol;
 		}
@@ -1313,7 +1315,7 @@ namespace LEX
 					report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 				}
 
-				if (func->GetTargetType() != nullptr) {
+				if (func->GetTargetType().policy != nullptr) {
 					//Increase the allocation size to include the "this" argument.
 					//alloc_size++;
 				}
@@ -1329,7 +1331,7 @@ namespace LEX
 			auto start = compiler->ModArgCount(alloc_size);
 
 
-			if (func->GetTargetType() != nullptr) {
+			if (func->GetTargetType().policy != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
 				list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
 			}
@@ -1457,7 +1459,7 @@ namespace LEX
 				report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 			}
 
-			if (func->GetTargetType() != nullptr) {
+			if (func->GetTargetType().policy != nullptr) {
 				//Increase the allocation size to include the "this" argument.
 				alloc_size++;
 			}
@@ -1492,7 +1494,7 @@ namespace LEX
 				compiler->GetOperationList().emplace_back(InstructType::Construct, compiler->GetPrefered(),
 					Operand{ type, OperandType::Type });
 
-				result = Solution{ type, OperandType::Register, compiler->GetPrefered() };
+				result = Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
 			}
 
 
@@ -1691,7 +1693,7 @@ namespace LEX
 				//if the type we're trying to go to can convert into ours with only type conversions
 				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
 				{
-					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
+					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
 					compiler->GetOperationList().emplace_back(
 						InstructionType::Convert,
@@ -1711,7 +1713,7 @@ namespace LEX
 
 				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
 				{
-					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
+					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
 					compiler->GetOperationList().emplace_back(
 						InstructionType::Convert,

@@ -343,6 +343,7 @@ namespace LEX
 
 		~RuntimeVariable()
 		{
+			//TryUpdateRef();//NOTE: TEMP IDEA EXPERIMENTAL
 			Unhandle();
 		}
 

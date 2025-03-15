@@ -11,14 +11,14 @@ namespace LEX
 
 			Variable* var = dynamic_cast<Variable*>(_target);
 
-			Solution result{ GetType(), OperandType::Variable, var };
+			Solution result{ QualifiedType{GetType()}, OperandType::Variable, var };
 			
 			result = GetQualifiers();
 
 			return result;
 		}
 
-		Solution result{ GetType(), OperandType::Index, (size_t)GetFieldIndex() };
+		Solution result{ QualifiedType{GetType()}, OperandType::Index, (size_t)GetFieldIndex() };
 
 		result = GetQualifiers();
 

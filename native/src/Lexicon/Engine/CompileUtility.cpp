@@ -61,7 +61,7 @@ namespace LEX
 
 
 			//This shouldn't really be using the previous policy, but I kinda don't care for now.
-			value = Solution{ to.policy, OperandType::Register, reg };
+			value = Solution{ to, OperandType::Register, reg };
 			return true;
 		}
 

@@ -5,16 +5,29 @@
 #include "Lexicon/VariableType.h"
 #include "Lexicon/FormulaHandler.h"
 
+#include "Lexicon/Impl/ref_wrapper.h"
+
 #include "Lexicon/Interfaces/FormulaManager.h"
 
 namespace LEX
 {
 	struct IScript;
 
-	template <typename T>
+
+
+	template <typename T>// requires(detail::reference_type_v<T, true> == detail::kNoRef)
 	struct Formula;
+	
+	//I want a good way to prevent these from having a reference return type.
 
+	/*
+	template <typename T>
+	concept is_ref = std::is_reference_v<T>;
 
+	template <is_ref T>
+	struct Formula<T> {};
+	//*/
+	
 	//make summary later.
 	template <detail::function_has_var_type T>
 	struct Formula<T>

@@ -326,17 +326,16 @@ namespace LEX
 		//friend std::vector<Operation>& Scope::GetOperationList();
 
 
-		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Environment* env) : CompilerBase {ast, owner, env, owner->_name, owner->GetTargetType() }
+		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Environment* env) : CompilerBase { ast, owner, env, owner->_name }
 		{
 
 		}
 
-		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name= "<no name>", ITypePolicy* tarType = nullptr) :
+		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name= "<no name>") :
 			funcRecord{ ast },
 			_name { name },
 			_callData{ owner },
-			_environment{ env },
-			_targetType{ tarType }
+			_environment{ env }
 		{
 
 		}
@@ -371,9 +370,6 @@ namespace LEX
 		//Replacement for targetFunc
 		BasicCallableData* _callData = nullptr;
 		
-		ITypePolicy* _targetType = nullptr;
-		//std::unique_ptr<ParameterInfo> _thisInfo;
-		
 		std::string_view _name;
 
 		size_t GetParamAllocSize() const
@@ -382,9 +378,9 @@ namespace LEX
 		}
 
 
-		ITypePolicy* GetTargetType() const
+		QualifiedType GetTargetType() const
 		{
-			return _targetType;
+			return _callData ? _callData->GetTargetType() : nullptr;
 		}
 
 		std::string_view name()
@@ -480,7 +476,7 @@ namespace LEX
 				GetOperationList().emplace_back(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
 				
 				//This uses the policy of the solution, but uses the register that the above uses.
-				return Solution{ result.policy, OperandType::Register, pref };
+				return Solution{ result, OperandType::Register, pref };
 			}
 
 			return result;
@@ -699,13 +695,13 @@ namespace LEX
 		// additional. FunctionData can hold its own record.
 		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Environment* env)
 		{
-			return Compile(routine, ast, owner, env, owner->_name, owner->GetTargetType());
+			return Compile(routine, ast, owner, env, owner->_name);
 		}
 		
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name, ITypePolicy* tarType = nullptr)
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name)
 		{
 			report _{ IssueType::Compile };
-			RoutineCompiler compiler{ ast, owner, env, name, tarType };
+			RoutineCompiler compiler{ ast, owner, env, name };
 			bool result = compiler.CompileRoutine(routine);
 			RGL_LOG(debug, "Compilation complete.");
 			return result;

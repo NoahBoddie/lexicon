@@ -55,8 +55,7 @@ namespace LEX
 		// IRuntime should be able to transfer into runtime directly anyhow.
 		virtual RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) = 0;
 
-	
-		
+
 	public:
 		//Call and Invoke may just return a variable instead.
 
@@ -65,7 +64,8 @@ namespace LEX
 		virtual RuntimeVariable Invoke(api::vector<RuntimeVariable> args, RuntimeVariable* def);
 
 
-	
+		//TODO: Call shouldn't be able to use a runtime variable due to it not really being certain if the returning reference is even alive still or not.
+		// *Instead, Call should likely be for users only, while I'll make a version of invoke that may handle the references better
 
 		
 

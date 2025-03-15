@@ -27,7 +27,7 @@ namespace LEX
 		explicit QualifiedType(ITypePolicy* p) : policy{ p } {}
 		QualifiedType(ITypePolicy* p, Qualifier q) : policy{ p }, Qualifier{ q } {}
 
-		QualifiedType& operator=(const Qualifier& other) { __super::operator=(other); return *this; }
+		using Qualifier::operator=;//(const Qualifier& other) { __super::operator=(other); return *this; }
 
 
 	//private://Temporary to sus out where policy is expected from solutions and declarations.
@@ -83,8 +83,8 @@ namespace LEX
 
 
 				//We only care about references if they're being initialized
-				Reference refl = reference;
-				Reference refr = other.reference;
+				Reference refl = other.reference;
+				Reference refr = reference;
 
 				//While maybe ref is technically a reference, it needs to be promoted first
 				bool not_ref = refr == Reference::Temp || refr ==  Reference::Maybe;
@@ -146,8 +146,8 @@ namespace LEX
 			//auto comp = qualifiers & other.qualifiers;
 
 			//These in essence did a switch. need to rename to To and from.
-			Constness l_comp = constness;
-			Constness r_comp = other.constness;
+			Constness l_comp = other.constness;
+			Constness r_comp = constness;
 
 			if (l_comp != r_comp) {
 

@@ -722,6 +722,10 @@ namespace LEX
             return IdentityManager::instance->GetInherentType(InherentType::kVoidable)->FetchTypePolicy(nullptr);
         }
      
+        AbstractTypePolicy* GetVariableType()
+        {
+            return GetVariableType(this);
+        }
 
        
         //template <class _Ty, enable_if_t<!is_same_v<_Remove_cvref_t<_Ty>, variant>

@@ -48,9 +48,8 @@ namespace LEX
 		Solution() = default;
 
 
-		Solution(ITypePolicy* a_policy, OperandType a_type, Target a_target) :  Operand{ a_target, a_type }
+		constexpr Solution(const QualifiedType& a_type, OperandType a_opType, Target a_target) noexcept :  Operand{ a_target, a_opType }, QualifiedType { a_type }
 		{
-			policy = a_policy;
 		}
 
 		using Operand::operator=;

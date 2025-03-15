@@ -315,7 +315,8 @@ void LexTesting(std::string formula)
 
         if (function)
         {
-            
+            Formula<int&(int)>;
+
             Variable result = function->Call();
 
             std::string number = result.AsNumber().string();

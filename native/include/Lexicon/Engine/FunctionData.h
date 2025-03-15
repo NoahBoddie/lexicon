@@ -113,9 +113,9 @@ namespace LEX
 			return _returnType;
 		}
 
-		ITypePolicy* GetTargetType() const
+		QualifiedType GetTargetType() const
 		{
-			return _thisInfo ? _thisInfo->GetType() : nullptr;;
+			return _thisInfo ? _thisInfo->GetQualifiedType() : nullptr;;
 		}
 
 		//These sorts of things should be protected, not used up front.

@@ -32,6 +32,11 @@ namespace LEX
 			{
 				switch (ref)
 				{
+				case Reference::Static:
+					qualifiers.reference = Reference::Global;
+					break;
+				
+
 				case Reference::Global:
 				case Reference::Local:
 				case Reference::Scoped:
@@ -40,6 +45,7 @@ namespace LEX
 					//return true;
 
 				default:
+					report::error("cant do this '{}' not recognized", magic_enum::enum_name(ref));
 					qualifiers.reference = Reference::Local;
 					break;
 					//return false;

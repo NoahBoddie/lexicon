@@ -89,6 +89,21 @@ namespace LEX
 			flags{ flgs }
 		{}
 
+		constexpr Qualifier(Reference ref) noexcept :
+			reference{ ref },
+			constness{ Constness::Mutable },
+			flags{ QualifierFlag::None }
+		{}
+
+
+		constexpr Qualifier(Constness cnst) noexcept :
+			reference{ Reference::Temp },
+			constness{ cnst },
+			flags{ QualifierFlag::None }
+		{}
+
+
+
 		constexpr bool IsConst() const
 		{
 			return constness == Constness::Const;
@@ -106,17 +121,20 @@ namespace LEX
 			{
 			case Reference::Maybe:
 				result = std::nullopt;
+				break;
 
 			case Reference::Global:
 			case Reference::Local:
 			case Reference::Scoped:
 				result = true;
+				break;
 
 			default:
 				result = false;
+				break;
 			}
 
-			if (result.has_value() == false)
+			if (result == std::nullopt)
 				result = if_null;
 
 			return result;
