@@ -42,8 +42,11 @@ namespace LEX
 		Exponent,
 		Access,
 
-		Then, 
+		Then,
+		Promote,
+
 		//Directives (Instructions created don't match 1 to 1 the operator used)	
+
 		Copy,
 		Move,		
 		Reference,	//Attempts to reference the value in the rhs and move that reference to the lhs

@@ -373,7 +373,7 @@ struct Initializer
 
 //Initializes something on the spot.
 #define INITIALIZE__COUNTED(mc_counter,...) inline extern void CONCAT(__init_func_,mc_counter)();\
-volatile inline extern Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
+volatile inline static Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
 inline extern void CONCAT(__init_func_,mc_counter)()
 
 #define INITIALIZE(...) INITIALIZE__COUNTED(__COUNTER__,__VA_ARGS__)

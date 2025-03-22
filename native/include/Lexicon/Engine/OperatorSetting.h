@@ -83,6 +83,7 @@ namespace LEX
 		opSettings.emplace_back("%", OperatorType::Binary, 20);
 		opSettings.emplace_back("^^", OperatorType::Binary, 22);
 		opSettings.emplace_back("pow", OperatorType::Binary, 22);
+		opSettings.emplace_back("*", OperatorType::Unary, 23);
 		opSettings.emplace_back(".", OperatorType::Binary, 25);
 		logger::critical("*%* opSettings set, size {}", opSettings.size());
 	};

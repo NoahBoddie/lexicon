@@ -25,6 +25,19 @@ namespace LEX
 		}
 
 
+		static ITypePolicy* uboolean()
+		{
+			constexpr auto bool_settings = Number::Settings{ NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound };
+
+			static ITypePolicy* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset());
+			}
+
+			return type;
+		}
+
 		static ITypePolicy* integer64()
 		{
 			constexpr auto int_settings = Number::Settings::CreateFromType<int32_t>();

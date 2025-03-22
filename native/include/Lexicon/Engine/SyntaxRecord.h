@@ -29,7 +29,7 @@ namespace LEX
 
 		//What I basically want of this it accumulate messages, and their source locations and such. So it will handle that sort of this.
 
-		inline static std::unordered_map<size_t, Script*> selfList;
+		//inline static std::unordered_map<size_t, Script*> selfList;
 
 		inline static size_t hash = 0;
 

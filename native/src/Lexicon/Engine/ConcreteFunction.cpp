@@ -6,7 +6,7 @@
 
 namespace LEX
 {
-	RuntimeVariable ConcreteFunction::Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def)
+	RuntimeVariable ConcreteFunction::Execute(api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
 	{
 		if (IsValid() == false) {
 			report::log("Function '{}' is not valid. Maybe say error later.", IssueType::Apply, def ? IssueLevel::Failure : IssueLevel::Error, GetName());
@@ -31,7 +31,7 @@ namespace LEX
 			return;
 			int i = param.GetFieldIndex();
 
-			AbstractTypePolicy* expected = param.GetType()->FetchTypePolicy(runtime);
+			AbstractTypePolicy* expected = param.GetType()->FetchTypePolicy(caller);
 
 
 			if (!expected)
@@ -53,7 +53,7 @@ namespace LEX
 		{
 			ProcedureData data;
 			
-			data.runtime = runtime;
+			data.runtime = caller;
 			data.defOption = def;
 			data.function = this;
 
@@ -103,7 +103,7 @@ namespace LEX
 		}
 		else
 		{
-			Runtime runtime{ *GetRoutine(), args };//The creation of runtime yields 2 numbers that should not exist.
+			Runtime runtime{ *GetRoutine(), args, caller };//The creation of caller yields 2 numbers that should not exist.
 
 			result = runtime.Run();
 

@@ -19,7 +19,7 @@ namespace LEX
 			kNoRef,
 			kMaybeRef,
 			kLocalRef,
-			kScopeRef,
+			kScopeRef,//TODO: SCOPED not scope
 			kGlobalRef,
 		};
 

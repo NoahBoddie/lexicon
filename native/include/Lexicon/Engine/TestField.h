@@ -858,39 +858,38 @@ namespace LEX
 
 	
 
-		inline std::unique_ptr<ITemplatePart> temp_EncapTypes(std::vector<ITypePolicy*>& list)
+	inline std::unique_ptr<ITemplatePart> temp_EncapTypes(std::vector<ITypePolicy*>& list)
+	{
+		//The point of this function would be to accept a number of types turning them into a GenericParameter, or a generic argument.
+
+		std::vector<AbstractTypePolicy*> possible;
+
+		auto size = list.size();
+
+		for (auto& it : list)
 		{
-			//The point of this function would be to accept a number of types turning them into a GenericParameter, or a generic argument.
-
-			std::vector<AbstractTypePolicy*> possible;
-
-			auto size = list.size();
-
-			for (auto& it : list)
+			if (it->IsResolved() == false)
 			{
-				if (it->IsResolved() == false)
-				{
-					GenericPartArray* _array = new GenericPartArray;
-					std::unique_ptr<ITemplatePart> result{ _array };
+				GenericPartArray* _array = new GenericPartArray;
+				std::unique_ptr<ITemplatePart> result{ _array };
 					
-					_array->_types = std::move(list);
+				_array->_types = std::move(list);
 
-					return result;
-				}
-
-				auto back = it->GetTypePolicy((ITemplateBody*)nullptr);
-				possible.push_back(back);
+				return result;
 			}
 
-			GenericBodyArray* _array = new GenericBodyArray;
-			
-			std::unique_ptr<ITemplatePart> result{ _array };
-
-			_array->_types = std::move(possible);
-
-			return result;
+			auto back = it->GetTypePolicy((ITemplateBody*)nullptr);
+			possible.push_back(back);
 		}
 
+		GenericBodyArray* _array = new GenericBodyArray;
+			
+		std::unique_ptr<ITemplatePart> result{ _array };
+
+		_array->_types = std::move(possible);
+
+		return result;
+	}
 
 
 
@@ -898,13 +897,14 @@ namespace LEX
 
 
 
-		//Maybe use spans instead of vectors.
+
+	//Maybe use spans instead of vectors.
 
 
 
-		//Both special part and special body will likely become ITemplate somethings. Thinking about it, if  I have a function or type that needs 
-		// to be specialized, it fits that this would be specializing it right?
-		//If that happens get argument will not be required any longer.
+	//Both special part and special body will likely become ITemplate somethings. Thinking about it, if  I have a function or type that needs 
+	// to be specialized, it fits that this would be specializing it right?
+	//If that happens get argument will not be required any longer.
 
 
 
@@ -912,7 +912,7 @@ namespace LEX
 		
 		
 
-		//These 2 can largely be boiler place tbh.
+	//These 2 can largely be boiler place tbh.
 		
 
 
@@ -928,98 +928,270 @@ namespace LEX
 
 
 
-		INITIALIZE()
+	INITIALIZE()
+	{
+		return;
+		report::info("starting. . . .");
+
+		GenericType to_spec;
+			
+		GenericType specifier1;//Will partially specialize
+		GenericType specifier2;//will completely partually specialize
+		GenericType specifier3;//will completely specialize.
+
+
+		to_spec._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+		specifier1._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+		specifier2._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+		specifier3._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+
+
+		ITypePolicy* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
+		ITypePolicy* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
+		ITypePolicy* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+
+		std::vector<ITypePolicy*> group1{ 3 };
+		std::vector<ITypePolicy*> group2{ 3 };
+		std::vector<ITypePolicy*> group3{ 3 };
+
+
+		group1[0] = floatSmall;
+		group1[1] = stringB;
+		group1[2] = &specifier1._template[0];
+			
+
+		group2[0] = &specifier2._template[2];
+		group2[1] = &specifier2._template[0];
+		group2[2] = &specifier2._template[1];
+
+		group3[0] = stringB;
+		group3[1] = floatSmall;
+		group3[2] = stringB;
+
+
+
+		//auto 
+
+		auto part1 = temp_EncapTypes(group1);
+		auto part2 = temp_EncapTypes(group2);
+		auto part3 = temp_EncapTypes(group3);
+
+		//Nothing new was created in any of these, and all of these are the same object.
+
+		auto type1 = to_spec.CheckTypePolicy(&specifier1, part1.get());
+		auto type2 = to_spec.CheckTypePolicy(&specifier2, part2.get());
+		auto type3 = to_spec.CheckTypePolicy(&specifier3, part3.get());
+		specifier1.GetTypePolicy(part3->TryPromoteTemplate());
+		specifier2.GetTypePolicy(part3->TryPromoteTemplate());
+		report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
+
+			
+
+		//This isn't supposed to make 3 new bodies
+
+		//auto a2 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+		//auto a3 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+
+		auto a1 = type1->GetTypePolicy(part3->TryPromoteTemplate());
+		auto a2 = type2->GetTypePolicy(part3->TryPromoteTemplate());
+		auto a3 = type3->GetTypePolicy(part3->TryPromoteTemplate());
+
+		auto a4 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+
+
+		report::info("exists? {} {} {} -> {}?", (uintptr_t)a1, (uintptr_t)a2, (uintptr_t)a3, (uintptr_t)a4);
+
+
+
+
+		report::info("ending. . . .");
+	}
+
+	
+	template <typename... T>
+	struct NumberRepresent
+	{};
+
+
+	void Test2()
+	{
+		//This is an example of how we would represent non-existant number types within a native environment. Only the last one will count, 
+		// but the others help establish it as a number. After that, it then proxies the base type it's trying to be and handles conversions before
+		// and after.
+		NumberRepresent<unsigned, bool> test;
+	}
+
+
+	namespace TestingRecordViewer
+	{
+		struct RecordHandler
 		{
-			return;
-			report::info("starting. . . .");
 
-			GenericType to_spec;
+			using RecordType = SyntaxRecord;
+
+			virtual void Destroy(const RecordType* record) const
+			{
+				delete record;
+			}
 			
-			GenericType specifier1;//Will partially specialize
-			GenericType specifier2;//will completely partually specialize
-			GenericType specifier3;//will completely specialize.
+			virtual std::string_view tag(const RecordType* record) const
+			{
+				return record->GetView();
+			}
+
+			virtual const RecordType::Inherit* GetInheritLayer(const RecordType* record) const//requires (non-zero inherited)
+			{
+				return record;
+			}
+
+			virtual const RecordType::Data& GetEnum(const RecordType* record) const//requires (non-void type) actually, this should mirror the handling of data 
+			{
+				return record->GetEnum();
+			}
 
 
-			to_spec._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-			specifier1._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-			specifier2._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-			specifier3._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+			virtual const RecordType* GetChild(const RecordType* record, size_t i) const
+			{
+				//returns null when it has no more to give. This is used privately to create a vector
+				return std::addressof(record->GetChild(i));
+			}
 
 
-			ITypePolicy* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
-			ITypePolicy* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
-			ITypePolicy* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+			static RecordHandler* GetSingleton()
+			{
+				static RecordHandler singleton;
+				return std::addressof(singleton);
+			}
+		};
 
-			std::vector<ITypePolicy*> group1{ 3 };
-			std::vector<ITypePolicy*> group2{ 3 };
-			std::vector<ITypePolicy*> group3{ 3 };
+
+		struct BasicRecordView
+		{
+			using RecordType = SyntaxRecord;
+
+			//TODO: Instead of a virtual record reader through and  through, what I'd like is to have the virtual nature outsourced to an object.
+			// This would make it safe to tranfer, at the behest of the object it's records were created from.
 
 
-			group1[0] = floatSmall;
-			group1[1] = stringB;
-			group1[2] = &specifier1._template[0];
+			~BasicRecordView()
+			{
+				if (_managed)
+					delete _target;
+			}
+
+			BasicRecordView(const RecordType& other) : _target{ std::addressof(other) }, _managed{ false }
+			{
+
+			}
+
+			BasicRecordView(RecordType&& other) : _target{ new RecordType(std::move(other)) }, _managed{ true }
+			{
+
+			}
+
+
+
+
+
+			const RecordType::Inherit* GetInheritLayer() const//requires (non-zero inherited)
+			{
+				return  _handler->GetInheritLayer(_target);
+			}
+
+			const RecordType::Data& GetEnum() const//requires (non-void type) actually, this should mirror the handling of data 
+			{
+				return  _handler->GetEnum(_target);
+			}
+
+
+
+			const RecordType::Inherit* operator->() const//requires (non-zero inherited)
+			{
+				return GetInheritLayer();
+			}
 			
-
-			group2[0] = &specifier2._template[2];
-			group2[1] = &specifier2._template[0];
-			group2[2] = &specifier2._template[1];
-
-			group3[0] = stringB;
-			group3[1] = floatSmall;
-			group3[2] = stringB;
-
-
-
-			//auto 
-
-			auto part1 = temp_EncapTypes(group1);
-			auto part2 = temp_EncapTypes(group2);
-			auto part3 = temp_EncapTypes(group3);
-
-			//Nothing new was created in any of these, and all of these are the same object.
-
-			auto type1 = to_spec.CheckTypePolicy(&specifier1, part1.get());
-			auto type2 = to_spec.CheckTypePolicy(&specifier2, part2.get());
-			auto type3 = to_spec.CheckTypePolicy(&specifier3, part3.get());
-			specifier1.GetTypePolicy(part3->TryPromoteTemplate());
-			specifier2.GetTypePolicy(part3->TryPromoteTemplate());
-			report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
-
 			
+			const RecordType* GetChild(size_t i)
+			{
+				//returns null when it has no more to give. This is used privately to create a vector
+				return _handler->GetChild(_target, i);
+			}
 
-			//This isn't supposed to make 3 new bodies
+			//I GOT IT, in order to display the inherited stuff, it will have a function that displays the inherited layer, rather it will give a const pointer
+			// to the inherited layer. This will give us the ability to control what we show, but also conditionally show stuff like syntax record without
+			// giving away too much.
 
-			//auto a2 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
-			//auto a3 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+			std::string_view tag() const
+			{
+				return _handler->tag(_target);
+			}
+			//Collected here should be all the stuff we want to possibly have be standard. So children, parentage, etc etc. 
+			// The problem is having it target something like a syntax record, it cannot inherit those special types.
 
-			auto a1 = type1->GetTypePolicy(part3->TryPromoteTemplate());
-			auto a2 = type2->GetTypePolicy(part3->TryPromoteTemplate());
-			auto a3 = type3->GetTypePolicy(part3->TryPromoteTemplate());
+		private:
+			RecordHandler* const _handler = RecordHandler::GetSingleton();
+			const RecordType* _target;
+			bool _managed;
 
-			auto a4 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+		};
+		//template<typename T>
+		//using BasicRecordViewer =  std::shared_ptr<Record
 
+		void TestRecordViewer()
+		{
+			SyntaxRecord test;
 
-			report::info("exists? {} {} {} -> {}?", (uintptr_t)a1, (uintptr_t)a2, (uintptr_t)a3, (uintptr_t)a4);
-
-
-
-
-			report::info("ending. . . .");
+			BasicRecordView viewer{ test };
+			//viewer->;
+			//RecordViewer test;
 		}
 
-	
+	}
+
+	namespace ClassStructSystem
+	{
+
+
+		//Will be used to represent custom class objects, preventing it from being instantiated
+		template <StringLiteral TypeName>
+		using class_type = int;
+
+		//Will be used to represent custom struct objects, preventing it from being instantiated
+		template <StringLiteral TypeName>
+		using struct_type = int;
+
+
+		//This represents an enum value, with the type
+		template <StringLiteral TypeName>
+		using enum_type = int;
+
+
+		struct test_struct_class
+		{
+
+			
+			template <typename T>
+			T member(std::string_view name)
+			{
+				//This is how one would access a class struct, however, instead of doing it like this, I'd like something similar to a native_reference,
+				// a scripted reference. Which basically would conversely serve to take a native object and impose changes on a scripted variable.
+				// notably, by doing this, I can have referenciable return types
+				return {};
+			}
+		};
 
 
 
+		namespace complete_reference_coverage
+		{
+			//This is an idea by which external references can cover native to native, scripted to native, and native to scripted references.
+			// Think the issue of returning a reference parameter, but that parameter leads to a scripted object. That's what this attempts to resolve.
+			// An object that serves as the handler for that, something similar to the local ref types, aliasing themselves as that object while serving
+			// as a reference to either a scripted object or a native one.
 
-
-
-
-
-
-
-
-
+			//
+		}
+	}
 
 
 

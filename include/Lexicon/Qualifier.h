@@ -69,11 +69,18 @@ namespace LEX
 		Readonly,//Probably not going to be used
 	};
 	
-	enum struct QualifierFlag : int8_t
+	
+	ENUM (QualifierFlag, int8_t)
 	{
+		//Please note QualifierFlags aren't to be observed in an official capacity, they're mostly used for compiling.
 		None = 0,
-
-
+		//Initialized,		//Used when a value can be initialized. Think for out and in
+		//Open,				//The idea would be the reference can now be reassigned
+		//ExactRef,			//A flag that would exist to say "this type cannot be promoted". Assigned if a reference has roughly the same ref as it's expression
+							// this can be cleared if it has been reassigned previously (to which it is then a question).
+		//ReadOnly,			//Would be used for in
+		//WriteOnly,		//Would be used for out
+		Promoted = 1 << 4,	//Flag to denote promoted refs. Promoted refs cannot be used in any space other than loading, but can be converted into a bool
 		All = -1,
 	};
 
@@ -104,7 +111,7 @@ namespace LEX
 
 
 
-		constexpr bool IsConst() const
+		constexpr bool IsConst() const noexcept
 		{
 			return constness == Constness::Const;
 		}
@@ -126,6 +133,7 @@ namespace LEX
 			case Reference::Global:
 			case Reference::Local:
 			case Reference::Scoped:
+			case Reference::Generic:
 				result = true;
 				break;
 
@@ -156,6 +164,48 @@ namespace LEX
 			default:
 				return false;
 			}
+		}
+
+		bool PromoteRefness()
+		{
+			switch (reference)
+			{
+				case Reference::Maybe:
+					reference = Reference::Local;
+					break;
+
+				case Reference::Local:
+					reference = Reference::Scoped;
+					break;
+
+				case Reference::Scoped:
+					reference = Reference::Global;
+					break;
+
+				case Reference::Global:
+					return false;
+
+				case Reference::Auto:
+				case Reference::Static:
+				case Reference::Generic:
+				case Reference::Temp:
+
+			default:
+				return false;
+			}
+
+			flags |= QualifierFlag::Promoted;
+			return true;
+		}
+
+		void ClearPromotion()
+		{
+
+		}
+
+		constexpr bool IsPromoted() const
+		{
+			return flags & QualifierFlag::Promoted;
 		}
 
 		operator bool() const

@@ -192,10 +192,15 @@ namespace LEX
 		}
 
 
-		static Operation Load(const Operand& left, const Solution& right, std::optional<bool> is_ref)
+		static std::vector<Operation> Load(const Operand& left, const Solution& right, std::optional<bool> is_ref)
 		{
-			//return Operation{ InstructType::Copy, left, right };
+			std::vector<Operation> result;
 
+			//return Operation{ InstructType::Copy, left, right };
+			if (!left.IsTemporary() && right.IsPromoted() == true) {
+				//Unsure if the left temporary is a necessary check.
+				result.emplace_back(InstructType::Promote, right, Operand{ right.reference, OperandType::Index });
+			}
 
 
 
@@ -255,11 +260,13 @@ namespace LEX
 
 			//If right is a maybe, forward
 			//When trying to temporary locations and right is 
-
-			return Operation{ instruct, left, right };
+			result.emplace_back(instruct, left, right);
+			
+			return  result;
+			return  { Operation{ instruct, left, right } };
 		}
 
-		static Operation Load(const Solution& left, const Solution& right)
+		static std::vector<Operation> Load(const Solution& left, const Solution& right)
 		{
 			return Load(left, right, left.IsReference());
 		}
@@ -374,19 +381,25 @@ namespace LEX
 
 
 
-		static Operation MutateLoad(Solution& sol, const Operand& to, std::optional<bool> is_ref)
+		static std::vector<Operation> MutateLoad(Solution& sol, const Operand& to, std::optional<bool> is_ref)
 		{
-			Operation result = Load(to, sol, is_ref);
+			auto result = Load(to, sol, is_ref);
+			sol.ClearPromotion();
 			sol = static_cast<const Operand&>(to);
 			return result;
 		}
 
 
 
-		[[nodiscard]] static Operation MutateLoad(Solution& sol,  const Solution& to)
+		[[nodiscard]] static std::vector<Operation> MutateLoad(Solution& sol,  const Solution& to)
 		{
 			return MutateLoad(sol, to, to.IsReference());
 		}
+		
+
+
+
+
 
 		//*/
 

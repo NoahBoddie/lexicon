@@ -31,6 +31,7 @@
 #include "Lexicon/Engine/VoidPolicy.h"
 
 #include "Lexicon/Engine/CompileUtility.h"
+#include "Lexicon/Engine/RuntimeUtility.h"
 
 #include "Lexicon/Engine/parse_strings.h"
 
@@ -39,8 +40,11 @@
 #include "Lexicon/ProcedureData.h"
 
 #include "Lexicon/Impl/common_type.h"
+#include "Lexicon/Impl/ref_wrapper.h"
 
 #include "Lexicon/Number.h"
+
+
 
 void TestFunction()
 {
@@ -230,6 +234,40 @@ namespace LEX
 			
 			if (func)
 				ret = func->Execute(from, runtime, nullptr);
+		}
+
+		
+		//Confirms that a reference promotion is valid
+		static void CheckPromotion(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			RuntimeVariable variable = a_lhs.GetVariable(runtime);
+
+			auto type = (Reference)a_rhs.Get<Index>();
+			
+			auto result = RunUtil::CantPromote(variable, runtime, type);
+
+			switch (result)
+			{
+			case 0:
+				break;
+
+			case 1:
+				report::runtime::error("Not reference, maybe ref can't be promoted");
+				break;
+
+			case 2:
+				report::runtime::error("Reference located in current runtime, local ref can't be promoted");
+				break;
+
+			case 3:
+				report::runtime::error("Reference located within a runtime, scoped ref can't be promoted");
+				break;
+
+			default: 
+				report::runtime::error("Ref promotion error '{}' unknown.", result);
+				break;
+			}
+		
 		}
 
 
@@ -631,7 +669,7 @@ namespace LEX
 
 			case "*"_h:
 				logger::debug("construct symbol \'*\'");
-				return InstructType::Multiply;
+				return binary ? InstructType::Multiply : InstructType::Promote;
 
 			case "+"_h:
 				logger::trace("construct symbol '+' ({})", binary ? "binary" : "unary");
@@ -645,9 +683,9 @@ namespace LEX
 				logger::trace("construct symbol \'/\'");
 				return InstructType::Division;
 
-			case "**"_h:
-				logger::trace("construct symbol \'^\'");
-				return InstructType::Exponent;
+			//case "**"_h:
+			//	logger::trace("construct symbol \'^\'");
+			//	return InstructType::Exponent;
 
 			case "%"_h:
 				logger::trace("construct symbol \'%\'");
@@ -1001,7 +1039,18 @@ namespace LEX
 			}
 
 
+			static Solution PromoteProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+			{
 
+
+				Solution result = compiler->CompileExpression(target.GetChild(0), compiler->GetPrefered());
+
+				if (result.PromoteRefness() == false) {
+					report::compile::error("'{}' Reference type cannot be promoted.", magic_enum::enum_name(result.reference));
+				}
+
+				return result;
+			}
 		};
 
 
@@ -1026,6 +1075,10 @@ namespace LEX
 			
 			case InstructType::Then:
 				return OpProcessors::ThenProcess(compiler, target);
+				
+			case InstructType::Promote:
+				return OpProcessors::PromoteProcess(compiler, target);
+
 			default:
 				return OpProcessors::GenericProcess(compiler, target, op);
 			}
@@ -1349,7 +1402,7 @@ namespace LEX
 				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, Register::Right);
 
 				//list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
-				list.push_back(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
+				list.append_range(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
 			}
 
 			//default is dealt with here.
@@ -1569,7 +1622,7 @@ namespace LEX
 
 				
 				//compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
-				compiler->GetOperationList().push_back(CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
+				compiler->GetOperationList().append_range(CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
 			}
 
 
@@ -2091,6 +2144,7 @@ namespace LEX
 			//We not ready for this one.
 			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;
 			instructList[InstructType::UnaryMinus] = InstructWorkShop::UnaryMath<std::negate<void>>;
+			instructList[InstructType::Promote] = InstructWorkShop::CheckPromotion;
 
 			
 

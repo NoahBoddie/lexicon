@@ -473,7 +473,7 @@ namespace LEX
 
 				
 				//GetOperationList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
-				GetOperationList().emplace_back(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
+				GetOperationList().append_range(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
 				
 				//This uses the policy of the solution, but uses the register that the above uses.
 				return Solution{ result, OperandType::Register, pref };
@@ -703,7 +703,15 @@ namespace LEX
 			report _{ IssueType::Compile };
 			RoutineCompiler compiler{ ast, owner, env, name };
 			bool result = compiler.CompileRoutine(routine);
-			RGL_LOG(debug, "Compilation complete.");
+			
+			if (!result) {
+				
+				report::compile::failure("Compilation of '{}' failure. Address logs", name), (IsDebuggerPresent() ? __debugbreak() : void());
+			}
+			else {
+				report::compile::debug("Compilation of '{}' complete.", name);
+			}
+
 			return result;
 		}
 		private:

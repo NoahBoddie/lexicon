@@ -23,7 +23,7 @@ namespace LEX
 		//Think this should probably store the string that it came from perhaps. Could be useful.
 
 
-		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
+		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def) override
 		{
 			if (args->size() != GetParamCount())
 				report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), GetParamCount());
@@ -35,7 +35,7 @@ namespace LEX
 						return;
 						int i = param.GetFieldIndex();
 
-						AbstractTypePolicy* expected = param.GetType()->FetchTypePolicy(runtime);
+						AbstractTypePolicy* expected = param.GetType()->FetchTypePolicy(caller);
 						if (!expected)
 							report::apply::critical("unexpected?");
 
@@ -51,9 +51,9 @@ namespace LEX
 			{
 				RuntimeVariable result;
 
-				Runtime _runtime{ *GetRoutine(), args };
+				Runtime runtime{ *GetRoutine(), args, caller };
 
-				result = _runtime.Run();
+				result = runtime.Run();
 
 				return result;
 			}
