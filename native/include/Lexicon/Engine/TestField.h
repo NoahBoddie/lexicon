@@ -351,122 +351,6 @@ namespace LEX
 		}
 	}
 
-	void test_a(int&)
-	{
-	}
-
-	//*
-	//This may work, but it will need to use the respective type it's going to become.
-	//In this case, guide type is a type that relates to the dispatcher
-	template <typename GuideType, typename TupleType, std::size_t... Indices>
-	auto tie_as_tuple(TupleType& t, std::index_sequence<Indices...>) {
-		//std::forward_as_tuple<std::tuple_element_t<Indices, TupleType>...>
-		return std::forward_as_tuple(std::forward<std::tuple_element_t<Indices, GuideType>>(std::get<Indices>(t))...);
-	}
-
-	template <typename... GuideTypes, typename TupleType>
-	auto tie_as_tuple(TupleType& t) {
-		return tie_as_tuple<std::tuple<GuideTypes...>>(t, std::make_index_sequence<std::tuple_size_v<TupleType>>{});
-	}
-	
-	int main() {
-		std::tuple<int, double, std::string> my_tuple{ 10, 3.14, "hello" };
-
-		auto tuple_of_refs = tie_as_tuple<int&, double, std::string&>(my_tuple);
-
-		//std::get<0>(tuple_of_refs) = 20;
-		//std::get<1>(tuple_of_refs) = 6.28;
-		//std::get<2>(tuple_of_refs) = "world";
-		
-		std::cout << std::get<0>(my_tuple) << " " << std::get<1>(my_tuple) << " " << std::get<2>(my_tuple) << std::endl;
-
-		return 0;
-	}
-	//*/
-	void test_b(int&&, int&)
-	{
-	}
-	void TFunc()
-	{
-		//test_a(1);
-		int t = 1;
-		std::forward_as_tuple(1, t);
-
-		const int& t2 = t;
-		//test_b(t2, t);
-		int&& t1 = std::forward<int>(t);
-		test_a(std::forward<int&>(t));
-
-		std::tuple<int&> in = t;
-		std::tuple<int&&, int&>  in2{ std::forward<int>(std::get<0>(in)), std::get<0>(in) };
-		//auto in3 = std::forward_as_tuple(in);
-		//std::apply(test_b, std::forward<std::tuple<int, int>>(in));
-		
-		//As long as the parameters match, the tuples will be able to be forwarded. The only issue now, is loading the tuple with the expected types.
-		std::apply(test_a, std::forward<decltype(in)>(in));
-		std::apply(test_b, std::forward<decltype(in2)>(in2));
-		//std::apply(test_b, in2);
-
-		Test test;
-		test._1::_2::Test::foo();
-	}
-
-	/*
-	AbstractTypePolicy* VariableType<double>::operator()()
-	{
-		//I could just make this numeric
-		static AbstractTypePolicy* result = nullptr;
-
-		if (!result) {
-
-			//offset
-			constexpr auto setting = LEX::Number::Settings::CreateFromType<double>();
-
-			auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
-
-			result = buffer->FetchTypePolicy(nullptr);
-
-			logger::info("id? {}", (int)result->FetchTypeID());
-		}
-
-		return result;
-	}
-	//*/
-
-
-	
-	//*/
-
-
-
-	/*
-	template<numeric T>
-	AbstractTypePolicy* GetVariableType<T>()
-	{
-		static AbstractTypePolicy* result = nullptr;
-
-		if (!result) {
-
-			constexpr auto setting = LEX::Number::Settings::CreateFromType<T>();
-
-
-			auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
-
-			result = buffer->FetchTypePolicy(nullptr);
-
-			logger::info("id? {}", (int)result->FetchTypeID());
-		}
-
-		return result;
-	}
-	//*/
-	//TODO: This should be moved.
-
-
-
-	//This is so temporary I hate that I'm doing it like this.
-	
-
 
 //#requires /:Option
 
@@ -857,9 +741,12 @@ namespace LEX
 
 
 	
-
+	
 	inline std::unique_ptr<ITemplatePart> temp_EncapTypes(std::vector<ITypePolicy*>& list)
 	{
+		//This function belongs within generic base I think, from the one who's being targeted. A safe function that also takes null
+		// as an option.
+
 		//The point of this function would be to accept a number of types turning them into a GenericParameter, or a generic argument.
 
 		std::vector<AbstractTypePolicy*> possible;
@@ -923,14 +810,242 @@ namespace LEX
 
 
 
-	
+	namespace NewTargetObject
+	{
 
+
+		struct TargetObject
+		{
+			enum Flag : uint8_t
+			{
+				None = 0 << 0,
+				Implicit = 1 << 0,
+			};
+
+
+
+			Solution*		target = nullptr;
+			ITemplatePart* tempArgs = nullptr;
+			TargetObject*	prev = nullptr;
+			Flag			flag = Flag::None;
+
+
+			bool IsExplicit() const
+			{
+				return !IsImplicit();
+			}
+
+			bool IsImplicit() const
+			{
+				if (!this)
+					return true;
+
+				return flag & Flag::Implicit;
+			}
+
+			Solution* GetSolution()
+			{
+				return this ? target : nullptr;
+			}
+
+			TargetObject(Solution& t, TargetObject*& p, ITemplatePart* part, Flag f = Flag::None) : target{ &t }, tempArgs{part}, prev{p}, flag{f}
+			{
+				p = this;
+			}
+		};
+	}
+
+	struct ITemplateBodyPart : public ITemplateBody
+	{
+		enum State : uint8_t
+		{
+			kUnknown = -1,
+			kPart,
+			kBody,
+		};
+
+		virtual bool IsResolved() const = 0;
+
+		State GetState() const
+		{
+			if (state == kUnknown)
+			{
+				if (IsResolved() == false)
+					state = kBody;
+				else
+					state = kPart;
+			}
+
+			return state;
+		}
+
+
+		ITemplateBody* TryPromoteTemplate() override
+		{
+			return GetState() ? this : nullptr;
+		}
+
+	private:
+		mutable State state = State::kUnknown;
+	};
+
+	struct ITemplateInserter
+	{
+
+		virtual void InsertType(ITypePolicy* part) = 0;
+
+		//void AcceptTypes(std::span<ITypePolicy*> types);
+	};
+
+
+	struct GenericArray : public ITemplateBodyPart, public ITemplateInserter
+	{
+		//I want to have this be conjoined, instead pivoting what functions it has based on whether it can promote.
+		size_t GetSize() const override { return _types.size(); }
+
+
+		ITypePolicy* GetPartArgument(size_t i) const override
+		{
+			return _types[i];
+		}
+
+		AbstractTypePolicy* GetBodyArgument(size_t i) const override
+		{
+			if (GetState())
+			{
+				auto& type = _types[i];
+
+				return type->FetchTypePolicy(nullptr);;
+			}
+			
+			return nullptr;
+		}
+
+
+		void InsertType(ITypePolicy* body) override
+		{
+			//Update right here.
+			_types.emplace_back(body);
+		}
+
+		GenericBase* GetClient() const override
+		{
+			return _client;
+		}
+
+		mutable GenericBase* _client = nullptr;
+		
+		//TODO: Allow this to be created via span, but able to transform into a vector if it begins inserting types.
+		// I think doing this will actually make setting this up a fair bit easier.
+		mutable std::vector<ITypePolicy*> _types;
+
+
+		//std::variant<std::vector<ITypePolicy*>
+	};
+
+	
+	struct MergeTemplate : public ITemplateBody
+	{//While this is an ITemplateBody, it should always be passed around as a part.
+		enum State : uint8_t
+		{
+			kUnknown = -1,
+			kPart,
+			kBody,
+		};
+		MergeTemplate(ITemplatePart* lhs, ITemplatePart* rhs) :
+			left{ lhs },
+			right{ rhs },
+			leftEnd { lhs ? lhs->GetSize() : 0 }
+		{
+			GetState();
+		}
+
+
+		MergeTemplate(ITemplateBody* lhs, ITemplateBody* rhs) :
+			left{ lhs },
+			right{ rhs },
+			leftEnd{ lhs ? lhs->GetSize() : 0 },
+			state{ kBody }
+		{
+		}
+
+		//The client is whoever we'd be accessing from. So this is a little less cut and dry, and more prevailent to the circumstances.
+		GenericBase* GetClient() const override { return right->GetClient(); }
+
+
+		size_t GetSize() const override { return leftEnd + right->GetSize(); }
+
+
+		ITypePolicy* GetPartArgument(size_t i) const override
+		{
+			return i < leftEnd ? left->GetPartArgument(i) : right->GetPartArgument(i - leftEnd);
+		}
+
+		AbstractTypePolicy* GetBodyArgument(size_t i) const override
+		{
+			if (GetState()) {
+				auto lhs = left ? left->TryPromoteTemplate() : nullptr;
+				auto rhs = right->TryPromoteTemplate();
+				return i < leftEnd ? lhs->GetBodyArgument(i) : rhs->GetBodyArgument(i - leftEnd);
+			}
+			
+			return nullptr;
+		}
+
+
+
+		ITemplatePart* const left = nullptr;
+		ITemplatePart* const right = nullptr;
+		size_t leftEnd = -1;
+		
+		//Make a boolean for if this can be promoted
+	private:
+		mutable State state = State::kUnknown;
+
+	public:
+		State GetState() const
+		{
+			if (state == kUnknown)
+			{
+				if ((!left || left->TryPromoteTemplate()) && right->TryPromoteTemplate())
+					state = kBody;
+				else
+					state = kPart;
+			}
+
+			return state;
+		}
+
+
+		ITemplateBody* TryPromoteTemplate() override
+		{
+			return GetState() ? this : nullptr;
+		}
+
+		
+	};
+
+
+	struct TestA { virtual ~TestA() = default; };
+	struct TestB { virtual ~TestB() = default; };
+	
+	struct TestC : public TestA, public TestB {};
 
 
 
 	INITIALIZE()
 	{
-		return;
+		//TODO: Read below, to do with ISpecializable
+		//If I could confirm the offsets between types were 0 I would feel completely comfortable getting rid of the interface type
+		// for ISpecializable types
+		//((::size_t) & reinterpret_cast<char const volatile&>((((TestC*)0)->TestA)));
+		constexpr auto dist = ((::size_t)&reinterpret_cast<char const volatile&>(*(TestB*)((TestC*)0)));
+
+		ITemplatePart* dead = nullptr;
+
+		//I think what I want is something that would be able to concat 2 ITemplate args. This way I could accumulate 2 different groups.
+
+		//return;
 		report::info("starting. . . .");
 
 		GenericType to_spec;
@@ -940,10 +1055,10 @@ namespace LEX
 		GenericType specifier3;//will completely specialize.
 
 
-		to_spec._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-		specifier1._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-		specifier2._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-		specifier3._template = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+		to_spec._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+		specifier1._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+		specifier2._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
+		specifier3._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
 
 
 		ITypePolicy* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
@@ -957,12 +1072,12 @@ namespace LEX
 
 		group1[0] = floatSmall;
 		group1[1] = stringB;
-		group1[2] = &specifier1._template[0];
+		group1[2] = &specifier1._templates[0];
 			
 
-		group2[0] = &specifier2._template[2];
-		group2[1] = &specifier2._template[0];
-		group2[2] = &specifier2._template[1];
+		group2[0] = &specifier2._templates[2];
+		group2[1] = &specifier2._templates[0];
+		group2[2] = &specifier2._templates[1];
 
 		group3[0] = stringB;
 		group3[1] = floatSmall;
@@ -985,7 +1100,9 @@ namespace LEX
 		specifier2.GetTypePolicy(part3->TryPromoteTemplate());
 		report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
 
-			
+		//int test1;
+		//int test2;
+		//2 + test1<test2>(1);
 
 		//This isn't supposed to make 3 new bodies
 
@@ -1150,6 +1267,13 @@ namespace LEX
 
 	namespace ClassStructSystem
 	{
+		//This type would serve for something to link to a function with generic structures.
+		// Like the ref types, this would basically alias the object. I don't think I'll require this however.
+		template <typename Type, StringLiteral... TempArgs>
+		using generic_type = int;
+
+		template <StringLiteral... TempParams>
+		struct GenericFunctionTag {};
 
 
 		//Will be used to represent custom class objects, preventing it from being instantiated

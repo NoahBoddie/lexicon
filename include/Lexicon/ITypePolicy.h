@@ -15,7 +15,7 @@
 namespace LEX
 {
 	//Please move this
-	ENUM(TypeRuleset)
+	ENUM(TypeRuleset, uint64_t)
 	{
 		None			= 0,		
 		ReturnOpt		= 1 << 0,	//Controls if when in a return the option of returning it is optional
@@ -152,6 +152,8 @@ namespace LEX
 
 	public:
 		virtual std::string_view GetName() const = 0;
+
+		virtual std::span<ITypePolicy*> GetTemplate() { return {}; }
 
 	INTERNAL:		
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,

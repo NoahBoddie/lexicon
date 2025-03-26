@@ -22,7 +22,7 @@ namespace LEX
 
 		//I'm too fucking lazy to make it work normally, so this is what we're gonna deal with til I do.
 		//PolicyBase* result = GetPolicyFromSpecifiers(_path, process->GetEnvironment());
-		PolicyBase* result = GetPolicyFromSpecifiers(dummy, process->GetEnvironment());
+		PolicyBase* result = GetPolicyFromSpecifiers(dummy, process->GetElement());
 
 		return result;
 
@@ -32,7 +32,7 @@ namespace LEX
 	//This actually probably will want to return the function info, because of something like generic functions.
 	FunctionInfo* Scope::SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out)
 	{
-		return process->GetEnvironment()->SearchFunctionPath(path, input, out);
+		return process->GetElement()->SearchFunctionPath(path, input, out);
 
 	}
 
@@ -61,7 +61,7 @@ namespace LEX
 		}
 
 
-		if (auto field = process->GetEnvironment()->SearchFieldPath(_path); field) {
+		if (auto field = process->GetElement()->SearchFieldPath(_path); field) {
 			return field;
 		}
 

@@ -195,6 +195,10 @@ namespace LEX
 			return _procedure;
 		}
 
+		std::string_view name() const
+		{
+			return _name;
+		}
 	public:
 
 

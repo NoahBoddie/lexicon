@@ -39,7 +39,7 @@ namespace LEX
 
 
 	//TODO: I'd like to have GetPolicyFromSpecifiers dealt with via strings, and/or able to be dealt with via a record.
-	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Environment* env);
+	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem);
 
 
 
@@ -137,7 +137,7 @@ namespace LEX
 		Declaration() = default;
 
 		//Do this via function
-		Declaration(SyntaxRecord& header, Environment* env, Reference genericRef, Reference defaultRef = Reference::Temp);
+		Declaration(SyntaxRecord& header, Element* source, Reference genericRef, Reference defaultRef = Reference::Temp);
 
 		using QualifiedType::operator=;
 		Declaration& operator=(const Specifier& other) { __super::operator=(other); return *this; }

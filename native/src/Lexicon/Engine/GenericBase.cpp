@@ -36,6 +36,9 @@ namespace LEX
 
 	SpecialBase* GenericBase::ObtainSpecial(GenericBase* client, ITemplatePart* args)
 	{
+		//TODO: Currently, the problem is we can't send something like a 3 templated part for a 5 templated function.
+		// Currently
+
 		if (TemplateMatches(args) == false)
 		{
 			report::fault::error("cant handle args");

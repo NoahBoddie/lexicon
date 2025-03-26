@@ -25,6 +25,13 @@ namespace LEX
 			_types.emplace_back(body);
 		}
 
+		GenericBase* GetClient() const override
+		{
+			return _client;
+		}
+
+		mutable GenericBase* _client = nullptr;
+
 		mutable std::vector<AbstractTypePolicy*> _types;
 	};
 

@@ -18,6 +18,9 @@ namespace LEX
 		//Always try to promote before using. 
 		virtual ITemplateBody* TryPromoteTemplate() { return nullptr; }
 
+		//This should be pure
+		virtual GenericBase* GetClient() const { return nullptr; }
+
 		bool IsSpecialized() { return TryPromoteTemplate(); }
 
 

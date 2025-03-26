@@ -163,7 +163,7 @@ namespace LEX
                 if (target.FindChild(parse_strings::code) == nullptr)
                     report::compile::error("Function '{}' doesn't have a body", GetName());
 
-                if (RoutineCompiler::Compile(_routine, target, this, GetEnvironment()) == false){
+                if (RoutineCompiler::Compile(_routine, target, this) == false){
                     return LinkResult::Failure;
                 }
             }

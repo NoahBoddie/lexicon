@@ -82,7 +82,7 @@ namespace LEX
 	//*/
 
 
-	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Environment* env)
+	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem)
 	{
 		PolicyBase* result = nullptr;
 
@@ -179,12 +179,12 @@ namespace LEX
 
 				default://typename
 					type_name = &entry;
-					search_name = name; break;
+					break;
 				}
 			}
 
-			if (search_name.empty() == false) {
-				result = env->SearchTypePath(*type_name);
+			if (type_name) {
+				result = elem->SearchTypePath(*type_name);
 			}
 			else {
 				settings.limit = settings.limit == Limit::Invalid ? Limit::Overflow : settings.limit;
@@ -204,7 +204,7 @@ namespace LEX
 	}
 
 
-	Declaration::Declaration(SyntaxRecord& header, Environment* env, Reference genericRef, Reference defaultRef)
+	Declaration::Declaration(SyntaxRecord& header, Element* source, Reference genericRef, Reference defaultRef)
 	{
 		if (header.GetTag() != parse_strings::header) {
 			report::fault::critical("header not found.");
@@ -276,7 +276,7 @@ namespace LEX
 			type = static_cast<decltype(type)>(type + 1);
 		}
 		
-		policy = GetPolicyFromSpecifiers(type_spec, env);
+		policy = GetPolicyFromSpecifiers(type_spec, source);
 		*this = GetQualifiersFromStrings(type_qual);
 		*this = GetSpecifiersFromStrings(decl_spec);
 

@@ -87,7 +87,7 @@ namespace LEX
 		{
 			//This expects a completed template btw.
 
-			auto size = _template.size();
+			auto size = _templates.size();
 
 
 
@@ -96,7 +96,7 @@ namespace LEX
 
 			for (int i = 0; i < size; i++)
 			{
-				auto& param = _template[i];
+				auto& param = _templates[i];
 
 				//This would be the thing it should be trying to turn into
 				ITypePolicy* _param = &param;
@@ -129,10 +129,16 @@ namespace LEX
 		//I'm unsure if this would even bee needed honestly.
 		//void ResolveIncomplete(IGenericArgument*) {}
 
+		const std::vector<TemplateType>& templates() const
+		{
+			return _templates;
+		}
 
 
+		//For when something inherits from one and falls into the other?
+		//std::vector<uint32_t> inheritGroups{};
 
-		std::vector<TemplateType> _template;
+		std::vector<TemplateType> _templates;
 
 		std::vector<std::unique_ptr<SpecialPart>> incomplete;
 		std::vector<std::unique_ptr<SpecialBody>> complete;

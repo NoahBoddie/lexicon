@@ -7,8 +7,10 @@ namespace LEX::Impl
 {
 	class TokenHandler
 	{
-		enum ChangeFlag//I super don't care about these right now.
+		enum ChangeFlag
 		{
+			//I super don't care about these right now.
+			// But the idea was that keywords and such scale
 			None = 0,
 			Operators = 1 << 0,
 			Puncuation = 1 << 1,
@@ -63,6 +65,10 @@ namespace LEX::Impl
 
 		inline static std::vector<std::string_view> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::", "...", "/:", "#"};//?
 		
+
+		//TODO: Consider some contextual keywords, keywords not always made keywords, but only under certain situations. 
+		// Basically they'd compare to being identifiers unless asked for specifically.
+
 		//This shoult be handled externally I think, or should be able to be added to.
 		inline static std::vector<std::string_view> _keyCodes
 		{ 

@@ -1588,7 +1588,7 @@ namespace LEX
 			if (!head_rec)
 				report::compile::error("No record named header.");
 
-			Declaration header{ *head_rec, compiler->GetEnvironment(), Reference::Generic, Reference::Auto };
+			Declaration header{ *head_rec, compiler->GetElement(), Reference::Generic, Reference::Auto };
 
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
@@ -1713,7 +1713,7 @@ namespace LEX
 
 			auto& rhs = target.FindChild(parse_strings::rhs)->GetFront();
 
-			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetEnvironment(), Reference::Temp };
+			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Reference::Temp };
 
 			if (!header) {
 				report::compile::error("No type found for cast");

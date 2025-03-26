@@ -7,11 +7,13 @@
 
 namespace LEX
 {
+
 	struct AbstractTypePolicy;
 
 	struct ITemplateBody : public ITemplatePart
 	{
-		ITypePolicy* GetPartArgument(size_t i) const override final
+
+		ITypePolicy* GetPartArgument(size_t i) const override
 		{
 			return GetBodyArgument(i);
 		}

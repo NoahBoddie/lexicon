@@ -10,7 +10,8 @@ namespace LEX
 
 	struct GenericPartArray : public ITemplatePart, public ITemplateInsertPart
 	{
-		GenericPartArray() { }
+		GenericPartArray() = default;
+
 		size_t GetSize() const override { return _types.size(); }
 
 		ITypePolicy* GetPartArgument(size_t i) const override
@@ -25,7 +26,12 @@ namespace LEX
 			_types.emplace_back(part);
 		}
 
+		GenericBase* GetClient() const override
+		{
+			return _client;
+		}
 
+		mutable GenericBase* _client{};
 		mutable std::vector<ITypePolicy*> _types;
 	};
 

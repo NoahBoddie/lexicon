@@ -657,6 +657,10 @@ namespace LEX::Impl
 							return false;
 						[[fallthrough]];
 
+					//case SyntaxType::Boolean:
+					//	if (target->GetView() != "maybe")
+					//		return false;
+
 					case SyntaxType::Identifier:
 					
 						break;
@@ -694,6 +698,11 @@ namespace LEX::Impl
 					_make.GetChild(KeywordType::TypeQual) = Parser::CreateExpression(parse_strings::type_qualifier, SyntaxType::Header);
 					_make.GetChild(KeywordType::DeclSpec) = Parser::CreateExpression(parse_strings::declare_specifier, SyntaxType::Header);
 					_make.GetChild(KeywordType::TypeSpec) = Parser::CreateExpression(parse_strings::type_specifier, SyntaxType::Header);
+
+					//TODO: I want to make a function called ConsumeTarget. It's goal should be to eat the targets data and return a reference to the header.
+					//if (target && target->GetView() == "maybe") {
+					//	_make.GetChild(KeywordType::TypeQual).EmplaceChild(Parser::CreateExpression(target->data(), SyntaxType::None));
+					//}
 
 					//auto& type_qual = 
 					//auto& decl_spec = 
@@ -1579,17 +1588,14 @@ namespace LEX::Impl
 
 					while (end_of_this() == false) {
 						body.EmplaceChild(parser->ParseExpression());
-
-						//I would regardless like to end this off with ";" if possible
-						//Also, this needs a function called Clear instead, where it will continuously loop until it no longer needs to skip.
-						if (end_of_this() == false)
-							parser->SkipType(TokenType::Punctuation, ";");
 					}
 
 					result.EmplaceChild(body);
-				} else if (requires_body) {
+				} 
+				else if (requires_body) {
 					parser->croak("type requires a body.");
 				}
+
 				if (has_body)
 					return result;
 				else

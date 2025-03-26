@@ -89,6 +89,17 @@ namespace LEX
 			report::apply::failure("Launch Script is null.");
 			return 2;
 		}
+
+		if (false) {
+			//Some way to stringize a Signature locally would be really cool for visuals.
+			std::string name;
+			name += base.result()->GetName();
+			name += " (";
+			
+			name += ")";
+
+		}
+
 		
 		//This needs to confirm it's proper
 		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, parse_strings::no_name) == false) {

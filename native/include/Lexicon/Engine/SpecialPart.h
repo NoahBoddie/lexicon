@@ -14,7 +14,7 @@ namespace LEX
 	struct SpecialPart : public SpecialBase, public ITemplatePart
 	{
 	public:
-		SpecialPart(GenericBase* type, ITemplatePart* spec) : SpecialBase{ type }
+		SpecialPart(GenericBase* base, ITemplatePart* spec) : SpecialBase{ base }
 		{
 			auto size = spec->GetSize();
 
@@ -23,6 +23,20 @@ namespace LEX
 				auto arg = spec->GetPartArgument(i);
 				_types.emplace_back(arg);
 			}
+
+			/*
+			if (!base)
+				return;
+
+			//From here, we make up for the rest of the size
+			if (auto& templates = base->templates(); templates.size() > size)
+			{
+				for (auto i = size; i < templates.size(); i++)
+				{
+					_types.emplace_back(&templates[i]);
+				}
+			}
+			//*/
 		}
 
 

@@ -165,9 +165,9 @@ namespace LEX
 		}
 
 
-		Environment* GetEnvironment()
+		Element* GetElement()
 		{
-			return _environment;
+			return _element;
 		}
 
 
@@ -326,16 +326,16 @@ namespace LEX
 		//friend std::vector<Operation>& Scope::GetOperationList();
 
 
-		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Environment* env) : CompilerBase { ast, owner, env, owner->_name }
+		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Element* elem) : CompilerBase { ast, owner, elem, owner->_name }
 		{
 
 		}
 
-		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name= "<no name>") :
+		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Element* elem, std::string_view name= "<no name>") :
 			funcRecord{ ast },
 			_name { name },
 			_callData{ owner },
-			_environment{ env }
+			_element{ elem }
 		{
 
 		}
@@ -399,7 +399,7 @@ namespace LEX
 
 
 		//I would like to remove environment from play, and replace it with just the element being given.
-		Environment* _environment = nullptr;
+		Element* _element = nullptr;
 		//ICallableUnit* routine = nullptr;
 
 		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
@@ -693,15 +693,22 @@ namespace LEX
 
 		//function data is no longer an ask, it's a requirement now.
 		// additional. FunctionData can hold its own record.
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Environment* env)
+		
+		
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionBase* owner)
 		{
-			return Compile(routine, ast, owner, env, owner->_name);
+			return Compile(routine, ast, owner, owner, owner->GetName());
 		}
 		
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name)
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Element* elem)
+		{
+			return Compile(routine, ast, owner, elem, owner->name());
+		}
+		
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Element* elem, std::string_view name = parse_strings::no_name)
 		{
 			report _{ IssueType::Compile };
-			RoutineCompiler compiler{ ast, owner, env, name };
+			RoutineCompiler compiler{ ast, owner, elem, name };
 			bool result = compiler.CompileRoutine(routine);
 			
 			if (!result) {
