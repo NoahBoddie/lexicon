@@ -35,6 +35,7 @@ namespace LEX
 		virtual Variable GetDefault() = 0;
 		
 	protected: 
+		//TODO: SetDefault does NOT need to exist at all. Whatever can use this likely can just set it. Rather, move it to the PolicyBase
 		virtual void SetDefault(Variable&) = 0;
 	public:
 		//Make these work like an actual emplace function, where it basically does the construction elsewhere.

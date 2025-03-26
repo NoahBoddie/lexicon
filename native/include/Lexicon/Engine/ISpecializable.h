@@ -18,6 +18,11 @@ namespace LEX
 
 		virtual GenericBase* GetGeneric() const = 0;
 
+		GenericBase* FetchBase() const
+		{
+			return this ? GetGeneric() : nullptr;
+		}
+
 		//virtual SpecialBase* GetPart(ITemplatePart* args) = 0;
 
 		virtual SpecialBody* ObtainBody(ITemplateBody* args) = 0;

@@ -810,11 +810,50 @@ namespace LEX
 
 
 
+	struct ITemplateBodyPart : public ITemplateBody
+	{
+		enum State : uint8_t
+		{
+			kUnknown = -1,
+			kPart,
+			kBody,
+		};
+
+		virtual bool IsResolved() const = 0;
+
+		State GetState() const
+		{
+			if (_state == kUnknown)
+			{
+				if (IsResolved() == true)
+					_state = kBody;
+				else
+					_state = kPart;
+			}
+
+			return _state;
+		}
+
+		void ResetState() const
+		{
+			_state = kUnknown;
+			GetState();
+		}
+
+		ITemplateBody* TryPromoteTemplate() override
+		{
+			return GetState() ? this : nullptr;
+		}
+
+	private:
+		mutable State _state = State::kUnknown;
+	};
+
 	namespace NewTargetObject
 	{
+		
 
-
-		struct TargetObject
+		struct TargetObject : public ITemplateBodyPart
 		{
 			enum Flag : uint8_t
 			{
@@ -822,12 +861,51 @@ namespace LEX
 				Implicit = 1 << 0,
 			};
 
-
+			//This should be the ITemplatePart/Body that is used in the MergeTemplate. The array it uses should come from the target
+			// solution, being empty if there is no solution. The Solution should use the BasicType to get the templates used on it.
 
 			Solution*		target = nullptr;
-			ITemplatePart* tempArgs = nullptr;
 			TargetObject*	prev = nullptr;
 			Flag			flag = Flag::None;
+
+			//Might store the span here just to make it less ass to pull.
+
+
+			size_t GetSize() const override 
+			{ 
+				return target->policy->GetTemplate().size();
+			}
+
+
+			ITypePolicy* GetPartArgument(size_t i) const override
+			{
+				return target->policy->GetTemplate()[i];
+				//return _types[i];
+			}
+
+			AbstractTypePolicy* GetBodyArgument(size_t i) const override
+			{
+				if (GetState())
+				{
+					return target->policy->GetTemplate()[i]->FetchTypePolicy(nullptr);;
+				}
+				return nullptr;
+			}
+
+
+			GenericBase* GetClient() const override
+			{
+				return target->policy->GetSpecializable()->FetchBase();
+				return nullptr;
+			}
+
+
+
+
+			bool IsResolved() const override
+			{
+				return !target || target->policy->IsResolved();
+			}
 
 
 			bool IsExplicit() const
@@ -848,46 +926,12 @@ namespace LEX
 				return this ? target : nullptr;
 			}
 
-			TargetObject(Solution& t, TargetObject*& p, ITemplatePart* part, Flag f = Flag::None) : target{ &t }, tempArgs{part}, prev{p}, flag{f}
+			TargetObject(Solution& t, TargetObject*& p, Flag f = Flag::None) : target{ &t }, prev{p}, flag{f}
 			{
 				p = this;
 			}
 		};
 	}
-
-	struct ITemplateBodyPart : public ITemplateBody
-	{
-		enum State : uint8_t
-		{
-			kUnknown = -1,
-			kPart,
-			kBody,
-		};
-
-		virtual bool IsResolved() const = 0;
-
-		State GetState() const
-		{
-			if (state == kUnknown)
-			{
-				if (IsResolved() == false)
-					state = kBody;
-				else
-					state = kPart;
-			}
-
-			return state;
-		}
-
-
-		ITemplateBody* TryPromoteTemplate() override
-		{
-			return GetState() ? this : nullptr;
-		}
-
-	private:
-		mutable State state = State::kUnknown;
-	};
 
 	struct ITemplateInserter
 	{
@@ -928,6 +972,26 @@ namespace LEX
 			_types.emplace_back(body);
 		}
 
+		void tmp_UpdateResolution() const
+		{
+			for (auto type : _types)
+			{
+				if (type->IsResolved() == false) {
+					isResolved = false;
+					return;
+				}
+			}
+
+			isResolved = true;
+		}
+
+		bool IsResolved() const
+		{
+			//I will only do this temporarily.
+			tmp_UpdateResolution();
+			return isResolved;
+		}
+
 		GenericBase* GetClient() const override
 		{
 			return _client;
@@ -939,12 +1003,13 @@ namespace LEX
 		// I think doing this will actually make setting this up a fair bit easier.
 		mutable std::vector<ITypePolicy*> _types;
 
-
+		//mutable for now. Should be non-mutable once types is closed off
+		mutable bool isResolved = true;
 		//std::variant<std::vector<ITypePolicy*>
 	};
 
 	
-	struct MergeTemplate : public ITemplateBody
+	struct MergeTemplate : public ITemplateBodyPart
 	{//While this is an ITemplateBody, it should always be passed around as a part.
 		enum State : uint8_t
 		{
@@ -957,15 +1022,13 @@ namespace LEX
 			right{ rhs },
 			leftEnd { lhs ? lhs->GetSize() : 0 }
 		{
-			GetState();
 		}
 
 
 		MergeTemplate(ITemplateBody* lhs, ITemplateBody* rhs) :
 			left{ lhs },
 			right{ rhs },
-			leftEnd{ lhs ? lhs->GetSize() : 0 },
-			state{ kBody }
+			leftEnd{ lhs ? lhs->GetSize() : 0 }
 		{
 		}
 
@@ -998,40 +1061,13 @@ namespace LEX
 		ITemplatePart* const right = nullptr;
 		size_t leftEnd = -1;
 		
-		//Make a boolean for if this can be promoted
-	private:
-		mutable State state = State::kUnknown;
-
-	public:
-		State GetState() const
+		bool IsResolved() const
 		{
-			if (state == kUnknown)
-			{
-				if ((!left || left->TryPromoteTemplate()) && right->TryPromoteTemplate())
-					state = kBody;
-				else
-					state = kPart;
-			}
-
-			return state;
-		}
-
-
-		ITemplateBody* TryPromoteTemplate() override
-		{
-			return GetState() ? this : nullptr;
+			return (!left || left->TryPromoteTemplate()) && right->TryPromoteTemplate();
 		}
 
 		
 	};
-
-
-	struct TestA { virtual ~TestA() = default; };
-	struct TestB { virtual ~TestB() = default; };
-	
-	struct TestC : public TestA, public TestB {};
-
-
 
 	INITIALIZE()
 	{
@@ -1039,7 +1075,9 @@ namespace LEX
 		//If I could confirm the offsets between types were 0 I would feel completely comfortable getting rid of the interface type
 		// for ISpecializable types
 		//((::size_t) & reinterpret_cast<char const volatile&>((((TestC*)0)->TestA)));
-		constexpr auto dist = ((::size_t)&reinterpret_cast<char const volatile&>(*(TestB*)((TestC*)0)));
+		//constexpr auto dist = ((::size_t)&reinterpret_cast<char const volatile&>(*(TestB*)((TestC*)0)));
+		//constexpr auto dist2 = ((::size_t)reinterpret_cast<char const volatile*>(static_cast<TestB*>((TestC*)0)));
+
 
 		ITemplatePart* dead = nullptr;
 
