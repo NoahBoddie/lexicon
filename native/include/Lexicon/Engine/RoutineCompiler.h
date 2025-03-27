@@ -153,17 +153,6 @@ namespace LEX
 			return _object;
 		}
 
-		void PushTargetObject(TargetObject& obj)
-		{
-			_object = &obj;
-		}
-
-		void PopTargetObject()
-		{
-			if (_object)
-				_object = _object->prev;
-		}
-
 
 		Element* GetElement()
 		{
@@ -444,17 +433,13 @@ namespace LEX
 		}
 
 
-		Solution CompileExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::Explicit)
+		Solution CompileExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::None)
 		{
 			//Consider making this self managing like how scope does.
 
-			TargetObject target{ tar, GetTarget(), flags };
-
-			PushTargetObject(target);
+			TargetObject target{ &tar, _object, flags };
 
 			Solution result = CompileExpression(node, pref);
-
-			PopTargetObject();
 
 			return result;
 		}
@@ -483,16 +468,12 @@ namespace LEX
 		}
 
 
-		Solution PushExpression(SyntaxRecord& node, Register pref, Solution tar, bool is_expl = true)
+		Solution PushExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::None)
 		{
 
-			TargetObject target{ tar, GetTarget(), is_expl };
-
-			PushTargetObject(target);
+			TargetObject target{ &tar, _object, flags };
 
 			Solution result = PushExpression(node, pref, false);
-
-			PopTargetObject();
 
 			return result;
 		}
@@ -638,13 +619,9 @@ namespace LEX
 
 		void CompileStatement(SyntaxRecord& node, Register pref, Solution tar)
 		{
-			TargetObject target{ tar, GetTarget(), true };
-
-			PushTargetObject(target);
+			TargetObject target{ &tar, _object };
 
 			CompileStatement(node, pref);
-
-			PopTargetObject();
 		}
 
 

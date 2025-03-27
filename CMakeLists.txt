@@ -206,6 +206,7 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/IElementImpl.cpp"
 		"native/src/Lexicon/Engine/IProjectImpl.cpp" 
 		"native/src/Lexicon/Engine/IScriptImpl.cpp"
+		"native/src/Lexicon/Engine/TargetObject.cpp"
 
 	)
 else()
@@ -281,16 +282,16 @@ set(headers
 	"include/Lexicon/FormulaHandler.h"
 	"include/Lexicon/Interfaces/ReportManager.h" 
 	"include/Lexicon/Impl/common_type.h" 
-	"include/Lexicon/ITemplateInsertPart.h"
-	"include/Lexicon/ITemplateInsertBody.h" 
-	"include/Lexicon/GenericPartArray.h" 
-	"include/Lexicon/GenericBodyArray.h"
+	
+	 
+	 
+	
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h")
 
 
 set(sources
@@ -315,7 +316,7 @@ set(sources
 	"src/Lexicon/Object.cpp"
 	"src/Lexicon/Impl/PCH.cpp"
 	${master_sources}
-)
+ )
 
 
 

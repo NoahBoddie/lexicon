@@ -999,8 +999,8 @@ namespace LEX
 
 
 
-
-				Solution from = compiler->CompileExpression(right, reg2, to, TargetObject::Assign);
+				//TODO: At a later point, the AssignProcess will need to use the constructor directly in cases of no-name constructor syntax
+				Solution from = compiler->CompileExpression(right, reg2);
 
 
 				//Conversion out;
@@ -1293,7 +1293,7 @@ namespace LEX
 			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
 			//std::vector<Operation> ops{1};
 
-			TargetObject* self = compiler->GetTarget()->GetCallTarget();
+			TargetObject* self = compiler->GetTarget();
 
 			std::vector<Solution> args;
 			std::vector<std::vector<Operation>> operations;
@@ -1439,7 +1439,7 @@ namespace LEX
 			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
 			//std::vector<Operation> ops{1};
 
-			TargetObject* self = compiler->GetTarget()->GetCallTarget();
+			TargetObject* self = compiler->GetTarget();
 
 			std::vector<Solution> args;
 

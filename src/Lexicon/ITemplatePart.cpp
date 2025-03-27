@@ -1,7 +1,6 @@
 #include "Lexicon/ITemplatePart.h"
 
-#include "Lexicon/GenericPartArray.h"
-#include "Lexicon/GenericBodyArray.h"
+#include "Lexicon/GenericArray.h"
 
 namespace LEX
 {
@@ -14,7 +13,7 @@ namespace LEX
 
 		size_t proper = 0;
 
-		GenericPartArray* gen_array = new GenericPartArray;
+		GenericArray* gen_array = new GenericArray;
 
 		std::unique_ptr<ITemplatePart> result{ gen_array };
 
@@ -31,9 +30,6 @@ namespace LEX
 			proper += l_type->IsResolved();
 		}
 
-		if (proper == size)
-			return gen_array->MakeGenericArray(nullptr);
-
 		return result;
 	}
 
@@ -43,7 +39,7 @@ namespace LEX
 
 		auto size = GetSize();
 
-		GenericBodyArray* gen_array = new GenericBodyArray;
+		GenericArray* gen_array = new GenericArray;
 
 		std::unique_ptr<ITemplateBody> result{ gen_array };
 

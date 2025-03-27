@@ -100,8 +100,8 @@
 
 #include "Lexicon/Engine/GenericBase.h"
 
-#include "Lexicon/GenericPartArray.h"
-#include "Lexicon/GenericBodyArray.h"
+#include "Lexicon/GenericArray.h"
+
 #include "Lexicon/Engine/GenericType.h"
 
 #include "Lexicon/Interfaces/ReportManager.h"
@@ -118,6 +118,9 @@
 #include "Lexicon/Engine/ConcreteGlobal.h"
 
 #include "Lexicon/NativeReference.h"
+
+#include "Lexicon/ITemplateBodyPart.h"
+#include "Lexicon/ITemplateInserter.h"
 
 namespace std
 {
@@ -749,31 +752,10 @@ namespace LEX
 
 		//The point of this function would be to accept a number of types turning them into a GenericParameter, or a generic argument.
 
-		std::vector<AbstractTypePolicy*> possible;
-
-		auto size = list.size();
-
-		for (auto& it : list)
-		{
-			if (it->IsResolved() == false)
-			{
-				GenericPartArray* _array = new GenericPartArray;
-				std::unique_ptr<ITemplatePart> result{ _array };
-					
-				_array->_types = std::move(list);
-
-				return result;
-			}
-
-			auto back = it->GetTypePolicy((ITemplateBody*)nullptr);
-			possible.push_back(back);
-		}
-
-		GenericBodyArray* _array = new GenericBodyArray;
-			
+		GenericArray* _array = new GenericArray;
 		std::unique_ptr<ITemplatePart> result{ _array };
 
-		_array->_types = std::move(possible);
+		_array->_types = std::move(list);
 
 		return result;
 	}
@@ -810,213 +792,10 @@ namespace LEX
 
 
 
-	struct ITemplateBodyPart : public ITemplateBody
-	{
-		enum State : uint8_t
-		{
-			kUnknown = -1,
-			kPart,
-			kBody,
-		};
-
-		virtual bool IsResolved() const = 0;
-
-		State GetState() const
-		{
-			if (_state == kUnknown)
-			{
-				if (IsResolved() == true)
-					_state = kBody;
-				else
-					_state = kPart;
-			}
-
-			return _state;
-		}
-
-		void ResetState() const
-		{
-			_state = kUnknown;
-			GetState();
-		}
-
-		ITemplateBody* TryPromoteTemplate() override
-		{
-			return GetState() ? this : nullptr;
-		}
-
-	private:
-		mutable State _state = State::kUnknown;
-	};
-
-	namespace NewTargetObject
-	{
-		
-
-		struct TargetObject : public ITemplateBodyPart
-		{
-			enum Flag : uint8_t
-			{
-				None = 0 << 0,
-				Implicit = 1 << 0,
-			};
-
-			//This should be the ITemplatePart/Body that is used in the MergeTemplate. The array it uses should come from the target
-			// solution, being empty if there is no solution. The Solution should use the BasicType to get the templates used on it.
-
-			Solution*		target = nullptr;
-			TargetObject*	prev = nullptr;
-			Flag			flag = Flag::None;
-
-			//Might store the span here just to make it less ass to pull.
-
-
-			size_t GetSize() const override 
-			{ 
-				return target->policy->GetTemplate().size();
-			}
-
-
-			ITypePolicy* GetPartArgument(size_t i) const override
-			{
-				return target->policy->GetTemplate()[i];
-				//return _types[i];
-			}
-
-			AbstractTypePolicy* GetBodyArgument(size_t i) const override
-			{
-				if (GetState())
-				{
-					return target->policy->GetTemplate()[i]->FetchTypePolicy(nullptr);;
-				}
-				return nullptr;
-			}
-
-
-			GenericBase* GetClient() const override
-			{
-				return target->policy->GetSpecializable()->FetchBase();
-				return nullptr;
-			}
-
-
-
-
-			bool IsResolved() const override
-			{
-				return !target || target->policy->IsResolved();
-			}
-
-
-			bool IsExplicit() const
-			{
-				return !IsImplicit();
-			}
-
-			bool IsImplicit() const
-			{
-				if (!this)
-					return true;
-
-				return flag & Flag::Implicit;
-			}
-
-			Solution* GetSolution()
-			{
-				return this ? target : nullptr;
-			}
-
-			TargetObject(Solution& t, TargetObject*& p, Flag f = Flag::None) : target{ &t }, prev{p}, flag{f}
-			{
-				p = this;
-			}
-		};
-	}
-
-	struct ITemplateInserter
-	{
-
-		virtual void InsertType(ITypePolicy* part) = 0;
-
-		//void AcceptTypes(std::span<ITypePolicy*> types);
-	};
-
-
-	struct GenericArray : public ITemplateBodyPart, public ITemplateInserter
-	{
-		//I want to have this be conjoined, instead pivoting what functions it has based on whether it can promote.
-		size_t GetSize() const override { return _types.size(); }
-
-
-		ITypePolicy* GetPartArgument(size_t i) const override
-		{
-			return _types[i];
-		}
-
-		AbstractTypePolicy* GetBodyArgument(size_t i) const override
-		{
-			if (GetState())
-			{
-				auto& type = _types[i];
-
-				return type->FetchTypePolicy(nullptr);;
-			}
-			
-			return nullptr;
-		}
-
-
-		void InsertType(ITypePolicy* body) override
-		{
-			//Update right here.
-			_types.emplace_back(body);
-		}
-
-		void tmp_UpdateResolution() const
-		{
-			for (auto type : _types)
-			{
-				if (type->IsResolved() == false) {
-					isResolved = false;
-					return;
-				}
-			}
-
-			isResolved = true;
-		}
-
-		bool IsResolved() const
-		{
-			//I will only do this temporarily.
-			tmp_UpdateResolution();
-			return isResolved;
-		}
-
-		GenericBase* GetClient() const override
-		{
-			return _client;
-		}
-
-		mutable GenericBase* _client = nullptr;
-		
-		//TODO: Allow this to be created via span, but able to transform into a vector if it begins inserting types.
-		// I think doing this will actually make setting this up a fair bit easier.
-		mutable std::vector<ITypePolicy*> _types;
-
-		//mutable for now. Should be non-mutable once types is closed off
-		mutable bool isResolved = true;
-		//std::variant<std::vector<ITypePolicy*>
-	};
-
 	
 	struct MergeTemplate : public ITemplateBodyPart
 	{//While this is an ITemplateBody, it should always be passed around as a part.
-		enum State : uint8_t
-		{
-			kUnknown = -1,
-			kPart,
-			kBody,
-		};
+		
 		MergeTemplate(ITemplatePart* lhs, ITemplatePart* rhs) :
 			left{ lhs },
 			right{ rhs },

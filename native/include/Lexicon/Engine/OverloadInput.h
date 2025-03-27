@@ -46,9 +46,10 @@ namespace LEX
 
 		QualifiedType GetTarget() const override
 		{
-			auto tar = object->GetCallTarget()->target;
+			if (!object)
+				return QualifiedType{};
 
-			return tar ? *tar : QualifiedType{};
+			return *object->target;
 		}
 
 		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
@@ -76,14 +77,13 @@ namespace LEX
 
 			QualifiedType type;
 
-			if (auto call_tar = object->GetCallTarget(); call_tar)
+			if (object->IsValid() == true)
 			{
 				
-				if (call_tar->IsImplicit() == true)
+				if (object->IsImplicit() == true)
 					a_flag |= OverloadFlag::TargetOpt;
 
-				if (call_tar->target)
-					type = *call_tar->target;
+				type = *object->target;
 
 			}
 

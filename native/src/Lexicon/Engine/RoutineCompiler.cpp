@@ -105,10 +105,9 @@ namespace LEX
 
 				//Assign const here.
 
-				TargetObject target{ solution };
+				TargetObject target{ &solution, _object, TargetObject::Implicit };
 
 				if (solution.policy) {
-					PushTargetObject(target);
 					method = true;
 				}
 
@@ -204,8 +203,6 @@ namespace LEX
 					GetOperationList().emplace_back(InstructionType::Return);
 				}
 
-
-				PopTargetObject();
 
 				if (a_scope.IsHeaderSatisfied() == false)
 					report::compile::error("Explicit return expected. {}", name());
