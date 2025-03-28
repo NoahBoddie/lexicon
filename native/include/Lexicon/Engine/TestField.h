@@ -896,11 +896,11 @@ namespace LEX
 
 		//Nothing new was created in any of these, and all of these are the same object.
 
-		auto type1 = to_spec.CheckTypePolicy(&specifier1, part1);
-		auto type2 = to_spec.CheckTypePolicy(&specifier2, part2);
-		auto type3 = to_spec.CheckTypePolicy(&specifier3, part3);
-		specifier1.GetTypePolicy(part3.TryPromoteTemplate());
-		specifier2.GetTypePolicy(part3.TryPromoteTemplate());
+		auto type1 = to_spec.CheckTypePolicy(part1);
+		auto type2 = to_spec.CheckTypePolicy(part2);
+		auto type3 = to_spec.CheckTypePolicy(part3);
+		//specifier1.GetTypePolicy(part3.TryPromoteTemplate());
+		//specifier2.GetTypePolicy(part3.TryPromoteTemplate());
 		report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
 
 		//int test1;

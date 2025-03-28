@@ -6,7 +6,7 @@
 
 namespace LEX
 {
-	ITypePolicy* TemplateType::CheckTypePolicy(GenericBase* ask, ITemplatePart* args)
+	ITypePolicy* TemplateType::CheckTypePolicy(ITemplatePart* args)
 	{
 		auto part = args->GetPartArgument(index);
 

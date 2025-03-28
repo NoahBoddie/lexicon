@@ -13,13 +13,9 @@ namespace LEX
 		//ITypePolicy* GetTypePolicy()
 
 
-		ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override;
+		ITypePolicy* CheckTypePolicy(ITemplatePart* args) override;
 
 		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
-
-		std::unique_ptr<SpecialBase> CreatePart(ITemplatePart* args) override;
-
-		std::unique_ptr<SpecialBase> CreateBody(ITemplateBody* args) override;
 
 		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
 	};

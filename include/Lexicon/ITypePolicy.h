@@ -95,7 +95,7 @@ namespace LEX
 		virtual AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) = 0;
 
 		//This should be hidden.
-		virtual ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) { return this; };
+		virtual ITypePolicy* CheckTypePolicy(ITemplatePart* args) { return this; };
 
 		AbstractTypePolicy* FetchTypePolicy(ITemplateBody* args)
 		{

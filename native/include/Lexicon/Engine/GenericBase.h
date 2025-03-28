@@ -36,27 +36,25 @@ namespace LEX
 
 
 
-		virtual std::unique_ptr<SpecialBase> CreatePart(ITemplatePart* args) = 0;
-		virtual std::unique_ptr<SpecialBase> CreateBody(ITemplateBody* args) = 0;
-
-
 	private:
 
-		//Should be pure. The use of this needs to manually confirm that it is resolved.
-		virtual std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) { return {}; }
+		virtual std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) = 0;
 	
 	public:
 
 		//Note that validation needs to happen around here for multiple parts.
 
+		//Hide the below
 
 		//Might need to be override for this
-		virtual SpecialBase* ObtainPart(GenericBase* client, ITemplatePart* args)
+		virtual SpecialBase* ObtainPart(ITemplatePart* args)
 		{
+			auto client = args->GetClient();
+
 			auto result = client->FindPart(this, args);
 
 			if (!result) {
-				result = client->incomplete.emplace_back(CreatePart(args)).get();
+				result = client->incomplete.emplace_back(CreateSpecial(args)).get();
 			}
 
 			return result;
@@ -82,14 +80,19 @@ namespace LEX
 		SpecialBase* Specialize(ITemplateBody* args)
 		{
 			SpecializeParts(args);
+			auto spec = CreateSpecial(args);
 
-			return complete.emplace_back(CreateBody(args)).get();
+			if (spec->IsResolved() == false) {
+				report::critical("Created specialization isn't resolved");
+			}
+
+			return complete.emplace_back(std::move(spec)).get();
 
 		}
 
 		void SpecializeParts(ITemplateBody* args);
 
-		SpecialBase* ObtainSpecial(GenericBase* client, ITemplatePart* args);
+		SpecialBase* ObtainSpecial(ITemplatePart* args);
 
 		bool TemplateMatches(ITemplatePart* args) override
 		{

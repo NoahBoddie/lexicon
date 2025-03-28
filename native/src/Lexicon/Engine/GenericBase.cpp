@@ -34,19 +34,20 @@ namespace LEX
 		}
 	}
 
-	SpecialBase* GenericBase::ObtainSpecial(GenericBase* client, ITemplatePart* args)
+	SpecialBase* GenericBase::ObtainSpecial(ITemplatePart* args)
 	{
 		//TODO: Currently, the problem is we can't send something like a 3 templated part for a 5 templated function.
 		// Currently
 
-		if (TemplateMatches(args) == false)
-		{
+		if (TemplateMatches(args) == false) {
 			report::fault::error("cant handle args");
 		}
+
+		//TODO: Merge ObtainBody/ObtainPart into this, there's no specialization for it, so no need.
 
 		if (auto temp = args->TryPromoteTemplate(); temp)
 			return ObtainBody(temp);
 		else
-			return ObtainPart(client, args);
+			return ObtainPart(args);
 	}
 }

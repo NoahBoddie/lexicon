@@ -37,7 +37,7 @@ namespace LEX
 
 
 
-		virtual ITypePolicy* CheckTypePolicy(GenericBase* ask, ITemplatePart* args) override;
+		virtual ITypePolicy* CheckTypePolicy(ITemplatePart* args) override;
 
 		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
 

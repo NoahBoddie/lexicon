@@ -5,14 +5,14 @@
 
 namespace LEX
 {
-	SpecialBase* SpecialBase::ObtainSpecial(GenericBase* ask, ITemplatePart* args)
+	SpecialBase* SpecialBase::ObtainSpecial(ITemplatePart* args)
 	{
 		if (IsResolved() == true) {
 			return this;
 		}
 
-		auto array = SpecializeTemplate(ask, args);
+		auto array = SpecializeTemplate(args);
 
-		return GetGeneric()->ObtainSpecial(ask, array);
+		return GetGeneric()->ObtainSpecial(array);
 	}
 }

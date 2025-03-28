@@ -4,21 +4,19 @@
 
 namespace LEX
 {
-	GenericArray ITemplatePart::SpecializeTemplate(GenericBase* client, ITemplatePart* args)
+	GenericArray ITemplatePart::SpecializeTemplate(ITemplatePart* args)
 	{
 		//If no args, issue probably.
 
 		auto size = args->GetSize();
 
-		//auto client = args->GetClient();
-
-		GenericArray result{ client, size };
+		GenericArray result{ args->GetClient(), size };
 
 		for (int x = 0; x < size; x++)
 		{
 			auto type = args->GetPartArgument(x);
 
-			result._types[x] = type->CheckTypePolicy(client, args);
+			result._types[x] = type->CheckTypePolicy(args);
 		}
 
 		return result;

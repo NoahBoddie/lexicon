@@ -117,7 +117,7 @@ namespace LEX
 		//Get rid of this, AsTemplate handles this.
 		//virtual ITypePolicy* GetArgument(size_t i) const = 0;
 
-		virtual SpecialBase* ObtainSpecial(GenericBase* ask, ITemplatePart* args);
+		virtual SpecialBase* ObtainSpecial(ITemplatePart* args);
 
 		virtual SpecialBase* ObtainBody(ITemplateBody* args) override
 		{

@@ -27,7 +27,7 @@ namespace LEX
 
 
 
-		static GenericArray SpecializeTemplate(GenericBase* client, ITemplatePart* args);
+		static GenericArray SpecializeTemplate(ITemplatePart* args);
 	};
 
 }

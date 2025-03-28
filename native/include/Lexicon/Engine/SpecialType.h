@@ -65,14 +65,14 @@ namespace LEX
 		virtual AbstractTypePolicy* GetExtends() { report::fault::critical("Not used"); }
 
 
-		ITypePolicy* CheckTypePolicy(GenericBase* ask, ITemplatePart* args) override
+		ITypePolicy* CheckTypePolicy(ITemplatePart* args) override
 		{
-			return dynamic_cast<ITypePolicy*>(ObtainSpecial(ask, args));
+			return dynamic_cast<ITypePolicy*>(ObtainSpecial(args));
 		}
 
 		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override
 		{
-			auto special = ObtainSpecial(nullptr, args)->ToResolved<AbstractTypePolicy>();
+			auto special = ObtainSpecial(args)->ToResolved<AbstractTypePolicy>();
 
 			if (!special) {
 				//TODO: Scream maybe?
