@@ -744,22 +744,6 @@ namespace LEX
 
 
 	
-	
-	inline std::unique_ptr<ITemplatePart> temp_EncapTypes(std::vector<ITypePolicy*>& list)
-	{
-		//This function belongs within generic base I think, from the one who's being targeted. A safe function that also takes null
-		// as an option.
-
-		//The point of this function would be to accept a number of types turning them into a GenericParameter, or a generic argument.
-
-		GenericArray* _array = new GenericArray;
-		std::unique_ptr<ITemplatePart> result{ _array };
-
-		_array->_types = std::move(list);
-
-		return result;
-	}
-
 
 
 
@@ -863,6 +847,8 @@ namespace LEX
 		//I think what I want is something that would be able to concat 2 ITemplate args. This way I could accumulate 2 different groups.
 
 		//return;
+
+
 		report::info("starting. . . .");
 
 		GenericType to_spec;
@@ -903,18 +889,18 @@ namespace LEX
 
 
 		//auto 
-
-		auto part1 = temp_EncapTypes(group1);
-		auto part2 = temp_EncapTypes(group2);
-		auto part3 = temp_EncapTypes(group3);
+			
+		auto part1 = GenericArray(&specifier1, group1);
+		auto part2 = GenericArray(&specifier2, group2);
+		auto part3 = GenericArray(&specifier3, group3);
 
 		//Nothing new was created in any of these, and all of these are the same object.
 
-		auto type1 = to_spec.CheckTypePolicy(&specifier1, part1.get());
-		auto type2 = to_spec.CheckTypePolicy(&specifier2, part2.get());
-		auto type3 = to_spec.CheckTypePolicy(&specifier3, part3.get());
-		specifier1.GetTypePolicy(part3->TryPromoteTemplate());
-		specifier2.GetTypePolicy(part3->TryPromoteTemplate());
+		auto type1 = to_spec.CheckTypePolicy(&specifier1, part1);
+		auto type2 = to_spec.CheckTypePolicy(&specifier2, part2);
+		auto type3 = to_spec.CheckTypePolicy(&specifier3, part3);
+		specifier1.GetTypePolicy(part3.TryPromoteTemplate());
+		specifier2.GetTypePolicy(part3.TryPromoteTemplate());
 		report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
 
 		//int test1;
@@ -926,13 +912,13 @@ namespace LEX
 		//auto a2 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
 		//auto a3 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
 
-		auto a1 = type1->GetTypePolicy(part3->TryPromoteTemplate());
-		auto a2 = type2->GetTypePolicy(part3->TryPromoteTemplate());
-		auto a3 = type3->GetTypePolicy(part3->TryPromoteTemplate());
+		auto a1 = type1->GetTypePolicy(part3.TryPromoteTemplate());
+		auto a2 = type2->GetTypePolicy(part3.TryPromoteTemplate());
+		auto a3 = type3->GetTypePolicy(part3.TryPromoteTemplate());
 
-		auto a4 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+		auto a4 = to_spec.GetTypePolicy(part3.TryPromoteTemplate());
 
-
+		//ERROR This is no longer functioning.
 		report::info("exists? {} {} {} -> {}?", (uintptr_t)a1, (uintptr_t)a2, (uintptr_t)a3, (uintptr_t)a4);
 
 

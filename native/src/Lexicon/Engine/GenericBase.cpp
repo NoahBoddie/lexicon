@@ -2,7 +2,7 @@
 
 namespace LEX
 {
-	SpecialPart* GenericBase::FindPart(GenericBase* tar, ITemplatePart* args)
+	SpecialBase* GenericBase::FindPart(GenericBase* tar, ITemplatePart* args)
 	{
 		for (auto& spec : incomplete)
 		{
@@ -15,7 +15,7 @@ namespace LEX
 		return nullptr;
 	}
 
-	SpecialBody* GenericBase::FindBody(ITemplateBody* args)
+	SpecialBase* GenericBase::FindBody(ITemplateBody* args)
 	{
 		for (auto& spec : complete)
 		{

@@ -18,7 +18,7 @@ namespace LEX
 			return GetBodyArgument(i);
 		}
 
-
+		//TODO: GetBodyArgument rarely comes up anymore. As long as it has the promise of resolution, I think that's literally all I need out of it.
 		virtual AbstractTypePolicy* GetBodyArgument(size_t i) const = 0;
 
 

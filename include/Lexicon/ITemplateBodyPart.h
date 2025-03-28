@@ -4,7 +4,7 @@
 
 namespace LEX
 {
-
+	
 	struct ITemplateBodyPart : public ITemplateBody
 	{
 		enum State : int8_t
@@ -13,6 +13,10 @@ namespace LEX
 			kPart,
 			kBody,
 		};
+
+
+		constexpr ITemplateBodyPart() = default;
+		constexpr ITemplateBodyPart(State state) : _state{ state } {}
 
 		virtual bool IsResolved() const = 0;
 
@@ -40,8 +44,58 @@ namespace LEX
 			return GetState() ? this : nullptr;
 		}
 
-	private:
+		ITemplatePart* AsPart()
+		{
+			return this;
+		}
+
+		const ITemplatePart* AsPart() const
+		{
+			return this;
+		}
+
+
+		operator ITemplatePart* ()
+		{
+			return this;
+		}
+
+		operator const ITemplatePart* () const
+		{
+			return this;
+		}
+
+	protected:
 		mutable State _state = State::kUnknown;
+	};
+
+	//DEPRECATED, can't use previous stuff, so it doesn't seem worth it. Maybe if I could close off the body instead
+	struct ITemplatePrivateBodyPart : protected ITemplateBodyPart
+	{
+
+		using ITemplateBodyPart::ITemplateBodyPart;
+
+		ITemplatePart* AsPart()
+		{
+			return this;
+		}
+
+		const ITemplatePart* AsPart() const
+		{
+			return this;
+		}
+
+
+		operator ITemplatePart* ()
+		{
+			return this;
+		}
+
+		operator const ITemplatePart* () const
+		{
+			return this;
+		}
+
 	};
 
 }

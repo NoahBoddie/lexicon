@@ -24,7 +24,10 @@ namespace LEX
 		TargetObject* const prev = nullptr;
 		TargetObject*& slot;
 		Flag			flag = Flag::None;
-
+		
+		//The compiler would have it's hand on who stores incompletes. So, use that instead of the target
+		//RoutineCompiler* compiler = nullptr;
+		
 		//Might store the span here just to make it less ass to pull.
 
 

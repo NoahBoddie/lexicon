@@ -4,8 +4,7 @@
 #include "Lexicon/Engine/TemplateType.h"
 #include "Lexicon/Engine/ISpecializable.h"
 
-#include "Lexicon/Engine/SpecialPart.h"
-#include "Lexicon/Engine/SpecialBody.h"
+#include "Lexicon/Engine/SpecialBase.h"
 
 
 //*src
@@ -15,8 +14,8 @@
 namespace LEX
 {
 
-	struct SpecialPart;
-	struct SpecialBody;
+	struct SpecialBase;
+	struct SpecialBase;
 
 
 
@@ -31,20 +30,28 @@ namespace LEX
 			return const_cast<GenericBase*>(this);
 		}
 
-		SpecialPart* FindPart(GenericBase* tar, ITemplatePart* args);
+		SpecialBase* FindPart(GenericBase* tar, ITemplatePart* args);
 
-		SpecialBody* FindBody(ITemplateBody* args);
+		SpecialBase* FindBody(ITemplateBody* args);
 
 
 
-		virtual std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) = 0;
-		virtual std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) = 0;
+		virtual std::unique_ptr<SpecialBase> CreatePart(ITemplatePart* args) = 0;
+		virtual std::unique_ptr<SpecialBase> CreateBody(ITemplateBody* args) = 0;
+
+
+	private:
+
+		//Should be pure. The use of this needs to manually confirm that it is resolved.
+		virtual std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) { return {}; }
+	
+	public:
 
 		//Note that validation needs to happen around here for multiple parts.
 
 
 		//Might need to be override for this
-		virtual SpecialPart* ObtainPart(GenericBase* client, ITemplatePart* args)
+		virtual SpecialBase* ObtainPart(GenericBase* client, ITemplatePart* args)
 		{
 			auto result = client->FindPart(this, args);
 
@@ -55,13 +62,14 @@ namespace LEX
 			return result;
 		}
 
-		SpecialBody* ObtainBody(ITemplateBody* args) override
+		SpecialBase* ObtainBody(ITemplateBody* args) override
 		{
 			if (TemplateMatches(args) == false)
 			{
 				report::fault::error("cant handle args");
 			}
 
+			//Move this into specialize, it only makes sense.
 			auto result = FindBody(args);
 
 			if (!result) {
@@ -71,7 +79,7 @@ namespace LEX
 			return result;
 		}
 
-		SpecialBody* Specialize(ITemplateBody* args)
+		SpecialBase* Specialize(ITemplateBody* args)
 		{
 			SpecializeParts(args);
 
@@ -123,7 +131,7 @@ namespace LEX
 		//So try specialize is what you'll get when you try to specialize I guess?
 		//SpecialBase* TrySpecialize()
 
-		//SpecialBody* ObtainBody()
+		//SpecialBase* ObtainBody()
 
 
 		//I'm unsure if this would even bee needed honestly.
@@ -139,9 +147,11 @@ namespace LEX
 		//std::vector<uint32_t> inheritGroups{};
 
 		std::vector<TemplateType> _templates;
-
-		std::vector<std::unique_ptr<SpecialPart>> incomplete;
-		std::vector<std::unique_ptr<SpecialBody>> complete;
+		
+		//I'm actually unsure how needed incomplete is. We have to specialize stuff as it's getting used,
+		// so it would likely be specialized in the moment
+		std::vector<std::unique_ptr<SpecialBase>> incomplete;
+		std::vector<std::unique_ptr<SpecialBase>> complete;
 	};
 
 

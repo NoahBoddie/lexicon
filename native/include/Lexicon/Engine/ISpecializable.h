@@ -6,8 +6,8 @@ namespace LEX
 	struct ITemplateBody;
 
 	struct SpecialBase;
-	struct SpecialPart;
-	struct SpecialBody;
+	struct SpecialBase;
+	struct SpecialBase;
 
 	struct GenericBase;
 
@@ -25,7 +25,7 @@ namespace LEX
 
 		//virtual SpecialBase* GetPart(ITemplatePart* args) = 0;
 
-		virtual SpecialBody* ObtainBody(ITemplateBody* args) = 0;
+		virtual SpecialBase* ObtainBody(ITemplateBody* args) = 0;
 
 
 		virtual bool TemplateMatches(ITemplatePart* args) = 0;

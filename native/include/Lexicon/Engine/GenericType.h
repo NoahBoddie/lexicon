@@ -5,8 +5,8 @@
 
 namespace LEX
 {
-	struct SpecialPart;
-	struct SpecialBody;
+	struct SpecialBase;
+	struct SpecialBase;
 
 	struct GenericType : public PolicyBase, public GenericBase
 	{
@@ -17,10 +17,11 @@ namespace LEX
 
 		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
 
-		std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) override;
+		std::unique_ptr<SpecialBase> CreatePart(ITemplatePart* args) override;
 
-		std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) override;
+		std::unique_ptr<SpecialBase> CreateBody(ITemplateBody* args) override;
 
+		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
 	};
 
 

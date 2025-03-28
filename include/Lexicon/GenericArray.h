@@ -7,8 +7,14 @@
 namespace LEX
 {
 
-	struct GenericArray : public ITemplateBodyPart, public ITemplateInserter
+	class GenericArray : public ITemplateBodyPart, public ITemplateInserter
 	{
+	public:
+		
+		GenericArray() = default;
+		GenericArray(GenericBase* base, size_t size) : _client{ base }, _types{ size } { }
+		GenericArray(GenericBase* base, const std::vector<ITypePolicy*>& args) : _client{ base }, _types{ args } { }
+
 		//This type will likely protected inherit from ITemplateBody, instead relying on the promote function to work with it?
 
 		//I want to have this be conjoined, instead pivoting what functions it has based on whether it can promote.
@@ -65,6 +71,8 @@ namespace LEX
 		{
 			return _client;
 		}
+
+		
 
 		mutable GenericBase* _client = nullptr;
 

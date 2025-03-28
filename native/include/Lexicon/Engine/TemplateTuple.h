@@ -81,7 +81,7 @@ namespace LEX
 		}
 
 
-		SpecialPart* ObtainPart(GenericBase* client, ITemplatePart* args) override
+		SpecialBase* ObtainPart(GenericBase* client, ITemplatePart* args) override
 		{
 			//Unpack here
 
@@ -90,7 +90,7 @@ namespace LEX
 			return __super::ObtainPart(client, &pack);
 		}
 
-		SpecialBody* ObtainBody(ITemplateBody* args) override
+		SpecialBase* ObtainBody(ITemplateBody* args) override
 		{
 			//Unpack here
 
@@ -113,13 +113,13 @@ namespace LEX
 		}
 
 
-		std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) override
+		std::unique_ptr<SpecialBase> CreatePart(ITemplatePart* args) override
 		{
 
 			return std::make_unique<SpecialTypePart>(this, this, args);
 		}
 
-		std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) override
+		std::unique_ptr<SpecialBase> CreateBody(ITemplateBody* args) override
 		{
 			return std::make_unique<SpecialTypeBody>(this, this, args);
 		}

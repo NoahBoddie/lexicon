@@ -131,10 +131,6 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/Project.h"
 		"native/include/Lexicon/Engine/Script.h"
 		"native/include/Lexicon/Engine/SpecialBase.h"
-		"native/include/Lexicon/Engine/SpecialPart.h"
-		"native/include/Lexicon/Engine/SpecialBody.h" 
-		"native/include/Lexicon/Engine/SpecialTypeBody.h" 
-		"native/include/Lexicon/Engine/SpecialTypePart.h" 
 		"native/include/Lexicon/Engine/GenericType.h" 
 		"native/include/Lexicon/Engine/DynamicTupleElement.h" 
 		"native/include/Lexicon/Engine/TemplateTuple.h" 
@@ -149,7 +145,9 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/IElementImpl.h
 		native/include/Lexicon/Engine/Impl/IElementHeader.h
 		native/include/Lexicon/Engine/Impl/IElementSource.h
-		"native/include/Lexicon/Engine/IssueTable.h")
+		"native/include/Lexicon/Engine/IssueTable.h"
+		"native/include/Lexicon/Engine/SpecialType.h"
+	)
 		
 
 	set(master_sources
@@ -197,7 +195,6 @@ if(LEXICON_SOURCE)
 		src/Lexicon/Interfaces/LinkMessenger.cpp
 		"native/src/Lexicon/Engine/GenericType.cpp"
 		"native/src/Lexicon/Engine/TemplateType.cpp" 
-		"native/src/Lexicon/Engine/SpecialPart.cpp" 
 		src/Lexicon/Interfaces/FormulaManager.cpp
 		"src/Lexicon/Interfaces/ReportManager.cpp"
 		"native/src/Lexicon/Engine/SettingManager.cpp"
@@ -207,8 +204,8 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/IProjectImpl.cpp" 
 		"native/src/Lexicon/Engine/IScriptImpl.cpp"
 		"native/src/Lexicon/Engine/TargetObject.cpp"
-
-	)
+		"native/src/Lexicon/Engine/SpecialBase.cpp"
+		)
 else()
 	set (master_headers )
 	set (master_sources )
@@ -291,7 +288,7 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" )
 
 
 set(sources
@@ -316,7 +313,7 @@ set(sources
 	"src/Lexicon/Object.cpp"
 	"src/Lexicon/Impl/PCH.cpp"
 	${master_sources}
- )
+	)
 
 
 

@@ -6,6 +6,7 @@ namespace LEX
 	struct ITypePolicy;
 	struct ITemplateBody;
 
+	class GenericArray;
 
 	struct ITemplatePart
 	{
@@ -26,14 +27,7 @@ namespace LEX
 
 
 
-
-		
-		virtual std::unique_ptr<ITemplatePart> MakeGenericArray(GenericBase* ask, ITemplatePart* args);
-
-		virtual std::unique_ptr<ITemplateBody> MakeGenericArray(ITemplateBody* args);
-
-
-
+		static GenericArray SpecializeTemplate(GenericBase* client, ITemplatePart* args);
 	};
 
 }
