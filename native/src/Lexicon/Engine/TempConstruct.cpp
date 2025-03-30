@@ -973,15 +973,8 @@ namespace LEX
 			{
 				Register prefered = compiler->GetPrefered();
 
-				std::string str1 = parse_strings::lhs;
-				std::string str2 = parse_strings::rhs;
-
-
-				Register reg1 = Register::Left;
-				Register reg2 = Register::Right;
-
-				SyntaxRecord& left = target.FindChild(str1)->GetFront();
-				SyntaxRecord& right = target.FindChild(str2)->GetFront();
+				SyntaxRecord& left = target.FindChild(parse_strings::lhs)->GetFront();
+				SyntaxRecord& right = target.FindChild(parse_strings::rhs)->GetFront();
 
 
 
@@ -992,6 +985,7 @@ namespace LEX
 					report::compile::error("target solution is read only.");
 				}
 
+				//TODO: Please make some compiler shorthand for this. Like free register
 				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true) {
 					compiler->GetOperationList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
 				}
@@ -1000,24 +994,11 @@ namespace LEX
 
 
 				//TODO: At a later point, the AssignProcess will need to use the constructor directly in cases of no-name constructor syntax
-				Solution from = compiler->CompileExpression(right, reg2);
+				Solution from = compiler->CompileExpression(right, Register::Right);
 
 
-				//Conversion out;
-				//auto convert = from.IsConvertToQualified(to, nullptr, &out);
-				//if (convert <= ConvertResult::Failure) {
-				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
-				//}
-				//CompUtil::HandleConversion(compiler, out, from, to, convert);
+				CompUtil::HandleConversion(compiler, from, to, target, Register::Right);
 
-				CompUtil::HandleConversion(compiler, from, to, target);
-
-				//compiler->GetOperationList().push_back(CompUtil::MutateCopy(from, to));
-
-				//return from;
-				//TRANSFOR
-				
-				//compiler->GetOperationList().push_back(Operation{ InstructType::Move, to, from });
 				compiler->GetOperationList().push_back(CompUtil::Mutate(from, to));
 
 				return to;

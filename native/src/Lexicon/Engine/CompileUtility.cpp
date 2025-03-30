@@ -78,7 +78,7 @@ namespace LEX
 			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 		}
 
-		return CompUtil::HandleConversion(compiler, out, from, to, convert);
+		return CompUtil::HandleConversion(compiler, out, from, to, convert, reg);
 
 	}
 

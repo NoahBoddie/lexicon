@@ -149,6 +149,12 @@ namespace LEX
 		}
 
 
+
+		constexpr bool IsReference(bool if_null) const noexcept
+		{
+			return IsReference(std::optional<bool>{if_null}).value();
+		}
+
 		//Is Solution capable of being referenced in its current capacity
 		constexpr bool IsReferential() const noexcept
 		{
