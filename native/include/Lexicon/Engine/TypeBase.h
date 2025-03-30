@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Engine/AbstractType.h"
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/PolicyData.h"
 #include "Lexicon/Engine/OverloadClause.h"
@@ -9,8 +9,8 @@
 namespace LEX
 {
 	
-	class PolicyBase : public virtual ITypePolicy, public SecondaryEnvironment, public OverloadClause, public PolicyData
-	{//PolicyBase Might not even use clauses directly. We shall see.
+	class TypeBase : public SecondaryEnvironment, public OverloadClause, public PolicyData
+	{//TypeBase Might not even use clauses directly. We shall see.
 
 	private:
 
@@ -28,17 +28,17 @@ namespace LEX
 		};
 
 		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like
-		// a specialization ending up in there (Seeing as they must be kept as ITypePolicy)
+		// a specialization ending up in there (Seeing as they must be kept as IType)
 		
 	public:
 
 		//TODO: I would like have more information here telling the compiler what it can and can't do with it.
 
 		
-		TypeID GetTypeID() const override
-		{
-			return _id;
-		}
+
+		virtual AbstractType* AsAbstract() = 0;
+		virtual const AbstractType* AsAbstract() const = 0;
+		
 
 		//Rename to ForceTypeID, and then make set type ID the public one.
 		void SetTypeID(TypeID id)
@@ -46,12 +46,19 @@ namespace LEX
 			_id = id;
 		}
 
-		DataType GetDataType() const override { return _dataType; }
 
-		std::string_view GetName() const override
+
+		HierarchyData* GetHierarchyData() const
 		{
-			return std::string_view{ _name };
+			const HierarchyData* out = this;
+			return const_cast<HierarchyData*>(out);
 		}
+
+		TypeID GetTypeID() const { return _id; }
+		DataType GetDataType() const { return _dataType; }
+
+
+		std::string_view GetName() const { return std::string_view{ _name }; }
 
 		/*
 
@@ -64,18 +71,18 @@ namespace LEX
 			return false;
 		}
 
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
+		std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) override
 		{
 			return {};
 		}
 
 
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		OverloadEntry MatchSuggestedEntry(QualifiedType type, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
 			return {};
 		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
+		OverloadEntry MatchDefaultEntry(QualifiedType type, AbstractType* scope, std::string name, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
 			return {};
@@ -83,15 +90,9 @@ namespace LEX
 		//*/
 		//~
 
-		HierarchyData* GetHierarchyData() const override
+		AbstractType* GetHierarchyType() override
 		{
-			const HierarchyData* out = this;
-			return const_cast<HierarchyData*>(out);
-		}
-
-		ITypePolicy* GetHierarchyType() override
-		{
-			return this;
+			return AsAbstract();
 		}
 
 		
@@ -99,10 +100,11 @@ namespace LEX
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<ITypePolicy>::value):
-				return (ITypePolicy*)this;
+			case Hash(TypeName<AbstractType>::value):
+			case Hash(TypeName<IType>::value):
+				return AsAbstract();
 			
-			case Hash(TypeName<PolicyBase>::value):
+			case Hash(TypeName<TypeBase>::value):
 				return this;
 			}
 			return __super::Cast(name);
@@ -113,9 +115,9 @@ namespace LEX
 
 
 		//This needs some form of conversion result.
-		ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
-			if (this == other) {
+			if (AsAbstract() == other) {
 				return ConvertResult::Exact;
 			}
 
@@ -192,7 +194,7 @@ namespace LEX
 			return ConvertResult::TypeDefined;//Should have access
 		}
 
-		void CheckDeriveFrom(ITypePolicy* other) override;
+		void CheckDeriveFrom(AbstractType* other) override;
 
 		Flag& GetFlags() const
 		{
@@ -237,16 +239,53 @@ namespace LEX
 		// this is the final version of these functions.
 
 		//Still, this is terrible practice and this likely needs to get changed. SetTypeID doesn't really
-		// seem like it needs to stay virtual, due to no longer needing to be from ITypePolicy. So maybe change that
+		// seem like it needs to stay virtual, due to no longer needing to be from IType. So maybe change that
 		// and we're in the clear?
-		// Also replace ITypePolicy's use in IdentityManager, and move it over to this thing (Meaning more source files. Yay).
+		// Also replace IType's use in IdentityManager, and move it over to this thing (Meaning more source files. Yay).
 		//For now, this works
-		PolicyBase();
+		TypeBase();
 
-		PolicyBase(uint32_t i);
+		TypeBase(uint32_t i);
 
-		PolicyBase(std::string_view name, TypeOffset offset);
+		TypeBase(std::string_view name, TypeOffset offset);
 
 	};
 
+	//For what it's worth, I really fucking loathe this system all together.
+	template <typename T>
+	struct PivotTypeBase : public TypeBase, public T
+	{
+		using TypeBase::TypeBase;
+
+		std::string_view GetName() const 
+		{ 
+			return TypeBase::GetName();
+		}
+
+
+		HierarchyData* GetHierarchyData() const override
+		{
+			return TypeBase::GetHierarchyData();
+		}
+
+		TypeID GetTypeID() const override
+		{
+			return TypeBase::GetTypeID();
+		}
+		DataType GetDataType() const override { return TypeBase::GetDataType(); }
+
+
+		ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		{
+			return TypeBase::IsConvertibleTo(other, scope, out, flags);
+		}
+
+
+		AbstractType* AsAbstract() override { return this; }
+		const AbstractType* AsAbstract() const override { return this; }
+
+	};
+
+	using GenericTypeBase = PivotTypeBase<AbstractType>;
+	using ConcreteTypeBase = PivotTypeBase<Type>;
 }

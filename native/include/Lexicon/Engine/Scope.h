@@ -8,8 +8,8 @@
 
 namespace LEX
 {
-	struct ITypePolicy;
-	struct PolicyBase;
+	struct AbstractType;
+	struct TypeBase;
 	struct FunctionInfo;
 
 
@@ -190,7 +190,7 @@ namespace LEX
 		
 
 
-		PolicyBase* SearchTypePath(SyntaxRecord& _path);
+		AbstractType* SearchTypePath(SyntaxRecord& _path);
 
 		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out);
 

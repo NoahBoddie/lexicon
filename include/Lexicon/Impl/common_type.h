@@ -11,11 +11,11 @@ namespace LEX
 
 
 
-		static ITypePolicy* boolean()
+		static BasicType* boolean()
 		{
 			constexpr auto bool_settings = Number::Settings::CreateFromType<bool>();
 
-			static ITypePolicy* type = nullptr;
+			static BasicType* type = nullptr;
 
 			if (!type){
 				type = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset());
@@ -25,11 +25,11 @@ namespace LEX
 		}
 
 
-		static ITypePolicy* uboolean()
+		static BasicType* uboolean()
 		{
 			constexpr auto bool_settings = Number::Settings{ NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound };
 
-			static ITypePolicy* type = nullptr;
+			static BasicType* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset());
@@ -38,11 +38,11 @@ namespace LEX
 			return type;
 		}
 
-		static ITypePolicy* integer64()
+		static BasicType* integer64()
 		{
 			constexpr auto int_settings = Number::Settings::CreateFromType<int32_t>();
 
-			static ITypePolicy* type = nullptr;
+			static BasicType* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetTypeByOffset("NUMBER", int_settings.GetOffset());
@@ -53,9 +53,9 @@ namespace LEX
 
 
 
-		static ITypePolicy* void_t()
+		static BasicType* void_t()
 		{
-			static ITypePolicy* type = nullptr;
+			static BasicType* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetInherentType(InherentType::kVoid);
@@ -65,9 +65,9 @@ namespace LEX
 		}
 
 
-		static ITypePolicy* voidable()
+		static BasicType* voidable()
 		{
-			static ITypePolicy* type = nullptr;
+			static BasicType* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetInherentType(InherentType::kVoidable);

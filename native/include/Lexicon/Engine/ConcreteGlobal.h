@@ -13,6 +13,8 @@ namespace LEX
 {
 	class ConcreteGlobal : public GlobalBase, public AbstractGlobal
 	{
+		ISpecializable* GetSpecializable() override { return nullptr; }
+
 		bool Revert(bool just_default) override
 		{
 			//*this = _declared.policy.

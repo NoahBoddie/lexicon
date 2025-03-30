@@ -8,7 +8,7 @@ namespace LEX
 {
 	struct Overload;
 	struct OverloadClause;
-	struct ITypePolicy;
+	struct AbstractType;
 	struct QualifiedType;
 	
 	struct OverloadKey
@@ -17,7 +17,7 @@ namespace LEX
 		virtual QualifiedType GetTarget() const;
 
 		//True name: TryMatch
-		virtual Overload Match(OverloadClause*, ITypePolicy* scope, Overload* prev, OverloadFlag& flag) = 0;
+		virtual Overload Match(OverloadClause*, AbstractType* scope, Overload* prev, OverloadFlag& flag) = 0;
 
 
 	};

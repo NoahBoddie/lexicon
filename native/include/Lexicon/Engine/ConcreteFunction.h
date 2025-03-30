@@ -10,6 +10,7 @@ namespace LEX
 	class ConcreteFunction : public FunctionBase, public AbstractFunction
 	{
 	public:
+		ISpecializable* GetSpecializable() override { return nullptr; }
 
 		//void LoadFromRecord(Record&)
 

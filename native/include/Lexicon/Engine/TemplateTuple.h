@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Engine/AbstractType.h"
 #include "Lexicon/Engine/TemplateType.h"
 #include "Lexicon/Engine/GenericBase.h"
 #include "Lexicon/Engine/DynamicTupleElement.h"
@@ -8,7 +8,7 @@
 namespace LEX
 {
 
-	struct TemplateTuple : public ITypePolicy, public GenericBase
+	struct TemplateTuple : public IType, public GenericBase
 	{
 		TemplateTuple(TemplateType* par, GenericBase* own)
 		{
@@ -25,7 +25,7 @@ namespace LEX
 
 
 
-		void UnpackImpl2(ITemplateInsertPart* out, ITypePolicy* tar)
+		void UnpackImpl2(ITemplateInsertPart* out, IType* tar)
 		{
 			if (tar->GetTypeID() == Tuple)//This means it's a tuple, we can use it for our aims.
 			{
@@ -55,7 +55,7 @@ namespace LEX
 
 			for (int i = 0; i < size; i++)
 			{
-				ITypePolicy* type = args->GetPartArgument(i);
+				IType* type = args->GetPartArgument(i);
 
 				UnpackImpl2(out, type);
 			}
@@ -102,14 +102,14 @@ namespace LEX
 
 
 
-		ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override
+		BasicType* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override
 		{
-			return dynamic_cast<ITypePolicy*>(ObtainSpecial(base, args));
+			return dynamic_cast<BasicType*>(ObtainSpecial(args));
 		}
 
-		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args)// override
+		Type* GetTypePolicy(ITemplateBody* args)// override
 		{
-			return dynamic_cast<AbstractTypePolicy*>(ObtainBody(args));
+			return dynamic_cast<Type*>(ObtainBody(args));
 		}
 
 

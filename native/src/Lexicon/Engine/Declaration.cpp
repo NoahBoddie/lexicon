@@ -4,7 +4,7 @@
 
 #include "Lexicon/Engine/Expression.h"
 
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
 #include "Lexicon/Engine/parse_strings.h"
 
@@ -82,9 +82,9 @@ namespace LEX
 	//*/
 
 
-	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem)
+	TypeBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem)
 	{
-		PolicyBase* result = nullptr;
+		TypeBase* result = nullptr;
 
 		if (node.size() != 0)
 		{
@@ -276,7 +276,7 @@ namespace LEX
 			type = static_cast<decltype(type)>(type + 1);
 		}
 		
-		policy = GetPolicyFromSpecifiers(type_spec, source);
+		policy = GetPolicyFromSpecifiers(type_spec, source)->AsAbstract();
 		*this = GetQualifiersFromStrings(type_qual);
 		*this = GetSpecifiersFromStrings(decl_spec);
 

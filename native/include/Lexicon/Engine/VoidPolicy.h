@@ -1,7 +1,7 @@
 #pragma once 
 
 
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 
 namespace LEX
 {
@@ -9,13 +9,13 @@ namespace LEX
 	// or something like that to say it's an instantiatible type.
 
 	//Also additionally, this shit should be a singleton.
-	class VoidPolicy : public ConcretePolicy
+	class VoidPolicy : public ConcreteType
 	{
 	public:
 
 		//I don't think I'd even want to do this.
-		//using ConcretePolicy::ConcretePolicy;
-		std::vector<ITypePolicy*> GetPostAffixedTypes() const override { return { IdentityManager::instance->GetInherentBase(InherentType::kVoidable) }; }
+		//using ConcreteType::ConcreteType;
+		std::vector<AbstractType*> GetPostAffixedTypes() const override { return { IdentityManager::instance->GetInherentType(InherentType::kVoidable) }; }
 
 
 		virtual TypeRuleset GetRuleset() const
@@ -29,13 +29,13 @@ namespace LEX
 	};
 
 
-	class VoidablePolicy : public ConcretePolicy
+	class VoidablePolicy : public ConcreteType
 	{
 	public:
 
 		//I don't think I'd even want to do this.
-		//using ConcretePolicy::ConcretePolicy;
-		std::vector<ITypePolicy*> GetPostAffixedTypes() const override { return {}; }
+		//using ConcreteType::ConcreteType;
+		std::vector<AbstractType*> GetPostAffixedTypes() const override { return {}; }
 
 
 		virtual TypeRuleset GetRuleset() const

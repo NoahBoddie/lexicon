@@ -11,7 +11,6 @@
 namespace LEX
 {
 	//Include questions for qualifiers
-	struct ITypePolicy;
 	struct QualifiedType;
 
 
@@ -47,7 +46,7 @@ namespace LEX
 
 		virtual Specifier GetSpecifiers() const = 0;
 
-		virtual ITypePolicy* GetType() const = 0;
+		virtual BasicType* GetType() const = 0;
 
 		//TODO: Make Field::AsSolution virtual
 		

@@ -116,11 +116,11 @@ namespace LEX
 
 
 
-		static PolicyBase* SearchTypePath(Element* a_this, SyntaxRecord& _path);
+		static TypeBase* SearchTypePath(Element* a_this, SyntaxRecord& _path);
 
 
 
-		PolicyBase* SearchTypePath(SyntaxRecord& _path)
+		TypeBase* SearchTypePath(SyntaxRecord& _path)
 		{
 			return SearchTypePath(this, _path);
 		}

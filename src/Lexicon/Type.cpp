@@ -1,4 +1,4 @@
-#include "Lexicon/AbstractTypePolicy.h"
+#include "Lexicon/Type.h"
 #include "Lexicon/Variable.h"
 #include "Lexicon/TypeID.h"
 
@@ -6,7 +6,7 @@
 
 namespace LEX
 {
-	void AbstractTypePolicy::EmplaceDefault(Variable& var)
+	void Type::EmplaceDefault(Variable& var)
 	{
 		//The void type would have 0 as it's value.
 		if (GetTypeID() != 0 && GetDefault().IsVoid() == true) {

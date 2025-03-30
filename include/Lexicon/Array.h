@@ -5,7 +5,7 @@ namespace LEX
 {
     class Variable; 
 
-    struct AbstractTypePolicy;
+    struct Type;
 
     class Array
     {
@@ -14,10 +14,10 @@ namespace LEX
         std::vector<Variable> data;
 
         //Arrays themselves will need to be stocked with a type to submit to the variable when called upon.
-        AbstractTypePolicy* type;
+        Type* type;
 
 
-        static AbstractTypePolicy* GetVariableType(const Array*)
+        static Type* GetVariableType(const Array*)
         {
             return nullptr;
         }

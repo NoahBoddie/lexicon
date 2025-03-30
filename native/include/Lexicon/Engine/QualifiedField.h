@@ -59,7 +59,7 @@ namespace LEX
 			return _target->GetFieldType();
 		}
 
-		ITypePolicy* GetType() const override
+		AbstractType* GetType() const override
 		{
 			return _target->GetType();
 		}

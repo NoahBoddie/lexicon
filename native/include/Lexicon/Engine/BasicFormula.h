@@ -35,7 +35,7 @@ namespace LEX
 						return;
 						int i = param.GetFieldIndex();
 
-						AbstractTypePolicy* expected = param.GetType()->FetchTypePolicy(caller);
+						Type* expected = param.GetType()->FetchTypePolicy(caller);
 						if (!expected)
 							report::apply::critical("unexpected?");
 

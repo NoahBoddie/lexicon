@@ -34,7 +34,7 @@ namespace LEX
 			return max_value<size_t>;
 		}
 
-		ITypePolicy* GetTypePolicy() const override
+		AbstractType* GetTypePolicy() const override
 		{ 
 			return Policy(); 
 		}

@@ -5,7 +5,7 @@
 
 #include "Lexicon/String.h"
 //*src
-#include "ITypePolicy.h"
+#include BASIC_NAME(Type)
 
 #include "Lexicon/Interfaces/IdentityManager.h"
 
@@ -14,8 +14,8 @@ namespace LEX
 	struct Object;
 	struct ObjectPolicy;
 
-	struct ITypePolicy;
-	struct AbstractTypePolicy;
+	
+	struct Type;
 
 	struct String;
 
@@ -92,13 +92,13 @@ namespace LEX
 
 		virtual TypeOffset GetTypeOffset(ObjectData&) = 0;
 
-		virtual AbstractTypePolicy* SpecializeType(ObjectData&, ITypePolicy*) = 0;
+		virtual Type* SpecializeType(ObjectData&, BasicType*) = 0;
 
 		//This can be defined in a source
 		virtual uint32_t GetTypeID(ObjectData&) = 0;
 
 		//Non-virtual
-		ITypePolicy* GetTypeInterface(ObjectData& object)
+		BasicType* GetTypeInterface(ObjectData& object)
 		{
 			//Note, not real code (yet)
 			auto id = GetTypeID(object);
@@ -106,7 +106,7 @@ namespace LEX
 			return IdentityManager::instance->GetTypeByID(id);
 		}
 
-		AbstractTypePolicy* GetTypeResolved(ObjectData& object)
+		Type* GetTypeResolved(ObjectData& object)
 		{
 			auto type = GetTypeInterface(object);
 
@@ -157,7 +157,7 @@ namespace LEX
 
 		uint32_t GetTypeID(ObjectData& data) override API_FINAL;
 
-		AbstractTypePolicy* SpecializeType(ObjectData&, ITypePolicy* type) override
+		Type* SpecializeType(ObjectData&, BasicType* type) override
 		{
 			//By default a specialized class will be as normal. No additional work will need to be used.
 

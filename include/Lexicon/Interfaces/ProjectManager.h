@@ -10,7 +10,6 @@ namespace LEX
 	struct IProject;
 	
 	class Project;
-	struct ITypePolicy;
 	struct IFunction;
 	struct IGlobal;
 	class Script;
@@ -200,10 +199,10 @@ namespace LEX
 			return nullptr;
 		}
 
-		ITypePolicy* GetTypeFromPath(std::string_view path)
+		BasicType* GetTypeFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, kTypeElement); elem)
-				return elem->As<ITypePolicy>();
+				return elem->As<BasicType>();
 
 			return nullptr;
 		}

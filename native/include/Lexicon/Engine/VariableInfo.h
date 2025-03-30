@@ -12,7 +12,7 @@ namespace LEX
 	struct VariableInfo : public MemberInfo
 	{
 		//no qualifiers for now.
-		//VariableInfo(ITypePolicy* t, size_t i, Qualifier q) : _index{ i }, _type{ t }
+		//VariableInfo(AbstractType* t, size_t i, Qualifier q) : _index{ i }, _type{ t }
 		//{
 		//	DataAs<Settings>().flags = q;
 		//}
@@ -20,7 +20,7 @@ namespace LEX
 
 		FieldType GetFieldType() const override { return FieldType::Variable; }
 
-		ITypePolicy* GetType() const override { return nullptr; }
+		AbstractType* GetType() const override { return nullptr; }
 
 		Qualifier GetQualifiers() const override { return qualifiers; }
 		Specifier GetSpecifiers() const override { return specifiers; }

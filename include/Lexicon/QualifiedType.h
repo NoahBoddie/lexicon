@@ -7,11 +7,11 @@
 
 
 //*src
-#include "ITypePolicy.h"
+#include BASIC_NAME(Type)
 
 namespace LEX
 {
-	struct ITypePolicy;
+	struct IType;
 	struct OverloadCode;
 
 
@@ -33,14 +33,14 @@ namespace LEX
 
 		QualifiedType(std::nullptr_t) {}
 
-		explicit QualifiedType(ITypePolicy* p) : policy{ p } {}
-		QualifiedType(ITypePolicy* p, Qualifier q) : policy{ p }, Qualifier{ q } {}
+		explicit QualifiedType(BasicType* p) : policy{ p } {}
+		QualifiedType(BasicType* p, Qualifier q) : policy{ p }, Qualifier{ q } {}
 
 		using Qualifier::operator=;//(const Qualifier& other) { __super::operator=(other); return *this; }
 
 
 	//private://Temporary to sus out where policy is expected from solutions and declarations.
-		ITypePolicy* policy = nullptr;
+		BasicType* policy = nullptr;
 
 	public:
 		
@@ -48,21 +48,21 @@ namespace LEX
 		//Right here in qualified type, I can put a set of bits that I can use to relay some ideas of what I can turn it into.
 
 
-		operator ITypePolicy* ()
+		operator BasicType* ()
 		{
 			return policy;
 		}
-		operator const ITypePolicy* () const
+		operator const BasicType* () const
 		{
 			return policy;
 		}
 
 
-		ITypePolicy* operator->()
+		BasicType* operator->()
 		{
 			return policy;
 		}
-		const ITypePolicy* operator->() const
+		const BasicType* operator->() const
 		{
 			return policy;
 		}
@@ -78,36 +78,7 @@ namespace LEX
 
 
 
-		//TODO: IsCovertToQualfied needs to hold an ITypePolicy to see if it has permission to this conversion. How I'd do that, is kinda hard.
-		ConvertResult IsConvertToQualified(const QualifiedType& other, ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
-		{
-
-			//TODO: ConvertQualified needs 2 rules, read below
-			// first if ref types are used, no conversions are allowed (return to nullptr). Also that Conversion on maybe refs should present a warning
-			// due to not actually using a reference if a reference was desired.
-
-
-
-#ifdef DISABLE_THIS
-			if (auto result = IsQualified(other, flags, &out); result != ConvertResult::Exact || out)
-				return result;
-
-			//Simple for now.
-			return policy->IsConvertibleTo(other.policy, scope, out, flags);
-#endif
-
-			//TODO: ConverstResult needs to be comprised of more types.  \/
-			// Namely, something to tell what error it should give, as well as a function that takes the qualified types that failed
-
-			ConvertResult qual_result = IsQualified(other, flags, &out);
-
-			if (qual_result <= ConvertResult::Failure || qual_result > ConvertResult::Transformative)
-				return qual_result;
-
-			if (auto type_result = policy->IsConvertibleTo(other.policy, scope, out, flags); type_result != ConvertResult::Exact)
-				return type_result;
-
-			return qual_result;
-		}
+		//TODO: IsCovertToQualfied needs to hold an IType to see if it has permission to this conversion. How I'd do that, is kinda hard.
+		ConvertResult IsConvertToQualified(const QualifiedType& other, BasicType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const;
 	};
 }

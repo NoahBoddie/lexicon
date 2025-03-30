@@ -5,7 +5,7 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/OverloadInput.h"
 #include "Lexicon/Engine/Declaration.h"
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
 
 namespace LEX
@@ -16,15 +16,18 @@ namespace LEX
 	}
 
 
-	PolicyBase* Scope::SearchTypePath(SyntaxRecord& _path)
+	AbstractType* Scope::SearchTypePath(SyntaxRecord& _path)
 	{
 		SyntaxRecord dummy{ "dummy", Syntax{ SyntaxType::None}, _path };
 
 		//I'm too fucking lazy to make it work normally, so this is what we're gonna deal with til I do.
-		//PolicyBase* result = GetPolicyFromSpecifiers(_path, process->GetEnvironment());
-		PolicyBase* result = GetPolicyFromSpecifiers(dummy, process->GetElement());
+		//TypeBase* result = GetPolicyFromSpecifiers(_path, process->GetEnvironment());
+		TypeBase* result = GetPolicyFromSpecifiers(dummy, process->GetElement());
 
-		return result;
+		if (result)
+			return result->AsAbstract();
+
+		return nullptr;
 
 	}
 	

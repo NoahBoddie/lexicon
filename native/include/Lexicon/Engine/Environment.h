@@ -36,11 +36,11 @@ namespace LEX
 	struct Global;
 	struct GlobalBase;
 
-	struct PolicyBase;
+	struct TypeBase;
 	class FunctionBase;
 
-	struct ConcretePolicy;
-	struct AbstractTypePolicy;
+	struct ConcreteType;
+	struct Type;
 
 	struct Overload;
 	struct OverloadKey;
@@ -50,7 +50,7 @@ namespace LEX
 	
 
 	struct QualifiedField;
-	struct ITypePolicy;
+	struct AbstractType;
 	struct IFunction;
 
 
@@ -79,25 +79,22 @@ namespace LEX
 	{
 		std::string					name{};
 		Environment*				scope = nullptr;
-		ITypePolicy*				target = nullptr;		//Useless for type searches but literally, why make another type.
-		std::vector<ITypePolicy*>	tempArgs{};
-		std::vector<ITypePolicy*>	funcArgs{};	//For type search this is what's in the constructor. You can only have one or the other ideally though.
+		AbstractType*				target = nullptr;		//Useless for type searches but literally, why make another type.
+		std::vector<AbstractType*>	tempArgs{};
+		std::vector<AbstractType*>	funcArgs{};	//For type search this is what's in the constructor. You can only have one or the other ideally though.
 
 		
 	};
 
 	
-	//TODO: TypeContainer needs to be be PolicyBase, not ITypePolicy. Excludes specializations that way.
-	//For now only one per name. I'm not dealing with function and type signatures.
-	//using FunctionContainer = std::vector<FunctionInfo>;
-	//using TypeContainer = std::vector<ITypePolicy*>;
+
 
 	struct FunctionInfo;
 	struct VariableInfo;
 
 	//change to unique pointer please
 	using FunctionContainer = std::vector<FunctionInfo*>;
-	using TypeContainer = PolicyBase*;
+	using TypeContainer = TypeBase*;
 
 
 
@@ -169,7 +166,7 @@ namespace LEX
 		//TODO: Change name to find field, and use a variableInfo for this.
 		virtual VariableInfo* FindVariable(std::string_view name) = 0;
 
-		virtual std::vector<PolicyBase*> FindTypes(std::string_view name) = 0;
+		virtual std::vector<TypeBase*> FindTypes(std::string_view name) = 0;
 
 
 	};
@@ -191,7 +188,7 @@ namespace LEX
 		//TODO:Add Get AccessModifier function. Operational by default, set to public. Likely, should derive from some pivot that can be shared with global and other components.
 
 	public:
-		ITypePolicy* FindTypePath(std::string_view path) override
+		AbstractType* FindTypePath(std::string_view path) override
 		{
 			
 			return nullptr;
@@ -228,7 +225,7 @@ namespace LEX
 		//Finding functions, no need for sorting, just front load the requirements. That is what search is for, finding is for local (and it's includes and such).
 		//FindFunctions -> FunctionInfo*[]
 		//FindVariables -> Global*[]
-		//FindTypes -> ITypePolicy*[] (2 versions, one for string, other for records, which will sift through classes and scripts both).
+		//FindTypes -> IType*[] (2 versions, one for string, other for records, which will sift through classes and scripts both).
 		//>Not doing yet
 		//FindMembers ->VariableInfo?*[]
 
@@ -238,11 +235,11 @@ namespace LEX
 		virtual void AddVariable(GlobalBase* tar);
 
 		
-		void AddType(PolicyBase* policy);
+		void AddType(TypeBase* policy);
 		
 		//TODO: Issue with members on FindFunction and FindVariable. See below.
 		// (I think that should catch members too) should both take an 
-		// ITypePolicy. Main reason why is because of member and method requires being higher priority
+		// IType. Main reason why is because of member and method requires being higher priority
 		// and the exclusive place to check from when there's a parenthesis. Actually, this is a search thing,
 		// not a find issue.
 		virtual std::vector<FunctionInfo*> FindFunctions(std::string_view name);
@@ -252,7 +249,7 @@ namespace LEX
 		//TODO: Change name to find field, and use a variableInfo for this.
 		virtual GlobalBase* FindVariable(std::string_view name);
 
-		virtual std::vector<PolicyBase*> FindTypes(std::string_view name);
+		virtual std::vector<TypeBase*> FindTypes(std::string_view name);
 
 
 
@@ -295,7 +292,7 @@ namespace LEX
 		//>-------------------------
 		//This is for environment
 		std::map<std::string_view, TypeContainer> typeMap;
-		//TODO: I need a class called policy base that will handle PolicyBases. Basically it'd be something like what IType is to AbstractType.
+		//TODO: I need a class called policy base that will handle TypeBases. Basically it'd be something like what IType is to AbstractType.
 		// largely, it'd serve as a good wrapper for type aliases or other types such as generic arguments.
 
 		

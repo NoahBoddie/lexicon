@@ -62,7 +62,7 @@ namespace LEX
 	// Should it be the source, Most uses of OBJECT_POLICY will be ObjectPolicyImpl. But for the user it's ObjectPolicy. This allows me to obscure this connection,
 	// but also access the extra vtable without casting, AND the pointers are in the same location for it to continue treating it as an ObjectPolicy.
 
-	//Problem is I'll need to put it on a pivot, mainly so I have 2 different vtables, but still have the object PolicyBase able to be treated like an ObjectVTable.
+	//Problem is I'll need to put it on a pivot, mainly so I have 2 different vtables, but still have the object TypeBase able to be treated like an ObjectVTable.
 
 	//So it might be something like IObjectPolicy, ObjectPolicy(Pivot), ObjectPolicyImpl OBJECT_POLICT(macro between ObjectPolicy and ObjectPolicyImpl).
 
@@ -184,7 +184,7 @@ namespace LEX
 		}
 
 
-		AbstractTypePolicy* SpecializeType(ObjectData& self, ITypePolicy* type) override final
+		Type* SpecializeType(ObjectData& self, BasicType* type) override final
 		{
 			return base->SpecializeType(self, type);
 		}

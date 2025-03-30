@@ -1,21 +1,21 @@
 #pragma once
 
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/GenericBase.h"
 
 namespace LEX
 {
 	struct SpecialBase;
-	struct SpecialBase;
 
-	struct GenericType : public PolicyBase, public GenericBase
+	struct GenericType : public GenericTypeBase, public GenericBase
 	{
-		//ITypePolicy* GetTypePolicy()
+		ISpecializable* GetSpecializable() override { return this; }
 
+		bool IsResolved() const override { return false; }
 
-		ITypePolicy* CheckTypePolicy(ITemplatePart* args) override;
+		AbstractType* CheckTypePolicy(ITemplatePart* args) override;
 
-		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
+		Type* GetTypePolicy(ITemplateBody* args) override;
 
 		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
 	};

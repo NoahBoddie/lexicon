@@ -15,7 +15,7 @@ namespace LEX
 	struct IEnvironment;
 	class Script;
 
-	struct ITypePolicy;
+	struct IType;
 	struct IFunction;
 	struct IGlobal;
 	struct SignatureBase;

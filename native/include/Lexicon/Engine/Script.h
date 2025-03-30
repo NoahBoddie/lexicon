@@ -9,7 +9,7 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/IScriptImpl.h"
 //
-#include "Lexicon/AbstractTypePolicy.h"
+#include "Lexicon/Type.h"
 #include "Lexicon/AbstractFunction.h"
 
 
@@ -18,8 +18,8 @@
 namespace LEX
 {
 	struct Variable_;
-	struct ConcretePolicy;
-	struct PolicyBase;
+	struct ConcreteType;
+	struct TypeBase;
 
 
 	class Script : public Environment, public IScriptImpl
@@ -135,7 +135,7 @@ namespace LEX
 
 
 
-		PolicyBase* tempObtainPolicy(SyntaxRecord& ast);
+		TypeBase* tempObtainPolicy(SyntaxRecord& ast);
 
 
 
@@ -218,7 +218,7 @@ namespace LEX
 			//Also, maybe some core pivot with script, since they share so much
 			std::vector<Function*> _functions;
 			std::vector<Variable_*> _globals;
-			std::map<ConcretePolicy*, std::vector<Function*>> _methods;
+			std::map<ConcreteType*, std::vector<Function*>> _methods;
 
 			//When using, it's very important to treat this like an imported script.
 

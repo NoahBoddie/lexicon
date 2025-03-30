@@ -15,6 +15,6 @@ namespace LEX
 		//Rename this shit please.
 
 		//This is part of the specializing interface or fucking whatever.
-		virtual ISpecializable* GetSpecializable() { return nullptr; }
+		virtual ISpecializable* GetSpecializable() = 0;
 	};
 }

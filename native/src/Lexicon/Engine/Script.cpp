@@ -4,7 +4,7 @@
 //#include "Lexicon/Engine/TestField.h"
 
 #include "Lexicon/Interfaces/IdentityManager.h"
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 #include "Lexicon/Engine/ConcreteFunction.h"
 #include "Lexicon/Engine/GlobalVariable.h"
 #include "Lexicon/Engine/ConcreteGlobal.h"
@@ -19,7 +19,7 @@ namespace LEX
 	//TODO: ObtainPolicy needs to be moved else where at some point.
 
 	template <typename T>
-	PolicyBase* _PolicyMaker(std::string name, TypeOffset offset)
+	TypeBase* _PolicyMaker(std::string name, TypeOffset offset)
 	{//helps with generic or concrete divide
 		return new T{ std::string_view{name}, offset };
 	}
@@ -42,7 +42,7 @@ namespace LEX
 
 
 
-	inline PolicyBase* Script::tempObtainPolicy(SyntaxRecord& ast)
+	inline TypeBase* Script::tempObtainPolicy(SyntaxRecord& ast)
 	{
 		SyntaxRecord& settings = ast.GetChild(0);
 
@@ -66,11 +66,11 @@ namespace LEX
 		bool is_generic = genericSet && genericSet->size();
 
 
-		using PolicyCtor = PolicyBase*(std::string, TypeOffset);
+		using PolicyCtor = TypeBase*(std::string, TypeOffset);
 
-		//using ConcretePolicy = ConcretePolicy;
-		using GenericPolicy = ConcretePolicy;
-		PolicyCtor* create_func = !is_generic ? _PolicyMaker<ConcretePolicy> : _PolicyMaker<GenericPolicy>;
+		//using ConcreteType = ConcreteType;
+		using GenericPolicy = ConcreteType;
+		PolicyCtor* create_func = !is_generic ? _PolicyMaker<ConcreteType> : _PolicyMaker<GenericPolicy>;
 
 
 
@@ -78,23 +78,23 @@ namespace LEX
 		std::string name;
 		TypeOffset offset;
 
-		auto LookUpOrMake = [&](std::string str, TypeOffset offset, bool lookup) -> PolicyBase*
+		auto LookUpOrMake = [&](std::string str, TypeOffset offset, bool lookup) -> TypeBase*
 			{
 				std::string_view name = std::string_view{ str };
 
-				PolicyBase* result = nullptr;
+				TypeBase* result = nullptr;
 
 				if (lookup)
 					result = IdentityManager::instance->GetBaseByOffset(name, offset);
 				else
-					result = is_generic ? new GenericPolicy{ name, offset } : new ConcretePolicy{ name, offset };
+					result = is_generic ? new GenericPolicy{ name, offset } : new ConcreteType{ name, offset };
 
 				return result;
 			};
 
 		bool lookup = false;
 		
-		PolicyBase* result;
+		TypeBase* result;
 
 		if (auto attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach); attach)
 		{
@@ -144,7 +144,7 @@ namespace LEX
 		}
 		else
 		{
-			result = is_generic ? new GenericPolicy{} : new ConcretePolicy{};
+			result = is_generic ? new GenericPolicy{} : new ConcreteType{};
 		}
 
 		if (result)

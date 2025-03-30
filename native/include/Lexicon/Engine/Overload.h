@@ -206,7 +206,7 @@ namespace LEX
 
 		QualifiedType target;//
 
-		std::vector<std::vector<ITypePolicy*>> specialization;
+		std::vector<std::vector<AbstractType*>> specialization;
 
 
 		//These align perfectly with arguments given.

@@ -16,7 +16,7 @@
 #include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/InstructionType.h"
 #include "Lexicon/Engine/Runtime.h"
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 //Move me you idiot.
 
 #include "Lexicon/Engine/Scope.h"
@@ -207,7 +207,7 @@ namespace LEX
 					if (!from_type)
 						report::runtime::critical("NO FROM");
 
-					auto to_type = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+					auto to_type = a_lhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
 
 					
 					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
@@ -298,7 +298,7 @@ namespace LEX
 		
 			//RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);
-			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			Type* policy = a_rhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
 			
 			//if no policy, fatal fault
 			if (!policy){
@@ -317,7 +317,7 @@ namespace LEX
 			// to result in an error within assign.
 
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);//s runtime->GetVariable(a_lhs.Get<Index>());
-			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			Type* policy = a_rhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
 
 			//if no policy, fatal fault
 			if (!policy) {
@@ -464,7 +464,7 @@ namespace LEX
 		{
 
 			RuntimeVariable from = a_rhs.GetVariable(runtime);
-			AbstractTypePolicy* to = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			Type* to = a_lhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
 			//from->
 		}
 
@@ -479,7 +479,7 @@ namespace LEX
 
 			//Have a AsScript/AsPolicy possibly?
 
-			ConcretePolicy* policy = dynamic_cast<ConcretePolicy*>(env);
+			ConcreteType* policy = dynamic_cast<ConcreteType*>(env);
 
 			result = policy->GetDefault();
 		}
@@ -488,7 +488,7 @@ namespace LEX
 		static void Construct(RuntimeVariable& result, Operand a_lhs, Operand, InstructType, Runtime* runtime)
 		{
 			
-			AbstractTypePolicy* policy = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			Type* policy = a_lhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
 
 			if (!policy)
 				report::runtime::critical("No policy could be fetched.");
@@ -722,7 +722,7 @@ namespace LEX
 			//No need to deviate for now.
 			//InstructType type = OperatorToInstruction(op);
 
-			ITypePolicy* policy;
+			AbstractType* policy;
 
 			assert(it.policy);
 
@@ -779,7 +779,7 @@ namespace LEX
 			//No need to deviate for now.
 			//InstructType type = OperatorToInstruction(op);
 
-			ITypePolicy* policy;
+			AbstractType* policy;
 
 			assert(lhs.policy);
 			assert(rhs.policy);
@@ -1109,7 +1109,7 @@ namespace LEX
 
 
 				//*Slated for deletion
-				//static ITypePolicy* boolean = nullptr;
+				//static AbstractType* boolean = nullptr;
 				//if (!boolean) {
 				//	//This may use a different boolean type eventually.
 				//	boolean = IdentityManager::instance->GetTypeByOffset("NUMBER", GetNumberOffsetFromType<bool>());
@@ -1539,7 +1539,7 @@ namespace LEX
 
 			//TODO: Should be in error if has an explicit target.
 
-			ITypePolicy* type = compiler->GetScope()->SearchTypePath(target);
+			AbstractType* type = compiler->GetScope()->SearchTypePath(target);
 
 			if (type)
 			{
@@ -1970,11 +1970,11 @@ namespace LEX
 		}
 
 
-		struct StringType : public ConcretePolicy
+		struct StringType : public ConcreteType
 		{
-			using ConcretePolicy::ConcretePolicy;
+			using ConcreteType::ConcreteType;
 
-			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+			ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
@@ -2000,15 +2000,15 @@ namespace LEX
 		};
 
 
-		struct NumberType : public ConcretePolicy
+		struct NumberType : public ConcreteType
 		{
-			NumberType(std::string_view name, Number::Settings settings) : ConcretePolicy{ name, settings.GetOffset() }, _settings{settings}
+			NumberType(std::string_view name, Number::Settings settings) : ConcreteType{ name, settings.GetOffset() }, _settings{settings}
 			{}
 
 			//please, make this with a setting attached.
 
 
-			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+			ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
@@ -2053,13 +2053,13 @@ namespace LEX
 		};
 
 
-		struct CoreType : public ConcretePolicy
+		struct CoreType : public ConcreteType
 		{
 			//Core types basically will just not have manual types loaded.
 
-			using ConcretePolicy::ConcretePolicy;
+			using ConcreteType::ConcreteType;
 
-			std::vector<ITypePolicy*> GetPostAffixedTypes() const override
+			std::vector<AbstractType*> GetPostAffixedTypes() const override
 			{
 				return {};
 			}
@@ -2170,26 +2170,26 @@ namespace LEX
 			//TODO: This type of instantiation should be reserved squarely for intrinsic types like numbers, strings etc.
 			// Other than that, no type should be created knowing what it is already.
 
-			static ConcretePolicy* NUMBER = new ConcretePolicy{ "NUMBER", 0 };
+			static ConcreteType* NUMBER = new ConcreteType{ "NUMBER", 0 };
 
 			//I'd like to make a trival ID. The trival id is a singular empty id for a type that cannot be searched for
 			// such as a function signature or 
 
-			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
+			static ConcreteType* string8 = new ConcreteType{ "STRING", 0 };
 
 
 			//For the love of god, automate making these. I beg.
-			static ConcretePolicy* float64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<double>() };
-			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<float>() };
-			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
-			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
-			static ConcretePolicy* sInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int32_t>() };
-			static ConcretePolicy* uInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint32_t>() };
-			static ConcretePolicy* sInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int64_t>() };
-			static ConcretePolicy* uInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint64_t>() };
+			static ConcreteType* float64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<double>() };
+			static ConcreteType* float32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<float>() };
+			static ConcreteType* uBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
+			static ConcreteType* sBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
+			static ConcreteType* sInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int32_t>() };
+			static ConcreteType* uInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint32_t>() };
+			static ConcreteType* sInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int64_t>() };
+			static ConcreteType* uInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint64_t>() };
 			
 
-			static ConcretePolicy* _coreObject = new CoreType{ "CORE", 0 };
+			static ConcreteType* _coreObject = new CoreType{ "CORE", 0 };
 			
 			_coreObject->SetInheritFrom(common_type::voidable());
 			

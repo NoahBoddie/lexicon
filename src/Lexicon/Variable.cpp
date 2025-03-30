@@ -4,11 +4,11 @@
 
 namespace LEX
 {
-    RuntimeVariable Variable::Convert(AbstractTypePolicy* to)
+    RuntimeVariable Variable::Convert(Type* to)
     {
         Conversion convert;
 
-        AbstractTypePolicy* from = Policy();
+        Type* from = Policy();
 
         bool success = from && from->IsConvertibleTo(to, to, convert, ConversionFlag::Explicit) > convertFailure;
         
@@ -30,9 +30,9 @@ namespace LEX
         return {};
     }
     
-    AbstractTypePolicy* Variable::CheckVariableType() const
+    Type* Variable::CheckVariableType() const
     {
-        AbstractTypePolicy* result = std::visit([](auto&& lhs) -> AbstractTypePolicy* {
+        Type* result = std::visit([](auto&& lhs) -> Type* {
             return LEX::GetVariableType(lhs);
             }, _value);
 

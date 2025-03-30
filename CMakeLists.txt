@@ -71,7 +71,7 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/CompileUtility.h
 		native/include/Lexicon/Engine/ConcreteGlobal.h
 		native/include/Lexicon/Engine/ConcreteFunction.h
-		native/include/Lexicon/Engine/ConcretePolicy.h
+		native/include/Lexicon/Engine/ConcreteType.h
 		native/include/Lexicon/Engine/Declaration.h
 		native/include/Lexicon/Engine/Expression.h
 		native/include/Lexicon/Engine/ExpressionType.h
@@ -108,7 +108,7 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/ParseModule.h
 		native/include/Lexicon/Engine/Parser.h
 		native/include/Lexicon/Engine/ParserTest.h
-		native/include/Lexicon/Engine/PolicyBase.h
+		native/include/Lexicon/Engine/TypeBase.h
 		native/include/Lexicon/Engine/PolicyData.h
 		native/include/Lexicon/Engine/ProcessContext.h
 		native/include/Lexicon/Engine/Register.h
@@ -147,6 +147,7 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/Impl/IElementSource.h
 		"native/include/Lexicon/Engine/IssueTable.h"
 		"native/include/Lexicon/Engine/SpecialType.h"
+		"native/include/Lexicon/Engine/AbstractType.h"
 	)
 		
 
@@ -156,7 +157,7 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/CompileUtility.cpp
 		native/src/Lexicon/Engine/GenericBase.cpp
 		native/src/Lexicon/Engine/ConcreteFunction.cpp
-		native/src/Lexicon/Engine/ConcretePolicy.cpp
+		native/src/Lexicon/Engine/ConcreteType.cpp
 		native/src/Lexicon/Engine/Declaration.cpp
 		native/src/Lexicon/Engine/FunctionBase.cpp
 		native/src/Lexicon/Engine/HierarchyData.cpp
@@ -171,7 +172,7 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/ParseHandler.cpp
 		native/src/Lexicon/Engine/ParseModule.cpp
 		native/src/Lexicon/Engine/Parser.cpp
-		native/src/Lexicon/Engine/PolicyBase.cpp
+		native/src/Lexicon/Engine/TypeBase.cpp
 		native/src/Lexicon/Engine/ProcessContext.cpp
 		native/src/Lexicon/Engine/RoutineCompiler.cpp
 		native/src/Lexicon/Engine/Scope.cpp
@@ -216,7 +217,7 @@ set(headers
 	include/Lexicon/AbstractGlobal.h
 	include/Lexicon/Formula.h
 	include/Lexicon/AbstractFunction.h
-	include/Lexicon/AbstractTypePolicy.h
+	include/Lexicon/Type.h
 	include/Lexicon/AccessModifier.h
 	include/Lexicon/Array.h
 	include/Lexicon/Conversion.h
@@ -228,10 +229,10 @@ set(headers
 	include/Lexicon/Field.h
 	include/Lexicon/ICallableUnit.h
 	include/Lexicon/IFunction.h
-	"include/Lexicon/IGenericArgument.h"
-	"include/Lexicon/IGenericParameter.h"
+	
+	
 	include/Lexicon/ISpecial.h
-	include/Lexicon/ITypePolicy.h
+	include/Lexicon/IType.h
 	include/Lexicon/IGlobal.h
 	include/Lexicon/IVariable.h
 	include/Lexicon/MemberPointer.h
@@ -288,16 +289,16 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" )
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h")
 
 
 set(sources
-	src/Lexicon/AbstractTypePolicy.cpp
+	src/Lexicon/Type.cpp
 	src/Lexicon/Dispatcher.cpp
 
 	src/Lexicon/Field.cpp
 	src/Lexicon/ICallableUnit.cpp
-	src/Lexicon/ITypePolicy.cpp
+	src/Lexicon/IType.cpp
 	src/Lexicon/ObjectPolicy.cpp
 	src/Lexicon/ObjectPolicyHandle.cpp
 	src/Lexicon/QualifiedType.cpp

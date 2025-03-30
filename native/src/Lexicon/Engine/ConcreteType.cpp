@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 
 #include "Lexicon/Engine/Expression.h"
 
@@ -36,25 +36,25 @@ namespace LEX
 		}
 	}
 	
-	ConcretePolicy::ConcretePolicy() : PolicyBase{} {}
+	ConcreteType::ConcreteType() : ConcreteTypeBase{} {}
 
-	ConcretePolicy::ConcretePolicy(uint32_t i) : PolicyBase{ i } {}
+	ConcreteType::ConcreteType(uint32_t i) : ConcreteTypeBase{ i } {}
 
-	ConcretePolicy::ConcretePolicy(std::string_view name, TypeOffset offset) : PolicyBase{ name, offset } {}
+	ConcreteType::ConcreteType(std::string_view name, TypeOffset offset) : ConcreteTypeBase{ name, offset } {}
 	/*
-	ConcretePolicy::ConcretePolicy()
+	ConcreteType::ConcreteType()
 	{
 		IdentityManager::instance->ObtainID(this);
 	}
 
-	ConcretePolicy::ConcretePolicy(uint32_t i)
+	ConcreteType::ConcreteType(uint32_t i)
 	{
 		//SetTypeID(0); return;
 
 		IdentityManager::instance->ClaimID(this, i);
 	}
 
-	ConcretePolicy::ConcretePolicy(std::string_view name, TypeOffset offset)
+	ConcreteType::ConcreteType(std::string_view name, TypeOffset offset)
 	{
 		//SetTypeID(0); return;
 		IdentityManager::instance->ClaimID(this, name, offset);
@@ -63,7 +63,7 @@ namespace LEX
 
 
 
-	AbstractTypePolicy* ConcretePolicy::GetExtends()
+	Type* ConcreteType::GetExtends()
 	{
 		//I think I could have this in 2 forms. One where you output to an array and one where you just get at a point.
 		// I kinda don't really super want this though cause I'd have to define it twice, so maybe a const vector or something?
@@ -72,20 +72,20 @@ namespace LEX
 		return _extends->GetTypePolicy((ITemplateBody*)nullptr);
 	}
 
-	Variable ConcretePolicy::GetDefault()
+	Variable ConcreteType::GetDefault()
 	{
 		if (policy)
 			return policy->CreateObject(GetTypeID());
 
 		return _default;
 	}
-	void ConcretePolicy::SetDefault(Variable& var)
+	void ConcreteType::SetDefault(Variable& var)
 	{
 		_default = var;
 	}
 
 
-	void ConcretePolicy::LoadFromRecord(SyntaxRecord& ast)
+	void ConcreteType::LoadFromRecord(SyntaxRecord& ast)
 	{
 		_name = ast.GetTag();
 
@@ -162,12 +162,12 @@ namespace LEX
 		
 	}
 
-	void ConcretePolicy::OnAttach()
+	void ConcreteType::OnAttach()
 	{
 		HandleInheritance();
 	}
 
-	void ConcretePolicy::CompileExpression_DEPRECATED(SyntaxRecord& ast)
+	void ConcreteType::CompileExpression_DEPRECATED(SyntaxRecord& ast)
 	{
 		//Keeping this because I may have need of it in the future.
 		for (auto& node : ast.children())
@@ -199,7 +199,7 @@ namespace LEX
 
 
 
-    LinkResult ConcretePolicy::OnLink(LinkFlag flags)
+    LinkResult ConcreteType::OnLink(LinkFlag flags)
     {
 		SyntaxRecord& ast = *GetSyntaxTree();
 		
@@ -274,7 +274,7 @@ namespace LEX
         return LinkResult::Success;
     }
 
-    LinkFlag ConcretePolicy::GetLinkFlags()
+    LinkFlag ConcreteType::GetLinkFlags()
     {
 		//return LinkFlag::None;
 		

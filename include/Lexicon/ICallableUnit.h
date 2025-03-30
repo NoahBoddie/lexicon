@@ -13,6 +13,7 @@ namespace LEX
 	class RuntimeVariable;
 	
 	
+	//TODO: STOP USING RUNTIME HERE, PLEASE use IRuntime.
 
 	struct ICallableUnit
 	{

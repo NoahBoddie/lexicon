@@ -3,12 +3,12 @@
 #include "Lexicon/VariableType.h"
 
 //*src
-#include "Lexicon/AbstractTypePolicy.h"
+#include "Lexicon/Type.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {
-	struct AbstractTypePolicy;
+	struct Type;
 
 	using c_string = const char*;
 
@@ -163,9 +163,9 @@ namespace LEX
 		bool operator==(const String& other) const = default;
 
 
-		static AbstractTypePolicy* GetVariableType(const String*)
+		static Type* GetVariableType(const String*)
 		{
-			ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+			BasicType* policy = IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
 			//Should already be specialized, so just sending it.
 			return policy->FetchTypePolicy(nullptr);
@@ -181,7 +181,7 @@ namespace LEX
 	struct VariableType<std::string>
 	{
 
-		AbstractTypePolicy* operator()()
+		Type* operator()()
 		{
 			return String::GetVariableType(nullptr);
 		}
@@ -191,7 +191,7 @@ namespace LEX
 	struct VariableType<std::string_view>
 	{
 
-		AbstractTypePolicy* operator()()
+		Type* operator()()
 		{
 			return String::GetVariableType(nullptr);
 		}

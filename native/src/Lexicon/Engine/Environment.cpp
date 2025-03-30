@@ -5,7 +5,7 @@
 //*src
 //#include "Function.h"
 
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 #include "Lexicon/Engine/Project.h"
 
 #include "Lexicon/Engine/Component.h"
@@ -30,7 +30,7 @@
 
 #include "Lexicon/Interfaces/ProjectManager.h"
 
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
 #include "Lexicon/Engine/parse_strings.h"
 
@@ -126,7 +126,7 @@ namespace LEX
 			}
 		}
 
-		std::vector<PolicyBase*> Environment::FindTypes(std::string_view name)
+		std::vector<TypeBase*> Environment::FindTypes(std::string_view name)
 		{
 			auto end = typeMap.end();
 
@@ -242,7 +242,7 @@ namespace LEX
 			_parent = par;
 		}
 
-		void Environment::AddType(PolicyBase* policy)
+		void Environment::AddType(TypeBase* policy)
 		{
 			if (!policy) {
 				report::compile::critical("Null Policy attempted to be added");

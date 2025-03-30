@@ -54,7 +54,7 @@
 #include "Lexicon/TypeID.h"
 
 
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 
 
 #include "Lexicon/VariableType.h"
@@ -135,27 +135,6 @@ namespace std
 
 //This is to be my method of hashing.
 inline std::hash<std::vector<uint64_t>> hasher;
-
-
-struct TestRef
-{
-	int& ref;
-
-	TestRef(int& r) : ref{ r } {}
-};
-
-
-void TestFunc()
-{
-	int a = 1;
-	LEX::RuntimeVariable var{};
-	
-
-
-	TestRef t{ a };
-
-	TestRef t2 = t;
-}
 
 namespace LEX
 {
@@ -676,9 +655,9 @@ namespace LEX
 	{
 		return;
 		//This is the name of the unique policy for numbers, that can handle the conversions between things itself.
-		using NumericPolicy = ConcretePolicy;
+		using NumericPolicy = ConcreteType;
 
-		std::vector<ConcretePolicy*> results;
+		std::vector<ConcreteType*> results;
 
 		NumeralType type{};
 		Size        size{};
@@ -687,7 +666,7 @@ namespace LEX
 
 		IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length);
 
-		ConcretePolicy* primary_policy = new ConcretePolicy{ "NUMBER", 0 };
+		ConcreteType* primary_policy = new ConcreteType{ "NUMBER", 0 };
 
 		for (int a = 0; a < NumeralType::Total; a++)
 		{
@@ -698,7 +677,7 @@ namespace LEX
 					for (int d = 1; a < Limit::Total; d++)
 					{
 						Number::Settings settings{ (NumeralType)a, (Size)b, (Signage)c, (Limit)d };
-						ConcretePolicy* number_policy = new ConcretePolicy{ "NUMBER", settings.GetOffset() };
+						ConcreteType* number_policy = new ConcreteType{ "NUMBER", settings.GetOffset() };
 						Variable defaultValue{ settings, number_policy };
 						number_policy->EmplaceDefault(defaultValue);
 						results.emplace_back(number_policy);
@@ -715,7 +694,7 @@ namespace LEX
 	}
 
 	
-	class IntrinsicPolicy : public ConcretePolicy
+	class IntrinsicPolicy : public ConcreteType
 	{
 		//The concept of an intrinsic policy is first simply that intrinsic policies are the only 
 		// policies that can Claim a specific space. Think like how void would or something like that.
@@ -802,12 +781,12 @@ namespace LEX
 		size_t GetSize() const override { return leftEnd + right->GetSize(); }
 
 
-		ITypePolicy* GetPartArgument(size_t i) const override
+		AbstractType* GetPartArgument(size_t i) const override
 		{
 			return i < leftEnd ? left->GetPartArgument(i) : right->GetPartArgument(i - leftEnd);
 		}
 
-		AbstractTypePolicy* GetBodyArgument(size_t i) const override
+		Type* GetBodyArgument(size_t i) const override
 		{
 			if (GetState()) {
 				auto lhs = left ? left->TryPromoteTemplate() : nullptr;
@@ -831,6 +810,39 @@ namespace LEX
 
 		
 	};
+
+
+
+
+	namespace NEWExample
+	{
+		//Formerly IType
+		struct IType {};//Should be versioned
+
+		//No former version. Was a part of IType.
+		struct AbstractType : public IType {};
+
+#ifdef LEX_SOURCE
+#define BASIC_SPECIAL(mc_name) CONCAT(Basic,mc_name) = CONCAT(Abstract,mc_name)
+#else
+#define BASIC_SPECIAL(mc_name) CONCAT(Basic,mc_name) = CONCAT(I,mc_name)
+#endif
+
+		using BASIC_SPECIAL(Type);
+
+		
+
+		struct Type : public IType {};
+
+		struct TypeBase : public AbstractType {};
+
+		struct ConcreteType : public TypeBase, public Type {};
+
+		struct GenericType : public TypeBase {};
+
+		struct SpecialType : public Type {};
+	}
+
 
 	INITIALIZE()
 	{
@@ -864,13 +876,15 @@ namespace LEX
 		specifier3._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
 
 
-		ITypePolicy* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
-		ITypePolicy* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
-		ITypePolicy* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+		AbstractType* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
+		AbstractType* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
+		AbstractType* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
-		std::vector<ITypePolicy*> group1{ 3 };
-		std::vector<ITypePolicy*> group2{ 3 };
-		std::vector<ITypePolicy*> group3{ 3 };
+		floatSmall->IsResolved();
+
+		std::vector<AbstractType*> group1{ 3 };
+		std::vector<AbstractType*> group2{ 3 };
+		std::vector<AbstractType*> group3{ 3 };
 
 
 		group1[0] = floatSmall;
@@ -935,6 +949,7 @@ namespace LEX
 
 	void Test2()
 	{
+		
 		//This is an example of how we would represent non-existant number types within a native environment. Only the last one will count, 
 		// but the others help establish it as a number. After that, it then proxies the base type it's trying to be and handles conversions before
 		// and after.
@@ -1385,7 +1400,7 @@ namespace LEX
 		class ClassStruct
 		{
 		
-			AbstractTypePolicy* type = nullptr;
+			Type* type = nullptr;
 
 		private:
 			union

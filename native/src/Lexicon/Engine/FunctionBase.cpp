@@ -4,7 +4,7 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/Declaration.h"
 #include "Lexicon/Engine/RoutineCompiler.h"
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
 #include "Lexicon/Engine/parse_strings.h"
 
@@ -81,7 +81,7 @@ namespace LEX
                 procedureData = -1;
             }
 
-            //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
+            //IType* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 
             QualifiedType type = QualifiedType{ header };
 
@@ -118,7 +118,7 @@ namespace LEX
                 //Include things like whether this is
 
                 
-                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type }, parse_strings::this_word, 0);
+                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type->AsAbstract() }, parse_strings::this_word, 0);
             }
 
 
@@ -140,7 +140,7 @@ namespace LEX
 
                 //auto& tag = node.FindChild("type")->GetFront().GetTag();
 
-                //ITypePolicy* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
+                //IType* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
 
                 //if (!policy) {
                 //    report::link::error("Parameter type '{}' couldn't be found", tag);

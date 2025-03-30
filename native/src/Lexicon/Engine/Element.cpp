@@ -6,7 +6,7 @@
 #include "Lexicon/Interfaces/ProjectManager.h"
 #include "Lexicon/Engine/Environment.h"
 
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/ParserTest.h"
 #include "Lexicon/Engine/FunctionInfo.h"
 #include "Lexicon/Engine/GlobalBase.h"
@@ -205,16 +205,16 @@ namespace LEX
 
 
 
-	PolicyBase* Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
+	TypeBase* Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
 	{
-		PolicyBase* result = nullptr;
+		TypeBase* result = nullptr;
 
 		SearchPathBase(a_this, _path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
 			{
 				for (auto env : query)
 				{
 
-					std::vector<PolicyBase*> types = env->FindTypes(_path.GetView());
+					std::vector<TypeBase*> types = env->FindTypes(_path.GetView());
 
 					//There's no situation where multiple can be observed, so it only needs the one.
 
@@ -318,7 +318,7 @@ namespace LEX
 		case SyntaxType::Typename:
 		{
 
-			auto types = a_this ? a_this->FindTypes(path->GetView()) : std::vector<PolicyBase*>{};
+			auto types = a_this ? a_this->FindTypes(path->GetView()) : std::vector<TypeBase*>{};
 
 			if (types.size() == 1)
 				//result = nullptr;

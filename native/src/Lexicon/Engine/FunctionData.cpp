@@ -14,7 +14,11 @@ namespace LEX
 
 	bool FunctionData::CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag)
 	{
+
+
 		if (type) {
+			logger::info("Names {} vs {}", type->GetName(), _returnType->GetName());
+			
 			if (type != _returnType)
 				return false;
 		}
@@ -43,7 +47,7 @@ namespace LEX
 
 	//Fuck it, these return non-booleans and use something else to denote their failures.
 
-	OverloadEntry FunctionData::MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags)
+	OverloadEntry FunctionData::MatchSuggestedEntry(QualifiedType type, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags)
 	{
 		OverloadEntry result;
 
@@ -100,13 +104,13 @@ namespace LEX
 		return result;
 
 	}
-	OverloadEntry FunctionData::MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags)
+	OverloadEntry FunctionData::MatchDefaultEntry(QualifiedType type, AbstractType* scope, std::string name, OverloadFlag& flags)
 	{
 		flags |= OverloadFlag::Failure;
 		return { };
 	}
 
-	std::vector<OverloadEntry> FunctionData::ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags)
+	std::vector<OverloadEntry> FunctionData::ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags)
 	{
 		return {};
 	}

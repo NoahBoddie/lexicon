@@ -39,7 +39,7 @@ namespace LEX
 		//Please note, this kind of match is what a clause should be doing.
 
 		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
-		Overload Match(OverloadClause* clause, ITypePolicy*, Overload*, OverloadFlag& a_flag) override
+		Overload Match(OverloadClause* clause, AbstractType*, Overload*, OverloadFlag& a_flag) override
 		{
 			a_flag |= OverloadFlag::AllAccess;
 

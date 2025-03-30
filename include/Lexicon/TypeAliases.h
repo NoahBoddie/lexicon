@@ -2,11 +2,21 @@
 
 //Change name to aliasTypes
 
+
+
+#ifdef LEX_SOURCE
+#define DECLARE_BASIC(mc_name) CONCAT(Basic,mc_name) = struct CONCAT(Abstract,mc_name)
+#define BASIC_NAME(mc_name) STRINGIZE(CONCAT(Lexicon/Engine/Abstract,mc_name.h))
+#else
+#define DECLARE_BASIC(mc_name) CONCAT(Basic,mc_name) = struct CONCAT(I,mc_name)
+#define BASIC_NAME(mc_name) STRINGIZE(CONCAT(CONCAT(Lexicon/I,mc_name),.h)
+#endif
+
 namespace LEX
 {
 	using Column = uint16_t;
 	using Line = uint32_t;
-
+	
 	//Temporary
 	//using Object = int;
 	//using Variable = int;
@@ -19,7 +29,8 @@ namespace LEX
 	//struct Syntax;
 	//struct SyntaxBody;
 	//using SyntaxRecord = BasicRecord<Syntax, SyntaxBody>;
-	
+
+	using DECLARE_BASIC(Type);
 
 	namespace Impl
 	{

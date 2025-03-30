@@ -1,6 +1,6 @@
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 #include "Lexicon/Engine/Declaration.h"
@@ -11,26 +11,26 @@ namespace LEX
 
 
 
-	PolicyBase::PolicyBase()
+	TypeBase::TypeBase()
 	{
 		IdentityManager::instance->ObtainID(this);
 	}
 
-	PolicyBase::PolicyBase(uint32_t i)
+	TypeBase::TypeBase(uint32_t i)
 	{
 		//SetTypeID(0); return;
 
 		IdentityManager::instance->ClaimID(this, i);
 	}
 
-	PolicyBase::PolicyBase(std::string_view name, TypeOffset offset)
+	TypeBase::TypeBase(std::string_view name, TypeOffset offset)
 	{
 		//SetTypeID(0); return;
 		IdentityManager::instance->ClaimID(this, name, offset);
 	}
 
 
-	void PolicyBase::CheckDeriveFrom(ITypePolicy* other)
+	void TypeBase::CheckDeriveFrom(AbstractType* other)
 	{
 		auto l_type = GetDataType();
 		auto r_type = other->GetDataType();
@@ -58,7 +58,7 @@ namespace LEX
 			other->GetName(), magic_enum::enum_name(r_type));
 	}
 
-	void PolicyBase::HandleInheritance()
+	void TypeBase::HandleInheritance()
 	{
 		if (IsInheritHandled() == true)
 			return;
@@ -84,7 +84,7 @@ namespace LEX
 			//static_assert(false);
 			if (auto derives = settings->FindChild(parse_strings::derives)) {
 				for (auto& inherit : derives->children()) {
-					PolicyBase* type = GetParent()->FetchEnvironment()->SearchTypePath(inherit);
+					TypeBase* type = GetParent()->FetchEnvironment()->SearchTypePath(inherit);
 
 					Access access = Access::None;
 
@@ -100,7 +100,7 @@ namespace LEX
 					if (!type)  //I'd actually rather report.
 						report::critical("no type, I dont actually know where I am right now, please figure out what this means later thx");
 
-					SetDerivesTo(type, access);
+					SetDerivesTo(type->AsAbstract(), access);
 				}
 
 

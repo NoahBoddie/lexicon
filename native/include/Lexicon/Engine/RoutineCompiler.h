@@ -167,7 +167,7 @@ namespace LEX
 		
 		//Mods the count for parameters, not including the increment instructions.
 		/*
-		size_t ModParamCountOLD(int64_t inc, std::vector<ITypePolicy*> policies = {})
+		size_t ModParamCountOLD(int64_t inc, std::vector<AbstractType*> policies = {})
 		{
 			auto size = policies.size();
 
@@ -193,11 +193,11 @@ namespace LEX
 				for (auto i = 0; i < size; i++)
 				{
 					//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-					// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
+					// the respective variable index by instruction, and if the IType is generic, then it should
 					// have an instruction intend to specialize.
 
 					size_t index = count + i;
-					ITypePolicy* policy = policies[i];
+					IType* policy = policies[i];
 					op_list.emplace_back(InstructionType::DefineParameter, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 				}
 			}
@@ -207,7 +207,7 @@ namespace LEX
 		}
 
 		
-		size_t ModVarCountOLD(int64_t inc, std::vector<ITypePolicy*> policies = {})
+		size_t ModVarCountOLD(int64_t inc, std::vector<IType*> policies = {})
 		{
 			size_t count = varCount[0];
 
@@ -237,12 +237,12 @@ namespace LEX
 					for (auto i = 0; i < size; i++)
 					{
 						//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-						// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
+						// the respective variable index by instruction, and if the IType is generic, then it should
 						// have an instruction intend to specialize.
 
 						size_t index = count + i;
 
-						ITypePolicy* policy = policies[i];
+						IType* policy = policies[i];
 						op_list.emplace_back(InstructionType::DefineVariable, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 					}
 				}
@@ -252,13 +252,13 @@ namespace LEX
 			return count;
 		}
 
-		size_t ModVarCountOLD(ITypePolicy* policy)
+		size_t ModVarCountOLD(IType* policy)
 		{
 			return ModVarCountOLD(1, { policy });
 		}
 
 
-		size_t ModParamCountOLD(ITypePolicy* policy)
+		size_t ModParamCountOLD(IType* policy)
 		{
 			return ModParamCountOLD(1, { policy });
 		}
@@ -268,7 +268,7 @@ namespace LEX
 		size_t ModVarCount(int64_t inc);
 
 
-		size_t InitVariables(const std::vector<ITypePolicy*>& types, bool param)
+		size_t InitVariables(const std::vector<AbstractType*>& types, bool param)
 		{
 			auto size = types.size();
 
@@ -283,24 +283,24 @@ namespace LEX
 			for (auto i = 0; i < size; i++)
 			{
 				//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-				// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
+				// the respective variable index by instruction, and if the AbstractType is generic, then it should
 				// have an instruction intend to specialize.
 
 				size_t index = count + i;
-				ITypePolicy* policy = types[i];
+				AbstractType* policy = types[i];
 				op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 			}
 
 			return count;
 		}
 
-		size_t InitLocals(std::vector<ITypePolicy*> types){return InitVariables(types, false);}
+		size_t InitLocals(std::vector<AbstractType*> types){return InitVariables(types, false);}
 
-		size_t InitParams(std::vector<ITypePolicy*> types){return InitVariables(types, true);}
+		size_t InitParams(std::vector<AbstractType*> types){return InitVariables(types, true);}
 
-		size_t InitLocal(ITypePolicy* type){return InitVariables({ type }, false);}
+		size_t InitLocal(AbstractType* type){return InitVariables({ type }, false);}
 
-		size_t InitParam(ITypePolicy* type){return InitVariables({ type }, true);}
+		size_t InitParam(AbstractType* type){return InitVariables({ type }, true);}
 
 
 		bool IsDetached() const

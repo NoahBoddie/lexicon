@@ -14,7 +14,6 @@
 
 namespace LEX
 {
-	struct ITypePolicy;
 	class ParameterInfo;
 	
 	struct ProcedureData;
@@ -30,9 +29,6 @@ namespace LEX
 	{
 		QualifiedType _returnType = nullptr;
 
-		//Without a target type, this is a static function.
-		//Target type remains implicit
-		//ITypePolicy* _targetType = nullptr;
 
 		//The actual object for this has severely changed. It's "ParamInfo" I think? But this isn't terribly important
 		// here yet so you know.
@@ -203,12 +199,12 @@ namespace LEX
 
 
 
-		//AbstractTypePolicy* GetConcreteReturnType();//move to abstractFunction
+		//Type* GetConcreteReturnType();//move to abstractFunction
 
 
 		//Possible use in deductions with generics, then I realized this isn't C++ and auto cannot exactly exist
 		// like I think it would.
-		//void SetReturnType(ITypePolicy*);
+
 
 
 
@@ -217,10 +213,10 @@ namespace LEX
 
 		//Fuck it, these return non-booleans and use something else to denote their failures.
 
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags);
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags);
+		OverloadEntry MatchSuggestedEntry(QualifiedType type, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags);
+		OverloadEntry MatchDefaultEntry(QualifiedType type, AbstractType* scope, std::string name, OverloadFlag& flags);
 
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags);
+		std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags);
 
 
 

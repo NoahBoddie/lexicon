@@ -744,7 +744,11 @@ namespace LEX
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
 //*/
 
+
+
 #endif
+
+#include "Lexicon/TypeAliases.h"
 
 #define NULLCHECK(mc_condition) if (!mc_condition) report::critical("Condition '{}' is invalid, throwing fatal exception.", STRINGIZE(mc_condition))
 

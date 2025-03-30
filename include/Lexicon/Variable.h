@@ -2,7 +2,7 @@
 
 #include "String.h"
 #include "Number.h"
-#include "AbstractTypePolicy.h"
+#include "Type.h"
 //#include "AbstractFunction.h"
 //#include "ExternalHandle.h"
 #include "Object.h"
@@ -154,7 +154,7 @@ namespace LEX
     }
 
 
-    ENUM (BasicType, uint8_t)
+    ENUM (VariableEnum, uint8_t)
     {
         Void,
         Number,
@@ -163,7 +163,7 @@ namespace LEX
         Total,
     };
 
-    constexpr std::array<size_t, (size_t)BasicType::Total> basicTypeIndices
+    constexpr std::array<size_t, (size_t)VariableEnum::Total> VariableEnumIndices
     {
         variant_index<VariableValue, Void>(),
         variant_index<VariableValue, Number>(),
@@ -229,16 +229,16 @@ namespace LEX
         //I want to make some ease of access functions in this.
         //If I do, this might become the primary class Variable uses
 
-        BasicType GetBasicType() const
+        VariableEnum GetVariableEnum() const
         {
             //I want to put this shit within Variable Component and make this use that instead.
             switch (index())
             {
-            case basicTypeIndices[BasicType::Void]:     return BasicType::Void;
-            case basicTypeIndices[BasicType::Number]:   return BasicType::Number;
-            case basicTypeIndices[BasicType::String]:   return BasicType::Number;
-            case basicTypeIndices[BasicType::Object]:   return BasicType::Object;
-            default:                                    return BasicType::Total;
+            case VariableEnumIndices[VariableEnum::Void]:     return VariableEnum::Void;
+            case VariableEnumIndices[VariableEnum::Number]:   return VariableEnum::Number;
+            case VariableEnumIndices[VariableEnum::String]:   return VariableEnum::Number;
+            case VariableEnumIndices[VariableEnum::Object]:   return VariableEnum::Object;
+            default:                                    return VariableEnum::Total;
             }
         }
     };
@@ -258,7 +258,7 @@ namespace LEX
     };
 
     //template <typename T>
-    //AbstractTypePolicy* TypeOf()
+    //Type* TypeOf()
     //{
         //The idea of this function is that it takes the core type and splits how it finds it's type.
         //For objects it should be their object interface that does it. However, part of this might be that the actual object will need to find that itself (if it can).
@@ -281,7 +281,7 @@ namespace LEX
         
         //*
         template <Constructible<VariableComponent> T>
-        Variable(T&& value)//, AbstractTypePolicy* type)
+        Variable(T&& value)//, Type* type)
         {
             //Move here
             _value = std::move(value);
@@ -302,7 +302,7 @@ namespace LEX
 
 
         template <Assignable<VariableComponent> T>
-        Variable(T&& other, AbstractTypePolicy* policy)
+        Variable(T&& other, Type* policy)
         {
             _value = other;
             //Might not do it like this no more.
@@ -314,7 +314,7 @@ namespace LEX
 
 
 
-        Variable(Variable& var, AbstractTypePolicy* policy)
+        Variable(Variable& var, Type* policy)
         {
             //Unsure about this one.
             _value = var._value;
@@ -381,7 +381,7 @@ namespace LEX
         }
 
 
-        Variable(AbstractTypePolicy* policy)
+        Variable(Type* policy)
         {
             *this = policy;
         }
@@ -415,7 +415,7 @@ namespace LEX
         }
 
 
-        Variable& operator=(AbstractTypePolicy* policy)
+        Variable& operator=(Type* policy)
         {
             //should clear
             SetPolicy(policy);
@@ -438,12 +438,12 @@ namespace LEX
         //*/
 
 
-        AbstractTypePolicy* _type = nullptr;
+        Type* _type = nullptr;
 
        
         VariableComponent _value{ Void::value() };
 
-        AbstractTypePolicy* Policy() const
+        Type* Policy() const
         {
             return _type;
         }
@@ -481,11 +481,11 @@ namespace LEX
             _value.GetData().SetFlag(VariableFlag::Polymorphic, value);
         }
 
-        AbstractTypePolicy* CheckVariableType() const;
+        Type* CheckVariableType() const;
 
 
     INTERNAL:
-        void SetPolicy(AbstractTypePolicy* policy)
+        void SetPolicy(Type* policy)
         {
             _type = policy;
         }
@@ -548,21 +548,21 @@ namespace LEX
             return operator<=>(a_rhs) == std::strong_ordering::equal;
         }
 
-        BasicType GetBasicType() const
+        VariableEnum GetVariableEnum() const
         {
-            return _value.GetBasicType();
+            return _value.GetVariableEnum();
         }
 
-        bool IsBasicType(BasicType type) const
+        bool IsVariableEnum(VariableEnum type) const
         {
-            return GetBasicType() == type;
+            return GetVariableEnum() == type;
         }
 
         //These should also maybe check the policies?
-        bool IsVoid() const { return IsBasicType(BasicType::Void); }
-        bool IsObject() const { return IsBasicType(BasicType::Object);}
-        bool IsNumber() const { return IsBasicType(BasicType::Number); }
-        bool IsString() const { return IsBasicType(BasicType::String); }
+        bool IsVoid() const { return IsVariableEnum(VariableEnum::Void); }
+        bool IsObject() const { return IsVariableEnum(VariableEnum::Object);}
+        bool IsNumber() const { return IsVariableEnum(VariableEnum::Number); }
+        bool IsString() const { return IsVariableEnum(VariableEnum::String); }
 
 
 
@@ -584,16 +584,16 @@ namespace LEX
         }
 
         //destroy
-        void SetBasicType__(BasicType a_rhs)
+        void SetVariableEnum__(VariableEnum a_rhs)
         {
             //When doing something like this, clear qualifiers
 
             switch (a_rhs)
             {
-            case BasicType::String:     _value = ""; break;
-            //case BasicType::Number:     _value = (Number)0; break;
+            case VariableEnum::String:     _value = ""; break;
+            //case VariableEnum::Number:     _value = (Number)0; break;
 
-            case BasicType::Object:     _value = Object{}; break;
+            case VariableEnum::Object:     _value = Object{}; break;
 
             default:    throw nullptr;// This is in error, just have no idea how.
             }
@@ -603,7 +603,7 @@ namespace LEX
         
         //Resolves a variable to be like another variable. If they aren't directly convertible, conversions
         // may be detected and used.
-        bool Resolve(AbstractTypePolicy* policy)
+        bool Resolve(Type* policy)
         {
             //If resolution fails, it returns false and nullfies the variable.
 
@@ -629,7 +629,7 @@ namespace LEX
 
         }
     
-        void CheckAssign(AbstractTypePolicy* other)
+        void CheckAssign(Type* other)
         {
             //For now, fuck accountability.
        
@@ -709,7 +709,7 @@ namespace LEX
         }
 
 
-        static AbstractTypePolicy* GetVariableType(const Variable* it)
+        static Type* GetVariableType(const Variable* it)
         {
             if (it)
             {
@@ -722,7 +722,7 @@ namespace LEX
             return IdentityManager::instance->GetInherentType(InherentType::kVoidable)->FetchTypePolicy(nullptr);
         }
      
-        AbstractTypePolicy* GetVariableType()
+        Type* GetVariableType()
         {
             return GetVariableType(this);
         }
@@ -780,7 +780,7 @@ namespace LEX
             return false;
         }
 
-        RuntimeVariable Convert(AbstractTypePolicy* to);
+        RuntimeVariable Convert(Type* to);
 
 
     private:
@@ -815,7 +815,7 @@ namespace LEX
                     return "void::()";
                 }
                 else {
-                    return std::format("{}::(inv)", magic_enum::enum_name(GetBasicType()));
+                    return std::format("{}::(inv)", magic_enum::enum_name(GetVariableEnum()));
                 }
                 }, _value);
 
@@ -837,11 +837,11 @@ namespace LEX
         VariableComponent temp{ other };
 
         //This shouldn't need to work like this, but it's what it does for now.
-        AbstractTypePolicy* policy = std::visit([](auto&& lhs) {
+        Type* policy = std::visit([](auto&& lhs) {
             return GetVariableType(lhs);
             }, temp);
 
-        //AbstractTypePolicy* policy = GetVariableType(other);
+        //Type* policy = GetVariableType(other);
         assert(policy);
 
         Variable result{ other, policy };

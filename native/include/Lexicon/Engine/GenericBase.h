@@ -8,6 +8,7 @@
 
 
 //*src
+#include "Lexicon/Engine/AbstractType.h"
 #include "Lexicon/ITemplateBody.h"
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/Environment.h"
@@ -107,16 +108,16 @@ namespace LEX
 
 			for (int i = 0; i < size; i++)
 			{
-				auto& param = _templates[i];
-
+				TemplateType& param = _templates[i];
+				
 				//This would be the thing it should be trying to turn into
-				ITypePolicy* _param = &param;
+				AbstractType* _param = &param;
 
-				ITypePolicy* arg = args->GetPartArgument(i);
+				AbstractType* arg = args->GetPartArgument(i);
 
 				Element* element = dynamic_cast<Element*>(this);
 
-				ITypePolicy* scope = element->FetchEnvironment()->As<ITypePolicy>();
+				AbstractType* scope = element->FetchEnvironment()->As<AbstractType>();
 
 				if constexpr (0)
 				{//For now it accepts all, so no real reason to do this.

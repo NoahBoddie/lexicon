@@ -13,7 +13,7 @@
 #include "TargetObject.h"
 namespace LEX
 {
-	struct ITypePolicy;
+	struct AbstractType;
 	struct TargetObject;
 
 	class OverloadInput : public OverloadKey
@@ -53,7 +53,7 @@ namespace LEX
 		}
 
 		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
-		virtual Overload Match(OverloadClause* clause, ITypePolicy* scope, Overload* prev, OverloadFlag& a_flag) override
+		virtual Overload Match(OverloadClause* clause, AbstractType* scope, Overload* prev, OverloadFlag& a_flag) override
 		{
 
 			if (defaultInput.empty() == false) {
@@ -193,7 +193,7 @@ namespace LEX
 
 
 		TargetObject* object = nullptr;
-		std::vector<ITypePolicy*>			genericInput;
+		std::vector<AbstractType*>			genericInput;
 		
 		//On reflection, this doesn't expressly need to be a solution, just a qualified type. This can help with syntax that
 		// parses which overload to use by showing which function is being used.

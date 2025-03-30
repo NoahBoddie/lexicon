@@ -71,7 +71,7 @@ namespace LEX
 		FieldType GetFieldType() const override { return FieldType::Function; }
 
 		//For now, this is true, there is no way to handle a function's type.
-		ITypePolicy* GetType() const override { return nullptr; }
+		AbstractType* GetType() const override { return nullptr; }
 
 
 		Qualifier GetQualifiers() const override { return Qualifier{ Reference{}, Constness::Const, {} }; }	//Functions do not have qualifiers.
@@ -93,17 +93,17 @@ namespace LEX
 
 		//Fuck it, these return non-booleans and use something else to denote their failures.
 
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		OverloadEntry MatchSuggestedEntry(QualifiedType type, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
 			return signature->MatchSuggestedEntry(type, scope, offset, index, flags);
 
 		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
+		OverloadEntry MatchDefaultEntry(QualifiedType type, AbstractType* scope, std::string name, OverloadFlag& flags) override
 		{
 			return signature->MatchDefaultEntry(type, scope, name, flags);
 		}
 
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
+		std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) override
 		{
 			return signature->ResolveEntries(entries, scope, flags);
 		}

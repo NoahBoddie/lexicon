@@ -14,8 +14,7 @@
 
 namespace LEX
 {
-	struct ITypePolicy;
-	struct PolicyBase;
+	struct TypeBase;
 
 	class TempTest;
 	
@@ -39,7 +38,7 @@ namespace LEX
 
 
 	//TODO: I'd like to have GetPolicyFromSpecifiers dealt with via strings, and/or able to be dealt with via a record.
-	PolicyBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem);
+	TypeBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem);
 
 
 
@@ -132,7 +131,6 @@ namespace LEX
 	//TODO: Merge declaration with Specifier. No reason to be seperate
 	struct Declaration : public QualifiedType, public Specifier
 	{
-		//Declaration(ITypePolicy* policy, BasicQualifier b, RuntimeQualifier r, DeclareSpecifier d){}
 	public:
 		Declaration() = default;
 
@@ -153,17 +151,6 @@ namespace LEX
 	private:
 		bool _filterByte = false;//This is used as a flag for filtering when policy is expected to be null but it isn't.
 	public:
-		//bool filtered = false;
-
-		//QualifiedType type{};
-
-		//Qualifier flags{};
-
-		//StoreSpecifier _3;//Declare Specs ARE store specs.
-
-		//ITypePolicy* policy = nullptr;
-
-
 		
 		bool FilterHasValue() const
 		{

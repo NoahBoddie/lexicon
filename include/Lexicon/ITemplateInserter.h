@@ -2,18 +2,16 @@
 
 namespace LEX
 {
-	struct ITypePolicy;
-
 	struct ITemplateInserter
 	{
 
-		virtual void InsertType(ITypePolicy* part) = 0;
+		virtual void InsertType(BasicType* part) = 0;
 
-		//void AcceptTypes(std::span<ITypePolicy*> types);
+		//void AcceptTypes(std::span<IType*> types);
 	};
 
 	/*
-	void InsertType(ITypePolicy* part) override
+	void InsertType(IType* part) override
 	{
 		auto back = part->GetTypePolicy((ITemplateBody*)nullptr);
 

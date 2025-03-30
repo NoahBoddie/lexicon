@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Engine/AbstractType.h"
 #include "Lexicon/Engine/HierarchyData.h"
 
 //*src
@@ -13,9 +13,9 @@ namespace LEX
 
 	struct TemplateTuple;
 
-	struct TemplateType : public ITypePolicy, public HierarchyData
+	struct TemplateType : public AbstractType, public HierarchyData
 	{
-		//GenericType is an ITypePolicy that largely should not exist with any HierarchyData. It's from this fact
+		//GenericType is an IType that largely should not exist with any HierarchyData. It's from this fact
 		// plus the fact HierarchyData is a lot that I think I should split the function between 2 parts.
 		//This type will use a seperate HierarchyData having type in order to answer questions it's questions about it.
 
@@ -25,7 +25,7 @@ namespace LEX
 			IdentityManager::instance->GetIDFromName("TRIVAL");
 
 
-			ITypePolicy* test = nullptr;
+			AbstractType* test = nullptr;
 
 			HierarchyData* other = dynamic_cast<HierarchyData*>(test);
 		}
@@ -35,11 +35,13 @@ namespace LEX
 		TemplateTuple* _tupleData = nullptr;
 		TemplateType(std::string n, size_t i) : name{ n }, index{ i } {};
 
+		//TODO: TemplateType needs it's fucking specializable I'm fucking off
+		ISpecializable* GetSpecializable() override { return nullptr; }
 
 
-		virtual ITypePolicy* CheckTypePolicy(ITemplatePart* args) override;
+		AbstractType* CheckTypePolicy(ITemplatePart* args) override;
 
-		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
+		Type* GetTypePolicy(ITemplateBody* args) override;
 
 
 
@@ -60,7 +62,7 @@ namespace LEX
 			return const_cast<HierarchyData*>(out);
 		}
 
-		ITypePolicy* GetHierarchyType() override
+		AbstractType* GetHierarchyType() override
 		{
 			return this;
 		}

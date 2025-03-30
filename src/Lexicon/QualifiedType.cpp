@@ -4,8 +4,12 @@
 #include "Lexicon/Impl/common_type.h"
 #include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/Engine/RuntimeUtility.h"
+
+
 namespace LEX
 {
+
+	//I just realized that QualifiedType will have some isuses when it comes to che
 
 	template<Reference Ref, bool IsSigned>
 	struct ReferenceCheck final : public ICallableUnit
@@ -225,4 +229,35 @@ namespace LEX
 		return result;
 	}
 
+
+	ConvertResult QualifiedType::IsConvertToQualified(const QualifiedType& other, BasicType* scope, Conversion* out, ConversionFlag flags) const
+	{
+
+		//TODO: ConvertQualified needs 2 rules, read below
+		// first if ref types are used, no conversions are allowed (return to nullptr). Also that Conversion on maybe refs should present a warning
+		// due to not actually using a reference if a reference was desired.
+
+
+
+#ifdef DISABLE_THIS
+		if (auto result = IsQualified(other, flags, &out); result != ConvertResult::Exact || out)
+			return result;
+
+		//Simple for now.
+		return policy->IsConvertibleTo(other.policy, scope, out, flags);
+#endif
+
+		//TODO: ConverstResult needs to be comprised of more types.  \/
+		// Namely, something to tell what error it should give, as well as a function that takes the qualified types that failed
+
+		ConvertResult qual_result = IsQualified(other, flags, &out);
+
+		if (qual_result <= ConvertResult::Failure || qual_result > ConvertResult::Transformative)
+			return qual_result;
+
+		if (auto type_result = policy->IsConvertibleTo(other.policy, scope, out, flags); type_result != ConvertResult::Exact)
+			return type_result;
+
+		return qual_result;
+	}
 }

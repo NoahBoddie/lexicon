@@ -2,7 +2,7 @@
 
 #include "Lexicon/Field.h"
 #include "Lexicon/ISpecial.h"
-#include "Lexicon/IGenericArgument.h"
+
 
 namespace LEX
 {
