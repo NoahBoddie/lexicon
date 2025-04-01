@@ -17,6 +17,9 @@ namespace LEX
 		Ambiguous	=  0,
 		Previous	=  1,
 
+
+		
+
 	};
 
 	struct Overload
@@ -204,9 +207,11 @@ namespace LEX
 
 		OverloadClause* clause;
 
-		QualifiedType target;//
+		QualifiedType target;
 
-		std::vector<std::vector<AbstractType*>> specialization;
+
+		std::vector<AbstractType*> singleSpecial;
+		std::vector<std::vector<AbstractType*>> multiSpecial;
 
 
 		//These align perfectly with arguments given.

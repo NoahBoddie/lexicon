@@ -27,7 +27,7 @@ namespace LEX
 			return runtime->GetRegister(Get<Register>());
 
 		case OperandType::Argument:
-			return runtime->GetArgument(Get<Index>());
+			return runtime->GetArgumentFromBack(Get<Index>());
 
 		case OperandType::Index:
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
@@ -58,7 +58,7 @@ namespace LEX
 
 		case OperandType::Argument:
 			//logger::critical("dos");
-			//return runtime->GetArgument(Get<Index>()).AsRef();
+			//return runtime->GetArgumentFromBack(Get<Index>()).AsRef();
 			__fallthrough;
 
 		case OperandType::Index:
@@ -121,7 +121,7 @@ namespace LEX
 			break;
 
 		case OperandType::Argument:
-			run_var = std::addressof(runtime->GetArgument(Get<Index>()));
+			run_var = std::addressof(runtime->GetArgumentFromBack(Get<Index>()));
 			break;
 
 		}
@@ -150,7 +150,7 @@ namespace LEX
 			break;
 
 		case OperandType::Argument:
-			run_var = std::addressof(runtime->GetArgument(Get<Index>()));
+			run_var = std::addressof(runtime->GetArgumentFromBack(Get<Index>()));
 			break;
 
 		}

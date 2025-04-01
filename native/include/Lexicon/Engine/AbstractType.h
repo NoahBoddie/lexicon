@@ -15,12 +15,15 @@ namespace LEX
 		NoGlobal = 1 << 3,	//Specifies it can't be used as a global (runtime classes have this)
 	};
 
+	struct TemplateType;
 
 	struct AbstractType : public IType
 	{
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.
 		virtual HierarchyData* GetHierarchyData() const = 0;
+
+		virtual TemplateType* AsTemplate() { return nullptr; }
 
 		//TODO: Allow TypeRuleset to be a pure virtual. I need to chase down where they should be used.
 		//virtual TypeRuleset GetRuleset() const = 0;

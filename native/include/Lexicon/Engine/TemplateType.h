@@ -43,7 +43,7 @@ namespace LEX
 
 		Type* GetTypePolicy(ITemplateBody* args) override;
 
-
+		virtual TemplateType* AsTemplate() { return this; }
 
 		virtual bool IsResolved() const { return false; }
 

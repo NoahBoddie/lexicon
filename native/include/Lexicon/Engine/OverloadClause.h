@@ -43,7 +43,6 @@ namespace LEX
 
 		//Fuck it, these return non-booleans and use something else to denote their failures.
 
-		//TrueNames MatchSuggestedEntry and MatchDefaultEntry
 		virtual OverloadEntry MatchSuggestedEntry(QualifiedType, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags) = 0;
 		virtual OverloadEntry MatchDefaultEntry(QualifiedType, AbstractType* scope, std::string name, OverloadFlag& flags) = 0;
 		//^ I'm thinking of having an extra parameter to show if I mean generic args or not.
@@ -52,7 +51,6 @@ namespace LEX
 		//This should only be called on the winnning one.
 		//This should actually accept the Overload comparison object, as that can represent optional parameter pack values as well.
 
-		//True name: ResolveEntries
 		virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) = 0;
 		//After this is used, it should be resized.
 

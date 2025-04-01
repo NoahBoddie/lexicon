@@ -3,6 +3,7 @@
 #include "Lexicon/Engine/Solution.h"
 #include "Lexicon/Engine/Operation.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
+
 namespace LEX
 {
 	struct RoutineCompiler;
@@ -272,33 +273,6 @@ namespace LEX
 		}
 
 
-		//This should be used during initialization
-		static Operation LoadOld(const Solution& left, Solution& right, SyntaxRecord* from)
-		{
-			InstructType  type;
-
-			if (auto refl = left.IsReference(); !refl.has_value()) {
-				//Maybe ref
-				return Operation{ right.IsTemporary() ? InstructType::ForwardMove : InstructType::Forward, left, right };
-			}
-			else if (refl.value_or(true) == true)
-			{
-				//Hard refs
-				if (left.IsReference().value_or(false) == false) {
-					//This call should be safe, forgoing the syntax record if "this" doesn't exist
-					from->error("cannot initialize reference with a non-reference value");
-				}
-
-				return Operation{ InstructType::Reference, left, right };
-
-			}
-			else
-			{
-				//no ref
-				return Transfer(left, right);
-			}
-		}
-
 
 
 
@@ -396,8 +370,137 @@ namespace LEX
 			return MutateLoad(sol, to, to.IsReference());
 		}
 		
+		using OperateList = std::vector<Operation>;
 
 
+		static Operation RemoveOperation(std::vector<Operation>& ops, OperateList::iterator it)
+		{
+			bool before = true;
+
+
+		}
+
+		static int GetStackOpDirection(const Operation& op, size_t loc)
+		{
+			int64_t distance;
+
+			switch (op._instruct)
+			{
+			//The more I think about it, JumpStack doesn't make sense for how this compiles does it?
+			//case InstructType::JumpStack:
+			//	distance = loc - op._lhs.index;
+			//	break;
+
+			case InstructType::DropStack:
+			case InstructType::DropStackN:
+				distance = op._lhs.differ;
+				break;
+
+			default:
+				distance = 0;
+			}
+
+			return std::clamp<Differ>(op._lhs.differ, -1, 1);
+		}
+
+		static size_t RemoveOperations(std::vector<Operation>& ops, std::function<bool(OperateList::iterator)> function)
+		{
+			//The idea is this function records relevant
+
+			std::vector<OperateList::iterator> locDown;//This is for any jump or jump like operation that points to a place downwards (is positive)
+			std::vector<OperateList::iterator> locUp;	//For any jump or jump like operation that points upwards (is positive).
+
+			
+			size_t removed = 0;
+			bool erased;
+			std::function<void(OperateList::iterator)> EraseEntry = [&](OperateList::iterator it)
+			{
+				it = ops.erase(it);
+				erased = true;
+				removed++;
+				
+				auto i = locDown.begin();
+				
+				while ( i != locDown.end())
+				{
+					auto loc = *i;
+
+					if (--loc->_lhs.differ == 0){
+						i = locDown.erase(i);
+
+						EraseEntry(loc);//After this happens, the locUps need to be updated as well
+					}
+					else {
+						i++;
+					}
+				}
+			};
+
+			std::function<void(OperateList::iterator)> DecUpLoc = [&](OperateList::iterator it)
+			{
+				it->_lhs.differ -= removed;
+				locUp.push_back(it);
+			};
+
+
+			size_t i = 0;
+
+			for (auto it = ops.begin(); it != ops.end(); i++, erased ? it : it++)
+			{
+				//The idea is if the jump is pointing down, we add it to downward jumps, which get decremented everything something is removed.
+				// if it's pointing up, we reduce it by the number of removed operations.
+				// If the jump distance has been made 0, I want a way to make it drop.
+
+				if (function(it) == true) {
+					
+					EraseEntry(it);
+					continue;
+				}
+				
+				erased = false;
+			
+				auto direction = GetStackOpDirection(*it, i);
+
+				if (direction > 0) {
+					locDown.push_back(it);
+				}
+				else if (direction < 0) {
+					DecUpLoc(it);
+				}
+
+			}
+
+			return removed;
+		}
+
+		[[nodiscard]] static size_t MergeIncrement(std::span<std::vector<Operation>> list, bool argument)
+		{
+			size_t result = 0;
+
+			InstructType type = argument ? InstructType::ModArgStack : InstructType::ModVarStack;
+
+
+			for (auto& ops : list)
+			{
+
+				RemoveOperations(ops, [&](OperateList::iterator it)->bool
+				{
+					if (it->_instruct == type) {
+						result += std::max<Differ>(it->_lhs.differ, 0);
+						return true;
+					}
+
+					return false;
+				});
+			}
+
+			return result;
+		}
+
+		[[nodiscard]] static size_t MergeIncrement(std::vector<Operation>& ops, bool argument)
+		{
+			return MergeIncrement({ &ops, 1 }, argument);
+		}
 
 
 

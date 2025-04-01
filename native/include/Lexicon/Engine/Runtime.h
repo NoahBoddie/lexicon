@@ -357,6 +357,17 @@ namespace LEX
 
 		}
 
+		RuntimeVariable& GetArgumentFromBack(size_t i)
+		{
+			int64_t index = _asp - i;
+			
+			if (index < 0) {
+				report::runtime::critical("Argument stack back index larger than current stack size(make more unique). ({}/{})", i, _asp);
+			}
+			
+			return GetArgument(index);
+
+		}
 
 		std::vector<RuntimeVariable> GetArgsInRange(size_t i)
 		{

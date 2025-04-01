@@ -170,11 +170,10 @@ namespace LEX
 
 		static void Convert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
-			//This is old and I forget how it's done.
-
 
 			ICallableUnit* func = nullptr;
-
+			
+			//For Convert, once when I start using spans, please put it in a single sized array.Just to save space and to not have to allocate.
 			std::vector<RuntimeVariable> from { a_rhs.GetVariable(runtime) };
 
 			get_switch (a_lhs.type)
@@ -184,9 +183,6 @@ namespace LEX
 					IFunction* itfc = a_lhs.Get<IFunction*>();
 					
 					func = itfc->GetFunction(runtime);
-					
-					
-
 				}
 				break;
 			
@@ -1258,7 +1254,7 @@ namespace LEX
 		
 
 
-		Solution HandleCall_V2(ExpressionCompiler* compiler, SyntaxRecord& target)
+		Solution HandleCall(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 
 			//The argument check has to happen first.
@@ -1279,8 +1275,8 @@ namespace LEX
 			std::vector<Solution> args;
 			std::vector<std::vector<Operation>> operations;
 
-			size_t alloc_size = arg_record->size();
-
+			int64_t alloc_size = arg_record->size();
+			int64_t sub_alloc = 0;
 
 			args.resize(alloc_size);
 			operations.resize(alloc_size);
@@ -1302,8 +1298,14 @@ namespace LEX
 			for (size_t i = 0; auto & arg : arg_record->children())
 			{
 
+				compiler->DelayArgDecrement();
+
 				//Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
 				Solution result = compiler->CompileExpression(arg, Register::Right, operations[i]);//, ops);
+
+				if (auto buf = compiler->ResumeArgDecrement(); buf > sub_alloc) {
+					sub_alloc = buf;
+				}
 
 				//compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
 
@@ -1362,12 +1364,14 @@ namespace LEX
 			auto& list = compiler->GetOperationList();
 
 
-			auto start = compiler->ModArgCount(alloc_size);
+			auto start = compiler->ModArgCount(alloc_size, sub_alloc);
+
 
 
 			if (func->GetTargetType().policy != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
-				list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
+				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
+				list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
 			}
 
 
@@ -1382,133 +1386,27 @@ namespace LEX
 				//This should basically already be successful, no real need for checks
 				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, Register::Right);
 
-				//list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
-				list.append_range(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
+				auto index = i + has_tar;
+
+				//list.append_range(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
+				list.append_range(CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
 			}
 
 			//default is dealt with here.
 
 
-			size_t dealloc_size = alloc_size;
-
 			list.emplace_back(InstructType::Call, compiler->GetPrefered(),
 				Operand{ func, OperandType::Function },
 				Operand{ alloc_size, OperandType::Index });
 
-			compiler->ModArgCount(-static_cast<int64_t>(alloc_size), false);
+			compiler->ModArgCount(-alloc_size, -sub_alloc, false);
 
-
-
-			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
-		}
-
-
-
-		Solution HandleCall(ExpressionCompiler* compiler, SyntaxRecord& target)
-		{
-
-			//The argument check has to happen first.
-
-			SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
-
-			if (!arg_record) {
-				report::compile::error("no args record in '{}' detected.", target.GetTag());
-			}
-
-			//This is used so that we know what size we're to after the fact, and place it at the head.
-			// By default it starts with 1, so we don't have to resize when we add the last (and first) piece.
-			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
-			//std::vector<Operation> ops{1};
-
-			TargetObject* self = compiler->GetTarget();
-
-			std::vector<Solution> args;
-
-			size_t alloc_size = arg_record->size();
-			size_t dealloc_size = alloc_size;
-
-			args.resize(alloc_size);
-
-
-
-			if (self) {
-				//This will push itself into the arguments, but it will only be used under certain situations.
-				compiler->GetOperationList().push_back(CompUtil::MutateRef(*self->target, Operand{ compiler->ModArgCount(), OperandType::Argument }));
-				dealloc_size++;
-			}
-
-			//At a later point, one will get the ability to define default arg out of order, via the below:
-			// function(arg1, arg2, def_param4 = arg3);
-			// This sort of thing is known as a default argument, and instead of processing it here,
-			// it will process it later, when it is processing default arguments. 
-			//std::vector<SyntaxRecord*> def_args;
-
-
-
-			//I do the index this way in prep for explicit default arguments, where any default argument found
-			// will NOT increment the index, instead storing the record for later use.
-			//Additionally, I use get arg count so that the index being pushed
-			//*Turns out, the I was not required.
-			for (size_t i = 0; auto & arg : arg_record->children())
-			{
-
-				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered());//, ops);
-
-				compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
-
-				args[i++] = result;
-			}
-
-
-			//'function' <Expression: Call>
-			//		'args' <Expression: Header>
-
-
-			OverloadInput input;
-			input.object = self;
-			input.paramInput = args;
-
-			Overload instructions;
-
-			//Around here, you'd use the args.
-			FunctionInfo* info = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
-
-			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
-
-			if (!info) {
-				report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
-			}
-
-			FunctionBase* func = info->Get();
-
-			if (!func) {
-				report::compile::error("No callable for info at '{}' detected.", target.GetTag());
-			}
-
-			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
-
-			size_t req_args = func->GetArgCountReq();
-
-			if (args.size() < req_args) {
-				report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
-			}
-
-			if (func->GetTargetType().policy != nullptr) {
-				//Increase the allocation size to include the "this" argument.
-				alloc_size++;
-			}
-
-
-			compiler->GetOperationList().emplace_back(InstructType::Call, compiler->GetPrefered(),
-				Operand{ func, OperandType::Function },
-				Operand{ alloc_size, OperandType::Index });
-
-			compiler->ModArgCount(-static_cast<int64_t>(dealloc_size));
-
-
+			
 
 			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
 		}
+
+
 
 
 		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, SyntaxRecord& target)
@@ -1546,8 +1444,7 @@ namespace LEX
 			Solution result;
 
 			if (HandleCtor(result, compiler, target) == false) {
-				//result = HandleCall(compiler, target);
-				result = HandleCall_V2(compiler, target);
+				result = HandleCall(compiler, target);
 			}
 
 

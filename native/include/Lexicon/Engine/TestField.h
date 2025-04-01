@@ -811,37 +811,693 @@ namespace LEX
 		
 	};
 
-
-
-
-	namespace NEWExample
+#ifdef NEW_OVERLOAD
+	namespace NewOverloadV2
 	{
-		//Formerly IType
-		struct IType {};//Should be versioned
+		//These are now used for the argument to tell the parameter it's situation.
+		ENUM(OverloadFlag)
+		{
+			None,
+			ReqFilled = 1 << 0,		//Once required gets filled, this gets ticked so that the overload doesn't use the improper overload.
+			UsesDefault = 1 << 1,	//If it uses 
+			UsesOptional = 1 << 2,	//Manually defining an optional will result in no optionals being able to be implicitly used.
+			NoConvert = 1 << 3,		//If no conversions are used in one, converting ones are no longer valid.
 
-		//No former version. Was a part of IType.
-		struct AbstractType : public IType {};
 
-#ifdef LEX_SOURCE
-#define BASIC_SPECIAL(mc_name) CONCAT(Basic,mc_name) = CONCAT(Abstract,mc_name)
-#else
-#define BASIC_SPECIAL(mc_name) CONCAT(Basic,mc_name) = CONCAT(I,mc_name)
-#endif
+			TargetOpt = 1 << 4,		//If using a target is optional this will be ticked.
+			AllAccess = 1 << 5,		//If all access is used, there are no rules about conversions.
 
-		using BASIC_SPECIAL(Type);
+			IsTemplate = 1 << 6,
+		};
 
+
+		struct OverloadParameter;
+
+		/*
+		//A return only class, is to be used for 
+		struct OverloadPoint
+		{
+			//TODO: I think I could probably do this with just the type, and casting it into a template. OverloadPoint slated for deletion.
+
+			OverloadEntry entry;//If empty we send an error ya?
+
+			//If an overload entry has a particular TemplateType in mind this will load the TemplateType* in question.
+			// If the entry is empty (and at the right time) that will mean that a template type is being loaded
+			TemplateType* templateEntry = nullptr;
+		};
+		//*/
+
+
+
+		struct Overload
+		{
+			enum Bias
+			{
+				kPrevious = -1,
+				kAmbiguous = 0,
+				kCurrent = 1,
+
+
+				//These double time as the result for overload matching
+
+				kFailure = kPrevious,
+				kUnsucessful = kAmbiguous,
+				kSuccess = kCurrent,
+
+			};
+
+			struct MultiEntry
+			{
+				std::vector<OverloadEntry> inputs;
+			};
+
+			//This is now a container that shows the given options for an overload.
+
+			OverloadParameter* param = nullptr;
+
+			QualifiedType target;
+
+
+			//This should include TemplateTuple
+			std::vector<AbstractType*> specialImplied;
+			std::unordered_map<std::string, AbstractType*> specialStated;
+
+
+
+			//These align perfectly with arguments given.
+			// This has to be loaded with a properly sorted default by this point.
+			// Defaults have to go here because 
+			std::vector<OverloadEntry> implied;
+			
+			
+
+			std::unordered_map<std::string, OverloadEntry> stated;
+
+			//The purpose of states is to have it unloaded into implied I think?
+
+
+
+			OverloadEntry* failure = nullptr;//If there's a failure this will show where it is.
+
+			
+			Bias bias = kCurrent;
+			OverloadFlag flag;//Extra place to tell the end result, namely ambiguous
+
+
+
+
+			bool EmplaceEntry(OverloadEntry& entry)
+			{
+				//I believe this can handle the entire bit itself.
+
+				auto index = entry.index;
+				
+			
+				if (index == -1) {
+					target = entry.type;
+				}
+				else {
+					if (implied.size() <= index) {
+						implied.resize(index + 1);
+					}
+
+					implied[index] = entry;
+				}
+				
+
+				
+				//This function needs to be able to handle resolutions between param generic types. So like "params Type[]" should handle
+				// each new type, SOMEHOW. That may be a section all on it's own I believe, just about anything that's multi input. I believe this
+				// will only apply to to the call args
+
+				//CORRECTION... I realize now that what I'm talking about is like making an initializer list that can be understood without context.
+				// So, instead the only thing that can be done when some initialization happens like that is to resolve it. Perhaps I'll make something
+				// that does it for me, and assumes based on what types can convert into the others. For now, it's not a worry.
+
+
+
+				//Work needs to be done if it's a grouped type
+
+				//Split this into a different function if the type checks out to be a template type.
+				if (auto temp = entry.type->AsTemplate())
+				{
+					//TODO: 
+
+					auto index = temp->index;
+					//Please note, more needs to be done if it's a TupleType.
+					
+					if (specialImplied.size() <= index) {
+						specialImplied.resize(index + 1);
+					}
+
+					if (auto& slot = specialImplied[index]; !slot) {
+						slot = temp;
+						return true;
+					}
+					else{
+						//If something already exists, see if we can convert it to that. Then if we can, supplant that new conversion.
+						// if not, remove and go next.
+
+
+
+						return false;
+					}
+					
+				}
+
+				return true;
+			}
+
+
+			static int CompareType(OverloadCode& left, OverloadCode& right, QualifiedType& left_type, QualifiedType& right_type)
+			{
+				//This should be using OverloadCode, but i'd need a given type to do it.
+
+				if (!left.initialized && !right.initialized)
+				{
+					left = left.FinalizeOld(left_type->GetHierarchyData(), right_type->GetHierarchyData());
+					right = right.FinalizeOld(right_type->GetHierarchyData(), left_type->GetHierarchyData());
+
+					//OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
+					//OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);
+				}
+
+				logger::info("left({}/{}), right({}/{})", left.hash[0], left.hash[1], right.hash[0], right.hash[1]);
+
+
+				if (left.hash[0] <= right.hash[1] && left.hash[1] >= right.hash[0]) {
+					return left.distance - right.distance;
+				}
+				if (left.hash[0] >= right.hash[1] && left.hash[1] <= right.hash[0]) {
+					return left.distance - right.distance;
+				}
+
+				//We do reference comparison here
+
+				return 0;
+			}
+
+			static int CompareType(QualifiedType& a_this, QualifiedType& a_lhs, QualifiedType& a_rhs)
+			{
+				OverloadCode left = a_this.policy->GetHierarchyData()->CreateCode(a_lhs);
+				OverloadCode right = a_this.policy->GetHierarchyData()->CreateCode(a_rhs);
+
+				return CompareType(left, right, a_lhs, a_rhs);
+			}
+
+
+
+			//TODO: the safe compares of Overload are not yet completely resolved. The main issue being it doesn't account for conversions.
+			// to expand on the above, detecting a conversion is grounds for prefering one over the other, then it depends which conversion has the value closer to zero.
+			// conversions don't really happen right now so it's a big ol fuck it. But this WILL be important.
+
+			static int _ConvertComp(OverloadEntry& tar, OverloadEntry& entry, QualifiedType& arg)
+			{
+				//Arg is unused
+
+				//These should remove const conversions and stuff like that
+				//
+				bool prev_pure = tar.convertType < ConvertResult::Transformative;
+				bool curr_pure = entry.convertType < ConvertResult::Transformative;
+
+				if (!prev_pure && curr_pure)
+					return -1;
+				else if (prev_pure && !curr_pure)
+					return 1;
+				else if (!prev_pure && !curr_pure)
+					//return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+					return CompareType(tar.code, entry.code, tar.type, entry.type);
+				else
+					return (entry.convertType <=> tar.convertType)._Value;
+			}
+
+			int SafeCompare(QualifiedType& other, QualifiedType& arg)
+			{
+				//This version is for types.
+
+
+				if (!this)
+					return -1;
+
+				if (target && !other)
+					return 1;
+				else if (!target && other)
+					return -1;
+				else if (!target && !other)//Is convert qualified is not desired here.
+					return 0;
+
+				//No conversions exist, so direct is good.
+
+				//return arg.CompareType(target, other);
+				return CompareType(arg, target, other);
+
+				return 0;
+
+				//Qualified conversions have already played out by this point.
+				//if (target.IsConvertToQualified(other, scope) > ConvertResult::Failure)
+				//	return -1;
+				//else if (other.IsConvertToQualified(target, scope) > ConvertResult::Failure)
+				//	return 1;
+
+				return 0;
+			}
+
+
+			int SafeCompare(std::string name, OverloadEntry& entry, QualifiedType& arg)
+			{
+				if (!this) {
+					return -1;
+				}
+
+				auto it = stated.find(name);
+
+				if (stated.end() == it) {
+					return -1;
+				}
+
+				//auto& tar = it->second;
+
+
+				return _ConvertComp(it->second, entry, arg);
+
+			}
+
+			int SafeCompare(size_t i, OverloadEntry& entry, QualifiedType& arg)
+			{
+				//TODO:Right here, safe compare should be viewing this through the qualified type through the lens of what the overload expects
+				// So it should
+
+				//The idex can just use the entry btw
+
+				if (!this)
+					return -1;
+
+				if (i >= implied.size())
+					return -1;
+
+				auto& tar = implied[i];
+
+				//I don't think I should be assuming a lack of type. here that's an explicit error
+				if (tar.type && !entry.type)
+					return 1;
+				else if (!tar.type && entry.type)
+					return -1;
+				else if (!tar.type && !entry.type)
+					return 0;
+
+				return _ConvertComp(tar, entry, arg);
+
+
+				//return arg.CompareType(tar.code, entry.code, tar.type, entry.type);
+				return CompareType(tar.code, entry.code, tar.type, entry.type);
+
+				return 0;
+
+				//Currently there is no actually way to compare. it is or it isn't Implement properly in the merger.
+
+				//auto left = tar.type.IsConvertToQualified(entry.type, arg);
+				//auto right = entry.type.IsConvertToQualified(tar.type, arg);
+
+				//if (left == true)
+				//	return -1;
+				//else if (right == true)
+				//	return 1;
+
+				return 0;
+			}
+		};
+
+		using OverloadBias = Overload::Bias;
+
+
+
+		//New names should be OverloadParameter, and OverloadArgument
 		
+		struct OverloadArgument
+		{//The argument side of the overload.
+			
+			virtual OverloadBias Match(OverloadParameter*, AbstractType* scope, Overload& out, Overload* prev) = 0;
 
-		struct Type : public IType {};
+		};
 
-		struct TypeBase : public AbstractType {};
+		struct OverloadParameter : public OverloadArgument
+		{//The parameter side of the overload.
 
-		struct ConcreteType : public TypeBase, public Type {};
 
-		struct GenericType : public TypeBase {};
+			virtual OverloadBias Match(OverloadParameter*, AbstractType* scope, Overload& out, Overload* prev)
+			{
+				return OverloadBias::kFailure;
+			}
 
-		struct SpecialType : public Type {};
+			virtual bool CanMatch(const QualifiedType& target, std::pair<size_t, size_t> callArgs, std::pair<size_t, size_t> tempArgs, OverloadFlag) = 0;
+
+			virtual bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags) = 0;
+			virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, const std::string_view& name, OverloadFlag& flags) = 0;
+
+			virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) = 0;
+		};
+
+
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+		class OverloadInput : public OverloadArgument
+		{
+		public:
+
+			
+			OverloadBias Match(OverloadParameter* param, AbstractType* scope, Overload& out, Overload* prev) override
+			{
+				OverloadFlag flags{};
+
+				//...
+
+				if (stated.empty() == false) {
+					flags |= OverloadFlag::UsesOptional;
+				}
+
+
+				if (param->CanMatch(nullptr, GetCallCount(), GetTempCount(), flags) == false) {
+					logger::info("pre-eval fail");
+					return OverloadBias::kFailure;
+				}
+
+
+
+				QualifiedType this_type;
+
+				if (object->IsValid() == true)
+				{
+
+					if (object->IsImplicit() == true)
+						flags |= OverloadFlag::TargetOpt;
+
+					this_type = *object->target;
+
+				}
+
+				
+				OverloadEntry tar;
+
+				if (param->MatchImpliedEntry(tar, this_type, scope, -1, -1, flags) == false) {
+					return OverloadBias::kFailure;
+				}
+
+				//out.target = tar.entry.type;
+				if (out.EmplaceEntry(tar) == false) {
+					return OverloadBias::kFailure;
+				}
+
+				out.target = tar.type;
+				out.param = param;
+
+				constexpr auto offset_placeholder = 0;
+
+				int winner = 0;
+
+				for (int i = 0; i < implied.size(); i++)
+				{
+					auto& pair = implied[i];
+					
+					QualifiedType type = pair.first;
+					auto offset = pair.second;
+
+
+					OverloadEntry entry;
+
+					if (param->MatchImpliedEntry(entry, type, scope, offset, i, flags) == false) {
+						//Needs to send the given issue object
+						return OverloadBias::kFailure;
+					}
+
+					//entry.funcs = conversion;
+					//entry.type = input;
+					//entry.index = index;
+
+					//Compare should this input-> prev vs entry
+					auto new_winner = prev->SafeCompare(i, entry, type);
+
+					if (!winner)
+						winner = new_winner;
+
+					else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1) {// shit isn't valid anymore.
+						return OverloadBias::kAmbiguous;
+					}
+					
+					//out.implied.push_back(temp.entry);
+
+					if (out.EmplaceEntry(entry) == false) {
+						return OverloadBias::kFailure;
+					}
+				}
+
+
+				for (auto& [name, sol] : stated)
+				{
+					OverloadEntry entry;
+					//Some new flags should be used here I believe.
+					if (param->MatchStatedEntry(entry, sol, scope, name, flags) == false) {
+						//Needs to send the given issue object
+						return OverloadBias::kFailure;
+					}
+
+					auto new_winner = prev->SafeCompare(name, entry, sol);
+
+					if (!winner)
+						winner = new_winner;
+
+					else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1) {// shit isn't valid anymore.
+						return OverloadBias::kAmbiguous;
+					}
+
+					if (out.EmplaceEntry(entry) == false) {
+						return OverloadBias::kFailure;
+					}
+				}
+
+
+				if (!winner) {
+					winner = prev->SafeCompare(-1, tar, this_type);
+				}
+
+
+				if (winner > 0) {
+					logger::trace("right winner");
+					//This is just failure tbh, doing so means I don't need to use move or set the pointer.
+					return OverloadBias::kPrevious;
+				}
+				else if (winner < 0) {
+					logger::trace("left winner");
+					return OverloadBias::kCurrent;
+				}
+				else {
+					logger::trace("no winner {}", prev != nullptr);
+					return OverloadBias::kAmbiguous;
+				}
+
+
+
+			}
+
+
+			//Note to self, maintain using using Solutions. Later passed friendship is a thing that I use.
+			// Additionally, if I go that way I want to find a way that inputting types in generic spaces that private inheritance from
+			// telling it no when temporary friendship has been given.
+
+			TargetObject* object = nullptr;
+
+			//I'd like to order all these vectors in a much more friendly way.
+			std::vector<std::pair<Solution, size_t>>			specialImplied;
+			std::unordered_map<std::string, std::vector<AbstractType*>> specialStated;
+			
+		
+			std::vector<std::pair<Solution, size_t>> implied;
+			std::map<std::string, Solution> stated;//The stated can possibly declare an array/tuple. For this
+
+			std::pair<size_t, size_t> optCount;//The number of implied and stated template arguments used.
+
+			std::pair<size_t, size_t> GetCallCount() const
+			{
+				return std::make_pair(implied.size(), optCount.first);
+			}
+
+			std::pair<size_t, size_t> GetTempCount() const
+			{
+				return { specialImplied.size(), optCount.second };
+			}
+
+		};
+
+
+
+
+		struct FakeFunctionData : public BasicCallableData, public OverloadParameter
+		{
+			//A struct to be owned protected.
+
+			//weren't functions environments? A: They don't need to be anymore.
+			//Data
+
+
+
+			//These are FunctionData: Functions, GenericFunctions, and Formulas.
+			// Yes, formulas are function data. I thought to make CallableUnit handle the setting of things,
+			// but I realized that I want ICallableUnit to be an information and invoking interface, not one made
+			// for setting features or flags.
+
+			std::string _name;
+
+
+			size_t defaultIndex = (size_t)-1;  //max_value<size_t>;//basically whenever the defaults start.
+
+			//
+			Procedure _procedure = nullptr;
+
+			//formulas won't have defaults, they don't have names, and they don't have procedures (such would defy the point of them.
+
+
+			RoutineBase* GetRoutine()
+			{
+				//This plans to be a pointer later, as this will end up just being 
+				return &_routine;
+			}
+
+			Procedure GetProcedure()
+			{
+				return _procedure;
+			}
+
+			std::string_view name() const
+			{
+				return _name;
+			}
+		public:
+
+			
+
+
+			virtual bool CanMatch(const QualifiedType& target, std::pair<size_t, size_t> callArgs, std::pair<size_t, size_t> tempArgs, OverloadFlag) = 0;
+
+			virtual bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags) = 0;
+			virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, const std::string_view& name, OverloadFlag& flags) = 0;
+
+			virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) = 0;
+
+
+			//bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag)
+			bool CanMatch(const QualifiedType& target, std::pair<size_t, size_t> callArgs, std::pair<size_t, size_t> tempArgs, OverloadFlag flags) override
+			{
+
+
+				if (type) {
+					logger::info("Names {} vs {}", type->GetName(), _returnType->GetName());
+
+					if (type != _returnType)
+						return false;
+				}
+
+				if (flag & OverloadFlag::UsesDefault)
+				{
+					logger::debug("uses defaults");
+					return false;
+				}
+
+				if (optional)
+				{
+					logger::debug("uses optionals");
+					return false;
+				}
+
+				auto required = GetArgCountReq();
+
+				if (required != suggested) {
+					logger::debug("uses param diff {} vs {}", required, suggested);
+					return false;
+				}
+				return true;
+			}
+
+
+			//Fuck it, these return non-booleans and use something else to denote their failures.
+
+
+			//OverloadEntry MatchSuggestedEntry(QualifiedType type, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags)
+			bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags) override
+			{
+				OverloadEntry result;
+
+				//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
+				if (index != -1 && GetArgCountMax() <= index)
+				{
+					logger::critical("Failure to evaluate");
+					flags |= OverloadFlag::Failure;
+					return {};
+				}
+
+
+				//I'd maybe like to rework this VariableInfo to work like this.
+
+				//ParameterInfo* subject = index != -1 ?
+				//	&parameters[index + HasTarget()] : HasTarget() ?
+				//	&parameters[0] : nullptr;
+
+				ParameterInfo* subject = FindParameterByPos(index);
+
+
+
+				QualifiedType sub_type = subject->FetchQualifiedType();
+
+				if (type && sub_type)
+				{
+					ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &result.convert, ConversionFlag::Parameter);
+
+					result.convertType = convertType;
+
+					if (convertType <= ConvertResult::Failure)
+					{
+						flags |= OverloadFlag::Failure;
+						return result;
+					}
+
+
+					//result.convertType = ConvertResult::TypeDefined;
+					result.index = subject->GetFieldIndex();
+					result.type = sub_type;
+				}
+				else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
+				{
+					//This bit will need to change, as you may be able to access static functions from a member function.
+					result.convertType = ConvertResult::Exact;
+					result.index = -1;
+				}
+				else
+				{
+					result.convertType = ConvertResult::Ineligible;
+					result.index = -1;
+				}
+
+				return result;
+
+			}
+			
+			bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, const std::string_view& name, OverloadFlag& flags) override
+			{
+				return false;
+			}
+
+			std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags)
+			{
+				return {};
+			}
+
+
+		};
+
+
+
 	}
+#endif
 
 
 	INITIALIZE()

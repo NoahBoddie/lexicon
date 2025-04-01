@@ -112,20 +112,58 @@ namespace LEX
 			return argCount[0];
 		}
 
-		size_t ModArgCount(int64_t i = 1, bool append = true)
+		void ShiftArgCount(int64_t i)
+		{
+			//I'm thinking of undoing the bit once I get out of the parameter.
+			if ((argCount[0] += i) > argCount[1])
+				argCount[1] = argCount[0];
+		}
+
+		size_t ModArgCount(int64_t x, int64_t y, bool append = true)
 		{
 			//Try to unionize this when you can.
 			size_t count = argCount[0];
 
-			if ((argCount[0] += i) > argCount[1])
-				argCount[1] = argCount[0];
+			//i >= 0 || 
+			if (!delayDec[0])
+			{
+				ShiftArgCount(x + y);
+			
+			}
+			else if(x > 0) {// if (i < 0) {
+				delayDec[1] += x;
+			}
 
-			if (i && append)
-				GetOperationList().emplace_back(InstructionType::ModArgStack, Operand{ i , OperandType::Differ });
+			if (x && append)
+				GetOperationList().emplace_back(InstructionType::ModArgStack, Operand{ x , OperandType::Differ });
+
 
 			return count;
 		}
 
+
+		void DelayArgDecrement()
+		{
+			delayDec[0]++;
+		}
+
+		[[nodiscard]] int64_t ResumeArgDecrement()
+		{
+			//dec 1 isn't being incremented
+
+			//The concept of important
+			int64_t result = 0;
+			if (--delayDec[0] == 0){
+				//ShiftArgCount(delayDec[1]);
+				//delayDec[1] = 0;
+				std::swap(result, delayDec[1]);
+			}
+
+			assert(delayDec[0] >= 0);
+
+			return result;
+		}
+		
 
 
 		QualifiedType GetReturnType() const
@@ -336,6 +374,8 @@ namespace LEX
 
 
 		//First is current, second is largest.
+
+		std::array<int64_t, 2> delayDec{ 0, 0 };//Decrements delayed due to functions. Want something that handles this better
 		std::array<size_t, 2> argCount{ 0, 0 };
 		std::array<size_t, 2> varCount{ 0, 0 };
 

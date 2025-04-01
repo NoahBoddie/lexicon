@@ -12,6 +12,8 @@ namespace LEX
 
 	struct HierarchyData;
 
+	//struct RoutineBase;
+
 	struct OverloadCode
 	{
 		//Overload needs a place where it gets it's data for things like hashes, distance, and whether it's initialized or not.
