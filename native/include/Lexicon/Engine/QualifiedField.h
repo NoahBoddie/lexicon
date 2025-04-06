@@ -1,5 +1,5 @@
 #pragma once
-#include "Lexicon/Field.h"
+#include "Lexicon/Engine/Field.h"
 
 #include "Lexicon/Qualifier.h"
 
@@ -7,8 +7,8 @@
 //*src
 
 #include "Lexicon/Engine/InfoBase.h"
-#include "Lexicon/QualifiedType.h"
-#include "Lexicon/DeclareSpecifier.h"
+#include "Lexicon/Engine/QualifiedType.h"
+#include "Lexicon/Specifier.h"
 
 
 namespace LEX

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 #include "Lexicon/Impl/common_type.h"
 #include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/Engine/RuntimeUtility.h"

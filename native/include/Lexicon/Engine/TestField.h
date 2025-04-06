@@ -85,7 +85,7 @@
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
 #include "Lexicon/Versioning.h"
 
-#include "Lexicon/DeclareSpecifier.h"
+#include "Lexicon/Specifier.h"
 
 #include "Lexicon/Engine/OverloadInput.h"
 
@@ -810,17 +810,41 @@ namespace LEX
 
 		
 	};
-
+#define NEW_OVERLOAD
 #ifdef NEW_OVERLOAD
+#undef NEW_OVERLOAD
 	namespace NewOverloadV2
 	{
+
+
+
+
+		struct OverloadEntry
+		{
+			//I'd care about the padding and stuff here but its so small I do not care.
+
+			QualifiedType type;
+			Conversion convert;
+			OverloadCode code;
+			ConvertResult convertType = ConvertResult::Ineligible;
+			size_t index;//The guide of where to put the given entries routine information.
+
+			RoutineBase* routine = nullptr;
+
+			QualifiedType Sanitize(const QualifiedType& type)
+			{
+				return type;
+			}
+		};
+
+
 		//These are now used for the argument to tell the parameter it's situation.
 		ENUM(OverloadFlag)
 		{
 			None,
 			ReqFilled = 1 << 0,		//Once required gets filled, this gets ticked so that the overload doesn't use the improper overload.
 			UsesDefault = 1 << 1,	//If it uses 
-			UsesOptional = 1 << 2,	//Manually defining an optional will result in no optionals being able to be implicitly used.
+			UsesStated = 1 << 2,	//If parameters are filled via manual stating.
 			NoConvert = 1 << 3,		//If no conversions are used in one, converting ones are no longer valid.
 
 
@@ -866,10 +890,6 @@ namespace LEX
 
 			};
 
-			struct MultiEntry
-			{
-				std::vector<OverloadEntry> inputs;
-			};
 
 			//This is now a container that shows the given options for an overload.
 
@@ -880,7 +900,6 @@ namespace LEX
 
 			//This should include TemplateTuple
 			std::vector<AbstractType*> specialImplied;
-			std::unordered_map<std::string, AbstractType*> specialStated;
 
 
 
@@ -889,26 +908,79 @@ namespace LEX
 			// Defaults have to go here because 
 			std::vector<OverloadEntry> implied;
 			
-			
+			std::map<std::string, size_t> statedEntries;
 
-			std::unordered_map<std::string, OverloadEntry> stated;
+			
 
 			//The purpose of states is to have it unloaded into implied I think?
 
 
-
+			//I think I'll make it prefer the last Overload if this is not here.
 			OverloadEntry* failure = nullptr;//If there's a failure this will show where it is.
 
 			
 			Bias bias = kCurrent;
-			OverloadFlag flag;//Extra place to tell the end result, namely ambiguous
+			
 
-
-
-
-			bool EmplaceEntry(OverloadEntry& entry)
+			//Type is the actual type used. Entry is the optional entry to be filled by said type.
+			std::optional<bool> EmplaceTemplate(OverloadEntry& entry, AbstractType* type, AbstractType* scope)
 			{
+				std::optional<bool> result = std::nullopt;
+				
+				//if (auto temp = entry.type->AsTemplate())
+				for (auto temp : entry.type->GetTemplateInputs())
+				{
+					//TODO: 
+
+					auto index = temp->index;
+					//Please note, more needs to be done if it's a TupleType.
+
+					if (specialImplied.size() <= index) {
+						specialImplied.resize(index + 1);
+					}
+
+					if (auto& slot = specialImplied[index]; !slot) {
+						slot = type;
+
+						//Move this outside
+						if (type == temp)
+							entry.type.policy = type;
+						
+						//if (result.has_value() == false);
+					}
+					else {
+						//If something already exists, see if we can convert it to that. Then if we can, supplant that new conversion.
+						// if not, remove and go next.
+
+						
+						//TODO: I think this might need conversion flags.
+						Conversion convert;
+						auto result = type->IsConvertibleTo(slot, scope, convert);
+
+						if (result <= ConvertResult::Failure) {
+							return false;
+						}
+						
+						entry.convert = convert;
+						entry.convertType = result;
+					}
+
+					//if (result.has_value() == false);
+					result = true;
+
+				}
+
+				return result;
+			}
+
+			bool EmplaceEntry(OverloadEntry& entry, AbstractType* type, AbstractType* scope, std::string_view name = {})
+			{
+				//EmplaceEntry needs to adapt the type to what's loaded.
+
 				//I believe this can handle the entire bit itself.
+
+				auto result = EmplaceTemplate(entry, type, scope).value_or(true);
+					
 
 				auto index = entry.index;
 				
@@ -925,6 +997,18 @@ namespace LEX
 				}
 				
 
+				if (name.empty() == false) {
+					auto& slot = statedEntries[std::string{ name }];
+					
+					bool filled = slot;
+
+					statedEntries[std::string{ name }] = index;
+
+					if (filled) {
+						return false;
+					}
+				}
+
 				
 				//This function needs to be able to handle resolutions between param generic types. So like "params Type[]" should handle
 				// each new type, SOMEHOW. That may be a section all on it's own I believe, just about anything that's multi input. I believe this
@@ -938,34 +1022,7 @@ namespace LEX
 
 				//Work needs to be done if it's a grouped type
 
-				//Split this into a different function if the type checks out to be a template type.
-				if (auto temp = entry.type->AsTemplate())
-				{
-					//TODO: 
-
-					auto index = temp->index;
-					//Please note, more needs to be done if it's a TupleType.
-					
-					if (specialImplied.size() <= index) {
-						specialImplied.resize(index + 1);
-					}
-
-					if (auto& slot = specialImplied[index]; !slot) {
-						slot = temp;
-						return true;
-					}
-					else{
-						//If something already exists, see if we can convert it to that. Then if we can, supplant that new conversion.
-						// if not, remove and go next.
-
-
-
-						return false;
-					}
-					
-				}
-
-				return true;
+				return result;
 			}
 
 
@@ -1007,6 +1064,27 @@ namespace LEX
 
 
 
+			int SafeCompare(const std::string& name, OverloadEntry& entry, QualifiedType& arg)
+			{
+				if (!this) {
+					return -1;
+				}
+
+				auto it = statedEntries.find(name);
+
+				if (statedEntries.end() == it) {
+					return -1;
+				}
+
+				//auto& tar = it->second;
+				auto& other = implied[it->second];
+
+				return _ConvertComp(other, entry, arg);
+
+			}
+
+
+
 			//TODO: the safe compares of Overload are not yet completely resolved. The main issue being it doesn't account for conversions.
 			// to expand on the above, detecting a conversion is grounds for prefering one over the other, then it depends which conversion has the value closer to zero.
 			// conversions don't really happen right now so it's a big ol fuck it. But this WILL be important.
@@ -1015,10 +1093,14 @@ namespace LEX
 			{
 				//Arg is unused
 
-				//These should remove const conversions and stuff like that
-				//
-				bool prev_pure = tar.convertType < ConvertResult::Transformative;
-				bool curr_pure = entry.convertType < ConvertResult::Transformative;
+		//These should remove const conversions and stuff like that
+		//
+
+		//I want temp match to lose to everything but a conversion.
+
+				bool prev_pure = tar.convertType >= ConvertResult::Exact && tar.convertType < ConvertResult::Transformative;
+				bool curr_pure = entry.convertType >= ConvertResult::Exact && entry.convertType < ConvertResult::Transformative;
+
 
 				if (!prev_pure && curr_pure)
 					return -1;
@@ -1063,31 +1145,14 @@ namespace LEX
 			}
 
 
-			int SafeCompare(std::string name, OverloadEntry& entry, QualifiedType& arg)
-			{
-				if (!this) {
-					return -1;
-				}
-
-				auto it = stated.find(name);
-
-				if (stated.end() == it) {
-					return -1;
-				}
-
-				//auto& tar = it->second;
-
-
-				return _ConvertComp(it->second, entry, arg);
-
-			}
-
-			int SafeCompare(size_t i, OverloadEntry& entry, QualifiedType& arg)
+			int SafeCompare(OverloadEntry& entry, QualifiedType& arg)
 			{
 				//TODO:Right here, safe compare should be viewing this through the qualified type through the lens of what the overload expects
 				// So it should
 
 				//The idex can just use the entry btw
+
+				auto i = entry.index;
 
 				if (!this)
 					return -1;
@@ -1152,15 +1217,32 @@ namespace LEX
 			virtual bool CanMatch(const QualifiedType& target, std::pair<size_t, size_t> callArgs, std::pair<size_t, size_t> tempArgs, OverloadFlag) = 0;
 
 			virtual bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags) = 0;
-			virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, const std::string_view& name, OverloadFlag& flags) = 0;
+			virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, std::string_view name, OverloadFlag& flags) = 0;
 
-			virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) = 0;
+			virtual void ResolveOverload(Overload& entries, OverloadFlag& flags) = 0;
 		};
 
 
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+		struct under {};
+		struct over : public under {};
 
+		template <typename T>
+		void Do(T a1, over& a2) {}
+		
+		
+		template <typename T, typename T2>
+		void Do(T a1, T2 a2) {}
+
+
+		//void Do(int a1, int a2) {}
+
+		void Test()
+		{
+			over test{};
+			Do(1, test);
+		}
 
 		class OverloadInput : public OverloadArgument
 		{
@@ -1174,7 +1256,7 @@ namespace LEX
 				//...
 
 				if (stated.empty() == false) {
-					flags |= OverloadFlag::UsesOptional;
+					flags |= OverloadFlag::UsesStated;
 				}
 
 
@@ -1183,7 +1265,37 @@ namespace LEX
 					return OverloadBias::kFailure;
 				}
 
+#pragma region TemplateParts
+				flags |= OverloadFlag::IsTemplate;
+				
+				//IMPORTANT TO REMEMBER PART, any use of a template type is a loss to a real type.
 
+				for (int i = 0; i < specialImplied.size(); i++)
+				{
+					auto& pair = specialImplied[i];
+
+					QualifiedType type{ pair.first };
+					auto offset = pair.second;
+
+
+					OverloadEntry entry;
+
+					if (param->MatchImpliedEntry(entry, type, scope, offset, i, flags) == false) {
+						//Needs to send the given issue object
+						return OverloadBias::kFailure;
+					}
+
+					if (out.EmplaceTemplate(entry, type, scope) == false) {
+						return OverloadBias::kFailure;
+					}
+				}
+
+				flags &= ~OverloadFlag::IsTemplate;
+#pragma endregion
+
+				
+
+#pragma region CallParts
 
 				QualifiedType this_type;
 
@@ -1197,24 +1309,23 @@ namespace LEX
 
 				}
 
-				
 				OverloadEntry tar;
-
+				tar.index = -1;
 				if (param->MatchImpliedEntry(tar, this_type, scope, -1, -1, flags) == false) {
 					return OverloadBias::kFailure;
 				}
 
 				//out.target = tar.entry.type;
-				if (out.EmplaceEntry(tar) == false) {
+				if (out.EmplaceEntry(tar, this_type, scope) == false) {
 					return OverloadBias::kFailure;
 				}
 
 				out.target = tar.type;
 				out.param = param;
 
-				constexpr auto offset_placeholder = 0;
 
 				int winner = 0;
+
 
 				for (int i = 0; i < implied.size(); i++)
 				{
@@ -1236,7 +1347,7 @@ namespace LEX
 					//entry.index = index;
 
 					//Compare should this input-> prev vs entry
-					auto new_winner = prev->SafeCompare(i, entry, type);
+					auto new_winner = prev->SafeCompare(entry, type);
 
 					if (!winner)
 						winner = new_winner;
@@ -1247,7 +1358,7 @@ namespace LEX
 					
 					//out.implied.push_back(temp.entry);
 
-					if (out.EmplaceEntry(entry) == false) {
+					if (out.EmplaceEntry(entry, type, scope) == false) {
 						return OverloadBias::kFailure;
 					}
 				}
@@ -1271,14 +1382,16 @@ namespace LEX
 						return OverloadBias::kAmbiguous;
 					}
 
-					if (out.EmplaceEntry(entry) == false) {
+					if (out.EmplaceEntry(entry, sol, scope) == false) {
 						return OverloadBias::kFailure;
 					}
 				}
 
+#pragma endregion
+
 
 				if (!winner) {
-					winner = prev->SafeCompare(-1, tar, this_type);
+					winner = prev->SafeCompare(tar, this_type);
 				}
 
 
@@ -1308,7 +1421,7 @@ namespace LEX
 			TargetObject* object = nullptr;
 
 			//I'd like to order all these vectors in a much more friendly way.
-			std::vector<std::pair<Solution, size_t>>			specialImplied;
+			std::vector<std::pair<AbstractType*, size_t>>			specialImplied;
 			std::unordered_map<std::string, std::vector<AbstractType*>> specialStated;
 			
 		
@@ -1332,7 +1445,7 @@ namespace LEX
 
 
 
-		struct FakeFunctionData : public BasicCallableData, public OverloadParameter
+		struct FakeFunctionData : public BasicCallableData, public OverloadParameter, public GenericBase
 		{
 			//A struct to be owned protected.
 
@@ -1377,33 +1490,26 @@ namespace LEX
 			
 
 
-			virtual bool CanMatch(const QualifiedType& target, std::pair<size_t, size_t> callArgs, std::pair<size_t, size_t> tempArgs, OverloadFlag) = 0;
-
-			virtual bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags) = 0;
-			virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, const std::string_view& name, OverloadFlag& flags) = 0;
-
-			virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) = 0;
-
 
 			//bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag)
 			bool CanMatch(const QualifiedType& target, std::pair<size_t, size_t> callArgs, std::pair<size_t, size_t> tempArgs, OverloadFlag flags) override
 			{
 
 
-				if (type) {
-					logger::info("Names {} vs {}", type->GetName(), _returnType->GetName());
+				if (target) {
+					logger::info("Names {} vs {}", target->GetName(), _returnType->GetName());
 
-					if (type != _returnType)
+					if (target != _returnType)
 						return false;
 				}
 
-				if (flag & OverloadFlag::UsesDefault)
+				if (flags & OverloadFlag::UsesDefault)
 				{
 					logger::debug("uses defaults");
 					return false;
 				}
 
-				if (optional)
+				if (callArgs.second || tempArgs.second)
 				{
 					logger::debug("uses optionals");
 					return false;
@@ -1411,8 +1517,8 @@ namespace LEX
 
 				auto required = GetArgCountReq();
 
-				if (required != suggested) {
-					logger::debug("uses param diff {} vs {}", required, suggested);
+				if (required != callArgs.first) {
+					logger::debug("uses param diff {} vs {}", required, callArgs.first);
 					return false;
 				}
 				return true;
@@ -1422,17 +1528,13 @@ namespace LEX
 			//Fuck it, these return non-booleans and use something else to denote their failures.
 
 
-			//OverloadEntry MatchSuggestedEntry(QualifiedType type, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags)
-			bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags) override
+			bool MatchImpliedEntry_Lower(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags)
 			{
-				OverloadEntry result;
-
 				//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
 				if (index != -1 && GetArgCountMax() <= index)
 				{
 					logger::critical("Failure to evaluate");
-					flags |= OverloadFlag::Failure;
-					return {};
+					return false;
 				}
 
 
@@ -1445,57 +1547,244 @@ namespace LEX
 				ParameterInfo* subject = FindParameterByPos(index);
 
 
+				//if (subject->GetFieldIndex() >= defaultIndex) {
+				//}
+
+
 
 				QualifiedType sub_type = subject->FetchQualifiedType();
 
+
+				ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
+
+				if (flags & OverloadFlag::AllAccess) {
+					con_flags |= ConversionFlag::IgnoreAccess;
+				}
+
+
+
 				if (type && sub_type)
 				{
-					ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &result.convert, ConversionFlag::Parameter);
+					ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
 
-					result.convertType = convertType;
+					out.convertType = convertType;
 
-					if (convertType <= ConvertResult::Failure)
-					{
-						flags |= OverloadFlag::Failure;
-						return result;
+					if (convertType <= ConvertResult::Failure) {
+						return false;
 					}
 
 
-					//result.convertType = ConvertResult::TypeDefined;
-					result.index = subject->GetFieldIndex();
-					result.type = sub_type;
+					//out.convertType = ConvertResult::TypeDefined;
+					out.index = subject->GetFieldIndex();
+					out.type = sub_type;
 				}
 				else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
 				{
 					//This bit will need to change, as you may be able to access static functions from a member function.
-					result.convertType = ConvertResult::Exact;
-					result.index = -1;
+					out.convertType = ConvertResult::Exact;
+					out.index = -1;
 				}
 				else
 				{
-					result.convertType = ConvertResult::Ineligible;
-					result.index = -1;
+
+					out.convertType = ConvertResult::Ineligible;
+					out.index = -1;
+					return false;
 				}
 
-				return result;
+				return true;
+
+			}
+
+			bool MatchStatedEntry_Lower(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, std::string_view name, OverloadFlag& flags)
+			{
+				
+
+				//I'd maybe like to rework this VariableInfo to work like this.
+
+				//ParameterInfo* subject = index != -1 ?
+				//	&parameters[index + HasTarget()] : HasTarget() ?
+				//	&parameters[0] : nullptr;
+
+				ParameterInfo* subject = FindParameter(name);
+
+				if (!subject) {
+					report::failure("Couldn't find parameter '{}'.", name);
+					return false;
+				}
+
+				if (subject->IsOptional() == false) {
+					report::failure("Parameter '{}' isn't optional.", name);
+					return false;
+				}
+
+				QualifiedType sub_type = subject->FetchQualifiedType();
+
+				ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
+
+				if (flags & OverloadFlag::AllAccess) {
+					con_flags |= ConversionFlag::IgnoreAccess;
+				}
+
+
+
+				if (type && sub_type)
+				{
+					ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
+
+					out.convertType = convertType;
+
+					out.index = subject->GetFieldIndex();
+					out.type = sub_type;
+
+					if (convertType <= ConvertResult::Failure) {
+						return false;
+					}
+
+				}
+				else
+				{
+
+					out.convertType = ConvertResult::Ineligible;
+					out.index = subject->GetFieldIndex();
+					return false;
+				}
+
+				return true;
+			}
+			
+			bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, size_t index, size_t offset, OverloadFlag& flags) override
+			{
+				if (!!(flags & OverloadFlag::IsTemplate)) {
+					return MatchImpliedEntry_Lower(out, type, scope, index, offset, flags);
+				}
+
+				auto& temps = templates();
+
+				if (index == -1 && temps.size() <= index)
+				{
+					report::error("Failure to evaluate");
+					return false;
+				}
+
+
+				TemplateType* subject = GetTemplateAt(index);
+
+				ConversionFlag con_flags = ConversionFlag::Template;
+
+				if (flags & OverloadFlag::AllAccess) {
+					con_flags |= ConversionFlag::IgnoreAccess;
+				}
+
+				if (type && subject)
+				{
+					ConvertResult convertType = subject->IsConvertibleTo(type.policy, scope, nullptr, con_flags);
+
+					out.convertType = convertType;
+
+					if (convertType <= ConvertResult::Failure) {
+						return false;
+					}
+
+
+					//out.convertType = ConvertResult::TypeDefined;
+					out.index = subject->index;
+					out.type = QualifiedType{ subject };
+				}
+				else
+				{
+
+					out.convertType = ConvertResult::Ineligible;
+					out.index = -1;
+					return false;
+				}
+
+				return true;
 
 			}
 			
-			bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, const std::string_view& name, OverloadFlag& flags) override
+			bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, std::string_view name, OverloadFlag& flags) override
 			{
-				return false;
+				if (!!(flags & OverloadFlag::IsTemplate)) {
+					return MatchStatedEntry_Lower(out, type, scope, name, flags);
+				}
+
+				auto& temps = templates();
+
+				TemplateType* subject = GetTemplateByName(name);
+
+				if (!subject) {
+					report::failure("Couldn't find template type '{}'.", name);
+					return false;
+				}
+
+				//This bit can be homogenized
+				ConversionFlag con_flags = ConversionFlag::Template;
+
+				if (flags & OverloadFlag::AllAccess) {
+					con_flags |= ConversionFlag::IgnoreAccess;
+				}
+
+				if (type && subject)
+				{
+					ConvertResult convertType = subject->IsConvertibleTo(type.policy, scope, nullptr, con_flags);
+
+					out.convertType = convertType;
+
+					if (convertType <= ConvertResult::Failure) {
+						return false;
+					}
+
+
+					//out.convertType = ConvertResult::TypeDefined;
+					out.index = subject->index;
+					out.type = QualifiedType{ subject };
+				}
+				else
+				{
+
+					out.convertType = ConvertResult::Ineligible;
+					out.index = -1;
+					return false;
+				}
+
+				return true;
 			}
 
-			std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags)
+			void ResolveOverload(Overload& result, OverloadFlag& flags)
 			{
-				return {};
+				auto& call_args = result.implied;
+
+				call_args.resize(parameters.size());
+
+				
+				for (auto i = defaultIndex; i < call_args.size(); i++)
+				{
+					auto& entry = call_args[i];
+
+					if (entry.type) {
+						continue;
+					}
+
+					report::critical("Cant handle this yet.");
+
+
+					auto& param = parameters[i];
+
+
+					RoutineBase* def_routine = nullptr;
+					
+					entry.routine = def_routine;
+					entry.convertType = ConvertResult::Exact;
+					entry.type = param.GetQualifiedType();
+					entry.index = param.GetFieldIndex();
+				}
 			}
 
 
 		};
 
-
-
+		
 	}
 #endif
 

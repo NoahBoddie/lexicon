@@ -1,12 +1,9 @@
 #pragma once 
 
-#include "AccessModifier.h"
-//#include "BasicQualifier.h"
-//#include "RuntimeQualifier.h"
 
-#include "Qualifier.h"
-#include "DeclareSpecifier.h"
-#include "QualifiedType.h"
+#include "Lexicon/Qualifier.h"
+#include "Lexicon/Specifier.h"
+#include "Lexicon/Engine/QualifiedType.h"
 
 namespace LEX
 {
@@ -26,7 +23,7 @@ namespace LEX
 
 	
 
-
+	//TODO: Field does not need to be viewable
 	struct Field
 	{
 		//The interface for fields

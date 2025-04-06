@@ -28,6 +28,8 @@ namespace LEX
 		Exact = 0,
 		RefConvert,
 		ConstConvert,
+		TempConvert,	//Nearly exact, but via template. Loses to exactness of other kinds
+
 		TypeDefined,
 		VarDefined,//This is the conversion to implicit derives such as var, that next to everything has. Better than a conversion, but implicit in nature.
 		ImplDefined,

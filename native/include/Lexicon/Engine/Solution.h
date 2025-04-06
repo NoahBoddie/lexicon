@@ -11,7 +11,7 @@
 #include "Lexicon/Qualifier.h"
 
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 
 namespace LEX
 {

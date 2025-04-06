@@ -115,7 +115,7 @@ namespace LEX
 
 
 		//This needs some form of conversion result.
-		ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			if (AsAbstract() == other) {
 				return ConvertResult::Exact;
@@ -275,9 +275,9 @@ namespace LEX
 		DataType GetDataType() const override { return TypeBase::GetDataType(); }
 
 
-		ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 		{
-			return TypeBase::IsConvertibleTo(other, scope, out, flags);
+			return TypeBase::GetConvertTo(other, scope, out, flags);
 		}
 
 

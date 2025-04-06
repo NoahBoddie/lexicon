@@ -27,6 +27,26 @@ namespace LEX
 			report::info("NewBodyPart {}", (uintptr_t)this);
 		}
 
+
+		std::vector<TemplateType*> GetTemplateInputs() override
+		{
+			if (GetState() == State::kBody) {
+				return {};
+			}
+			
+			auto ts = types();
+			
+			std::vector<TemplateType*> result{};
+
+			result.reserve(ts.size());
+
+			for (auto type : types()){
+				result.append_range(type->GetTemplateInputs());
+			}
+			
+			return result;
+		}
+
 		//TODO: The below part about itself seems to maybe be possible to template away. If there's merit I'll do it. 
 		// For now, boilerplate. If it's not interface do it later
 		AbstractType* GetSelf()
@@ -86,7 +106,6 @@ namespace LEX
 
 			return special;
 		}
-
-
+		
 	};
 }

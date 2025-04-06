@@ -5,7 +5,7 @@
 #include "ParameterInfo.h"
 //Should have parameterinfos?
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 
 #include "Lexicon/Engine/OverloadFlag.h"
 
@@ -137,16 +137,6 @@ namespace LEX
 		ParameterInfo* FindParameterByPos(size_t index)
 		{
 			if (index == -1) {
-				return _thisInfo.get();
-			}
-
-			return std::addressof(parameters.at(index));
-		}
-
-
-		ParameterInfo* FindParameterByIndex(size_t index)
-		{
-			if (!index--) {
 				return _thisInfo.get();
 			}
 

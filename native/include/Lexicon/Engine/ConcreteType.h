@@ -124,9 +124,9 @@ namespace LEX
 
 		//TODO: This needs to be able to convert to bool, as most types should be capable of such a feat.
 		// but I'll need to make something for each type
-		ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 		{
-			return __super::IsConvertibleTo(other, scope, out, flags);
+			return __super::GetConvertTo(other, scope, out, flags);
 		}
 
 

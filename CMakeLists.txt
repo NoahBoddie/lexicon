@@ -148,6 +148,9 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/IssueTable.h"
 		"native/include/Lexicon/Engine/SpecialType.h"
 		"native/include/Lexicon/Engine/AbstractType.h"
+		native/include/Lexicon/Engine/QualifiedType.h
+		"native/include/Lexicon/Engine/Field.h"
+
 	)
 		
 
@@ -206,6 +209,8 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/IScriptImpl.cpp"
 		"native/src/Lexicon/Engine/TargetObject.cpp"
 		"native/src/Lexicon/Engine/SpecialBase.cpp"
+		native/src/Lexicon/Engine/QualifiedType.cpp
+		"native/src/Lexicon/Engine/Field.cpp"
 		)
 else()
 	set (master_headers )
@@ -218,15 +223,15 @@ set(headers
 	include/Lexicon/Formula.h
 	include/Lexicon/AbstractFunction.h
 	include/Lexicon/Type.h
-	include/Lexicon/AccessModifier.h
+	
 	include/Lexicon/Array.h
 	include/Lexicon/Conversion.h
 	include/Lexicon/DataType.h
-	include/Lexicon/DeclareSpecifier.h
+	"include/Lexicon/Specifier.h"
 	include/Lexicon/Default.h
 	include/Lexicon/Dispatcher.h
 	include/Lexicon/Exception.h
-	include/Lexicon/Field.h
+	
 	include/Lexicon/ICallableUnit.h
 	include/Lexicon/IFunction.h
 	
@@ -244,7 +249,6 @@ set(headers
 	include/Lexicon/ObjectPolicyHandle.h
 	"include/Lexicon/Interfaces/ObjectPolicyManager.h"
 	include/Lexicon/ObjectPoolData.h
-	include/Lexicon/QualifiedType.h
 	include/Lexicon/Qualifier.h
 	include/Lexicon/Report.h
 	include/Lexicon/RuntimeVariable.h
@@ -289,19 +293,19 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h")
 
 
 set(sources
 	src/Lexicon/Type.cpp
 	src/Lexicon/Dispatcher.cpp
 
-	src/Lexicon/Field.cpp
+	
 	src/Lexicon/ICallableUnit.cpp
 	src/Lexicon/IType.cpp
 	src/Lexicon/ObjectPolicy.cpp
 	src/Lexicon/ObjectPolicyHandle.cpp
-	src/Lexicon/QualifiedType.cpp
+	
 	src/Lexicon/TypeID.cpp
 	src/Lexicon/Variable.cpp
 	src/Lexicon/VariableType.cpp

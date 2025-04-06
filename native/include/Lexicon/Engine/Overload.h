@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 #include "Lexicon/Engine/OverloadEntry.h"
 #include "Lexicon/Engine/OverloadFlag.h"
 //*src

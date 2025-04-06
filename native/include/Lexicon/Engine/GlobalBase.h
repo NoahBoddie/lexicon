@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lexicon/IGlobal.h"
+#include "Lexicon/Engine/Field.h"
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/RoutineBase.h"
 #include "Lexicon/Engine/Declaration.h"
@@ -30,7 +31,7 @@ namespace LEX
 
 	
 
-	struct GlobalBase : public virtual IGlobal, public SecondaryElement, public GlobalData_
+	struct GlobalBase : public virtual IGlobal, public SecondaryElement, public GlobalData_, public Field
 	{
 	public:
 

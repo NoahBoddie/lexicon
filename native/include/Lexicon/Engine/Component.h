@@ -9,7 +9,6 @@
 
 namespace LEX
 {
-	class RoutineArgument;
 	class Component;
 	
 	ENUM(ComponentFlag, uint8_t)

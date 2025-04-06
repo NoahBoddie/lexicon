@@ -4,6 +4,8 @@
 
 namespace LEX
 {
+	//TODO: Member pointer should PORBABLY be engine. Also, I'd like to use bitfields to allow for a virtual mode and non-virtual mode.
+	// Maybe will use unions to help with that
 	struct MemberPointer
 	{
 		//May remake, instead using member or method info in order to handle this sort of thing.

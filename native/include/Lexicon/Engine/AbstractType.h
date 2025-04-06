@@ -23,7 +23,7 @@ namespace LEX
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.
 		virtual HierarchyData* GetHierarchyData() const = 0;
 
-		virtual TemplateType* AsTemplate() { return nullptr; }
+		virtual std::vector<TemplateType*> GetTemplateInputs() { return {}; }
 
 		//TODO: Allow TypeRuleset to be a pure virtual. I need to chase down where they should be used.
 		//virtual TypeRuleset GetRuleset() const = 0;
@@ -32,6 +32,49 @@ namespace LEX
 			return TypeRuleset::None;
 		}
 
+
+		bool CanConvert(const BasicType* other) const override final
+		{
+			return IsConvertibleTo(other, this, nullptr, ConversionFlag::IgnoreAccess) > ConvertResult::Failure;
+		}
+
+		//GetConvertTo
+		//GetConvertFrom
+		virtual ConvertResult GetConvertTo(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		{
+			if (this == rhs)
+				return ConvertResult::Exact;
+
+			return ConvertResult::Ineligible;
+		}
+
+		virtual ConvertResult GetConvertFrom(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		{
+			return ConvertResult::Ineligible;
+		}
+
+
+		//Scope should be an environment that turns itself into an IType.
+		ConvertResult IsConvertibleTo(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		{
+			auto result = GetConvertTo(rhs, scope, out, flags);
+
+			if (result <= ConvertResult::Failure) {
+				auto buff = rhs->GetConvertFrom(this, scope, out, flags);
+
+				if (buff > ConvertResult::Failure) {
+					result = buff;
+				}
+			}
+
+			return result;
+		}
+
+		ConvertResult IsConvertibleTo(const AbstractType* rhs, const AbstractType* scope, Conversion& out, ConversionFlag flags = ConversionFlag::None) const
+		{
+			//TODO: this is going to be hidden once specialized, so rename this and make the main version a pivot
+			return IsConvertibleTo(rhs, scope, &out, flags);
+		}
 
 		bool CheckRuleset(TypeRuleset rule) const
 		{

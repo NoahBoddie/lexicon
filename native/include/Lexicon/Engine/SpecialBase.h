@@ -171,6 +171,11 @@ namespace LEX
 		}
 
 
+		std::span<AbstractType* const> types() const
+		{
+			return _types;
+		}
+
 
 
 

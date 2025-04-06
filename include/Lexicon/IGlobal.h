@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Lexicon/Field.h"
 #include "Lexicon/ISpecial.h"
 
 
@@ -13,7 +12,7 @@ namespace LEX
 	struct AbstractGlobal;
 
 
-	struct IGlobal : public ISpecial, public Field
+	struct IGlobal : public ISpecial
 	{
 
 	virtual IGlobal* CheckGlobal(GenericBase* base, ITemplatePart* args) { return this; };

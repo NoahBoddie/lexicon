@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Impl/ref_wrapper.h"
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/AnnotatedType.h"
 
 namespace LEX
 {
@@ -19,10 +19,10 @@ namespace LEX
 
 		//This doesn't use a vtable, just increases the size slightly to ensure that it's not using features
 		// it doesn't have. Due to the structural nature of this object it is unlikely that I'll use a vtable.
-		QualifiedType result;
-		QualifiedType target;
+		AnnotatedType result;
+		AnnotatedType target;
 
-		std::vector<QualifiedType> parameters;
+		std::vector<AnnotatedType> parameters;
 
 		//Ideally, you'd place access functions that would check the offset of the queried type before accessing,
 		// incase the pointer to the other signature isn't that large.
@@ -59,7 +59,7 @@ namespace LEX
 			using _Pointless = std::remove_pointer_t<E>;
 			using _Naked = std::remove_pointer_t<_Pointless>;//Might be better to get the underlying value of the thing.
 			
-			QualifiedType& entry = T == SignatureEnum::Result ?
+			AnnotatedType& entry = T == SignatureEnum::Result ?
 				result : T == SignatureEnum::Target ?
 				target : parameters.emplace_back();
 
@@ -144,15 +144,15 @@ namespace LEX
 				SignatureBase* base() { return this; }
 				const SignatureBase* base() const { return this; }
 
-				virtual QualifiedType PULL_FROM_SIG(result);
-				virtual QualifiedType PULL_FROM_SIG(target);
-				virtual std::span<const QualifiedType> PULL_FROM_SIG(parameters);
+				virtual AnnotatedType PULL_FROM_SIG(result);
+				virtual AnnotatedType PULL_FROM_SIG(target);
+				virtual std::span<const AnnotatedType> PULL_FROM_SIG(parameters);
 
 			public:
 
-				QualifiedType GET_FROM_SIG(result);
-				QualifiedType GET_FROM_SIG(target);
-				std::vector<QualifiedType> GET_COLL_SIG(parameters);
+				AnnotatedType GET_FROM_SIG(result);
+				AnnotatedType GET_FROM_SIG(target);
+				std::vector<AnnotatedType> GET_COLL_SIG(parameters);
 			};
 
 		}

@@ -43,7 +43,7 @@ namespace LEX
 
 		Type* GetTypePolicy(ITemplateBody* args) override;
 
-		virtual TemplateType* AsTemplate() { return this; }
+		std::vector<TemplateType*> GetTemplateInputs() override { return { this }; }
 
 		virtual bool IsResolved() const { return false; }
 
@@ -54,6 +54,32 @@ namespace LEX
 
 
 		virtual std::string_view GetName() const { return name; }
+
+
+		//static_assert(false, "I need a IsConvertibleFrom, which means I need a conversion function that isn't virtual.");
+		ConvertResult GetConvertFrom(const BasicType* other, const BasicType* scope, Conversion* = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		{
+			auto result = __super::GetConvertFrom(other, scope, nullptr, flags);
+
+			if (flags & ConversionFlag::Template && result <= ConvertResult::Failure)
+			{
+				for (auto& inherit : inheritance)
+				{
+					if (other->IsConvertibleTo(inherit.type, scope) != ConvertResult::TypeDefined) {
+						return ConvertResult::Ineligible;
+					}
+				}
+
+				result = ConvertResult::TempConvert;
+			}
+
+			return result;
+
+		}
+	
+		//I want one able to handle possible tuple typing which doesn't currently exist.
+		//bool CanSpecializeTo(TemplateType* other) const;
+		
 
 
 		HierarchyData* GetHierarchyData() const override

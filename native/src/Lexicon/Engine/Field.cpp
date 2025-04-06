@@ -1,6 +1,6 @@
-#include "Lexicon/Field.h"
+#include "Lexicon/Engine/Field.h"
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 namespace LEX
 {
 	QualifiedType Field::GetQualifiedType() const

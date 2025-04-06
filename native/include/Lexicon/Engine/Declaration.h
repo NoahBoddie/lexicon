@@ -2,9 +2,9 @@
 
 //#include "BasicQualifier.h"
 //#include "RuntimeQualifier.h"
-#include "Lexicon/DeclareSpecifier.h"
+#include "Lexicon/Specifier.h"
 #include "Lexicon/Engine/HeaderSettings.h"
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 
 //*src
 #include "Lexicon/Engine/Environment.h"

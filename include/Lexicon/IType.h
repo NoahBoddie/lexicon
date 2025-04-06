@@ -45,7 +45,8 @@ namespace LEX
 		Return = 1 << 1,
 		Parameter = 1 << 2,
 		Initialize = 1 << 3,
-		IgnoreAccess = 1 << 4,
+		Template = 1 << 4,
+		IgnoreAccess = 1 << 5,
 	};
 
 
@@ -109,28 +110,9 @@ namespace LEX
 			return this ? GetTypeID() : TypeID{ 0 };
 		}
 
+		virtual bool CanConvert(const BasicType* other) const = 0;
 
-		//Scope should be an environment that turns itself into an IType.
-		virtual ConvertResult IsConvertibleTo(const BasicType* rhs, const BasicType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
-		{
-			//The function to tell if this is convertiable to the rhs. the out function is the required conversion
-			// function. Unsure about what type to use right now, so it's void and defaulted to nothig.
 
-			//We use a callableunit now, things like numeric with underlying conversions can just handle the conversions, 
-			// similarly strings can do the same
-
-			if (this == (IType*)rhs)
-				return ConvertResult::Exact;
-
-			return ConvertResult::Ineligible;
-
-		}
-
-		ConvertResult IsConvertibleTo(const BasicType* rhs, const BasicType* scope, Conversion& out, ConversionFlag flags = ConversionFlag::None) const
-		{
-			//TODO: this is going to be hidden once specialized, so rename this and make the main version a pivot
-			return IsConvertibleTo(rhs, scope, &out, flags);
-		}
 		//Make some safe functions for these.
 
 

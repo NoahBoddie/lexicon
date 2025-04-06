@@ -52,6 +52,7 @@ namespace LEX
 		{
 			auto client = args->GetClient();
 
+
 			auto result = client->FindPart(this, args);
 
 			if (!result) {
@@ -140,6 +141,26 @@ namespace LEX
 
 		//I'm unsure if this would even bee needed honestly.
 		//void ResolveIncomplete(IGenericArgument*) {}
+
+		TemplateType* GetTemplateAt(size_t i)
+		{
+			return &_templates[i];
+		}
+
+
+		TemplateType* GetTemplateByName(std::string_view name)
+		{
+			for (auto& temp_type : _templates)
+			{
+				if (temp_type.name == name) {
+					return &temp_type;
+				}
+			}
+
+			return nullptr;
+		}
+
+
 
 		const std::vector<TemplateType>& templates() const
 		{

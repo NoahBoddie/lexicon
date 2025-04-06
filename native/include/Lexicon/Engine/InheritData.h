@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/AccessModifier.h"
+#include "Lexicon/Specifier.h"
 
 namespace LEX
 {

@@ -1852,14 +1852,14 @@ namespace LEX
 		{
 			using ConcreteType::ConcreteType;
 
-			ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+			ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
 
 				static StrConvert converter{};
 
-				ConvertResult result = __super::IsConvertibleTo(other, scope, out, flags);
+				ConvertResult result = __super::GetConvertTo(other, scope, out, flags);
 
 
 				if (out && result <= ConvertResult::Failure)
@@ -1886,12 +1886,12 @@ namespace LEX
 			//please, make this with a setting attached.
 
 
-			ConvertResult IsConvertibleTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+			ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
 
-				ConvertResult result = __super::IsConvertibleTo(other, scope, out, flags);
+				ConvertResult result = __super::GetConvertTo(other, scope, out, flags);
 				
 				
 				
