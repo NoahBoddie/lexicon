@@ -32,7 +32,10 @@ namespace LEX
 		return nullptr;
 	}
 
-
+	bool TargetObject::IsValid() const
+	{
+		return this && target && target->policy;
+	}
 
 	bool TargetObject::IsResolved() const
 	{

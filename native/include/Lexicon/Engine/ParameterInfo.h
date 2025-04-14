@@ -7,11 +7,12 @@
 
 namespace LEX
 {
+	
 	ENUM (ParameterFlag, uint8_t)
 	{
 		None,
-		Default = 1 << 0,
-		Params = 1 << 1,
+		Params = 1 << 0,
+		Default = 1 << 1,
 	};
 
 	class ParameterInfo : public LocalInfo
@@ -20,7 +21,10 @@ namespace LEX
 		
 
 
-		ParameterInfo(QualifiedType t, std::string n, uint32_t i) : LocalInfo{ t, i }, _name { n }
+		ParameterInfo(QualifiedType t, std::string n, uint32_t i, ParameterFlag flags = ParameterFlag::None) :
+			LocalInfo{ t, i },
+			_name{ n },
+			_flags{ flags }
 		{
 		}
 
@@ -43,13 +47,13 @@ namespace LEX
 
 		bool IsOptional() const
 		{
-			return flags & ParameterFlag::Default || flags & ParameterFlag::Params;
+			return _flags & ParameterFlag::Default || _flags & ParameterFlag::Params;
 		}
 
 	protected:
 		std::string _name;
-		ParameterFlag flags{};
-		RoutineBase* defFunc = nullptr;
+		ParameterFlag _flags{};
+		std::unique_ptr<RoutineBase> defFunc{};
 	};
 
 }

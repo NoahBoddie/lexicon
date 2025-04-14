@@ -72,8 +72,11 @@ namespace LEX
 	
 	ENUM (QualifierFlag, int8_t)
 	{
-		//Please note QualifierFlags aren't to be observed in an official capacity, they're mostly used for compiling.
+		//Please note QualifierFlags aren't to be observed in an official capacity, they're mostly used for compiling. They also may be subject to change.
 		None = 0,
+
+#ifdef LEX_SOURCE
+		
 		//Initialized,		//Used when a value can be initialized. Think for out and in
 		//Open,				//The idea would be the reference can now be reassigned
 		//ExactRef,			//A flag that would exist to say "this type cannot be promoted". Assigned if a reference has roughly the same ref as it's expression
@@ -81,7 +84,9 @@ namespace LEX
 		//ReadOnly,			//Would be used for in
 		//WriteOnly,		//Would be used for out
 		Promoted = 1 << 4,	//Flag to denote promoted refs. Promoted refs cannot be used in any space other than loading, but can be converted into a bool
+
 		All = -1,
+#endif
 	};
 
 

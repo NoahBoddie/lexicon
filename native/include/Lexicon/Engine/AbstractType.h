@@ -25,6 +25,11 @@ namespace LEX
 
 		virtual std::vector<TemplateType*> GetTemplateInputs() { return {}; }
 
+		virtual TemplateType* AsTemplate()
+		{
+			return nullptr;
+		}
+
 		//TODO: Allow TypeRuleset to be a pure virtual. I need to chase down where they should be used.
 		//virtual TypeRuleset GetRuleset() const = 0;
 		virtual TypeRuleset GetRuleset() const

@@ -42,10 +42,7 @@ namespace LEX
 
 
 
-		bool IsValid() const
-		{
-			return this && target;
-		}
+		bool IsValid() const;
 
 		bool IsResolved() const override;
 

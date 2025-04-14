@@ -527,6 +527,8 @@ int main(int argc, char** argv) {
 
     Initializer::Execute();
 
+
+    LEX::NewOverloadV2::RunGenericTest();
     //GetTest<int64_t>();
     //LEX::Report<LEX::IssueType::Compile>::debug("The numbers {} and {} are {}", 69, 420, "nice");
     //std::system("pause");

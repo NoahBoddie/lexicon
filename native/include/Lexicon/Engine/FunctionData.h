@@ -163,7 +163,7 @@ namespace LEX
 
 		
 		size_t defaultIndex = (size_t)-1;  //max_value<size_t>;//basically whenever the defaults start.
-		
+		size_t paramsIndex = (size_t)-1;
 		//
 		Procedure _procedure = nullptr;
 
@@ -186,6 +186,28 @@ namespace LEX
 			return _name;
 		}
 	public:
+
+
+		size_t GetArgCountReq()
+		{
+			if (defaultIndex != -1)
+				return defaultIndex;
+
+			return GetArgCount();
+		}
+		size_t GetArgCountMax()
+		{
+			if (paramsIndex != -1)
+				return -1;
+
+			return GetArgCount();
+		}
+
+
+		std::array<size_t, 2> GetArgRange()
+		{
+			return { GetArgCountReq(), GetArgCountMax() };
+		}
 
 
 

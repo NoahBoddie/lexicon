@@ -43,6 +43,8 @@ namespace LEX
 
 		Type* GetTypePolicy(ITemplateBody* args) override;
 
+
+		TemplateType* AsTemplate() override { return this; }
 		std::vector<TemplateType*> GetTemplateInputs() override { return { this }; }
 
 		virtual bool IsResolved() const { return false; }
@@ -63,6 +65,7 @@ namespace LEX
 
 			if (flags & ConversionFlag::Template && result <= ConvertResult::Failure)
 			{
+				//If this inherits nothing it literally cannot be used for anything
 				for (auto& inherit : inheritance)
 				{
 					if (other->IsConvertibleTo(inherit.type, scope) != ConvertResult::TypeDefined) {
