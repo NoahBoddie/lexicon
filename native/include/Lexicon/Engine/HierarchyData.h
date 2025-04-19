@@ -18,7 +18,7 @@ namespace LEX
 		//FakeType will become a part of something called Hierarchy data. TypeBases have this, but so do Specializations of generic types.
 
 		//Id like it if in a test of ambiguity this always wins, but that might not be possible in this set up.
-		AbstractType* _extends;//Deprecated* extends = nullptr;
+		AbstractType* _extends = nullptr;//Deprecated* extends = nullptr;
 
 		std::vector<InheritData> inheritance;
 

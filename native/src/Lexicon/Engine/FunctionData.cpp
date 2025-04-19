@@ -78,26 +78,26 @@ namespace LEX
 
 			result.convertType = convertType;
 
-			if (convertType <= ConvertResult::Failure)
+			if (convertType <= ConversionEnum::Failure)
 			{
 				flags |= OverloadFlag::Failure;
 				return result;
 			}
 
 
-			//result.convertType = ConvertResult::TypeDefined;
+			//result.convertType = ConversionEnum::TypeDefined;
 			result.index = subject->GetFieldIndex();
 			result.type = sub_type;
 		}
 		else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
 		{
 			//This bit will need to change, as you may be able to access static functions from a member function.
-			result.convertType = ConvertResult::Exact;
+			result.convertType = ConversionEnum::Exact;
 			result.index = -1;
 		}
 		else
 		{
-			result.convertType = ConvertResult::Ineligible;
+			result.convertType = ConversionResult::Ineligible;
 			result.index = -1;
 		}
 

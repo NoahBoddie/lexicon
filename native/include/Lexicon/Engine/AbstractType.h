@@ -40,7 +40,7 @@ namespace LEX
 
 		bool CanConvert(const BasicType* other) const override final
 		{
-			return IsConvertibleTo(other, this, nullptr, ConversionFlag::IgnoreAccess) > ConvertResult::Failure;
+			return IsConvertibleTo(other, this, nullptr, ConversionFlag::IgnoreAccess);
 		}
 
 		//GetConvertTo
@@ -48,15 +48,18 @@ namespace LEX
 		virtual ConvertResult GetConvertTo(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			if (this == rhs)
-				return ConvertResult::Exact;
+				return ConversionEnum::Exact;
 
-			return ConvertResult::Ineligible;
+			return ConversionResult::Ineligible;
 		}
 
 		virtual ConvertResult GetConvertFrom(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
-			return ConvertResult::Ineligible;
+			return ConversionResult::Ineligible;
 		}
+
+		bool Convert(const Variable& from, Variable& to, const BasicType* to_type) const override final;
+
 
 
 		//Scope should be an environment that turns itself into an IType.
@@ -64,10 +67,10 @@ namespace LEX
 		{
 			auto result = GetConvertTo(rhs, scope, out, flags);
 
-			if (result <= ConvertResult::Failure) {
+			if (!result) {
 				auto buff = rhs->GetConvertFrom(this, scope, out, flags);
 
-				if (buff > ConvertResult::Failure) {
+				if (buff) {
 					result = buff;
 				}
 			}

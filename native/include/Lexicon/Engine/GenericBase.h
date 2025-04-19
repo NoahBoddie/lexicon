@@ -124,7 +124,7 @@ namespace LEX
 				{//For now it accepts all, so no real reason to do this.
 					auto conv = arg->IsConvertibleTo(_param, scope, nullptr);
 
-					if (conv <= ConvertResult::Failure) {
+					if (conv <= ConversionEnum::Failure) {
 						return false;
 					}
 				}

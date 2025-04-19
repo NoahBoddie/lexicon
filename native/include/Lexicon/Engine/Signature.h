@@ -56,7 +56,7 @@ namespace LEX
 
 			OverloadEntry tar = clause->MatchSuggestedEntry(target, nullptr, -1, -1, flag);
 
-			if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
+			if (flag & OverloadFlag::Failure || tar.convertType != ConversionEnum::Exact)
 				return MatchFailure(a_flag);
 
 			overload.target = tar.type;
@@ -71,7 +71,7 @@ namespace LEX
 
 				OverloadEntry entry = clause->MatchSuggestedEntry(input, nullptr, offset_placeholder, i, flag);
 
-				if (flag & OverloadFlag::Failure || tar.convertType != ConvertResult::Exact)
+				if (flag & OverloadFlag::Failure || tar.convertType != ConversionEnum::Exact)
 					return MatchFailure(a_flag);
 
 				//entry.funcs = conversion;

@@ -603,6 +603,7 @@ namespace LEX
         
         //Resolves a variable to be like another variable. If they aren't directly convertible, conversions
         // may be detected and used.
+        [[deprecated("Should merge with Convert, making it use the bool returning one instead.")]]
         bool Resolve(Type* policy)
         {
             //If resolution fails, it returns false and nullfies the variable.
@@ -611,7 +612,7 @@ namespace LEX
 
             Conversion out;
 
-            if (auto result = Policy()->IsConvertibleTo(policy, policy, out); result <= ConvertResult::Failure) {
+            if (auto result = Policy()->IsConvertibleTo(policy, policy, out); !result) {
                 Clear();
             }
             else if (out) {
@@ -641,7 +642,7 @@ namespace LEX
                 return;
 
             //Conversion must be a type conversion.
-            if (other->IsConvertibleTo(_type, nullptr) <= ConvertResult::Failure)
+            if (other->IsConvertibleTo(_type, nullptr)  == false)
                 report::runtime::error("No type conversion between types {} and {}.", other->GetName(), _type->GetName());
         }
 

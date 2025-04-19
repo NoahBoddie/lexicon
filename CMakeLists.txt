@@ -211,6 +211,8 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/SpecialBase.cpp"
 		native/src/Lexicon/Engine/QualifiedType.cpp
 		"native/src/Lexicon/Engine/Field.cpp"
+		"native/src/Lexicon/Engine/AbstractType.cpp"
+		"src/Lexicon/Conversion.cpp"
 		)
 else()
 	set (master_headers )
@@ -318,7 +320,7 @@ set(sources
 	"src/Lexicon/Object.cpp"
 	"src/Lexicon/Impl/PCH.cpp"
 	${master_sources}
-	)
+	 )
 
 
 

@@ -6,28 +6,15 @@ namespace LEX
 {
     RuntimeVariable Variable::Convert(Type* to)
     {
-        Conversion convert;
-
+        //TODO: Needs cleaning.
         Type* from = Policy();
-
-        bool success = from && from->IsConvertibleTo(to, to, convert, ConversionFlag::Explicit) > convertFailure;
-        
-        if (success)
+        Variable result{};
+        if (from)
         {
-            return *this;
-
-            //TODO:I want IFunction to have a convert function here, where I can call upon convert for this.
-            /*
-            if (convert) {
-                return convert(*this);
-            }
-            else {
-                return *this;
-            }
-            //*/
+            from->Convert(*this, result, to);
         }
 
-        return {};
+        return result;
     }
     
     Type* Variable::CheckVariableType() const

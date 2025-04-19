@@ -200,6 +200,7 @@ namespace LEX
 			};
 		};
 	}
+#undef CONSEAL
 
 
 	struct IMPL_VERSION(Base)
@@ -754,7 +755,6 @@ namespace LEX
 
 
 
-
 	
 	struct MergeTemplate : public ITemplateBodyPart
 	{//While this is an ITemplateBody, it should always be passed around as a part.
@@ -810,6 +810,186 @@ namespace LEX
 
 		
 	};
+
+	namespace VTABLE_meta
+	{
+
+		using ReflectOffset = uint16_t;
+		//The internal type of the thing
+
+		enum struct Reflect
+		{
+			//The category name is Reflect_ + enum_name
+			None, 
+			Type,
+			//Field,
+
+			Unknown,
+
+			Total = Unknown,
+		};
+
+
+		struct Reflection 
+		{
+			static Type* GetVariableType(const Reflection* reflect)
+			{
+				Reflect type;
+				size_t offset;
+
+				if (reflect)
+				{
+					type = reflect->GetReflect();
+					offset = reflect->GetReflectOffset();
+				}
+				else
+				{
+					type = Reflect::None;
+					offset = 0;
+				}
+
+				auto result = IdentityManager::instance->GetTypeByOffset(std::format("REFLECT_{}", magic_enum::enum_name(type)), offset);
+
+				if (!result) {
+					report::error("'REFLECT_{}' at offset {} is empty.", magic_enum::enum_name(type), offset);
+				}
+
+				return result->GetTypePolicy(nullptr);
+
+			}
+
+
+			virtual Reflect GetReflect() const = 0;
+			virtual size_t GetReflectOffset() const = 0;
+			virtual bool IsValidOffset(size_t offset) const
+			{
+				//This can be used for abstract types that may not update right.
+				return GetReflectOffset() == offset;
+			}
+
+
+			//bool IsValidOffset(auto offset) const requires (std::is_enum_v<decltype(offset)>)
+			//{
+			//	IsValidOffset(static_cast<size_t>(offset));
+			//}
+
+
+
+			template<std::derived_from<Reflection> T>
+			std::add_pointer_t<T> As(Reflect refl, size_t offset = 0)
+			{
+				//This will turn into the meta type. Then, it will be able to be cast into the given type
+				// as long as the offsets match
+
+				if (!this || GetReflect() != refl || IsValidOffset(offset) == false)
+					return nullptr;
+
+				return static_cast<std::add_pointer_t<T>>(this);
+			}
+
+			template<std::derived_from<Reflection> T, typename TEnum> requires (std::is_enum_v<TEnum>)
+				std::add_pointer_t<T> As(Reflect refl, TEnum offset)
+			{
+				return As<T>(refl, static_cast<size_t>(offset));
+			}
+		};
+
+
+
+
+
+
+
+
+		template <Reflect TReflect>
+		struct MetaType : public Reflection
+		{
+			static constexpr Reflect REFLECT_ENUM = TReflect;
+
+
+
+			Reflect GetReflect() const override final
+			{
+				return REFLECT_ENUM;
+			}
+
+			size_t GetReflectOffset() const override
+			{
+				return 0;
+			}
+		};
+
+		struct TestRefl : public MetaType<Reflect::Type>
+		{
+
+		};
+
+		void ObjTest()
+		{
+			TestRefl test1{};
+
+			Reflection* reflect = &test1;
+
+			auto test2 = reflect->As<TestRefl>(Reflect::Type, 0);
+			
+			logger::info("A: {} v B: {}", (uintptr_t)&test1, (uintptr_t)test2);
+
+			std::system("pause");
+		}
+		
+	}
+
+	inline void ObjTest()
+	{
+		VTABLE_meta::ObjTest();
+		/*
+		constexpr bool is_test = detail::meta_type<MetaType<TestPtr, Reflect::Unknown>>;
+		constexpr bool is_test2 = std::is_same_v<TestPtr, TestPtr::META_TYPE>;
+		static_assert(is_test2);
+		Reflection test1{};
+
+		test1.data<TestPtr>();
+		auto test_p = test1.As<ImplPtr>();
+	
+		TestPtr ptr;
+		const TestPtr* ptr2 = &ptr;
+		using VValue = std::variant
+			<
+			//Types that will not need to exist coming soon:
+			// prompt, Index,
+			Void,						    //Void given form. Invalidates all other types.
+			Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
+			String,
+			Object,
+			Reflection
+			>;
+		//Reflection test1 = ptr;
+		Reflection test2 = ptr2;
+
+		auto result = test2.As<TestPtr>();
+
+		IType* the_type = nullptr;
+
+		test2.Set< TestPtr::META_TYPE>(nullptr);
+		;
+		GetVariableType<IType>();
+		GetVariableType<AbstractType>();
+		//VValue testVar = the_type;
+		VValue testVar2 = ptr2;
+
+		logger::info("*** = {}", !!result);
+		std::system("pause");
+		//constexpr bool test = use_variable_type<TestPtr>;
+		int i = 1;
+		
+		//test.
+
+	//*/
+	}
+
+
+
+
 #define NEW_OVERLOAD
 #ifdef NEW_OVERLOAD
 #undef NEW_OVERLOAD
@@ -819,14 +999,14 @@ namespace LEX
 
 
 
-		struct OverloadEntry
+		struct OverloadEntry 
 		{
 			//I'd care about the padding and stuff here but its so small I do not care.
 
 			QualifiedType type;
 			Conversion convert;
 			OverloadCode code;
-			ConvertResult convertType = ConvertResult::Ineligible;
+			ConvertResult convertType = ConversionResult::Ineligible;
 			size_t index;//The guide of where to put the given entries routine information.
 
 			RoutineBase* routine = nullptr;
@@ -992,7 +1172,7 @@ namespace LEX
 								Conversion convert;
 								auto result = type->IsConvertibleTo(slot.first, scope, convert);
 
-								if (result <= ConvertResult::Failure) {
+								if (result <= ConversionEnum::Failure) {
 									return false;
 								}
 
@@ -1011,7 +1191,7 @@ namespace LEX
 								Conversion convert;
 								auto result = type->IsConvertibleTo(slot.first, scope, convert);
 
-								if (result <= ConvertResult::Failure) {
+								if (result <= ConversionEnum::Failure) {
 									return false;
 								}
 
@@ -1159,8 +1339,8 @@ namespace LEX
 
 		//I want temp match to lose to everything but a conversion.
 
-				bool prev_pure = tar.convertType >= ConvertResult::Exact && tar.convertType < ConvertResult::Transformative;
-				bool curr_pure = entry.convertType >= ConvertResult::Exact && entry.convertType < ConvertResult::Transformative;
+				bool prev_pure = tar.convertType >= ConversionEnum::Exact && tar.convertType < ConversionEnum::Transformative;
+				bool curr_pure = entry.convertType >= ConversionEnum::Exact && entry.convertType < ConversionEnum::Transformative;
 
 
 				if (!prev_pure && curr_pure)
@@ -1197,9 +1377,9 @@ namespace LEX
 				return 0;
 
 				//Qualified conversions have already played out by this point.
-				//if (target.IsConvertToQualified(other, scope) > ConvertResult::Failure)
+				//if (target.IsConvertToQualified(other, scope) > ConversionEnum::Failure)
 				//	return -1;
-				//else if (other.IsConvertToQualified(target, scope) > ConvertResult::Failure)
+				//else if (other.IsConvertToQualified(target, scope) > ConversionEnum::Failure)
 				//	return 1;
 
 				return 0;
@@ -1621,25 +1801,25 @@ namespace LEX
 
 					out.convertType = convertType;
 
-					if (convertType <= ConvertResult::Failure) {
+					if (convertType <= ConversionEnum::Failure) {
 						return false;
 					}
 
 
-					//out.convertType = ConvertResult::TypeDefined;
+					//out.convertType = ConversionEnum::TypeDefined;
 					out.index = subject->GetFieldIndex();
 					out.type = sub_type;
 				}
 				else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
 				{
 					//This bit will need to change, as you may be able to access static functions from a member function.
-					out.convertType = ConvertResult::Exact;
+					out.convertType = ConversionEnum::Exact;
 					out.index = -1;
 				}
 				else
 				{
 
-					out.convertType = ConvertResult::Ineligible;
+					out.convertType = ConversionResult::Ineligible;
 					out.index = -1;
 					return false;
 				}
@@ -1703,7 +1883,7 @@ namespace LEX
 					out.index = subject->GetFieldIndex();
 					out.type = sub_type;
 
-					if (convertType <= ConvertResult::Failure) {
+					if (convertType <= ConversionEnum::Failure) {
 						return false;
 					}
 
@@ -1711,7 +1891,7 @@ namespace LEX
 				else
 				{
 
-					out.convertType = ConvertResult::Ineligible;
+					out.convertType = ConversionResult::Ineligible;
 					out.index = subject->GetFieldIndex();
 					return false;
 				}
@@ -1752,19 +1932,19 @@ namespace LEX
 
 					out.convertType = convertType;
 
-					if (convertType <= ConvertResult::Failure) {
+					if (convertType <= ConversionEnum::Failure) {
 						return false;
 					}
 
 
-					//out.convertType = ConvertResult::TypeDefined;
+					//out.convertType = ConversionEnum::TypeDefined;
 					out.index = subject->index;
 					out.type = QualifiedType{ subject };
 				}
 				else
 				{
 
-					out.convertType = ConvertResult::Ineligible;
+					out.convertType = ConversionResult::Ineligible;
 					out.index = -1;
 					return false;
 				}
@@ -1801,19 +1981,19 @@ namespace LEX
 
 					out.convertType = convertType;
 
-					if (convertType <= ConvertResult::Failure) {
+					if (convertType <= ConversionEnum::Failure) {
 						return false;
 					}
 
 
-					//out.convertType = ConvertResult::TypeDefined;
+					//out.convertType = ConversionEnum::TypeDefined;
 					out.index = subject->index;
 					out.type = QualifiedType{ subject };
 				}
 				else
 				{
 
-					out.convertType = ConvertResult::Ineligible;
+					out.convertType = ConversionResult::Ineligible;
 					out.index = -1;
 					return false;
 				}
@@ -1845,7 +2025,7 @@ namespace LEX
 					RoutineBase* def_routine = nullptr;
 					
 					entry.routine = def_routine;
-					entry.convertType = ConvertResult::Exact;
+					entry.convertType = ConversionEnum::Exact;
 					entry.type = param.GetQualifiedType();
 					entry.index = param.GetFieldIndex();
 				}
@@ -1949,153 +2129,6 @@ namespace LEX
 	}
 #endif
 
-	struct NewConvertResult
-	{
-		enum Enum
-		{
-			None_Type = -15,
-			None_Ref,
-			None_Const,
-
-			Type_Ref,
-			Type_None,
-			Type_Type,
-			Type_Const,
-
-			Ref_Ref,
-			Ref_None,
-			Ref_Type,
-			Ref_Const,
-
-			Const_Ref,
-			Const_None,
-			Const_Type,
-			Const_Const,
-			//Might rearrange these to be greater
-			Exact = 0,
-			RefConvert,
-			ConstConvert,
-			TempConvert,	//Nearly exact, but via template. Loses to exactness of other kinds
-			TypeDefined,
-
-			ImplDefined,
-			UserDefined,
-			UserToImplDefined,
-
-			Failure = -1,
-			Transformative = ImplDefined,//Anything equal or greater than transformative is not valid to be used against something under said value.
-		};
-
-
-		Enum result = Failure;
-
-		//I'll make common versions of these that classes will use
-			
-		IssueCode message{};
-			
-		bool IsFailure() const
-		{
-			return result <= Enum::Failure;
-		}
-
-		operator bool() const
-		{
-			return !IsFailure();
-		}
-
-		//Want to make an ease of use constructor to make this, all you'd need to do is give it what you'd intend to use with it, ref
-		// constness, etc and such.
-
-		std::optional<std::string_view> GetViewFromQType(const QualifiedType& q_type, bool right)
-		{
-			if (right)
-			{
-				switch (result)
-				{
-				default:
-					//case Enum::None_Type:
-					//case Enum::None_Ref:
-					//case Enum::None_Const:
-					return std::nullopt;
-
-
-				case Enum::Type_Ref:
-				case Enum::Type_None:
-				case Enum::Type_Type:
-				case Enum::Type_Const:
-					return q_type->GetName();
-
-
-				case Enum::Ref_Ref:
-				case Enum::Ref_None:
-				case Enum::Ref_Type:
-				case Enum::Ref_Const:
-					return magic_enum::enum_name(q_type.reference);
-
-				case Enum::Const_Ref:
-				case Enum::Const_None:
-				case Enum::Const_Type:
-				case Enum::Const_Const:
-					return magic_enum::enum_name(q_type.constness);
-				}
-			}
-			else
-			{
-				switch (result)
-				{
-				default:
-					//case Enum::Type_None:
-					//case Enum::Const_None:
-					//case Enum::Ref_None:
-					return std::nullopt;
-
-				case Enum::None_Ref:
-				case Enum::Type_Ref:
-				case Enum::Ref_Ref:
-				case Enum::Const_Ref:
-					return magic_enum::enum_name(q_type.reference);
-
-				case Enum::None_Type:
-				case Enum::Type_Type:
-				case Enum::Ref_Type:
-				case Enum::Const_Type:
-					return q_type->GetName();
-
-				case Enum::None_Const:
-				case Enum::Ref_Const:
-				case Enum::Const_Const:
-				case Enum::Type_Const:
-					return magic_enum::enum_name(q_type.constness);
-
-				}
-			}
-		}
-
-
-		void PrintError(const SyntaxRecord& record, QualifiedType lhs, QualifiedType rhs, std::source_location loc = std::source_location::current())
-		{
-			auto left_view = GetViewFromQType(lhs, false);
-			auto right_view = GetViewFromQType(lhs, true);
-
-			std::string_view* first = left_view.has_value() ?
-				&left_view.value() : right_view.has_value() ?
-				&right_view.value() : nullptr;
-
-			std::string_view* second = right_view.has_value() ?
-				&right_view.value() : nullptr;
-
-
-			if (!second) {
-				record.error(message, loc, *first);
-			}
-			else {
-				record.error(message, loc, *first, *second);
-			}
-
-		}
-
-	};
-
 	INITIALIZE()
 	{
 		//TODO: Read below, to do with ISpecializable
@@ -2105,7 +2138,7 @@ namespace LEX
 		//constexpr auto dist = ((::size_t)&reinterpret_cast<char const volatile&>(*(TestB*)((TestC*)0)));
 		//constexpr auto dist2 = ((::size_t)reinterpret_cast<char const volatile*>(static_cast<TestB*>((TestC*)0)));
 
-
+		ObjTest();
 		ITemplatePart* dead = nullptr;
 
 		//I think what I want is something that would be able to concat 2 ITemplate args. This way I could accumulate 2 different groups.

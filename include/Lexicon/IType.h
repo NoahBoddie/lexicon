@@ -55,7 +55,10 @@ namespace LEX
 	{
 		constexpr static uint32_t NonGenericIndex = -1;
 
-
+		static Type* GetVariableType(const IType*)
+		{
+			return {};
+		}
 
 
 		//IType();
@@ -111,6 +114,11 @@ namespace LEX
 		}
 
 		virtual bool CanConvert(const BasicType* other) const = 0;
+
+		virtual bool Convert(const Variable& from, Variable& to, const BasicType* type) const = 0;
+
+		//Make a type that produces an error
+		//virtual bool Convert(const Variable& from, Variable& to, const BasicType* type) = 0;
 
 
 		//Make some safe functions for these.

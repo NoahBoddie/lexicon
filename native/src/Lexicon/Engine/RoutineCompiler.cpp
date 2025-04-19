@@ -177,7 +177,7 @@ namespace LEX
 
 							auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out, ConversionFlag::Return);
 
-							if (convert_result <= convertFailure)
+							if (!convert_result)
 							{
 								report::compile::error("Expression not convertible to return type.");
 							}

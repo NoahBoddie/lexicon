@@ -118,7 +118,7 @@ namespace LEX
 		ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			if (AsAbstract() == other) {
-				return ConvertResult::Exact;
+				return ConversionEnum::Exact;
 			}
 
 
@@ -140,7 +140,7 @@ namespace LEX
 			//Not gonna worry about function conversions for a while.
 			if (!convert_data) {
 				//TODO: If this is internal, I might perform some saving throw with the scope type.
-				return ConvertResult::Ineligible;
+				return ConversionResult::Ineligible;
 			}
 
 			//To do this saving throw, we'd need to get if scope has that inheritdata from other first (check for internal first)
@@ -165,15 +165,15 @@ namespace LEX
 				//	return false;//No access between types
 
 			case Access::Public:
-				return ConvertResult::TypeDefined;//Type converted
+				return ConversionEnum::TypeDefined;//Type converted
 			}
 
 			if (!scope) {
-				return ConvertResult::Inaccessible;//No access from here
+				return ConversionResult::Inaccessible;//No access from here
 			}
 
 			if (scope == other) {
-				return ConvertResult::TypeDefined;
+				return ConversionEnum::TypeDefined;
 			}
 
 			//By this point, please note that internal should not even be a thought here.
@@ -184,14 +184,14 @@ namespace LEX
 
 
 			if (!access_data || access_data->GetAccess() == Access::None) {
-				return ConvertResult::Inaccessible;//No access from here
+				return ConversionResult::Inaccessible;//No access from here
 			}
 
 			//if (access_data->GetAccess())
 
 
 
-			return ConvertResult::TypeDefined;//Should have access
+			return ConversionEnum::TypeDefined;//Should have access
 		}
 
 		void CheckDeriveFrom(AbstractType* other) override;

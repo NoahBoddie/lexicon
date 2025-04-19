@@ -1,48 +1,105 @@
 #pragma once
 
+#include "Lexicon/Engine/SyntaxRecord.h"
 
 namespace LEX
 {
 	struct IFunction;
 	struct ICallableUnit;
 
+	struct QualifiedType;
 
-	enum struct ConvertResult
+
+	enum struct ConversionEnum
 	{
-		//TODO: I want to combine all errors into 1, and instead use the convert result as a way to tell what step failed.
-		// Example, 1 would be reference, 2 constness, 3 an incompatible flag or something rather other. Then, the only thing we need to do
-		// is load the strings up differently
-		QualError8 = -11,
-		QualError7 = -10,
-		QualError6 = -9,
-		QualError5 = -8,
-		QualError4 = -7,
-		QualError3 = -6,
-		QualError2 = -5,
-		QualError1 = -4,
-		//This shit needs failures brought about due to constness or references or some shit like that.
-		Inaccessible = -3,
-		Ineligible = -2,
-		IllegalIntern = -1,
+		None_None = -16,
+		None_Type,
+		None_Ref,
+		None_Const,
+
+		Type_Ref,
+		Type_None,
+		Type_Type,
+		Type_Const,
+
+		Ref_Ref,
+		Ref_None,
+		Ref_Type,
+		Ref_Const,
+
+		Const_Ref,
+		Const_None,
+		Const_Type,
+		Const_Const,
 		//Might rearrange these to be greater
 		Exact = 0,
 		RefConvert,
 		ConstConvert,
 		TempConvert,	//Nearly exact, but via template. Loses to exactness of other kinds
-
 		TypeDefined,
-		VarDefined,//This is the conversion to implicit derives such as var, that next to everything has. Better than a conversion, but implicit in nature.
+
 		ImplDefined,
 		UserDefined,
 		UserToImplDefined,
 
-
-
-		Failure = -1,//Anything under or equal to failure doesn't need it's value recorded for anything, it's just a conversion error code.
-		Transformative = VarDefined,//2,//Anything equal or greater than transformative is not valid to be used against something under said value.
+		Failure = -1,
+		Transformative = ImplDefined,//Anything equal or greater than transformative is not valid to be used against something under said value.
 	};
 
-	constexpr ConvertResult convertFailure = ConvertResult::Failure;
+
+	struct ConvertResult
+	{
+		constexpr ConvertResult() = default;
+		constexpr ConvertResult(ConversionEnum e, IssueCode msg = 0) : data{ e }, message{ msg } {}
+
+		ConversionEnum data = ConversionEnum::Failure;
+
+		//I'll make common versions of these that classes will use
+
+		IssueCode message{};
+
+		bool IsFailure() const
+		{
+			return data <= ConversionEnum::Failure;
+		}
+
+		operator bool() const
+		{
+			return !IsFailure();
+		}
+
+		constexpr auto operator <=>(ConversionEnum e) const
+		{
+			return data <=> e;
+		}
+
+		//Fill the rest of these out.
+		constexpr auto operator !=(ConversionEnum e) const
+		{
+			return data != e;
+		}
+
+
+		//Want to make an ease of use constructor to make this, all you'd need to do is give it what you'd intend to use with it, ref
+		// constness, etc and such.
+
+		std::optional<std::string_view> GetViewFromQType(const QualifiedType& q_type, bool right);
+
+		void PrintError(const SyntaxRecord& record, const QualifiedType& lhs, const QualifiedType& rhs, const std::source_location& loc = std::source_location::current());
+
+	};
+
+
+	struct ConversionResult
+	{
+		static constexpr ConvertResult Generic{ ConversionEnum::None_None, 0 };
+		static constexpr ConvertResult Ineligible{ ConversionEnum::None_None, 60 };
+		static constexpr ConvertResult Inaccessible{ ConversionEnum::None_None, 61 };
+		static constexpr ConvertResult IneligibleQuals{ ConversionEnum::None_None, 62 };
+	};
+
+	
+
 
 
 	struct Conversion

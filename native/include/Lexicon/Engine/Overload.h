@@ -88,8 +88,8 @@ namespace LEX
 
 			//These should remove const conversions and stuff like that
 			//
-			bool prev_pure = tar.convertType < ConvertResult::Transformative;
-			bool curr_pure = entry.convertType < ConvertResult::Transformative;
+			bool prev_pure = tar.convertType.data < ConversionEnum::Transformative;
+			bool curr_pure = entry.convertType.data < ConversionEnum::Transformative;
 
 			if (!prev_pure && curr_pure)
 				return -1;
@@ -125,9 +125,9 @@ namespace LEX
 			return 0;
 
 			//Qualified conversions have already played out by this point.
-			//if (target.IsConvertToQualified(other, scope) > ConvertResult::Failure)
+			//if (target.IsConvertToQualified(other, scope) > ConversionEnum::Failure)
 			//	return -1;
-			//else if (other.IsConvertToQualified(target, scope) > ConvertResult::Failure)
+			//else if (other.IsConvertToQualified(target, scope) > ConversionEnum::Failure)
 			//	return 1;
 
 			return 0;

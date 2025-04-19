@@ -24,13 +24,13 @@ namespace LEX
 
 			}
 
-			switch (res)
+			switch (res.data)
 			{
-			case ConvertResult::ImplDefined:
+			case ConversionEnum::ImplDefined:
 				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
 				break;
 
-			case ConvertResult::UserDefined:
+			case ConversionEnum::UserDefined:
 			resume:
 
 				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
@@ -41,7 +41,7 @@ namespace LEX
 
 				[[fallthrough]];
 
-			case ConvertResult::UserToImplDefined:
+			case ConversionEnum::UserToImplDefined:
 				if (!fall) {
 					fall = true;
 					goto resume;
@@ -74,8 +74,8 @@ namespace LEX
 
 		auto convert = from.IsConvertToQualified(to, nullptr, &out, flags);
 
-		if (convert <= ConvertResult::Failure) {
-			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+		if (!convert) {
+			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert.data));
 		}
 
 		return CompUtil::HandleConversion(compiler, out, from, to, convert, reg);

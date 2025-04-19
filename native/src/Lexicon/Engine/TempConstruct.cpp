@@ -206,7 +206,7 @@ namespace LEX
 					auto to_type = a_lhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
 
 					
-					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
+					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result)
 					{
 						ret = var.Ref();
 						ret->SetPolicy(to_type->FetchTypePolicy(runtime));
@@ -1096,7 +1096,7 @@ namespace LEX
 				
 				//Conversion out;
 				//auto convert = query.IsConvertToQualified(QualifiedType{ boolean }, nullptr, &out);
-				//if (convert <= ConvertResult::Failure) {
+				//if (convert <= ConversionEnum::Failure) {
 				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				//}
 				//CompUtil::HandleConversion(compiler, out, query, convert);
@@ -1490,7 +1490,7 @@ namespace LEX
 				//-QUAL_CONV
 				//Conversion out;
 				//auto convert = result.IsConvertToQualified(header, nullptr, &out);
-				//if (convert <= ConvertResult::Failure) {
+				//if (convert <= ConversionEnum::Failure) {
 				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				//}
 				//CompUtil::HandleConversion(compiler, out, result, header, convert);
@@ -1616,13 +1616,13 @@ namespace LEX
 
 			if (1 || target.GetView() != "maybe")
 			{
-				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, ConversionFlag::Explicit); convert_result > convertFailure)
+				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, ConversionFlag::Explicit); convert_result)
 				{
 					//If this can convert, it's basically going to be something automatic.
 					CompUtil::HandleConversion(compiler, out, expression, header, convert_result);
 				}
 				//if the type we're trying to go to can convert into ours with only type conversions
-				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
+				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
 					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
@@ -1642,7 +1642,7 @@ namespace LEX
 
 
 
-				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result > convertFailure)
+				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
 					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
@@ -1862,14 +1862,14 @@ namespace LEX
 				ConvertResult result = __super::GetConvertTo(other, scope, out, flags);
 
 
-				if (out && result <= ConvertResult::Failure)
+				if (out && result <= ConversionEnum::Failure)
 				{
 					auto double_offset = Number::Settings::CreateFromType<double>().GetOffset();
 					
 					if (IdentityManager::instance->GetTypeByOffset("NUMBER", double_offset) == other)
 					{
 						out->implDefined = std::addressof(converter);
-						result = ConvertResult::ImplDefined;
+						result = ConversionEnum::ImplDefined;
 					}
 				}
 
@@ -1896,7 +1896,7 @@ namespace LEX
 				
 				
 				
-				if (out && result <= ConvertResult::Failure)
+				if (out && result <= ConversionEnum::Failure)
 				{
 					
 
@@ -1918,7 +1918,7 @@ namespace LEX
 
 							out->implDefined = convertMap[--identity.offset];
 
-							result = ConvertResult::ImplDefined;
+							result = ConversionEnum::ImplDefined;
 						}
 					}
 				}

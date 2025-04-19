@@ -79,7 +79,7 @@ namespace LEX
 	{
 		//TODO: I don't know why this shit is reversed like this but fix it. I know it doesn't work the other way around, but fix it.
 
-		auto result = ConvertResult::Exact;
+		auto result = ConversionEnum::Exact;
 
 		if (this->flags & QualifierFlag::Promoted)
 		{
@@ -89,10 +89,10 @@ namespace LEX
 			//This needs more
 			else if (common_type::boolean() == other) {//Is a boolean
 				(*out)->implDefined = refCheckList[std::make_pair(reference, false)];
-				return ConvertResult::ImplDefined;
+				return ConversionEnum::ImplDefined;
 			}
 			else {
-				return ConvertResult::QualError5;
+				return ConversionResult::IneligibleQuals;
 			}
 		}
 
@@ -100,14 +100,14 @@ namespace LEX
 		//QualifiedType boolean { common_type::boolean(), Qualifier{}}
 
 		if (!out) {
-			return ConvertResult::QualError1;
+			return ConversionEnum::QualError1;
 		}
 		auto* converse = *out;
 		//There's got to be a better way to do this.
-		if (other.IsConvertToQualified(QualifiedType{ common_type::boolean() }, nullptr, nullptr, flags) <= ConvertResult::Failure// &&
-			)//other.IsConvertToQualified(QualifiedType{ common_type::uboolean() }, nullptr, nullptr, flags) <= ConvertResult::Failure)
+		if (other.IsConvertToQualified(QualifiedType{ common_type::boolean() }, nullptr, nullptr, flags) <= ConversionEnum::Failure// &&
+			)//other.IsConvertToQualified(QualifiedType{ common_type::uboolean() }, nullptr, nullptr, flags) <= ConversionEnum::Failure)
 		{
-			return ConvertResult::QualError1;
+			return ConversionEnum::QualError1;
 		}
 
 		//I need to figure out how to do this, even when the boolean type may not be boolean. Perhaps check if
@@ -146,21 +146,21 @@ namespace LEX
 			{
 			case Reference::Global://For global it must be equal, no exceptions
 				if (!equals && refr != Reference::Static)
-					return ConvertResult::QualError5;
+					return ConversionResult::IneligibleQuals;
 				break;
 
 			case Reference::Scoped:
 			case Reference::Local:
 				if (not_ref)
-					return ConvertResult::QualError6;
+					return ConversionResult::IneligibleQuals;
 
 				if (!param)//If this is a param, anything goes accept for maybe ref stuff.
 				{
 					if (ret && equals)
-						return ConvertResult::QualError7;
+						return ConversionResult::IneligibleQuals;
 
 					if (init && refr < refl)
-						return ConvertResult::QualError8;
+						return ConversionResult::IneligibleQuals;
 				}
 				break;
 
@@ -175,7 +175,7 @@ namespace LEX
 
 			case Reference::Generic:
 				if (refr == Reference::Temp) {
-					return ConvertResult::QualError5;//I have no idea if this is the right one, I just don't much care right now.
+					return ConversionResult::IneligibleQuals;//I have no idea if this is the right one, I just don't much care right now.
 				}
 
 				break;
@@ -183,7 +183,7 @@ namespace LEX
 
 
 			if (IsReference(true) && other.IsReferential() && !equals) {
-				result = ConvertResult::RefConvert;
+				result = ConversionEnum::RefConvert;
 			}
 
 			//Auto cannot be accepted by anything at all
@@ -209,7 +209,7 @@ namespace LEX
 				{
 					//If left is const, it must be a class type.
 					if (IsDataTypeRef(policy->FetchDataType()) == false)
-						return ConvertResult::QualError1;
+						return ConversionResult::IneligibleQuals;
 				}
 			}
 			//This doesn't seem to work, but it will be hit by a forcible transfer issue.
@@ -218,11 +218,11 @@ namespace LEX
 			{
 				//If right is const, it must be a value.
 				if (IsDataTypeVal(other.policy->FetchDataType()) == false)
-					return ConvertResult::QualError2;
+					return ConversionResult::IneligibleQuals;
 			}
 
-			if (result == ConvertResult::Exact)
-				result = ConvertResult::ConstConvert;
+			if (result == ConversionEnum::Exact)
+				result = ConversionEnum::ConstConvert;
 		}
 
 		//Simple for now.
@@ -240,7 +240,7 @@ namespace LEX
 
 
 #ifdef DISABLE_THIS
-		if (auto result = IsQualified(other, flags, &out); result != ConvertResult::Exact || out)
+		if (auto result = IsQualified(other, flags, &out); result != ConversionEnum::Exact || out)
 			return result;
 
 		//Simple for now.
@@ -252,10 +252,10 @@ namespace LEX
 
 		ConvertResult qual_result = IsQualified(other, flags, &out);
 
-		if (qual_result <= ConvertResult::Failure || qual_result > ConvertResult::Transformative)
+		if (qual_result <= ConversionEnum::Failure || qual_result > ConversionEnum::Transformative)
 			return qual_result;
 
-		if (auto type_result = policy->IsConvertibleTo(other.policy, scope, out, flags); type_result != ConvertResult::Exact)
+		if (auto type_result = policy->IsConvertibleTo(other.policy, scope, out, flags); type_result != ConversionEnum::Exact)
 			return type_result;
 
 		return qual_result;

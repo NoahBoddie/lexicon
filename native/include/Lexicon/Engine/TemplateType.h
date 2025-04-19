@@ -63,17 +63,17 @@ namespace LEX
 		{
 			auto result = __super::GetConvertFrom(other, scope, nullptr, flags);
 
-			if (flags & ConversionFlag::Template && result <= ConvertResult::Failure)
+			if (flags & ConversionFlag::Template && result.data <= ConversionEnum::Failure)
 			{
 				//If this inherits nothing it literally cannot be used for anything
 				for (auto& inherit : inheritance)
 				{
-					if (other->IsConvertibleTo(inherit.type, scope) != ConvertResult::TypeDefined) {
-						return ConvertResult::Ineligible;
+					if (other->IsConvertibleTo(inherit.type, scope) != ConversionEnum::TypeDefined) {
+						return ConversionResult::Ineligible;
 					}
 				}
 
-				result = ConvertResult::TempConvert;
+				result = ConversionEnum::TempConvert;
 			}
 
 			return result;
