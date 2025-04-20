@@ -8,7 +8,7 @@
 
 #include "Lexicon/Conversion.h"
 
-
+#include "Lexicon/Reflection.h"
 
 
 namespace LEX
@@ -51,14 +51,50 @@ namespace LEX
 
 
 
-	struct IType : public ISpecial
+	struct IType : public ISpecial, public Reflection
 	{
+	private:
+		enum Offset
+		{
+			kBasic,
+			kGeneric,
+			kConcrete,
+		};
+
+	public:
 		constexpr static uint32_t NonGenericIndex = -1;
 
-		static Type* GetVariableType(const IType*)
+		Reflect GetReflect() const override
 		{
-			return {};
+			return Reflect::Type;
 		}
+
+		size_t GetReflectOffset() const override
+		{
+			if (IsResolved() == true) {
+				return kConcrete;
+			}
+			else if (auto spec = GetSpecializable())
+			{
+				return kGeneric;
+			}
+			else
+			{
+				//This shouldn't actually be possible, but I'm just putting it here
+				return kBasic;
+			}
+		}
+		bool IsValidOffset(size_t offset) const override
+		{
+			auto self = GetReflectOffset();
+
+			if (offset == (size_t)kBasic)
+				return true;
+
+			return __super::IsValidOffset(offset);
+		}
+
+
 
 
 		//IType();
@@ -98,6 +134,7 @@ namespace LEX
 
 		virtual TypeID GetTypeID() const = 0;
 
+		//Should this be higher?
 		virtual DataType GetDataType() const = 0;
 
 

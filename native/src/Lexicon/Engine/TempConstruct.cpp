@@ -2036,9 +2036,24 @@ namespace LEX
 
 			IdentityManager::instance->GenerateID("CORE", 0);
 
+			IdentityManager::instance->GenerateID("REFLECT_None", 0);
+			IdentityManager::instance->GenerateID("REFLECT_Type", 2);
+
+			static ConcreteType* reflectBase = new ConcreteType{ "REFLECT_None", 0 };
+
+			static ConcreteType* typeBasic = new ConcreteType{ "REFLECT_Type", 0 };
+			static ConcreteType* typeGeneric = new ConcreteType{ "REFLECT_Type", 1 };
+			static ConcreteType* typeConcrete = new ConcreteType{ "REFLECT_Type", 2 };
+
+
 
 			IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length);
 			IdentityManager::instance->GenerateID("STRING", 0);
+
+
+
+
+
 
 
 			constexpr auto offset = Number::Settings::GetOffset(NumeralType::Floating);

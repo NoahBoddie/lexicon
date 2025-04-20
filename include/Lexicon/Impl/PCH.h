@@ -371,10 +371,12 @@ struct Initializer
 
 //Im thinking of adding keywords to initialize, allowing it to have keywords.
 
+//Function was extern
+
 //Initializes something on the spot.
-#define INITIALIZE__COUNTED(mc_counter,...) inline extern void CONCAT(__init_func_,mc_counter)();\
-volatile inline static Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
-inline extern void CONCAT(__init_func_,mc_counter)()
+#define INITIALIZE__COUNTED(mc_counter,...) inline static void CONCAT(__init_func_,mc_counter)();\
+inline static Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
+inline static void CONCAT(__init_func_,mc_counter)()
 
 #define INITIALIZE(...) INITIALIZE__COUNTED(__COUNTER__,__VA_ARGS__)
 

@@ -34,7 +34,7 @@ namespace LEX
 	}
 
 
-	struct IMPL_VERSION(Type, virtual public BasicType)
+	struct IMPL_VERSION(Type, public BasicType)
 	{	
 		//This might come with hierarchy data automatically.
 

@@ -811,182 +811,456 @@ namespace LEX
 		
 	};
 
-	namespace VTABLE_meta
+
+	namespace ArrayTest
 	{
-
-		using ReflectOffset = uint16_t;
-		//The internal type of the thing
-
-		enum struct Reflect
+		struct Array
 		{
-			//The category name is Reflect_ + enum_name
-			None, 
-			Type,
-			//Field,
-
-			Unknown,
-
-			Total = Unknown,
-		};
-
-
-		struct Reflection 
-		{
-			static Type* GetVariableType(const Reflection* reflect)
+			//This may go outside of here.
+			struct ContainerHelper
 			{
-				Reflect type;
-				size_t offset;
+				using iterator = std::vector<Variable>::iterator;
+				using const_iterator = std::vector<Variable>::const_iterator;
 
-				if (reflect)
+
+			private:
+				inline static std::mutex _accessLock;
+
+			public:
+				virtual ~ContainerHelper() = default;
+
+
+				virtual std::mutex& GetLock() const final
 				{
-					type = reflect->GetReflect();
-					offset = reflect->GetReflectOffset();
-				}
-				else
-				{
-					type = Reflect::None;
-					offset = 0;
+					return _accessLock;
 				}
 
-				auto result = IdentityManager::instance->GetTypeByOffset(std::format("REFLECT_{}", magic_enum::enum_name(type)), offset);
+				virtual std::span<Variable> data()
+				{
+					return _data;
+				}
+
+				virtual void insert(iterator where, std::span<const Variable> range) final
+				{
+					_data.insert_range(where, range);
+				}
+
+				virtual void erase(iterator where, iterator end) final
+				{
+					if (where == end)
+						_data.erase(where);
+					else
+						_data.erase(where, end);
+				}
+
+
+				virtual size_t size() const { return _data.size(); }
+				virtual size_t capacity() const { return _data.capacity(); }
+
+				virtual iterator begin() final { return _data.begin(); }
+				virtual iterator end() final { return _data.end(); }
+
+				virtual const_iterator begin() const final { return _data.begin(); }
+				virtual const_iterator end() const final { return _data.end(); }
+
+				const_iterator cbegin() const { return begin(); }
+				const_iterator cend() const { return end(); }
+
+
+				ContainerHelper() = default;
+
+				ContainerHelper(std::span<const Variable> range) : _data{ range.begin(), range.end() }
+				{
+
+				}
+
+			private:
+				std::vector<Variable> _data{};
+			};
+
+
+
+			static Type* GetVariableType(const Array* self)
+			{
+				if (!self || !self->_type) {
+					auto result = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
+
+					if (!result) {
+						report::fault::error("'ARRAY' at offset 0 is empty.");
+					}
+
+					return result->GetTypePolicy(nullptr);
+				}
+
+				auto type = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
+
+				//TODO: Remove the boilerplate from using a GenericArray, it's common to want to do something like this
+				GenericArray array{ nullptr, {self->type() }};
+
+				auto result = type->GetTypePolicy(array.TryPromoteTemplate());
 
 				if (!result) {
-					report::error("'REFLECT_{}' at offset {} is empty.", magic_enum::enum_name(type), offset);
+					report::error("Failed to specialized 'ARRAY' offset of 1.");
 				}
 
-				return result->GetTypePolicy(nullptr);
+				return result;
 
 			}
 
+			//Needs a static cast to vector, plu
 
-			virtual Reflect GetReflect() const = 0;
-			virtual size_t GetReflectOffset() const = 0;
-			virtual bool IsValidOffset(size_t offset) const
+			Type* type() const
 			{
-				//This can be used for abstract types that may not update right.
-				return GetReflectOffset() == offset;
+				return _type;
 			}
 
-
-			//bool IsValidOffset(auto offset) const requires (std::is_enum_v<decltype(offset)>)
-			//{
-			//	IsValidOffset(static_cast<size_t>(offset));
-			//}
-
-
-
-			template<std::derived_from<Reflection> T>
-			std::add_pointer_t<T> As(Reflect refl, size_t offset = 0)
-			{
-				//This will turn into the meta type. Then, it will be able to be cast into the given type
-				// as long as the offsets match
-
-				if (!this || GetReflect() != refl || IsValidOffset(offset) == false)
-					return nullptr;
-
-				return static_cast<std::add_pointer_t<T>>(this);
-			}
-
-			template<std::derived_from<Reflection> T, typename TEnum> requires (std::is_enum_v<TEnum>)
-				std::add_pointer_t<T> As(Reflect refl, TEnum offset)
-			{
-				return As<T>(refl, static_cast<size_t>(offset));
-			}
-		};
-
-
-
-
-
-
-
-
-		template <Reflect TReflect>
-		struct MetaType : public Reflection
-		{
-			static constexpr Reflect REFLECT_ENUM = TReflect;
-
-
-
-			Reflect GetReflect() const override final
-			{
-				return REFLECT_ENUM;
-			}
-
-			size_t GetReflectOffset() const override
-			{
-				return 0;
-			}
-		};
-
-		struct TestRefl : public MetaType<Reflect::Type>
-		{
-
-		};
-
-		void ObjTest()
-		{
-			TestRefl test1{};
-
-			Reflection* reflect = &test1;
-
-			auto test2 = reflect->As<TestRefl>(Reflect::Type, 0);
+			constexpr Array() noexcept = default;
 			
-			logger::info("A: {} v B: {}", (uintptr_t)&test1, (uintptr_t)test2);
+			Array(std::span<const Variable> range, Type* type = nullptr) : _container{ std::make_unique<ContainerHelper>(range) }, _type {type}
+			{
 
-			std::system("pause");
-		}
-		
+			}
+			Array(const Array& other)
+			{
+				//TODO: Unboiler plate
+				_type = other._type;
+				
+				if (other._container) {
+					_container = std::make_unique<ContainerHelper>(other._container->data());
+				}
+			}
+
+			Array(Array&& other) = default;
+
+			Array& operator=(const Array& other)
+			{
+				_type = other._type;
+
+				if (other._container) {
+					_container = std::make_unique<ContainerHelper>(other._container->data());
+				}
+
+				return *this;
+			}
+
+			Array& operator=(Array&& other) = default;
+
+
+			std::string PrintString(std::string_view context) const
+			{
+				auto stuff = _container->data();
+
+				auto size = stuff.size();
+
+				std::vector<std::string> entries{ size };
+				std::string result = "[";
+
+				for (int i = 0; i < size; i++)
+				{
+					if (i)
+						result += ", ";
+
+					result += stuff[i].PrintString();
+
+
+				}
+				result += "]";
+
+				//Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
+				return result;
+
+				/*
+				std::string result{ reserve };
+
+				result.reserve(reserve);
+
+				result = std::accumulate(std::begin(entries), std::end(entries), result,
+					[](std::string& ss, std::string& s)
+					{
+						return ss.empty() ? s : ss + "," + s;
+					});
+
+
+				std::stringstream  stream;
+
+				std::copy(entries.begin(), entries.end(), std::ostream_iterator<std::string>(stream, ", "));
+
+				return std::format("[{}]", stream.str());
+				//*/
+			}
+
+		//private:
+
+			std::unique_ptr<ContainerHelper> _container{};
+
+			mutable Type* _type = nullptr;
+
+
+		};
+
+		struct Array_
+		{
+			int8_t size = 0;
+			std::vector<Variable> stuff;
+
+			Array_()
+			{
+				logger::info("Creating Array");
+			}
+
+			~Array_()
+			{
+				logger::info("Deleting Array");
+			}
+
+
+			std::string PrintString(std::string_view context) const
+			{
+				auto size = stuff.size();
+
+				std::vector<std::string> entries{ size };
+				std::string result = "[";
+
+				for (int i = 0; i < size; i++)
+				{
+					if (i)
+						result += ", ";
+
+					result += stuff[i].PrintString();
+
+
+				}
+				result += "]";
+
+				//Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
+				return result;
+
+				/*
+				std::string result{ reserve };
+
+				result.reserve(reserve);
+
+				result = std::accumulate(std::begin(entries), std::end(entries), result,
+					[](std::string& ss, std::string& s)
+					{
+						return ss.empty() ? s : ss + "," + s;
+					});
+
+
+				std::stringstream  stream;
+
+				std::copy(entries.begin(), entries.end(), std::ostream_iterator<std::string>(stream, ", "));
+
+				return std::format("[{}]", stream.str());
+				//*/
+			}
+		};
 	}
-
-	inline void ObjTest()
-	{
-		VTABLE_meta::ObjTest();
-		/*
-		constexpr bool is_test = detail::meta_type<MetaType<TestPtr, Reflect::Unknown>>;
-		constexpr bool is_test2 = std::is_same_v<TestPtr, TestPtr::META_TYPE>;
-		static_assert(is_test2);
-		Reflection test1{};
-
-		test1.data<TestPtr>();
-		auto test_p = test1.As<ImplPtr>();
 	
-		TestPtr ptr;
-		const TestPtr* ptr2 = &ptr;
-		using VValue = std::variant
-			<
-			//Types that will not need to exist coming soon:
-			// prompt, Index,
-			Void,						    //Void given form. Invalidates all other types.
-			Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
-			String,
-			Object,
-			Reflection
-			>;
-		//Reflection test1 = ptr;
-		Reflection test2 = ptr2;
+	
 
-		auto result = test2.As<TestPtr>();
 
-		IType* the_type = nullptr;
+	
+	//TODO: Make built in object infos, where if a type is denoted as such, it will make it's own object info, trying to 
+	// call a static version of the classes functions
+	template <>
+	struct LEX::ObjectInfo<ArrayTest::Array> : public QualifiedObjectInfo<ArrayTest::Array>
+	{
+		using Array = ArrayTest::Array;
+		using Type = LEX::Type;
 
-		test2.Set< TestPtr::META_TYPE>(nullptr);
-		;
-		GetVariableType<IType>();
-		GetVariableType<AbstractType>();
-		//VValue testVar = the_type;
-		VValue testVar2 = ptr2;
+		template <specialization_of<std::vector> Vec>
+		static Array ToObject(const Vec& obj)
+		{
+			logger::info("hitting");
+			std::vector<Variable> buff;
+			buff.reserve(obj.size());
+			//const std::vector<void*> test;
 
-		logger::info("*** = {}", !!result);
-		std::system("pause");
-		//constexpr bool test = use_variable_type<TestPtr>;
-		int i = 1;
+			//void* other = test[1];
+
+
+			std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
+
+
+			return Array{ buff };
+
+		}
+
+
+		TypeOffset GetTypeOffset(ObjectData& data) override
+		{
+			return data.get<Array>().type() != nullptr;
+		}
+
+
+		Type* SpecializeType(ObjectData& data, BasicType* type) override
+		{
+			Type* result;
+
+			if (type->IsResolved() == false) {
+
+				GenericArray array{ nullptr, {data.get<Array>().type()} };
+
+				auto result = type->GetTypePolicy(array.TryPromoteTemplate());
+
+				if (!result) {
+					report::error("Failed to specialized 'ARRAY' offset of 1.");
+				}
+
+			}
+			else {
+				result = type->GetTypePolicy(nullptr);
+			}
+
+			return result;
+		}
+
+		//the form object info needs to edit the transfer functions,
+
+
+		String PrintString(ObjectData& a_self, std::string_view context) override
+		{
+			return a_self.get<Array>().PrintString(context);
+		}
+
+	};
+
+
+
+	/*
+	template <specialization_of<std::vector> Vec>
+	decltype(auto) ToObject<Vec>(Vec& obj)
+	{
+		logger::info("hitting");
+		std::vector<Variable> buff;
+		buff.resize(obj.size());
+		//const std::vector<void*> test;
+
+		//void* other = test[1];
+
+
+		std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
+
 		
-		//test.
-
+		return ArrayTest::Array{ buff };
+	}
 	//*/
+	//TODO: Please for the love of god please merge this with ObjectInfo, this has no need to be seperate.
+	template <specialization_of<std::vector> Vec>
+	struct ObjectTranslator<Vec>
+	{
+		ArrayTest::Array operator()(const Vec& obj)
+		{
+			logger::info("hitting");
+			std::vector<Variable> buff;
+			buff.reserve(obj.size());
+			//const std::vector<void*> test;
+
+			//void* other = test[1];
+
+
+			std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
+
+
+			return ArrayTest::Array{ buff };
+
+		}
+	};
+
+
+
+	INITIALIZE()
+	{
+
+		
+
+	};
+
+
+	INITIALIZE()
+	{
+		using Array = ArrayTest::Array;
+
+		RegisterObjectType<ArrayTest::Array>("ARRAY", 1);
+
+
+		std::vector<int> vars{ 1, 2, 3, 4, 5, 6, 7 };
+
+
+		Object _array = MakeObject(vars);
+		bool policy = _array.policy;
+		
+		logger::critical("Object check: {} , {} (+info {})", _array.get<Array>()._container->size(), policy, policy ? !!_array.policy->base : false);
+
+
+		std::string str;
+
+		logger::info("~Testing PrintString for Arrays: \"{}\"", _array.PrintString());
+
+
+		Array new_array = _array.get<Array>();
+
+		for (auto& variable : new_array._container->data())
+		{
+			logger::critical(" new var: {}", variable.AsNumber());
+		}
+
+		auto gen_built = GenericDataBuilder<Array>().get<Array>();
+	
+		logger::critical("GenericBuilt check: {} ", gen_built._container ? gen_built._container->size() : 0);
+
+		//return;
+		//static_assert(false, "The object pooling system isn't doing so hot. Confirm that it's not stupid busted later.");
+
+		Object first = MakeObject(vars);
+
+		logger::info("index {}", first._data.idxVal);
+		Object second = first;
+
+		first = second;
+
+		second.Destroy();
+
+
+		first = second;
+
+
+		logger::info("end of test");
+	};
+
+
+
+
+	void ArrTest()
+	{
+		std::vector<int> t{ 4, 5, 1, 2,3 };
+			
+		std::span<int> s = t;
+
+		std::mutex;
+
+		std::sort(s.begin(), s.end());
+		//auto t = 
+		//auto e = std::remove(s.begin(), s.end(), 1);
+
+		t.erase(t.begin(), t.begin());
+
+		//t.erase(;
+		//The theory goes, that as long as I provide iterators, these iterators will be independent. The spans
+		// will provide a view.
+		for (auto it : t)
+		{
+			logger::info("t: {}", it);
+		}
+
+		//for (auto it : s)
+		//{
+		//	logger::info("s: {}", it);
+		//}
 	}
 
+	
 
 
 
@@ -2138,7 +2412,6 @@ namespace LEX
 		//constexpr auto dist = ((::size_t)&reinterpret_cast<char const volatile&>(*(TestB*)((TestC*)0)));
 		//constexpr auto dist2 = ((::size_t)reinterpret_cast<char const volatile*>(static_cast<TestB*>((TestC*)0)));
 
-		ObjTest();
 		ITemplatePart* dead = nullptr;
 
 		//I think what I want is something that would be able to concat 2 ITemplate args. This way I could accumulate 2 different groups.
@@ -2528,7 +2801,8 @@ namespace LEX
 	
 	INITIALIZE()
 	{
-		RegisterObjectType<Array_>("ARRAY");
+		//For some reason initialize fucks up when under some very odd circumstances, and only when using the INITIALIZE macro
+		RegisterObjectType<Array_>("ARRAY_");
 		
 		return;
 		if constexpr (0)

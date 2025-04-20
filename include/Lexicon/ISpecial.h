@@ -16,5 +16,10 @@ namespace LEX
 
 		//This is part of the specializing interface or fucking whatever.
 		virtual ISpecializable* GetSpecializable() = 0;
+		ISpecializable* GetSpecializable() const
+		{
+			auto a_this = const_cast<ISpecial*>(this);
+			return a_this->GetSpecializable();
+		}
 	};
 }

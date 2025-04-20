@@ -55,6 +55,13 @@ namespace LEX
 		TypeBase* GetBaseByID(TypeID id) INTERFACE_FUNCTION;
 
 		uint32_t ObtainID(TypeBase* policy) INTERFACE_FUNCTION;
+		
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="name">The category name of the set of ids</param>
+		/// <param name="range">The range of ids created between 0-range</param>
+		/// <returns></returns>
 		uint32_t GenerateID(std::string_view name, uint16_t range) INTERFACE_FUNCTION;
 		TypeID ClaimID(TypeBase* policy, uint32_t id) INTERFACE_FUNCTION;
 

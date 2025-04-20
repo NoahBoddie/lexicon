@@ -10,6 +10,7 @@
 //#include "Delegate.h"
 //#include "FunctionHandle.h"
 
+#include "Reflection.h"
 
 #include "TypeID.h"
 
@@ -54,7 +55,8 @@ namespace LEX
         Void,						    //Void given form. Invalidates all other types.
         Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
         String,
-        Object
+        Object,
+        Reflection*
         >;
     
     
