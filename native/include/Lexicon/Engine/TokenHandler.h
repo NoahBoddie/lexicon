@@ -112,6 +112,12 @@ namespace LEX::Impl
 			"include",
 			"import",
 			"as",
+			//"typeof",
+		};
+
+		inline static std::vector<std::string_view> _ConKeyCodes
+		{
+			"maybe",
 		};
 
 		inline static std::string _compRegex;

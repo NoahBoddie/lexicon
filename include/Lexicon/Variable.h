@@ -255,7 +255,7 @@ namespace LEX
     };
 
     template <typename T1, typename T2>
-    concept Constructible = requires(T1 insert) {
+    concept Constructible = requires(const T1& insert) {
         { T2{ insert } };
     };
 
@@ -282,14 +282,28 @@ namespace LEX
         Variable() = default;
         
         //*
+        //TODO: All of this needs to be cleaned the fuck up PLEASE. Variable suffers from some unclear constructors and assignments.
+       
+        template <Constructible<VariableComponent> T>
+        Variable(const T& value)//, Type* type)
+        {
+            //Move here
+            _value = VariableComponent{ std::move(value) };
+            SetPolicy(CheckVariableType());//REFUTE
+            _SetDefined(true);
+        }
+
         template <Constructible<VariableComponent> T>
         Variable(T&& value)//, Type* type)
         {
             //Move here
-            _value = std::move(value);
+            _value = VariableComponent{ std::move(value) };
             SetPolicy(CheckVariableType());//REFUTE
             _SetDefined(true);
         }
+
+        //*/
+
         //Variable(const Variable& rhs) = default;
         Variable(const Variable& rhs)
         {
@@ -298,8 +312,8 @@ namespace LEX
             _SetDefined(rhs.IsDefined());
             _SetChanged(rhs.IsChanged());
         }
-        //*/
-
+        
+        //I feel this should be defined.
         Variable(Variable&& rhs) = default;
 
 
@@ -349,7 +363,7 @@ namespace LEX
         template <Constructible<VariableComponent> T>
         Variable& operator=(T& value)
         {
-            _value = value;
+            _value = VariableComponent{ value };
             SetPolicy(CheckVariableType());//REFUTE
             _SetDefined(true);
             _SetChanged(true);
@@ -561,21 +575,29 @@ namespace LEX
         }
 
         //These should also maybe check the policies?
-        bool IsVoid() const { return IsVariableEnum(VariableEnum::Void); }
-        bool IsObject() const { return IsVariableEnum(VariableEnum::Object);}
-        bool IsNumber() const { return IsVariableEnum(VariableEnum::Number); }
-        bool IsString() const { return IsVariableEnum(VariableEnum::String); }
+        bool IsVoid() const { return std::holds_alternative<Void>(_value); }
+        bool IsObject() const { return std::holds_alternative<Object>(_value);}
+        bool IsNumber() const { return std::holds_alternative<Number>(_value); }
+        bool IsString() const { return std::holds_alternative<String>(_value); }
 
 
 
 
-        Number AsNumber() { return std::get<Number>(_value); }
-        Integer AsInteger() { throw nullptr; }
-        String AsString() { return std::get<String>(_value); }
+        Number& AsNumber() { return std::get<Number>(_value); }
 
-        Object AsObject() { return std::get<Object>(_value); }
-        Array AsArray() { throw nullptr; }
+        String& AsString() { return std::get<String>(_value); }
 
+        Object& AsObject() { return std::get<Object>(_value); }
+        //Array AsArray() { throw nullptr; }
+
+        Object* FetchObject()
+        {
+            if (IsObject() == false) {
+                return nullptr;
+            }
+
+            return std::addressof(AsObject());
+        }
 
 
         void Clear()
@@ -756,8 +778,9 @@ namespace LEX
                     
                 }
                 }, _value);
+
             if (!triggered)
-                report::critical("Variable of value {} cannot convert to {}.", PrintString(), typeid(Type).name());
+                report::critical("Variable of value {} cannot convert to {}.", PrintString(), typeid(To).name());
 
             return result;
         }

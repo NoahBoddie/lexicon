@@ -112,7 +112,7 @@ namespace LEX
 	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
 	uint32_t GetObjectPolicyID()
 	{
-		constexpr std::string_view name = GetTypeName<T>();
+		constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
 		constexpr uint32_t invalid = -1;
 		static uint32_t index = invalid;
 

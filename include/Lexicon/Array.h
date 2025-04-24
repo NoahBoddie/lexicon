@@ -6,7 +6,7 @@ namespace LEX
     class Variable; 
 
     struct Type;
-
+    /*
     class Array
     {
         //It's possible I opt to make my own container for this, just to cut on space
@@ -37,6 +37,6 @@ namespace LEX
 
     };
 
-
+    //*/
 
 }

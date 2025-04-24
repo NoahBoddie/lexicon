@@ -792,8 +792,48 @@ namespace LEX::Impl
 		};
 
 
+		struct TypeofParser : public AutoParser<TypeofParser>
+		{
+			bool IsAtomic() const override
+			{
+				return true;
+			}
+
+
+			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			{
+				if (target)
+					return false;
+
+				return parser->IsType(TokenType::Keyword, "typeof");
+			}
+
+
+
+			Record HandleToken(Parser* parser, Record* target) override
+			{
+				Record result = Parser::CreateExpression(parser->next(), SyntaxType::Typeof);//Turn into the main record
+
+				result.GetTag().clear();//There's no need for the string atm, so just clean it out to save some space.
+
+				parser->SkipType(TokenType::Punctuation, "(");
+
+				result.EmplaceChild(ParseModule::TryModule<HeaderParser>(parser, nullptr));
+
+				parser->SkipType(TokenType::Punctuation, ")");
+
+
+				return result;
+			}
+
+		};
+
+
+
+
 		struct DeclarationParser : public AutoParser<DeclarationParser>, IdenDeclBoilerPlate
 		{
+
 			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
 			{
 				if (!target)
@@ -1030,8 +1070,6 @@ namespace LEX::Impl
 			//Context as a concept hits a snag here, because this would need 2.
 		};
 
-
-		
 		struct BinaryParser : public AutoParser<BinaryParser>
 		{
 			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override

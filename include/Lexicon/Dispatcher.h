@@ -2,6 +2,7 @@
 
 #include "Lexicon/Variable.h"
 #include "Lexicon/Unvariable.h"
+#include "Lexicon/Revariable.h"
 #include "Lexicon/RuntimeVariable.h"
 
 #include "Lexicon/Impl/ref_wrapper.h"
@@ -78,7 +79,6 @@ namespace LEX
 		}
 
 		Function _callback = nullptr;
-
 
 
 		template <typename GuideType, typename TupleType, std::size_t... Indices>
@@ -171,100 +171,106 @@ namespace LEX
 
 		//Value input will be a direct set into the tuple
 
-		template <class TParam, class TResult, typename TArgs, size_t I = 0>
-		static void ValueExport(RuntimeVariable& out, TResult& result, TArgs& tuple, Variable* target, std::vector<Variable*>& args)
+		struct exporter : public RefCollection
 		{
-			using RetElem = detail::simplify_wrapper_t<TResult>;
+			template <class TParam, class TResult, typename TArgs, size_t I = 0>
+			void ValueExport(RuntimeVariable& out, TResult& result, TArgs& tuple, Variable* target, std::vector<Variable*>& args)
+			{
+				using RetElem = detail::simplify_wrapper_t<TResult>;
 
-			constexpr auto k_ret_type = detail::reference_type_v<std::tuple_element_t<0, TParam>, true>;
+				constexpr auto k_ret_type = detail::reference_type_v<std::tuple_element_t<0, TParam>, true>;
 
-			constexpr auto k_ignore_ret = std::is_same_v<detail::not_implemented, TResult>;
+				constexpr auto k_ignore_ret = std::is_same_v<detail::not_implemented, TResult>;
 
-			constexpr auto _I = I;//For visibility in debugging
-
-
-			if constexpr (I < std::tuple_size_v<TArgs>) {
-				using Elem = std::tuple_element_t<I + 1, TParam>;
-				using ElemArg = std::tuple_element_t<I, TArgs>;
-
-				constexpr auto k_param_type = detail::reference_type_v<Elem, false>;
+				constexpr auto _I = I;//For visibility in debugging
 
 
-				//For each step, there's a simple question, is this a referencable type? First we check it to be one of the types plainly 
-				// (this is genuinely more important), 
-				// then we check if it's a reference. If either is true, we dereference the variable and stick it into that. If not no activation is handled here.
+				if constexpr (I < std::tuple_size_v<TArgs>) {
+					using Elem = std::tuple_element_t<I + 1, TParam>;
+					using ElemArg = std::tuple_element_t<I, TArgs>;
+
+					constexpr auto k_param_type = detail::reference_type_v<Elem, false>;
 
 
-				if constexpr (!std::is_same_v<StaticTargetTag, Elem>)//This should use args
-				{
-					if constexpr (k_param_type != detail::ref_type::kNoRef)
+					//For each step, there's a simple question, is this a referencable type? First we check it to be one of the types plainly 
+					// (this is genuinely more important), 
+					// then we check if it's a reference. If either is true, we dereference the variable and stick it into that. If not no activation is handled here.
+
+
+					if constexpr (!std::is_same_v<StaticTargetTag, Elem>)//This should use args
 					{
-						Variable* arg;
-
-						if constexpr (I)
-							arg = args[I - 1];
-						else
-							arg = target;
-
-						if (arg)
+						
+						if constexpr (k_param_type != detail::ref_type::kNoRef)
 						{
-							auto& entry = std::get<I>(tuple);
+							Variable* arg;
 
-							//Needs to check for const before doing this.
-							//TODO: Make this another move, I don't need what we got here.
-							arg->Assign(static_cast<detail::simplify_wrapper_t<ElemArg>&>(entry));
+							if constexpr (I)
+								arg = args[I - 1];
+							else
+								arg = target;
 
-							auto* res = PullAddress(result);
-							auto* en = PullAddress(entry);
-
-							if constexpr (!k_ignore_ret && k_ret_type != detail::ref_type::kNoRef)
+							if (arg)
 							{
-								if (out.IsEmpty() && PullAddress(result) == PullAddress(entry))
+								auto& entry = std::get<I>(tuple);
+
+								//Needs to check for const before doing this.
+								//TODO: Make this another move, I don't need what we got here.
+								//arg->Assign(static_cast<detail::simplify_wrapper_t<ElemArg>&>(entry));
+								
+								Revariable<detail::simplify_wrapper_t<ElemArg>> revar{};
+								revar(entry, arg);
+								
+
+								if constexpr (!k_ignore_ret && k_ret_type != detail::ref_type::kNoRef)
 								{
-									out = RuntimeVariable::CreateTempRef(arg);
+									auto* en = PullAddress(entry);
+
+									//This bit isn't required if we are ignoring the return type like the above
+									Collect(en, arg);
+									TryToCollect(revar);
 								}
 							}
+
 						}
-
 					}
-				}
 
-				ValueExport<TParam, TResult, TArgs, I + 1>(out, result, tuple, target, args);
-			}
-			else if constexpr (!k_ignore_ret && I == std::tuple_size_v<TArgs>)
-			{
-				if (out.IsEmpty() == true)
+					ValueExport<TParam, TResult, TArgs, I + 1>(out, result, tuple, target, args);
+				}
+				else if constexpr (!k_ignore_ret && I == std::tuple_size_v<TArgs>)
 				{
-					if constexpr (k_ret_type != detail::ref_type::kNoRef)
+					
+
+					if constexpr (1)
 					{
-						bool local_check = 1;
-						bool global_check = 1;
+							if constexpr (k_ret_type != detail::ref_type::kNoRef)
+							{
+								bool local_check = 1;
+								bool global_check = 1;
 
-						void* ptr = PullAddress(result);
+								void* ptr = PullAddress(result);
 
-						//Do checks right here.
+								//Do checks right here.
 
-						if (ptr) {//This check first accounts for maybe ref btw, important.
-							out = extern_ref(*reinterpret_cast<detail::simplify_wrapper_t<TResult>*>(ptr));
-							return;
-						}
+								if (ptr) {//This check first accounts for maybe ref btw, important.
+									
+									//I could do this above but I figure, it will keep collecting anyhow right? might as well check once.
+									if (TryLoadReference(ptr, out) == false) {
+										out = extern_ref(*reinterpret_cast<detail::simplify_wrapper_t<TResult>*>(ptr));
+									}
+									return;
+								}
+							}
 
-						//This doesn't work like this, I know this. However
-						//
-
-
-						//out = RuntimeVariable::CreateTempRef(*arg);
+							if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
+							{
+								static_assert(k_ret_type != detail::ref_type::kLocalRef);
+								out = Variable{ static_cast<RetElem&>(result), GetVariableType<RetElem>() };
+							}
 					}
 
-					if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
-					{
-						static_assert(k_ret_type != detail::ref_type::kLocalRef);
-						out = Variable{ static_cast<RetElem&>(result), GetVariableType<RetElem>() };
-					}
 				}
 			}
-		}
-
+		};
 
 
 		//*
@@ -288,10 +294,9 @@ namespace LEX
 
 			decltype(auto) result = LaunderDispatch(tuple);
 
-			ValueExport<Signature>(out, result, tuple, target, args);
+			exporter{}.ValueExport<Signature>(out, result, tuple, target, args);
 		}
-
-
+		
 
 		void Dispatch(RuntimeVariable& out, Variable* target, std::vector<Variable*>& args, ProcedureData& data) override
 		{

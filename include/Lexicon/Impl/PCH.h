@@ -431,11 +431,6 @@ namespace RGL
     concept specialization_of = is_specialization<Test, Ref>::value;
 
 
-
-    template <typename T>
-    using remove_ref_const = std::remove_reference_t<std::remove_const_t<T>>;
-
-
     
 	template <typename Test, typename T, typename... More>
 	struct is_any_convertible : public std::conditional_t<std::convertible_to<T, Test>, std::true_type, std::conditional_t<!!sizeof...(More), is_any_convertible<Test, More...>, std::false_type>>
@@ -447,17 +442,20 @@ namespace RGL
 	constexpr bool is_any_convertible_v = is_any_convertible<Test, T, More...>::value;
 
 
+    template <typename From, typename To>
+    concept is_explicitly_convertible_to = requires { static_cast<To>(::std::declval<From>()); };
 
-	template <typename Test, typename T, size_t I = 0>
+	template <typename From, typename To, size_t I = 0>
 	struct convertible_variant_index : public
 		std::conditional_t<
-			specialization_of<Test, std::variant>,                              //Condition
+			specialization_of<From, std::variant>,                              //Condition
 			std::conditional_t<
-				std::convertible_to<T, std::variant_alternative_t<I, Test>>,    //Condition
+				//std::convertible_to<std::variant_alternative_t<I, From>, To>,    //Condition
+                is_explicitly_convertible_to<std::variant_alternative_t<I, From>, To>,
 				std::integral_constant<size_t, I>,         //Result A
 				std::conditional_t<     //Result B
-					I + 1 < std::variant_size_v<Test>,                         //Condition
-					convertible_variant_index<Test, T, I + 1>, //Result A
+					I + 1 < std::variant_size_v<From>,                         //Condition
+					convertible_variant_index<From, To, I + 1>, //Result A
 					std::integral_constant<size_t, -1>                         //Result B
 				>
 			>,

@@ -301,13 +301,16 @@ namespace LEX
 
 
 	template <typename T>
-	concept has_object_info = std::is_base_of_v<ObjectVTable, ObjectInfo<remove_ref_const<T>>> &&
-		!std::is_abstract_v<ObjectInfo<remove_ref_const<T>>>;
+	concept has_object_info = std::is_base_of_v<ObjectVTable, ObjectInfo<std::remove_cvref_t<T>>> &&
+		!std::is_abstract_v<ObjectInfo<std::remove_cvref_t<T>>>;
 
 
 	template <has_object_info T>
 	ObjectVTable* GetObjectInfo()
 	{
+		//Having this not be loose is a good sign of warning.
+		//using PureT = std::remove_cvref_t<T>;
+
 		static ObjectVTable* vtable = new ObjectInfo<T>{};
 
 		return vtable;

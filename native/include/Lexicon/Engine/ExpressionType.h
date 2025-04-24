@@ -39,6 +39,8 @@ namespace LEX
 		While = Conditional,
 		For = Conditional,
 		
+		Typeof,
+
 
 
 		//Individual operators will not be used, I can just have something hash into an

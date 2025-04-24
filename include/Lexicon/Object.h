@@ -37,6 +37,10 @@ namespace LEX
 	struct ObjectTranslator
 	{
 		//TODO: Get rid of R value checks. Literally pointless. The top level function needs to deal with that.
+		
+		//TODO: Just merge ObjectTranslator with ToObject and name it to object. More on why below
+		// its obtuse to use and I can't use template specialization as well. That, and ProxyGuides will be using the type.
+
 		using _Type = std::invoke_result_t<decltype(ToObject<T>), T&>;
 
 		//No const for now, but later yes.
@@ -47,7 +51,7 @@ namespace LEX
 		// and is static, allow it to use that instead. This is just to reduce the space taken up by different types all over.
 
 
-		decltype(auto) operator()(T& val)
+		decltype(auto) operator()(const T& val)
 		{
 			//This bit is actually not needed at all.
 			if constexpr (std::is_same_v<_Type, LEX::detail::not_implemented>) {
@@ -59,18 +63,28 @@ namespace LEX
 
 		}
 	};
+	
 
 	//TODO: Use a different constraint for this, it may not need to actually take a reference, for pointer
 	// types that'd be a bit silly.
 	//Also, ToObject and the object translator need to switch types.
 	template<typename T>
-	using obj_trans_type = std::invoke_result_t<ObjectTranslator<T>, T&>;
+	using obj_trans_type = std::invoke_result_t<ObjectTranslator<std::remove_cvref_t<T>>, const T&>;
 
 	template<typename T>
 	concept object_type = has_object_info<obj_trans_type<T>> && !std::is_same_v<obj_trans_type<T>, detail::not_implemented>;
 
-	template <object_type T>// requires(has_object_info<obj_trans_type<T>> && !std::is_same_v<obj_trans_type<T>, detail::not_implemented>)
-	Object MakeObject(T& var);
+
+	
+	template <object_type Ty>
+	Object MakeObject(Ty&& var);
+
+	template <object_type T>
+	Object MakeObject(const T& var)
+	{
+		return MakeObject<const T>(std::move(var));
+	}
+
 
 
 	struct Object
@@ -110,14 +124,9 @@ namespace LEX
 			Transfer(other, true);
 		}
 
+		//TODO: For the same of this, MakeObject needs to be a little more const.
 		template <object_type T>
-		Object(T& other)
-		{
-			*this = MakeObject(other);
-		}
-
-		template <object_type T>
-		Object(T&& other)
+		Object(const T& other)
 		{
 			*this = MakeObject(other);
 		}
@@ -417,22 +426,31 @@ namespace LEX
 		}
 
 
+		template <has_object_info T>
+		bool Is() const
+		{
+			auto index = GetObjectPolicyID<T>();
+			return policy.index() == index;
+		}
+
+		//TODO: I may give these the chance to go strate
+
 		//This needs the ability to get a pointer of the given type as well, something that should be used often with pooling types.
-		template <typename T>
+		template <has_object_info T>
 		T& get()
 		{
+			//TODO: Object::get() has no guard rails at all. Please implement some.
+
 			auto index = GetObjectPolicyID<T>();
 
 			if (policy.index() != index) {
-				logger::info("error, cannot convert, {} vs {}", policy.index(), index);
-				throw temp_objectExcept;
+				report::error("error, cannot convert, {} vs {}", policy.index(), index);
 			}
 
 			switch (type)
 			{
 				case ObjectDataType::kNone:
-					logger::info("object is empty");
-					throw temp_objectExcept;
+					report::error("object is empty");
 
 				case ObjectDataType::kVal:
 				case ObjectDataType::kPtr:
@@ -442,12 +460,36 @@ namespace LEX
 					return policy->RequestPool(_data.idxVal)->get<T>();
 
 				default:
-					logger::info("object data type not found");
-					throw temp_objectExcept;
+					report::error("object data type not found");
 			}
 		}
 
-		template <typename T>
+
+		template <has_object_info T>
+		T* fetch()
+		{
+			if (Is<T>() == false)
+				return nullptr;
+
+			return std::addressof(get<T>());
+		}
+
+
+		template <object_type T>
+		explicit operator T ()
+		{
+			using TrueType = std::remove_cvref_t<obj_trans_type<T>>;
+
+			decltype(auto) result = get<TrueType>();
+			
+			if constexpr (std::is_same_v<std::remove_cvref_t<TrueType>, std::remove_cvref_t<T>>)
+				return result;
+			else
+				return static_cast<T>(result);
+		}
+		
+
+		template <has_object_info T>
 		T* ptr()
 		{
 			auto index = GetObjectPolicyID<T>();
@@ -494,29 +536,38 @@ namespace LEX
 
 
 
+
+
+	
 	//This likely can be relocated within object as create, with MakeObject being an external function.
-	template <object_type T>
-	Object MakeObject(T& var)
+	template <object_type Ty>
+	Object MakeObject(Ty&& var)
 	{
 		//Name this ToObject, and the other MakeObject. This one creates the object, the other makes an argument into a thing convertible to an object.
 
-		using _Type = obj_trans_type<T>;
+		using T = std::remove_cvref_t<Ty>;
+
+		using Res = obj_trans_type<T>;
+
+		//Unsure if I wanna use cvref just yet
+		//using _Type = std::remove_cvref_t<obj_trans_type<T>>;
+		using ObType = std::remove_cvref_t<Res>;
 
 
 		Object result{};
 
 		//This is no extra trouble, given the values for ID are cached.
-		ObjectPolicy* policy = GetObjectPolicy<_Type>();
+		ObjectPolicy* policy = GetObjectPolicy<ObType>();
 
-		result.policy = GetObjectPolicyID<_Type>();
-		
+		result.policy = GetObjectPolicyID<ObType>();
+
 
 
 		if (!result.policy) {
 			report::runtime::critical("no policies");
 		}
 
-		IObjectVTable* vtable = GetObjectInfo<_Type>();
+		IObjectVTable* vtable = GetObjectInfo<ObType>();
 
 		if (policy->IsCompatible(vtable) == false) {
 			report::runtime::critical("incompatible policies");
@@ -526,13 +577,13 @@ namespace LEX
 		if (result.policy)
 		{
 			//TODO: confirm this against what goes in the policy. This is when we can tell that something is far too old for the placement.
-			auto* vtable = GetObjectInfo<_Type>();
+			auto* vtable = GetObjectInfo<ObType>();
 			auto* test = result.policy.get();
 			//assert(result.policy->base);
 
 			if (result.policy->base != vtable) {
 				//Non-inhouse checks (should only happen once.
-				logger::info("issue");
+				report::fault::critical("issue");
 			}
 		}
 
@@ -541,21 +592,22 @@ namespace LEX
 		//Around here, I'd actually like there to be some sort of type trait that will be able to parse if it's a reference or not, as to not copy
 		// if it doesn't have to.
 		//auto data = ToObject<T>(var);
-		_Type data = ObjectTranslator<T>{}(var);
+		Res data = ObjectTranslator<T>{}(var);
 
 		//This should be the raw type, no const, no pointer. See to it this is made pure.
 		using _Pure = decltype(data);//NOTE, find out the return type before hand, that way if it's a reference we can handle that properly.
 
 
 		//TODO: HANDLE POOLED DATA HERE.
-		constexpr bool stor = object_storage_v<_Type>;
+		constexpr bool stor = object_storage_v<ObType>;
 
 
 
+		//ObjectData to = FillObjectData<ObType>(data);
+		ObjectData to{ data };
 
-		ObjectData to{};
 
-		FillObjectData<_Type>(to, data);
+
 
 		if (policy->IsPooled(to) == true) {
 			result._data = policy->InitializePool(to, stor);

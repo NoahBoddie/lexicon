@@ -122,6 +122,9 @@
 #include "Lexicon/ITemplateBodyPart.h"
 #include "Lexicon/ITemplateInserter.h"
 
+#include "Lexicon/ProxyGuide.h"
+#include "Lexicon/Revariable.h"
+
 namespace std
 {
 	template <class _Elem, class _Alloc>
@@ -812,10 +815,23 @@ namespace LEX
 	};
 
 
-	namespace ArrayTest
-	{
 		struct Array
 		{
+				
+			//To handle list invalidation, I think what I'll do is turn the array into something that holds onto RuntimeVariables only.
+			//All plain variables are detachedm while other reference types will remain. Probably.
+
+			//Problem with this, the shared pointer does not really regard the idea of this very well. Here's what I think I'll do. 
+			// the shared pointer becomes a new type. This new type is basically a register system for detached references.
+			// basically, when the shared pointer is created, it will add that pointer to a list. This list can be used by dispatch to compare to see if
+			// it needs to remove a value.
+			//Problem though, for the system that unvariables types, this may not exactly actually be effective. I could have a revariable set or something,
+			// some kind of guide.
+
+			//I need to consider how this works really really hard.
+
+			//Also, reuse the container helper.
+
 			//This may go outside of here.
 			struct ContainerHelper
 			{
@@ -835,10 +851,8 @@ namespace LEX
 					return _accessLock;
 				}
 
-				virtual std::span<Variable> data()
-				{
-					return _data;
-				}
+				virtual std::span<Variable> data() final { return _data; }
+				virtual std::span<const Variable> data() const final { return _data; }
 
 				virtual void insert(iterator where, std::span<const Variable> range) final
 				{
@@ -853,6 +867,8 @@ namespace LEX
 						_data.erase(where, end);
 				}
 
+				virtual void resize(size_t new_size) final { return _data.resize(new_size); }
+				virtual void reserve(size_t new_size) final { return _data.reserve(new_size); }
 
 				virtual size_t size() const { return _data.size(); }
 				virtual size_t capacity() const { return _data.capacity(); }
@@ -868,7 +884,7 @@ namespace LEX
 
 
 				ContainerHelper() = default;
-
+				
 				ContainerHelper(std::span<const Variable> range) : _data{ range.begin(), range.end() }
 				{
 
@@ -909,9 +925,39 @@ namespace LEX
 
 			//Needs a static cast to vector, plu
 
+			bool HasContainer() const
+			{
+				return _container != nullptr;
+			}
+
 			Type* type() const
 			{
 				return _type;
+			}
+
+			auto data()
+			{
+				if (HasContainer() == false)
+					return std::span<Variable>{};
+
+				return _container->data();
+			}
+
+			auto data() const
+			{
+				//This should be const, I don't care right now.
+				if (HasContainer() == false)
+					return std::span<Variable>{};
+
+				return _container->data();
+			}
+
+			size_t size() const
+			{
+				if (!_container)
+					return 0;
+
+				return _container->size();
 			}
 
 			constexpr Array() noexcept = default;
@@ -927,6 +973,7 @@ namespace LEX
 				
 				if (other._container) {
 					_container = std::make_unique<ContainerHelper>(other._container->data());
+					logger::info("This is a copy");
 				}
 			}
 
@@ -945,6 +992,34 @@ namespace LEX
 
 			Array& operator=(Array&& other) = default;
 
+			//Required type must have a valid implementation of Unvariable
+			template <typename T> requires (!std::is_base_of_v<detail::not_implemented, Unvariable<T>>)//stl::castable_from<Variable>
+			explicit operator std::vector<T>() const
+			{
+				if (!_container)
+					return {};
+
+
+				if constexpr (std::is_same_v<T, Variable>)
+				{
+					return std::vector<T>{_container->begin(), _container->end() };
+				}
+				else {
+					auto data = _container->data();
+
+					std::vector<T> result{};
+
+					result.resize(data.size());
+
+					std::transform(data.begin(), data.end(), result.begin(), [](Variable& it)
+						{
+							return Unvariable<T>{}(std::addressof(it));
+						});
+
+					return result;
+				}
+				
+			}
 
 			std::string PrintString(std::string_view context) const
 			{
@@ -998,65 +1073,6 @@ namespace LEX
 
 		};
 
-		struct Array_
-		{
-			int8_t size = 0;
-			std::vector<Variable> stuff;
-
-			Array_()
-			{
-				logger::info("Creating Array");
-			}
-
-			~Array_()
-			{
-				logger::info("Deleting Array");
-			}
-
-
-			std::string PrintString(std::string_view context) const
-			{
-				auto size = stuff.size();
-
-				std::vector<std::string> entries{ size };
-				std::string result = "[";
-
-				for (int i = 0; i < size; i++)
-				{
-					if (i)
-						result += ", ";
-
-					result += stuff[i].PrintString();
-
-
-				}
-				result += "]";
-
-				//Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
-				return result;
-
-				/*
-				std::string result{ reserve };
-
-				result.reserve(reserve);
-
-				result = std::accumulate(std::begin(entries), std::end(entries), result,
-					[](std::string& ss, std::string& s)
-					{
-						return ss.empty() ? s : ss + "," + s;
-					});
-
-
-				std::stringstream  stream;
-
-				std::copy(entries.begin(), entries.end(), std::ostream_iterator<std::string>(stream, ", "));
-
-				return std::format("[{}]", stream.str());
-				//*/
-			}
-		};
-	}
-	
 	
 
 
@@ -1064,9 +1080,8 @@ namespace LEX
 	//TODO: Make built in object infos, where if a type is denoted as such, it will make it's own object info, trying to 
 	// call a static version of the classes functions
 	template <>
-	struct LEX::ObjectInfo<ArrayTest::Array> : public QualifiedObjectInfo<ArrayTest::Array>
+	struct LEX::ObjectInfo<Array> : public QualifiedObjectInfo<Array>
 	{
-		using Array = ArrayTest::Array;
 		using Type = LEX::Type;
 
 		template <specialization_of<std::vector> Vec>
@@ -1126,33 +1141,105 @@ namespace LEX
 
 	};
 
+	
+	//TODO: Move the set up for 
 
+	
 
-	/*
-	template <specialization_of<std::vector> Vec>
-	decltype(auto) ToObject<Vec>(Vec& obj)
+	//This is a test, it has more qualifications to fill than this.
+	template <typename T> requires (!detail::subject_has_var_type<T>&&
+		requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>* ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<Type*>; })
+	struct VariableType<T>
 	{
-		logger::info("hitting");
-		std::vector<Variable> buff;
-		buff.resize(obj.size());
-		//const std::vector<void*> test;
-
-		//void* other = test[1];
-
-
-		std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
-
-		
-		return ArrayTest::Array{ buff };
-	}
-	//*/
-	//TODO: Please for the love of god please merge this with ObjectInfo, this has no need to be seperate.
-	template <specialization_of<std::vector> Vec>
-	struct ObjectTranslator<Vec>
-	{
-		ArrayTest::Array operator()(const Vec& obj)
+		Type* operator()(const std::remove_pointer_t<T>* arg)
 		{
-			logger::info("hitting");
+
+			return ProxyGuide<T>{}.VariableType(arg);
+			//if constexpr (detail::subject_has_var_type_Value<T>) {
+			//	return T::GetVariableType(arg);
+			//}
+			//else {
+			//	return T::GetVariableType();
+			//}
+		}
+
+		//Can likely remove this
+		Type* operator()()
+		{
+			return this->operator()(nullptr);
+		}
+	};
+
+	template <typename T> requires (requires(ProxyGuide<T> guide, const T& arg) { { guide.ObjectTranslator(arg) } -> has_object_info; })
+	struct ObjectTranslator<T>
+	{
+		decltype(auto) operator()(const T& obj)
+		{
+			return ProxyGuide<T>{}.ObjectTranslator(obj);
+		}
+	};
+
+	template <typename T> requires (requires(ProxyGuide<T> guide, Variable* arg) { { guide.Unvariable(arg) } -> std::convertible_to<T>; })
+	struct Unvariable<T>
+	{
+		decltype(auto) operator()(Variable* var)
+		{
+			ProxyGuide<T> guide{};
+
+			decltype(auto) result = guide.Unvariable(var);
+
+			return result;
+		}
+	};
+
+	
+	/*
+	 
+
+			
+
+	//*/
+
+
+	int ArraySize(Array a_this)
+	{
+		return a_this.data().size();
+	}
+
+
+	int& RefTest3(StaticTargetTag, int& test)
+	{
+
+
+		return test;
+	}
+
+
+	INITIALIZE("function_register")
+	{
+
+		if (ProcedureHandler::instance->RegisterFunction(RefTest3, "Shared::Commons::RefTest3") == false) {
+			logger::break_debug("failure rft3");
+		}
+		bool success = ProcedureHandler::instance->RegisterCoreFunction(ArraySize, "ArraySize");
+		logger::info("success => {}", success);
+		std::system("pause");
+	}
+
+
+	template<typename T>
+	struct ProxyGuide <std::vector<T>> : public RefCollection
+	{
+
+		Type* VariableType(const std::vector<T>* vec)
+		{
+			return IdentityManager::instance->GetTypeByOffset("ARRAY", 0)->GetTypePolicy(nullptr);
+			//TODO: This literally does not work, please implement this properly.
+			//return Array::GetVariableType(vec);
+		}
+
+		Array ObjectTranslator(const std::vector<T>& obj)
+		{
 			std::vector<Variable> buff;
 			buff.reserve(obj.size());
 			//const std::vector<void*> test;
@@ -1163,27 +1250,147 @@ namespace LEX
 			std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
 
 
-			return ArrayTest::Array{ buff };
+			return Array{ buff };
 
+		}
+
+
+
+
+
+
+		//TODO:Unboiler plate revariable pls, k thx
+		void Revariable(const std::vector<T>& arg, Variable* var)
+		{
+			Array& array = var->AsObject().get<Array>();
+
+			//We are making some assumptions here, and doing no checks
+
+			if (auto size = array._container->size(); arg.size() != size) {
+				report::runtime::error("const array's size was adjusted erroneously.");
+			}
+
+			auto data = array.data();
+
+			for (size_t i = 0; i < arg.size(); i++)
+			{
+				auto& entry = arg[i];
+				auto& to = data[i];
+
+				LEX::Revariable<const T> revar;
+
+				revar(entry, std::addressof(to));
+
+				Collect(std::addressof(entry), std::addressof(to));
+
+				TryToCollect(revar);
+			}
+		}
+
+
+
+		void Revariable(std::vector<T>& arg, Variable* var)
+		{
+			Array& array = var->AsObject().get<Array>();
+			
+			//We are making some assumptions here, and doing no checks
+
+			if (auto size = array._container->size(); arg.size() != size) {
+				array._container->resize(size);
+			}
+			
+			auto data = array.data();
+
+			for (size_t i = 0; i < arg.size(); i++)
+			{
+				auto& entry = arg[i];
+				auto& to = data[i];
+
+				LEX::Revariable<T> revar;
+
+				revar(entry, std::addressof(to));
+
+				Collect(std::addressof(entry), std::addressof(to));
+
+				TryToCollect(revar);
+			}
+		}
+
+
+	};
+
+	template <>
+	struct Revariable<Array> : public RefCollection
+	{
+
+		void Fill(const Array& arg, Variable* var, bool assign)
+		{
+			Array& array = var->AsObject().get<Array>();
+
+			//We are making some assumptions here, and doing no checks
+
+			if (auto size = array._container->size(); arg.size() != size) {
+				if (assign)
+					array._container->resize(size);
+				else
+					report::runtime::error("const array's size was adjusted erroneously.");
+			}
+
+
+			auto self = arg.data();
+			auto other = array.data();
+
+			for (size_t i = 0; i < arg.size(); i++)
+			{
+				auto& entry = self[i];
+				auto& to = other[i];
+				
+				Collect(std::addressof(entry), std::addressof(to));
+
+				if (Object* object = entry.FetchObject()) {
+					if (auto array = object->fetch<Array>()) {
+
+						Fill(*array, var, assign);
+						continue;
+					}
+				}
+
+				if (assign)
+					to.Assign(entry);
+
+			}
+		}
+
+
+		void operator()(const Array& arg, Variable* var)
+		{
+			return Fill(arg, var, false);
+		}
+
+		void operator()(Array& arg, Variable* var)
+		{
+			return Fill(arg, var, true);
 		}
 	};
 
+	template <typename T> requires (std::is_same_v<std::remove_cvref_t<T>, Array> && (std::is_const_v<T> || std::is_reference_v<T>))
+		struct Revariable<T> : public Revariable<Array> {};
+
+
+
+
 
 
 	INITIALIZE()
 	{
-
 		
 
-	};
-
-
-	INITIALIZE()
-	{
-		using Array = ArrayTest::Array;
-
-		RegisterObjectType<ArrayTest::Array>("ARRAY", 1);
-
+		//This surprisingly, actually fucking works.
+		//constexpr auto TEST = convertible_variant_index_v<VariableValue, std::vector<int>>;
+		//constexpr auto TEST = std::convertible_to<std::vector<int>, Object>;
+		RegisterObjectType<Array>("ARRAY", 1);
+		static ConcreteType* basicArray = new ConcreteType{ "ARRAY", 0 };
+		static ConcreteType* complexArray = new ConcreteType{ "ARRAY", 1 };
 
 		std::vector<int> vars{ 1, 2, 3, 4, 5, 6, 7 };
 
@@ -1194,17 +1401,65 @@ namespace LEX
 		logger::critical("Object check: {} , {} (+info {})", _array.get<Array>()._container->size(), policy, policy ? !!_array.policy->base : false);
 
 
-		std::string str;
-
 		logger::info("~Testing PrintString for Arrays: \"{}\"", _array.PrintString());
+		
+		const int& thgb = vars[0];
 
+		decltype(auto) d = std::move(thgb);
 
+		//*
 		Array new_array = _array.get<Array>();
+		Variable fail = MakeObject(new_array);
+		
+		const std::vector<int> test{ new_array };
+
+		
+
+		std::vector<std::vector<int>> out{ {96, 69}, {402, 420}, {27, 72, 76}, {40, 42} };
+		
+		/*
+		Variable fail2 = MakeObject(std::move(out));
+
+		Revariable<std::vector<std::vector<int>>> revar{};
+		revar(out, &fail2);
+		/*/
+		//TODO: Array needs to be able to construct from arrays, this is not a good way to make stuff.
+		// Also make ToObject easier to use. make it a real function seperate from ObjectTranslator.
+		Array fail2 = ObjectTranslator<std::vector<std::vector<int>>>{}(out);
+
+		Variable var = fail2;
+		Revariable<Array> revar{};
+		revar(fail2, &var);
+		//*/
+
+		//I NEED TO TEST THESE ADDRESSES ARE IN THE RIGHT SPOT
+
+		for (auto& x : out)
+		{
+			logger::info("Addy: {:X}", (uintptr_t)&x);
+			for (auto& y : x)
+			{
+				logger::info("addy: {:X}", (uintptr_t)&y);
+			}
+		}
 
 		for (auto& variable : new_array._container->data())
 		{
-			logger::critical(" new var: {}", variable.AsNumber());
+			logger::critical(" var: {}", variable.AsNumber());
 		}
+		_array.get<Array>()._container->data()[4] = 69;
+
+		auto new_vars = Unvariable<std::vector<int>>{}(&fail);
+
+		for (auto& variable : new_vars)
+		{
+			logger::critical(" new var: {}", variable);
+		}
+		//*/
+
+		constexpr auto testers = std::derived_from<Revariable<std::vector<int>>, RefCollection>;
+
+		logger::info("~Testing PrintString for Arrays(after): \"{}\"", _array.PrintString());
 
 		auto gen_built = GenericDataBuilder<Array>().get<Array>();
 	
@@ -2700,191 +2955,6 @@ namespace LEX
 
 
 
-
-	struct Array_
-	{
-		int8_t size = 0;
-		std::vector<Variable> stuff;
-
-		Array_()
-		{
-			logger::info("Creating Array");
-		}
-
-		~Array_()
-		{
-			logger::info("Deleting Array");
-		}
-
-
-		std::string PrintString(std::string_view context) const
-		{
-			auto size = stuff.size();
-			
-			std::vector<std::string> entries{ size };
-			std::string result = "[";
-			
-			for (int i = 0; i < size; i++)
-			{
-				if (i)
-					result += ", ";
-
-				result += stuff[i].PrintString();
-				
-
-			}
-			result += "]";
-			
-			//Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
-			return result;
-			
-			/*
-			std::string result{ reserve };
-			
-			result.reserve(reserve);
-
-			result = std::accumulate(std::begin(entries), std::end(entries), result,
-				[](std::string& ss, std::string& s)
-				{
-					return ss.empty() ? s : ss + "," + s;
-				});
-
-
-			std::stringstream  stream;
-			
-			std::copy(entries.begin(), entries.end(), std::ostream_iterator<std::string>(stream, ", "));
-			
-			return std::format("[{}]", stream.str());
-			//*/
-		}
-	};
-
-	template <>
-	struct LEX::ObjectInfo<Array_> : public QualifiedObjectInfo<Array_>
-	{
-		using Typer = int;
-
-		bool IsPooled(ObjectData&) override
-		{
-			return true;
-		}
-
-		TypeOffset GetTypeOffset(ObjectData&) override
-		{
-			return 0;
-		}
-	};
-
-
-	template <>
-	decltype(auto) ToObject<std::vector<int>>(std::vector<int>& obj)
-	{
-		logger::info("hitting");
-		Array_ result{};
-
-		//const std::vector<void*> test;
-
-		//void* other = test[1];
-
-
-		std::transform(obj.begin(), obj.end(), std::back_inserter(result.stuff), [&](auto it) {return it; });
-
-		result.size = obj.size();
-		return result;
-	}
-
-
-	//Possible concept for logger implementation
-	
-
-
-	
-	INITIALIZE()
-	{
-		//For some reason initialize fucks up when under some very odd circumstances, and only when using the INITIALIZE macro
-		RegisterObjectType<Array_>("ARRAY_");
-		
-		return;
-		if constexpr (0)
-		{
-			Object _array1 = GetObjectPolicy<Array_>()->CreateObject(0);
-			Object _array2 = GetObjectPolicy<Array_>()->CreateObject(0);
-
-			_array1 = _array2;
-		}
-		if constexpr (0)
-		{
-			Object _array1 = GetObjectPolicy<Array_>()->CreateObject(0);
-			Object _array2 = GetObjectPolicy<Array_>()->CreateObject(0);
-
-			_array1 = _array2;
-		}
-
-
-		//return;
-		// To walk through functionality, how would this work ?
-		std::vector<int> vars{ 1, 2, 3, 4, 5, 6, 7 };
-
-		//auto* var_ptr = &vars;
-
-		//Object test_array = MakeObject(var_ptr);
-
-
-		Object _array = MakeObject(vars);
-		bool policy = _array.policy;
-		//_array.data.fastValue
-		//logger::critical("Object check: {} , {} (+info {})", reinterpret_cast<Array_*>(_array.data.ptrVal)->size, policy, policy ? !!_array.policy->base : false);
-		logger::critical("Object check: {} , {} (+info {})", _array.get<Array_>().size, policy, policy ? !!_array.policy->base : false);
-
-
-		std::string str;
-
-		//Object str_obj = MakeObject(str);
-
-
-
-
-
-		//for (auto& variable : reinterpret_cast<Array_*>(_array.data.ptrVal)->stuff)
-		//for (auto& variable : _array.get<Array_>().stuff)
-		//{
-		//	logger::critical("var: {}", variable.AsNumber());
-		//}
-
-		logger::info("~Testing PrintString for Arrays: \"{}\"", _array.PrintString());
-
-
-
-		//Array_ new_array = *reinterpret_cast<Array_*>(_array.data.ptrVal);
-		Array_ new_array = _array.get<Array_>();
-
-		for (auto& variable : new_array.stuff)
-		{
-			logger::critical(" new var: {}", variable.AsNumber());
-		}
-
-
-		//logger::critical("GenericBuilt check: {} ", reinterpret_cast<Array_*>(GenericDataBuilder<Array_>().ptrVal)->size);
-		logger::critical("GenericBuilt check: {} ", GenericDataBuilder<Array_>().get<Array_>().size);
-
-		//return;
-		//static_assert(false, "The object pooling system isn't doing so hot. Confirm that it's not stupid busted later.");
-
-		Object first = MakeObject(vars);
-
-		logger::info("index {}", first._data.idxVal);
-		Object second = first;
-
-		first = second;
-
-		second.Destroy();
-
-
-		first = second;
-		
-
-		logger::info("end of test");
-	};
 
 
 	//The idea of these structs are to present as tags to be used when having a centralized object class.
