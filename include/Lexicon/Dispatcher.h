@@ -95,19 +95,21 @@ namespace LEX
 		template<typename T>
 		decltype(auto) HandleDispatch(T& tuple)
 		{
+			//used to use decltype(tuple), suspect it was adding a reference preventing it from working.
 			//If I could make this already forwarded I'd enjoy that
 			if constexpr (std::is_same_v<R, void>) {
-				std::apply(_callback, std::forward<decltype(tuple)>(tuple));
+				std::apply(_callback, std::forward<T>(tuple));
 				return detail::not_implemented{};
 			}
 			else {
-				return std::apply(_callback, std::forward<decltype(tuple)>(tuple));
+				return std::apply(_callback, std::forward<T>(tuple));
 			}
 		}
 
 		template<typename Ty>
 		decltype(auto) LaunderDispatch(Ty& tuple)
 		{
+			//return HandleDispatch(tuple);
 			auto ref_tuple = tie_as_tuple<T, Args...>(tuple);
 			return HandleDispatch(ref_tuple);
 		}

@@ -815,263 +815,348 @@ namespace LEX
 	};
 
 
-		struct Array
+	template <typename T>
+	struct ContainerHelper
+	{
+		using iterator = std::vector<T>::iterator;
+		using const_iterator = std::vector<T>::const_iterator;
+
+		using span = std::span<T>;
+		using const_span = std::span<const T>;
+
+	private:
+		inline static std::mutex _accessLock;
+
+	public:
+		virtual ~ContainerHelper() = default;
+
+
+		virtual std::mutex& GetLock() const final
 		{
+			return _accessLock;
+		}
+
+		virtual std::span<T> data() final { return _data; }
+		virtual std::span<const T> data() const final { return _data; }
+
+		virtual void insert(iterator where, std::span<const T> range) final
+		{
+			_data.insert_range(where, range);
+		}
+
+		virtual void erase(iterator where, iterator end) final
+		{
+			if (where == end)
+				_data.erase(where);
+			else
+				_data.erase(where, end);
+		}
+
+		virtual void resize(size_t new_size) final { return _data.resize(new_size); }
+		virtual void reserve(size_t new_size) final { return _data.reserve(new_size); }
+
+		virtual size_t size() const { return _data.size(); }
+		virtual size_t capacity() const { return _data.capacity(); }
+
+		virtual iterator begin() final { return _data.begin(); }
+		virtual iterator end() final { return _data.end(); }
+
+		virtual const_iterator begin() const final { return _data.begin(); }
+		virtual const_iterator end() const final { return _data.end(); }
+
+		const_iterator cbegin() const { return begin(); }
+		const_iterator cend() const { return end(); }
+
+
+		ContainerHelper() = default;
+
+		ContainerHelper(const std::vector<T>& other) : _data{ other } {}
+		ContainerHelper(std::vector<T>&& other) : _data{ std::move(other) } {}
+
+		ContainerHelper(std::span<const T> range) : _data{ range.begin(), range.end() } {}
+
+	private:
+		std::vector<T> _data{};
+	};
+
+	struct ArrayVariable : public std::shared_ptr<Variable>
+	{
+		using Base = std::shared_ptr<Variable>;
+
+		//using Base::Base;
+		//using Base::operator bool;
+		//using Base::operator*;
+		//using Base::operator->;
+
+		//Largely, this should always have a value. Voiding is for the base of this thing.
+		ArrayVariable() : Base{ std::make_unique<Variable>() } {};
+
+		ArrayVariable(const Variable& other) : Base{ std::make_shared<Variable>(other) } {}
+		ArrayVariable(Variable&& other) : Base{ std::make_shared<Variable>(std::move(other)) } {}
+
+		ArrayVariable(const ArrayVariable& other) : ArrayVariable{ other.ref() } {}
+		ArrayVariable(ArrayVariable&& other) = default;
+
+
+
+		ArrayVariable& operator=(const Variable& other)
+		{
+			Base::operator=(std::make_shared<Variable>(other));
+			return *this;
+		}
+		ArrayVariable& operator=(Variable&& other)
+		{
+			
+			Base::operator=(std::make_shared<Variable>(std::move(other)));
+			return *this;
+		}
+		ArrayVariable& operator=(const ArrayVariable& other)
+		{
+			return operator=(other.ref());
+		}
+
+		ArrayVariable& operator=(ArrayVariable&& other) = default;
+
+
+		
+		//ArrayVariable(const Base& other) : Base{ other }{}
+		//ArrayVariable(Base&& other) : Base{ std::forward<Base>(other) } {}
+		
+
+		Variable& ref()
+		{
+			return *get();
+		}
+		const Variable& ref() const
+		{
+			return *get();
+		}
+
+
+		Variable* ptr()
+		{
+			return get();
+		}
+		const Variable* ptr() const
+		{
+			return get();
+		}
+
+		operator Variable& ()
+		{
+			return ref();
+		}
+		operator const Variable& () const
+		{
+			return ref();
+		}
+	};
+
+
+	struct Array
+	{
+		using Helper = ContainerHelper<ArrayVariable>;
+
 				
-			//To handle list invalidation, I think what I'll do is turn the array into something that holds onto RuntimeVariables only.
-			//All plain variables are detachedm while other reference types will remain. Probably.
+		//To handle list invalidation, I think what I'll do is turn the array into something that holds onto RuntimeVariables only.
+		//All plain variables are detachedm while other reference types will remain. Probably.
 
-			//Problem with this, the shared pointer does not really regard the idea of this very well. Here's what I think I'll do. 
-			// the shared pointer becomes a new type. This new type is basically a register system for detached references.
-			// basically, when the shared pointer is created, it will add that pointer to a list. This list can be used by dispatch to compare to see if
-			// it needs to remove a value.
-			//Problem though, for the system that unvariables types, this may not exactly actually be effective. I could have a revariable set or something,
-			// some kind of guide.
+		//Problem with this, the shared pointer does not really regard the idea of this very well. Here's what I think I'll do. 
+		// the shared pointer becomes a new type. This new type is basically a register system for detached references.
+		// basically, when the shared pointer is created, it will add that pointer to a list. This list can be used by dispatch to compare to see if
+		// it needs to remove a value.
+		//Problem though, for the system that unvariables types, this may not exactly actually be effective. I could have a revariable set or something,
+		// some kind of guide.
 
-			//I need to consider how this works really really hard.
+		//I need to consider how this works really really hard.
 
-			//Also, reuse the container helper.
+		//Also, reuse the container helper.
 
-			//This may go outside of here.
-			struct ContainerHelper
-			{
-				using iterator = std::vector<Variable>::iterator;
-				using const_iterator = std::vector<Variable>::const_iterator;
-
-
-			private:
-				inline static std::mutex _accessLock;
-
-			public:
-				virtual ~ContainerHelper() = default;
-
-
-				virtual std::mutex& GetLock() const final
-				{
-					return _accessLock;
-				}
-
-				virtual std::span<Variable> data() final { return _data; }
-				virtual std::span<const Variable> data() const final { return _data; }
-
-				virtual void insert(iterator where, std::span<const Variable> range) final
-				{
-					_data.insert_range(where, range);
-				}
-
-				virtual void erase(iterator where, iterator end) final
-				{
-					if (where == end)
-						_data.erase(where);
-					else
-						_data.erase(where, end);
-				}
-
-				virtual void resize(size_t new_size) final { return _data.resize(new_size); }
-				virtual void reserve(size_t new_size) final { return _data.reserve(new_size); }
-
-				virtual size_t size() const { return _data.size(); }
-				virtual size_t capacity() const { return _data.capacity(); }
-
-				virtual iterator begin() final { return _data.begin(); }
-				virtual iterator end() final { return _data.end(); }
-
-				virtual const_iterator begin() const final { return _data.begin(); }
-				virtual const_iterator end() const final { return _data.end(); }
-
-				const_iterator cbegin() const { return begin(); }
-				const_iterator cend() const { return end(); }
-
-
-				ContainerHelper() = default;
-				
-				ContainerHelper(std::span<const Variable> range) : _data{ range.begin(), range.end() }
-				{
-
-				}
-
-			private:
-				std::vector<Variable> _data{};
-			};
+		//This may go outside of here.
 
 
 
-			static Type* GetVariableType(const Array* self)
-			{
-				if (!self || !self->_type) {
-					auto result = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
 
-					if (!result) {
-						report::fault::error("'ARRAY' at offset 0 is empty.");
-					}
 
-					return result->GetTypePolicy(nullptr);
-				}
-
-				auto type = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
-
-				//TODO: Remove the boilerplate from using a GenericArray, it's common to want to do something like this
-				GenericArray array{ nullptr, {self->type() }};
-
-				auto result = type->GetTypePolicy(array.TryPromoteTemplate());
+		static Type* GetVariableType(const Array* self)
+		{
+			if (!self || !self->_type) {
+				auto result = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
 
 				if (!result) {
-					report::error("Failed to specialized 'ARRAY' offset of 1.");
+					report::fault::error("'ARRAY' at offset 0 is empty.");
 				}
 
-				return result;
-
+				return result->GetTypePolicy(nullptr);
 			}
 
-			//Needs a static cast to vector, plu
+			auto type = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
 
-			bool HasContainer() const
-			{
-				return _container != nullptr;
+			//TODO: Remove the boilerplate from using a GenericArray, it's common to want to do something like this
+			GenericArray array{ nullptr, {self->type() }};
+
+			auto result = type->GetTypePolicy(array.TryPromoteTemplate());
+
+			if (!result) {
+				report::error("Failed to specialized 'ARRAY' offset of 1.");
 			}
 
-			Type* type() const
-			{
-				return _type;
-			}
+			return result;
 
-			auto data()
-			{
-				if (HasContainer() == false)
-					return std::span<Variable>{};
+		}
 
-				return _container->data();
-			}
+		//Needs a static cast to vector, plu
 
-			auto data() const
-			{
-				//This should be const, I don't care right now.
-				if (HasContainer() == false)
-					return std::span<Variable>{};
+		bool HasContainer() const
+		{
+			return _container != nullptr;
+		}
 
-				return _container->data();
-			}
+		Type* type() const
+		{
+			return _type;
+		}
 
-			size_t size() const
-			{
-				if (!_container)
-					return 0;
+		Helper::span data()
+		{
+			if (HasContainer() == false)
+				return {};
 
-				return _container->size();
-			}
+			return _container->data();
+		}
 
-			constexpr Array() noexcept = default;
-			
-			Array(std::span<const Variable> range, Type* type = nullptr) : _container{ std::make_unique<ContainerHelper>(range) }, _type {type}
-			{
+		
+		Helper::span data() const
+		{
+			//This should be const, I don't care right now.
+			if (HasContainer() == false)
+				return {};
 
-			}
-			Array(const Array& other)
-			{
-				//TODO: Unboiler plate
-				_type = other._type;
+			return _container->data();
+		}
+
+		size_t size() const
+		{
+			if (!_container)
+				return 0;
+
+			return _container->size();
+		}
+
+		constexpr Array() noexcept = default;
+		
+	
+		Array(std::span<const Variable> range, Type* type = nullptr) : 
+			_container{ std::make_unique<Helper>(std::vector<ArrayVariable>(range.begin(), range.end())) }, _type {type}
+		{
+
+		}
+		Array(const Array& other)
+		{
+			//TODO: Unboiler plate
+			_type = other._type;
 				
-				if (other._container) {
-					_container = std::make_unique<ContainerHelper>(other._container->data());
-					logger::info("This is a copy");
-				}
+			if (other._container) {
+				_container = std::make_unique<Helper>(other._container->data());
+				logger::info("This is a copy");
+			}
+		}
+
+		Array(Array&& other) = default;
+
+		Array& operator=(const Array& other)
+		{
+			_type = other._type;
+
+			if (other._container) {
+				_container = std::make_unique<Helper>(other._container->data());
 			}
 
-			Array(Array&& other) = default;
+			return *this;
+		}
 
-			Array& operator=(const Array& other)
+		Array& operator=(Array&& other) = default;
+
+		//Required type must have a valid implementation of Unvariable
+		template <typename T> requires (!std::is_base_of_v<detail::not_implemented, Unvariable<T>>)//stl::castable_from<Variable>
+		explicit operator std::vector<T>() const
+		{
+			if (!_container)
+				return {};
+
+
+			if constexpr (std::is_same_v<T, Variable>)
 			{
-				_type = other._type;
-
-				if (other._container) {
-					_container = std::make_unique<ContainerHelper>(other._container->data());
-				}
-
-				return *this;
+				return std::vector<T>{_container->begin(), _container->end() };
 			}
+			else {
+				auto data = _container->data();
 
-			Array& operator=(Array&& other) = default;
+				std::vector<T> result{};
 
-			//Required type must have a valid implementation of Unvariable
-			template <typename T> requires (!std::is_base_of_v<detail::not_implemented, Unvariable<T>>)//stl::castable_from<Variable>
-			explicit operator std::vector<T>() const
-			{
-				if (!_container)
-					return {};
+				result.resize(data.size());
 
-
-				if constexpr (std::is_same_v<T, Variable>)
-				{
-					return std::vector<T>{_container->begin(), _container->end() };
-				}
-				else {
-					auto data = _container->data();
-
-					std::vector<T> result{};
-
-					result.resize(data.size());
-
-					std::transform(data.begin(), data.end(), result.begin(), [](Variable& it)
-						{
-							return Unvariable<T>{}(std::addressof(it));
-						});
-
-					return result;
-				}
-				
-			}
-
-			std::string PrintString(std::string_view context) const
-			{
-				auto stuff = _container->data();
-
-				auto size = stuff.size();
-
-				std::vector<std::string> entries{ size };
-				std::string result = "[";
-
-				for (int i = 0; i < size; i++)
-				{
-					if (i)
-						result += ", ";
-
-					result += stuff[i].PrintString();
-
-
-				}
-				result += "]";
-
-				//Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
-				return result;
-
-				/*
-				std::string result{ reserve };
-
-				result.reserve(reserve);
-
-				result = std::accumulate(std::begin(entries), std::end(entries), result,
-					[](std::string& ss, std::string& s)
+				std::transform(data.begin(), data.end(), result.begin(), [](ArrayVariable& it)
 					{
-						return ss.empty() ? s : ss + "," + s;
+						return Unvariable<T>{}(it.ptr());
 					});
 
-
-				std::stringstream  stream;
-
-				std::copy(entries.begin(), entries.end(), std::ostream_iterator<std::string>(stream, ", "));
-
-				return std::format("[{}]", stream.str());
-				//*/
+				return result;
 			}
+				
+		}
 
-		//private:
+		std::string PrintString(std::string_view context) const
+		{
+			auto stuff = _container->data();
 
-			std::unique_ptr<ContainerHelper> _container{};
+			auto size = stuff.size();
 
-			mutable Type* _type = nullptr;
+			//std::vector<std::string> entries{ size };
+			std::string result = "[";
+
+			for (int i = 0; i < size; i++)
+			{
+				if (i)
+					result += ", ";
+
+				result += stuff[i]->PrintString();
 
 
-		};
+			}
+			result += "]";
+
+			//Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
+			return result;
+
+			/*
+			std::string result{ reserve };
+
+			result.reserve(reserve);
+
+			result = std::accumulate(std::begin(entries), std::end(entries), result,
+				[](std::string& ss, std::string& s)
+				{
+					return ss.empty() ? s : ss + "," + s;
+				});
+
+
+			std::stringstream  stream;
+
+			std::copy(entries.begin(), entries.end(), std::ostream_iterator<std::string>(stream, ", "));
+
+			return std::format("[{}]", stream.str());
+			//*/
+		}
+
+	//private:
+
+		std::unique_ptr<Helper> _container{};
+
+		mutable Type* _type = nullptr;
+
+
+	};
 
 	
 
@@ -1201,11 +1286,15 @@ namespace LEX
 	//*/
 
 
-	int ArraySize(Array a_this)
+	int ArraySize(Array&& a_this)
 	{
 		return a_this.data().size();
 	}
 
+	int ArraySize_(Array a_this, Array second)
+	{
+		return a_this.data().size();
+	}
 
 	int& RefTest3(StaticTargetTag, int& test)
 	{
@@ -1217,6 +1306,14 @@ namespace LEX
 
 	INITIALIZE("function_register")
 	{
+		//Array t;
+		//std::tuple<Array, Array> tuple;
+		//std::tuple<Array, Array>& tuple2 = tuple;
+
+		//auto tuple = std::forward_as_tuple(tuple);
+
+		//std::apply(ArraySize_, std::forward<decltype(tuple2)>(tuple2));
+
 
 		if (ProcedureHandler::instance->RegisterFunction(RefTest3, "Shared::Commons::RefTest3") == false) {
 			logger::break_debug("failure rft3");
@@ -1279,9 +1376,9 @@ namespace LEX
 
 				LEX::Revariable<const T> revar;
 
-				revar(entry, std::addressof(to));
+				revar(entry, to.ptr());
 
-				Collect(std::addressof(entry), std::addressof(to));
+				Collect(std::addressof(entry), to.ptr());
 
 				TryToCollect(revar);
 			}
@@ -1308,9 +1405,9 @@ namespace LEX
 
 				LEX::Revariable<T> revar;
 
-				revar(entry, std::addressof(to));
+				revar(entry, to.ptr());
 
-				Collect(std::addressof(entry), std::addressof(to));
+				Collect(std::addressof(entry), to.ptr());
 
 				TryToCollect(revar);
 			}
@@ -1342,8 +1439,8 @@ namespace LEX
 
 			for (size_t i = 0; i < arg.size(); i++)
 			{
-				auto& entry = self[i];
-				auto& to = other[i];
+				auto& entry = self[i].ref();
+				auto& to = other[i].ref();
 				
 				Collect(std::addressof(entry), std::addressof(to));
 
@@ -1417,12 +1514,12 @@ namespace LEX
 
 		std::vector<std::vector<int>> out{ {96, 69}, {402, 420}, {27, 72, 76}, {40, 42} };
 		
-		/*
-		Variable fail2 = MakeObject(std::move(out));
+		//*
+		Variable fail3 = MakeObject(std::move(out));
 
-		Revariable<std::vector<std::vector<int>>> revar{};
-		revar(out, &fail2);
-		/*/
+		Revariable<const std::vector<std::vector<int>>> revar1{};
+		revar1(out, &fail3);
+		
 		//TODO: Array needs to be able to construct from arrays, this is not a good way to make stuff.
 		// Also make ToObject easier to use. make it a real function seperate from ObjectTranslator.
 		Array fail2 = ObjectTranslator<std::vector<std::vector<int>>>{}(out);
@@ -1443,11 +1540,11 @@ namespace LEX
 			}
 		}
 
-		for (auto& variable : new_array._container->data())
+		for (Variable& variable : new_array._container->data())
 		{
 			logger::critical(" var: {}", variable.AsNumber());
 		}
-		_array.get<Array>()._container->data()[4] = 69;
+		_array.get<Array>()._container->data()[4].ref() = 69;
 
 		auto new_vars = Unvariable<std::vector<int>>{}(&fail);
 
