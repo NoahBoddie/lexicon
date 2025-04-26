@@ -63,7 +63,7 @@ namespace LEX::Impl
 
 		//TODO: use (?:...) more, this is a non-capturing group, and most of the time this is what I actually want.
 
-		inline static std::vector<std::string_view> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::", "...", "/:", "#"};//?
+		inline static std::vector<std::string_view> _puncCodes{ ",", ";", "(",")", "{", "}", "[", "]", ":", "::", "...", "/:", "#", "[:", ":]"};//?
 		
 
 		//TODO: Consider some contextual keywords, keywords not always made keywords, but only under certain situations. 
@@ -112,7 +112,7 @@ namespace LEX::Impl
 			"include",
 			"import",
 			"as",
-			//"typeof",
+			"typeof",
 		};
 
 		inline static std::vector<std::string_view> _ConKeyCodes

@@ -202,7 +202,7 @@ namespace LEX
 					if constexpr (!std::is_same_v<StaticTargetTag, Elem>)//This should use args
 					{
 						
-						if constexpr (k_param_type != detail::ref_type::kNoRef)
+						if constexpr (k_param_type != detail::ref_type::kNoRef || (std::is_rvalue_reference_v<Elem> && I == 0))
 						{
 							Variable* arg;
 

@@ -372,7 +372,8 @@ namespace LEX
 		
 		std::system("pause");
 
-		Variable result = Formula<Variable>::Run("(25).CouldBeLiterallyAnything()");
+		
+		Voidable result = Formula<Voidable>::Run("(25).CouldBeLiterallyAnything()");
 
 		logger::critical("{}", result.PrintString());
 #ifdef KILL
@@ -957,6 +958,14 @@ namespace LEX
 	{
 		using Helper = ContainerHelper<ArrayVariable>;
 
+		//I would like to make array a little more seperated in terms of the type. For example, I'd like array to be seperated into 2 sections
+		// depending on where it's been accessed from. One cannot change it's size, and the other can.
+		// eh, I think it would probably be better to just make tuple a different type and make a conversion.
+
+
+
+
+
 				
 		//To handle list invalidation, I think what I'll do is turn the array into something that holds onto RuntimeVariables only.
 		//All plain variables are detachedm while other reference types will remain. Probably.
@@ -1286,43 +1295,6 @@ namespace LEX
 	//*/
 
 
-	int ArraySize(Array&& a_this)
-	{
-		return a_this.data().size();
-	}
-
-	int ArraySize_(Array a_this, Array second)
-	{
-		return a_this.data().size();
-	}
-
-	int& RefTest3(StaticTargetTag, int& test)
-	{
-
-
-		return test;
-	}
-
-
-	INITIALIZE("function_register")
-	{
-		//Array t;
-		//std::tuple<Array, Array> tuple;
-		//std::tuple<Array, Array>& tuple2 = tuple;
-
-		//auto tuple = std::forward_as_tuple(tuple);
-
-		//std::apply(ArraySize_, std::forward<decltype(tuple2)>(tuple2));
-
-
-		if (ProcedureHandler::instance->RegisterFunction(RefTest3, "Shared::Commons::RefTest3") == false) {
-			logger::break_debug("failure rft3");
-		}
-		bool success = ProcedureHandler::instance->RegisterCoreFunction(ArraySize, "ArraySize");
-		logger::info("success => {}", success);
-		std::system("pause");
-	}
-
 
 	template<typename T>
 	struct ProxyGuide <std::vector<T>> : public RefCollection
@@ -1419,35 +1391,23 @@ namespace LEX
 	template <>
 	struct Revariable<Array> : public RefCollection
 	{
-
-		void Fill(const Array& arg, Variable* var, bool assign)
+		void Fill(const Array& a_this, Array& other, bool assign)
 		{
-			Array& array = var->AsObject().get<Array>();
 
-			//We are making some assumptions here, and doing no checks
+			auto this_data = a_this.data();
+			auto other_data = other.data();
 
-			if (auto size = array._container->size(); arg.size() != size) {
-				if (assign)
-					array._container->resize(size);
-				else
-					report::runtime::error("const array's size was adjusted erroneously.");
-			}
-
-
-			auto self = arg.data();
-			auto other = array.data();
-
-			for (size_t i = 0; i < arg.size(); i++)
+			for (size_t i = 0; i < a_this.size(); i++)
 			{
-				auto& entry = self[i].ref();
-				auto& to = other[i].ref();
-				
+				auto& entry = this_data[i].ref();
+				auto& to = other_data[i].ref();
+
 				Collect(std::addressof(entry), std::addressof(to));
 
 				if (Object* object = entry.FetchObject()) {
-					if (auto array = object->fetch<Array>()) {
+					if (auto entry_array = object->fetch<Array>()) {
 
-						Fill(*array, var, assign);
+						Fill(*entry_array, std::addressof(to), assign);
 						continue;
 					}
 				}
@@ -1456,6 +1416,22 @@ namespace LEX
 					to.Assign(entry);
 
 			}
+		}
+
+		void Fill(const Array& arg, Variable* var, bool assign)
+		{
+			Array& arg_array = var->AsObject().get<Array>();
+
+			//We are making some assumptions here, and doing no checks
+
+			if (auto size = arg.size(); arg_array._container->size() != size) {
+				if (assign)
+					arg_array._container->resize(size);
+				else
+					report::runtime::error("const array's size was adjusted erroneously.");
+			}
+
+			return Fill(arg, arg_array, assign);
 		}
 
 
@@ -1473,6 +1449,76 @@ namespace LEX
 	template <typename T> requires (std::is_same_v<std::remove_cvref_t<T>, Array> && (std::is_const_v<T> || std::is_reference_v<T>))
 		struct Revariable<T> : public Revariable<Array> {};
 
+
+
+
+	int ArraySize(Array&& a_this)
+	{
+		return a_this.data().size();
+	}
+
+	int ArraySize_(Array a_this, Array second)
+	{
+		return a_this.data().size();
+	}
+
+
+
+	int& RefTest3(StaticTargetTag, int& test)
+	{
+
+
+		return test;
+	}
+
+	Array CreateOne(StaticTargetTag)
+	{
+		std::vector<int> result{ 1, 2, 3, 4, 5, 69, 420 };
+
+		return ObjectTranslator<decltype(result)>{}(result);
+	}
+
+	void resize(Array& a_this, int new_size)
+	{
+		if (a_this._container)
+			a_this._container->resize(new_size);
+	}
+
+	Variable& get_backend(Array&& a_this, int index)
+	{
+		auto data = a_this.data();
+
+		if (data.size() <= index) {
+			report::runtime::error("error, fix now.");
+		}
+
+		return data[index];
+	}
+
+
+	INITIALIZE("function_register")
+	{
+		//Array t;
+		//std::tuple<Array, Array> tuple;
+		//std::tuple<Array, Array>& tuple2 = tuple;
+
+		//auto tuple = std::forward_as_tuple(tuple);
+
+		//std::apply(ArraySize_, std::forward<decltype(tuple2)>(tuple2));
+
+
+		if (ProcedureHandler::instance->RegisterFunction(RefTest3, "Shared::Commons::RefTest3") == false) {
+			logger::break_debug("failure rft3");
+		}
+		int num = 1;
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(ArraySize, "ArraySize"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(get_backend, "get"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(CreateOne, "CreateOne"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(resize, "resize"));
+		//logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(size, "size"));
+
+		std::system("pause");
+	}
 
 
 
@@ -1514,7 +1560,7 @@ namespace LEX
 
 		std::vector<std::vector<int>> out{ {96, 69}, {402, 420}, {27, 72, 76}, {40, 42} };
 		
-		//*
+		//*f
 		Variable fail3 = MakeObject(std::move(out));
 
 		Revariable<const std::vector<std::vector<int>>> revar1{};
@@ -1525,7 +1571,7 @@ namespace LEX
 		Array fail2 = ObjectTranslator<std::vector<std::vector<int>>>{}(out);
 
 		Variable var = fail2;
-		Revariable<Array> revar{};
+		Revariable<Array&&> revar{};
 		revar(fail2, &var);
 		//*/
 

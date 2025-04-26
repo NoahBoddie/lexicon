@@ -221,7 +221,7 @@ void LexTesting(std::string formula)
     Component::Link(LinkFlag::Loaded);
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
-	Component::Link(LinkFlag::External);
+	
     //return;
     //ProjectManager::instance->GetFunctionFromPath("Shared::Commons::size");
     if (1)
@@ -240,6 +240,8 @@ void LexTesting(std::string formula)
     }
 
     Initializer::Execute("function_register");
+
+    Component::Link(LinkFlag::External);
 
     auto funcs = script->FindFunctions("GetActorValue");
 

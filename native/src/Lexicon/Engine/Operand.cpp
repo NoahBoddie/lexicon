@@ -77,9 +77,15 @@ namespace LEX
 			
 
 
-		case OperandType::Type:
-		case OperandType::Function:
-			//Unsure if I'mm going to handle these, but this might be somewhat worth considering.
+		case OperandType::Type: {
+			auto type = Get<AbstractType*>();
+			return type->GetTypePolicy(runtime);
+		}
+		
+		case OperandType::Function: {
+			//auto func = Get<IFunction*>();
+			//return func->GetFunction(runtime);
+		}
 
 
 		//Useless without context.

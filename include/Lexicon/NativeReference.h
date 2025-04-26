@@ -92,7 +92,8 @@ namespace LEX
 		//I'm thinking that this only updates at the end, or when someone specifies they want to update it some how.
 
 		//Type must both be able to use unvariable and have be transferable into being a variable.
-		template<Assignable<VariableComponent> T> requires(!std::derived_from<Unvariable<T>, detail::not_implemented>)
+		//Used to be VariableComponent only
+		template<Assignable<Variable> T> requires(!std::derived_from<Unvariable<T>, detail::not_implemented>)
 		explicit NativeReference(T& tar) :
 			target{ std::addressof(tar) },
 			handler{ ReferenceHandler<T>::GetSingleton() }

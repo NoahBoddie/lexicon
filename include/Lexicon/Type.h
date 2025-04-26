@@ -51,7 +51,7 @@ namespace LEX
 		}
 
 
-
+		
 		virtual Variable GetDefault() = 0;
 		
 	protected: 

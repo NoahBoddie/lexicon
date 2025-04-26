@@ -47,6 +47,9 @@ namespace LEX
 		constexpr static auto directory_req = "<:dir:>";
 
 		constexpr static auto no_name = "<:noname:>";
+
+		constexpr static auto temp_generic_open = "[:";
+		constexpr static auto temp_generic_shut = ":]";
 	};
 
 }

@@ -16,6 +16,7 @@
 
 #include "VariableType.h"
 
+#include "Lexicon/Impl/common_type.h"
 
 
 //Some notes about the, the setting that's used should be a result of whichever of the 2 sides has more priority. Need to figure out a way
@@ -743,6 +744,8 @@ namespace LEX
                 return result ? result : it->Policy();
             }
 
+            return common_type::object()->FetchTypePolicy(nullptr);
+
             //This type could be anything, even void. As such, the representation of a Variable is the basic interface voidable.
             return IdentityManager::instance->GetInherentType(InherentType::kVoidable)->FetchTypePolicy(nullptr);
         }
@@ -849,7 +852,7 @@ namespace LEX
         }
     };
 
-
+    
    
     template <Assignable<VariableComponent> T>
     Variable MakeVariable(T&& other)
@@ -875,8 +878,49 @@ namespace LEX
 
         return result;
     }
+    template <std::derived_from<Variable> T>
+    T& MakeVariable(T& other)
+    {
+        return other;
+    }
 
  
+    struct Voidable : public Variable
+    {
+        using Variable::Variable;
+        using Variable::operator=;
+
+
+        static Type* GetVariableType(const Voidable* it)
+        {
+            if (it) {
+                Variable::GetVariableType(it);
+            }
+
+            //This type could be anything, even void. As such, the representation of a Variable is the basic interface voidable.
+            return common_type::voidable()->FetchTypePolicy(nullptr);
+        }
+
+    };
+
+
+    //TODO: I don't like this anymore. I would like to find a different way to represent this.
+    //TODO: This needs a full on proxy guide
+    template <>
+    struct VariableType<std::optional<Variable>>
+    {
+
+
+
+        Type* operator()(const std::optional<Variable>* var)
+        {
+            if (var && var->has_value() == true) {
+                return VariableType<Variable>{}(std::addressof(var->value()));
+            }
+
+            return common_type::voidable()->FetchTypePolicy(nullptr);
+        }
+    };
 
 }
 

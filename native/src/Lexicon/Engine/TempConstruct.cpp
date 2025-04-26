@@ -1219,12 +1219,21 @@ namespace LEX
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
 
-			//TODO: I think GetVariableType would be prefered here
-			//Solution sol{ QualifiedType{ result->Policy(), Constness::Const }, OperandType::Literal, result };
 			Solution sol{ QualifiedType{ result->GetVariableType(), Constness::Const }, OperandType::Literal, result };
 			
 			return sol;
 		}
+
+
+		Solution TypeofProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+		{
+			Declaration decl{ target, compiler->GetElement(), Reference::Temp };
+
+			Solution sol{ QualifiedType{ common_type::type_info() }, OperandType::Type, decl.policy };
+
+			return sol;
+		}
+
 
 		Solution FieldProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
@@ -1972,6 +1981,7 @@ namespace LEX
 			generatorList[SyntaxType::Boolean] = LiteralProcess;
 			generatorList[SyntaxType::String] = LiteralProcess;
 			generatorList[SyntaxType::Object] = LiteralProcess;
+			generatorList[SyntaxType::Typeof] = TypeofProcess;
 
 
 			generatorList[SyntaxType::Variable] = VariableProcess;

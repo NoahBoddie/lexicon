@@ -9,6 +9,7 @@ namespace LEX
 	{
 		//Common type is a class that keeps track of all the common types that may get used. Namely, boolean.
 
+		//TODO: common_type needs to start returning the Type object instead of just the basic form
 
 
 		static BasicType* boolean()
@@ -63,7 +64,18 @@ namespace LEX
 
 			return type;
 		}
+		
 
+		static BasicType* object()
+		{
+			static BasicType* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetTypeByOffset("CORE", 0)->GetTypePolicy(nullptr);
+			}
+
+			return type;
+		}
 
 		static BasicType* voidable()
 		{
@@ -76,6 +88,18 @@ namespace LEX
 			return type;
 		}
 
+
+		static BasicType* type_info()
+		{
+			static BasicType* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetTypeByOffset("REFLECT_Type", 2);
+			}
+
+			return type;
+		}
+	
 
 
 	private:
