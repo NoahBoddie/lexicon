@@ -13,9 +13,9 @@ namespace LEX
 
 		bool IsResolved() const override { return false; }
 
-		AbstractType* CheckTypePolicy(ITemplatePart* args) override;
+		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override;
 
-		Type* GetTypePolicy(ITemplateBody* args) override;
+		TypeInfo* GetTypePolicy(ITemplateBody* args) override;
 
 		std::vector<TemplateType*> GetTemplateInputs() override
 		{

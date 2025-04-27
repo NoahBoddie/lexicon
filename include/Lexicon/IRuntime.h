@@ -40,6 +40,6 @@ namespace LEX
 		CURRENT_VERSION(IRuntime, 1);
 	}
 
-	struct IRuntime : public Version::Current::IRuntime {};
+	struct IMPL_VERSION(IRuntime) {};
 
 }

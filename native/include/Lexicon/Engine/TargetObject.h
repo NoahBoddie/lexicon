@@ -18,7 +18,7 @@ namespace LEX
 		};
 
 		//This should be the ITemplatePart/Body that is used in the MergeTemplate. The array it uses should come from the target
-		// solution, being empty if there is no solution. The Solution should use the AbstractType to get the templates used on it.
+		// solution, being empty if there is no solution. The Solution should use the ITypeInfo to get the templates used on it.
 
 		Solution* target = nullptr;
 		TargetObject* const prev = nullptr;
@@ -33,9 +33,9 @@ namespace LEX
 
 		size_t GetSize() const override;
 
-		AbstractType* GetPartArgument(size_t i) const override;
+		ITypeInfo* GetPartArgument(size_t i) const override;
 
-		Type* GetBodyArgument(size_t i) const override;
+		TypeInfo* GetBodyArgument(size_t i) const override;
 
 
 		GenericBase* GetClient() const override;

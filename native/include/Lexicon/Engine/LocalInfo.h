@@ -18,7 +18,7 @@ namespace LEX
 
 		FieldType GetFieldType() const override { return FieldType::Local; }
 
-		AbstractType* GetType() const override { return _type; }
+		ITypeInfo* GetType() const override { return _type; }
 
 		Qualifier GetQualifiers() const override { return qualifiers; }
 		Specifier GetSpecifiers() const override { return specifiers; }
@@ -63,7 +63,7 @@ namespace LEX
 
 	protected:
 		
-		AbstractType* _type = nullptr;
+		ITypeInfo* _type = nullptr;
 
 
 

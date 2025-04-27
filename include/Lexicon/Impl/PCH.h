@@ -737,7 +737,18 @@ namespace LEX
 #pragma endregion
 
 //Move me please.
-#include "Lexicon/Versioning.h"
+
+namespace LEX
+{
+    #include "Lexicon/Versioning.h"
+
+    namespace Hidden
+    {
+        #include "Lexicon/Versioning.h"    
+    }
+}
+
+
 
 #include "Lexicon/Impl/CustomTraits.h"
 #include "Lexicon/Interfaces/Interface.h"

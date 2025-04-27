@@ -6,14 +6,14 @@
 
 namespace LEX
 {
-	AbstractType* TemplateType::CheckTypePolicy(ITemplatePart* args)
+	ITypeInfo* TemplateType::CheckTypePolicy(ITemplatePart* args)
 	{
 		auto part = args->GetPartArgument(index);
 
 		return part;
 	}
 
-	Type* TemplateType::GetTypePolicy(ITemplateBody* args)// override
+	TypeInfo* TemplateType::GetTypePolicy(ITemplateBody* args)// override
 	{
 		auto body = args->GetBodyArgument(index);
 

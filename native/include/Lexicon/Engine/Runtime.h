@@ -125,12 +125,12 @@ namespace LEX
 		}
 
 
-		AbstractType* GetPartArgument(size_t i) const override
+		ITypeInfo* GetPartArgument(size_t i) const override
 		{
 			return nullptr;
 		}
 
-		Type* GetBodyArgument(size_t i) const override
+		TypeInfo* GetBodyArgument(size_t i) const override
 		{
 			return nullptr;
 		}
@@ -218,7 +218,7 @@ namespace LEX
 
 
 		//I'm not actually sure this goes here if I'm being honest.
-		//Type* specialization;
+		//TypeInfo* specialization;
 
 		//Constant
 
@@ -227,7 +227,7 @@ namespace LEX
 		container<RuntimeVariable> _argStack;
 		
 		//This already contains a generic argument array, I need to figure out how it's used.
-		//container<AbstractType*> _genStack;
+		//container<ITypeInfo*> _genStack;
 
 		int64_t _psp{ 0 };		//Param Stack Pointer, denotes the last position of a parameter within the variable stack. Entries after containing ref should crash. Constant?
 		//I don't want to do this in release. UNLESS, one of the variables has changed. Maybe I can avoid this by controlling HOW something gets a reference

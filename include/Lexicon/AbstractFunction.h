@@ -7,14 +7,14 @@ namespace LEX
 {
 	struct RoutineBase;
 	struct ITemplateBody;
-	struct Type;
+	struct TypeInfo;
 
 	struct AbstractFunction : public virtual IFunction, public ICallableUnit
 	{
 		//virtual size_t GetParameterCount() = 0;
 
 		//May make a GetAt by default but still allow overriding with virtual
-		//virtual std::vector<Type*> GetParameters() = 0;
+		//virtual std::vector<TypeInfo*> GetParameters() = 0;
 
 		bool IsResolved() const override final { return true; }
 

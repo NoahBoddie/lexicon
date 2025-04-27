@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/IType.h"
+#include "Lexicon/ITypeInfo.h"
 
 #include "Lexicon/Engine/Operand.h"
 
@@ -15,7 +15,7 @@
 namespace LEX
 {
 
-	struct DynamicTupleElement : public IType
+	struct DynamicTupleElement : public ITypeInfo
 	{
 		//I forgot what this was exactly for or how it would work, but the concept 
 		// is that you'd use this to dynamically access the exact type of whatever is in the tuple at this point.
@@ -24,7 +24,7 @@ namespace LEX
 		size_t index = -1;
 		Operand operand;
 
-		Type* GetTypePolicy(ITemplateBody* args) override
+		TypeInfo* GetTypePolicy(ITemplateBody* args) override
 		{
 			//This is basically how I would do it.
 
@@ -65,7 +65,7 @@ namespace LEX
 
 		virtual void SetDefault(Variable&) { throw nullptr; }
 
-		virtual Type* GetExtends() { throw nullptr; }
+		virtual TypeInfo* GetExtends() { throw nullptr; }
 
 	};
 

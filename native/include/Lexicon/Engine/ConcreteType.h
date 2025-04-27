@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Engine/TypeBase.h"
-#include "Lexicon/Type.h"
+#include "Lexicon/TypeInfo.h"
 
 #include "Lexicon/Variable.h"
 
@@ -39,12 +39,12 @@ namespace LEX
 		}
 
 		//These 2 should largely be inherited from Type.
-		AbstractType* CheckTypePolicy(ITemplatePart* args) override
+		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override
 		{
 			return this;
 		}
 
-		Type* GetTypePolicy(ITemplateBody* args) override
+		TypeInfo* GetTypePolicy(ITemplateBody* args) override
 		{
 			return this;
 		}
@@ -60,7 +60,7 @@ namespace LEX
 
 
 		/*
-		ConcreteType(std::string_view name, TypeOffset offset, TypeEnum enm, Type* ext = nullptr, Variable a_def = {})
+		ConcreteType(std::string_view name, TypeOffset offset, TypeEnum enm, TypeInfo* ext = nullptr, Variable a_def = {})
 		{
 			//TODO:Multiple inheritence is a thing I wish to implement at a later point, for now ConcreteType takes one APolicy
 
@@ -79,7 +79,7 @@ namespace LEX
 		//virtual TypeEnum GetTypeEnum() = 0;
 
 
-		Type* GetExtends() override;
+		TypeInfo* GetExtends() override;
 
 		Variable GetDefault() override;
 
@@ -91,7 +91,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<Type>::value):
-				return (Type*)this;
+				return (TypeInfo*)this;
 
 			case Hash(TypeName<ConcreteType>::value):
 				return this;
@@ -124,7 +124,7 @@ namespace LEX
 
 		//TODO: This needs to be able to convert to bool, as most types should be capable of such a feat.
 		// but I'll need to make something for each type
-		ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 		{
 			return __super::GetConvertTo(other, scope, out, flags);
 		}

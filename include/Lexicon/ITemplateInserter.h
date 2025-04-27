@@ -5,13 +5,13 @@ namespace LEX
 	struct ITemplateInserter
 	{
 
-		virtual void InsertType(BasicType* part) = 0;
+		virtual void InsertType(ITypeInfo* part) = 0;
 
-		//void AcceptTypes(std::span<IType*> types);
+		//void AcceptTypes(std::span<ITypeInfo*> types);
 	};
 
 	/*
-	void InsertType(IType* part) override
+	void InsertType(ITypeInfo* part) override
 	{
 		auto back = part->GetTypePolicy((ITemplateBody*)nullptr);
 

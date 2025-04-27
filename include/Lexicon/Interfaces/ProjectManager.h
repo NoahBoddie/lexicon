@@ -199,10 +199,10 @@ namespace LEX
 			return nullptr;
 		}
 
-		BasicType* GetTypeFromPath(std::string_view path)
+		ITypeInfo* GetTypeFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, kTypeElement); elem)
-				return elem->As<BasicType>();
+				return elem->As<ITypeInfo>();
 
 			return nullptr;
 		}

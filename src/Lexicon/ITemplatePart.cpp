@@ -1,7 +1,7 @@
 #include "Lexicon/ITemplatePart.h"
 
 #include "Lexicon/GenericArray.h"
-
+#include "Lexicon/TypeInfo.h"
 namespace LEX
 {
 	GenericArray ITemplatePart::SpecializeTemplate(ITemplatePart* args)

@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/HierarchyData.h"
 
-#include "Lexicon/Engine/AbstractType.h"
+#include "Lexicon/Engine/ITypeInfo.h"
 #include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/OverloadEntry.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
@@ -27,7 +27,7 @@ namespace LEX
 		return nullptr;
 	}
 
-	const InheritData* HierarchyData::GetInheritData(const AbstractType* type) const
+	const InheritData* HierarchyData::GetInheritData(const ITypeInfo* type) const
 	{
 		//This ends up pulling intera
 
@@ -67,7 +67,7 @@ namespace LEX
 		return result;
 	}
 
-	InheritData* HierarchyData::GetInheritData(AbstractType* type)
+	InheritData* HierarchyData::GetInheritData(ITypeInfo* type)
 	{
 		const auto* _this = this;
 
@@ -176,7 +176,7 @@ namespace LEX
 
 
 	
-	void HierarchyData::SetInheritFrom(AbstractType* other, Access a_access, bool post_affixed)
+	void HierarchyData::SetInheritFrom(ITypeInfo* other, Access a_access, bool post_affixed)
 	{
 		//I need to carry around a set of types not allowed to be submitted for this when things need to handle their own inheritance.
 		//Basically, for every item that SetDerivesTo is used on, that's another entry that SetDerives shouldn't be used on.
@@ -203,7 +203,7 @@ namespace LEX
 		if (!hasInternal)
 			hasInternal = intern_;
 
-		AbstractType* self = GetHierarchyType();
+		ITypeInfo* self = GetHierarchyType();
 
 
 		for (auto& data : inherits) {
@@ -294,12 +294,12 @@ namespace LEX
 	}
 
 
-	void HierarchyData::SetDerivesTo(AbstractType* other, Access a_access)
+	void HierarchyData::SetDerivesTo(ITypeInfo* other, Access a_access)
 	{
 		
 		HierarchyData* heir = other->GetHierarchyData();
 
-		AbstractType* self = GetHierarchyType();
+		ITypeInfo* self = GetHierarchyType();
 
 		CheckDeriveFrom(other);
 
@@ -312,9 +312,9 @@ namespace LEX
 	}
 
 	
-	OverloadCode HierarchyData::CreateCode(AbstractType* target)
+	OverloadCode HierarchyData::CreateCode(ITypeInfo* target)
 	{  //Change name to generate code probably more like.
-		AbstractType* type = GetHierarchyType();
+		ITypeInfo* type = GetHierarchyType();
 
 		auto data = !target || target == type ? nullptr : GetInheritData(target);
 
@@ -398,7 +398,7 @@ namespace LEX
 		return 0;
 	}
 
-	int HierarchyData::CompareType(AbstractType* a_lhs, AbstractType* a_rhs)
+	int HierarchyData::CompareType(ITypeInfo* a_lhs, ITypeInfo* a_rhs)
 	{
 		OverloadCode left = CreateCode(a_lhs);
 		OverloadCode right = CreateCode(a_rhs);
@@ -422,7 +422,7 @@ namespace LEX
 		return intern->IsInternal() && intern->ownerIndex == 0;
 	}
 
-	std::vector<AbstractType*> HierarchyData::GetPostAffixedTypes() const
+	std::vector<ITypeInfo*> HierarchyData::GetPostAffixedTypes() const
 	{
 		return { IdentityManager::instance->GetTypeByOffset("CORE", 0) };
 	}

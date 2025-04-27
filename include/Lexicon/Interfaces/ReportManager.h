@@ -1,7 +1,6 @@
 #pragma once
 
 
-#include "Lexicon/Versioning.h"
 //This is ignoring the precompiled header for some fuck all reason.
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
@@ -70,7 +69,7 @@ namespace LEX
 	//I would like to have an object be a handler for this.
 	//TODO: Put inside cpp
 	using thread_hash = uint64_t;
-	using LogEditorID = uint32_t;
+	using LogEditorID = uint64_t;
 
 
 	struct EditorHandle;

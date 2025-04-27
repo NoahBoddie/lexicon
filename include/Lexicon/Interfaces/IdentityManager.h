@@ -6,7 +6,6 @@
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
 
-#include "Lexicon/Versioning.h"
 
 #include "Lexicon/InherentType.h"
 
@@ -16,6 +15,7 @@ namespace LEX
 	struct TypeID;
 	struct TypeBase;
 
+	struct ITypeInfo;
 
 	namespace Version
 	{
@@ -23,12 +23,14 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION(IdentityManager)
 			{
-				virtual BasicType* GetTypeByID(TypeID id) = 0;
+				//using ITypeInfo = struct LEX::ITypeInfo;
+
+				virtual ITypeInfo* GetTypeByID(TypeID id) = 0;
 				virtual uint32_t GetIDFromIndex(TypeIndex index) = 0;
 				virtual TypeIndex GetIndexFromName(std::string_view name) = 0;
 				virtual TypeIdentity GetIdentityFromID(TypeID id) = 0;
 
-				virtual BasicType* GetInherentType(InherentType type) = 0;
+				virtual ITypeInfo* GetInherentType(InherentType type) = 0;
 			};
 		}
 
@@ -39,15 +41,15 @@ namespace LEX
 
 	struct IMPL_SINGLETON(IdentityManager)
 	{
-		BasicType* GetTypeByID(TypeID id) INTERFACE_METHOD;//Isn't this supposed to be public?
+		ITypeInfo* GetTypeByID(TypeID id) INTERFACE_METHOD;//Isn't this supposed to be public?
 		uint32_t GetIDFromIndex(TypeIndex index) INTERFACE_METHOD;
 		TypeIndex GetIndexFromName(std::string_view name) INTERFACE_METHOD;
 		TypeIdentity GetIdentityFromID(TypeID id) INTERFACE_METHOD;
 
 		uint32_t GetIDFromName(std::string_view name) { return GetIDFromIndex(GetIndexFromName(name)); }
-		BasicType* GetTypeByOffset(std::string_view name, TypeOffset offset) { return GetTypeByID(GetIDFromName(name) + offset); }
-		BasicType* GetTypeByOffset(TypeIndex index, TypeOffset offset) { return GetTypeByID(GetIDFromIndex(index) + offset); }
-		BasicType* GetInherentType(InherentType type) override;
+		ITypeInfo* GetTypeByOffset(std::string_view name, TypeOffset offset) { return GetTypeByID(GetIDFromName(name) + offset); }
+		ITypeInfo* GetTypeByOffset(TypeIndex index, TypeOffset offset) { return GetTypeByID(GetIDFromIndex(index) + offset); }
+		ITypeInfo* GetInherentType(InherentType type) override;
 	INTERNAL://These do not have any formal implementation outside of the source, and as such are privated and invalid outside of it.
 		
 		TypeBase* GetInherentBase(InherentType type) INTERFACE_FUNCTION;

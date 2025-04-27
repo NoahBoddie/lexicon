@@ -8,11 +8,11 @@
 
 
 //*src
-#include BASIC_NAME(Type)
+#include "Lexicon/TypeInfo.h"
 
 namespace LEX
 {
-	struct IType;
+	struct ITypeInfo;
 	struct OverloadCode;
 
 
@@ -29,7 +29,7 @@ namespace LEX
 
 
 
-		//TODO: IsCovertToQualfied needs to hold an IType to see if it has permission to this conversion. How I'd do that, is kinda hard.
-		ConvertResult IsConvertToQualified(const QualifiedType& other, BasicType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const;
+		//TODO: IsCovertToQualfied needs to hold an ITypeInfo to see if it has permission to this conversion. How I'd do that, is kinda hard.
+		ConvertResult IsConvertToQualified(const QualifiedType& other, ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const;
 	};
 }

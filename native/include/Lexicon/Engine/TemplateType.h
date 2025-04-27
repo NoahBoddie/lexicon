@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Engine/AbstractType.h"
+#include "Lexicon/Engine/ITypeInfo.h"
 #include "Lexicon/Engine/HierarchyData.h"
 
 //*src
@@ -13,9 +13,9 @@ namespace LEX
 
 	struct TemplateTuple;
 
-	struct TemplateType : public AbstractType, public HierarchyData
+	struct TemplateType : public ITypeInfo, public HierarchyData
 	{
-		//GenericType is an IType that largely should not exist with any HierarchyData. It's from this fact
+		//GenericType is an ITypeInfo that largely should not exist with any HierarchyData. It's from this fact
 		// plus the fact HierarchyData is a lot that I think I should split the function between 2 parts.
 		//This type will use a seperate HierarchyData having type in order to answer questions it's questions about it.
 
@@ -25,7 +25,7 @@ namespace LEX
 			IdentityManager::instance->GetIDFromName("TRIVAL");
 
 
-			AbstractType* test = nullptr;
+			ITypeInfo* test = nullptr;
 
 			HierarchyData* other = dynamic_cast<HierarchyData*>(test);
 		}
@@ -39,9 +39,9 @@ namespace LEX
 		ISpecializable* GetSpecializable() override { return nullptr; }
 
 
-		AbstractType* CheckTypePolicy(ITemplatePart* args) override;
+		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override;
 
-		Type* GetTypePolicy(ITemplateBody* args) override;
+		TypeInfo* GetTypePolicy(ITemplateBody* args) override;
 
 
 		TemplateType* AsTemplate() override { return this; }
@@ -59,7 +59,7 @@ namespace LEX
 
 
 		//static_assert(false, "I need a IsConvertibleFrom, which means I need a conversion function that isn't virtual.");
-		ConvertResult GetConvertFrom(const BasicType* other, const BasicType* scope, Conversion* = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		ConvertResult GetConvertFrom(const ITypeInfo* other, const ITypeInfo* scope, Conversion* = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 		{
 			auto result = __super::GetConvertFrom(other, scope, nullptr, flags);
 
@@ -91,7 +91,7 @@ namespace LEX
 			return const_cast<HierarchyData*>(out);
 		}
 
-		AbstractType* GetHierarchyType() override
+		ITypeInfo* GetHierarchyType() override
 		{
 			return this;
 		}

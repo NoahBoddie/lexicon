@@ -1,11 +1,11 @@
 #include "Lexicon/Reflection.h"
 
-#include "Lexicon/Type.h"
+#include "Lexicon/TypeInfo.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {
-	Type* Reflection::GetVariableType(const Reflection* reflect)
+	TypeInfo* Reflection::GetVariableType(const Reflection* reflect)
 	{
 		Reflect type;
 		size_t offset;

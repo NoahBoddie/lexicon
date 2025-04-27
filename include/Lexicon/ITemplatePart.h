@@ -2,6 +2,8 @@
 
 namespace LEX
 {
+	struct ITypeInfo;
+
 	struct GenericBase;
 	struct ITemplateBody;
 
@@ -11,7 +13,7 @@ namespace LEX
 	{
 		virtual size_t GetSize() const = 0;
 
-		virtual BasicType* GetPartArgument(size_t i) const = 0;
+		virtual ITypeInfo* GetPartArgument(size_t i) const = 0;
 
 		//TODO: Instead of all this, why not make a hash of each entry?
 

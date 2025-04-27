@@ -230,7 +230,7 @@ namespace LEX
 	}
 
 
-	ConvertResult QualifiedType::IsConvertToQualified(const QualifiedType& other, BasicType* scope, Conversion* out, ConversionFlag flags) const
+	ConvertResult QualifiedType::IsConvertToQualified(const QualifiedType& other, ITypeInfo* scope, Conversion* out, ConversionFlag flags) const
 	{
 
 		//TODO: ConvertQualified needs 2 rules, read below

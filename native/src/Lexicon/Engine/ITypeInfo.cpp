@@ -1,15 +1,15 @@
 #pragma once
 
-#include "Lexicon/Type.h"
+#include "Lexicon/TypeInfo.h"
 #include "Lexicon/Variable.h"
 
 namespace LEX
 {
-	bool AbstractType::Convert(const Variable& from, Variable& to, const BasicType* to_type) const
+	bool ITypeInfo::Convert(const Variable& from, Variable& to, const ITypeInfo* to_type) const
 	{
 		Conversion convert;
 
-		Type* from_type = from.Policy();
+		TypeInfo* from_type = from.Policy();
 
 		//I want to make a variable vtable to handle this at a later point
 		bool success = from_type && from_type->IsConvertibleTo(to_type, to_type, convert, ConversionFlag::Explicit);

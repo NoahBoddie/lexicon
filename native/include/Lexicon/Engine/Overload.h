@@ -210,8 +210,8 @@ namespace LEX
 		QualifiedType target;
 
 
-		std::vector<AbstractType*> singleSpecial;
-		std::vector<std::vector<AbstractType*>> multiSpecial;
+		std::vector<ITypeInfo*> singleSpecial;
+		std::vector<std::vector<ITypeInfo*>> multiSpecial;
 
 
 		//These align perfectly with arguments given.

@@ -1,7 +1,7 @@
 #include "Lexicon/VariableType.h"
 
 #include "Lexicon/Interfaces/IdentityManager.h"
-#include "Lexicon/Type.h"
+#include "Lexicon/TypeInfo.h"
 
 #include "Lexicon/Number.h"
 #include "Lexicon/Array.h"

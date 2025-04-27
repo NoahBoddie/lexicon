@@ -7,7 +7,7 @@
 namespace LEX
 {
 
-	struct AbstractType;
+	struct ITypeInfo;
 	struct SpecialBase;
 	struct GenericBase;
 	struct ITemplatePart;
@@ -97,7 +97,7 @@ namespace LEX
 			{
 				auto& lhs = _types[i];
 
-				AbstractType* rhs = args->GetPartArgument(i);
+				ITypeInfo* rhs = args->GetPartArgument(i);
 
 				if (lhs != rhs) {
 					return false;
@@ -114,7 +114,7 @@ namespace LEX
 
 		//Dead
 		//Get rid of this, AsTemplate handles this.
-		//virtual IType* GetArgument(size_t i) const = 0;
+		//virtual ITypeInfo* GetArgument(size_t i) const = 0;
 
 		virtual SpecialBase* ObtainSpecial(ITemplatePart* args);
 
@@ -127,12 +127,12 @@ namespace LEX
 		virtual size_t GetSize() const { return _types.size(); }
 
 
-		AbstractType* GetPartArgument(size_t i) const override
+		ITypeInfo* GetPartArgument(size_t i) const override
 		{
 			return _types[i];
 		}
 
-		Type* GetBodyArgument(size_t i) const override
+		TypeInfo* GetBodyArgument(size_t i) const override
 		{
 			if (GetState())
 			{
@@ -148,7 +148,7 @@ namespace LEX
 
 
 
-		static bool AllResolved(const std::vector<AbstractType*>& types)
+		static bool AllResolved(const std::vector<ITypeInfo*>& types)
 		{
 			for (auto type : types)
 			{
@@ -171,7 +171,7 @@ namespace LEX
 		}
 
 
-		std::span<AbstractType* const> types() const
+		std::span<ITypeInfo* const> types() const
 		{
 			return _types;
 		}
@@ -182,6 +182,6 @@ namespace LEX
 
 	private:
 		mutable GenericBase* _base = nullptr;
-		std::vector<AbstractType*> _types;
+		std::vector<ITypeInfo*> _types;
 	};
 }

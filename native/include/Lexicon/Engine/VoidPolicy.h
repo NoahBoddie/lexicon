@@ -15,7 +15,7 @@ namespace LEX
 
 		//I don't think I'd even want to do this.
 		//using ConcreteType::ConcreteType;
-		std::vector<AbstractType*> GetPostAffixedTypes() const override { return { IdentityManager::instance->GetInherentType(InherentType::kVoidable) }; }
+		std::vector<ITypeInfo*> GetPostAffixedTypes() const override { return { IdentityManager::instance->GetInherentType(InherentType::kVoidable) }; }
 
 
 		virtual TypeRuleset GetRuleset() const
@@ -35,7 +35,7 @@ namespace LEX
 
 		//I don't think I'd even want to do this.
 		//using ConcreteType::ConcreteType;
-		std::vector<AbstractType*> GetPostAffixedTypes() const override { return {}; }
+		std::vector<ITypeInfo*> GetPostAffixedTypes() const override { return {}; }
 
 
 		virtual TypeRuleset GetRuleset() const

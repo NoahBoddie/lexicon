@@ -15,15 +15,15 @@ namespace LEX
 
 	//Should be named var converter
 
-	template <stl::castable_from<Variable> Type>
-	struct Unvariable<Type>
+	template <stl::castable_from<Variable> TypeInfo>
+	struct Unvariable<TypeInfo>
 	{
-		Type operator()(Variable* var)
+		TypeInfo operator()(Variable* var)
 		{
-			if (var->CanCastTo<Type>() == false)
-				report::apply::critical("Current value of Variable is unable to be cast to '{}'.", typeid(Type).name());
+			if (var->CanCastTo<TypeInfo>() == false)
+				report::apply::critical("Current value of Variable is unable to be cast to '{}'.", typeid(TypeInfo).name());
 
-			return static_cast<Type>(*var);
+			return static_cast<TypeInfo>(*var);
 		}
 	};
 

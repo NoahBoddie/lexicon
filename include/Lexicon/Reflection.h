@@ -4,12 +4,12 @@
 
 namespace LEX
 {
-	struct Type;
+	struct TypeInfo;
 
 
 	struct Reflection
 	{
-		static Type* GetVariableType(const Reflection* reflect);
+		static TypeInfo* GetVariableType(const Reflection* reflect);
 
 
 		virtual Reflect GetReflect() const = 0;

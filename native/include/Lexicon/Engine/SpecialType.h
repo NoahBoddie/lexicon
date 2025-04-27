@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/Type.h"
+#include "Lexicon/TypeInfo.h"
 #include "Lexicon/Engine/SpecialBase.h"
 
 //*src
@@ -13,11 +13,11 @@ namespace LEX
 	struct Variable;
 
 
-	struct SpecialType : public Type, public SpecialBase
+	struct SpecialType : public TypeInfo, public SpecialBase
 	{
-		AbstractType* _self = nullptr;
+		ITypeInfo* _self = nullptr;
 
-		SpecialType(GenericBase* base, AbstractType* type, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ type }
+		SpecialType(GenericBase* base, ITypeInfo* type, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ type }
 		{
 			report::info("NewBodyPart {}", (uintptr_t)this);
 		}
@@ -49,12 +49,12 @@ namespace LEX
 
 		//TODO: The below part about itself seems to maybe be possible to template away. If there's merit I'll do it. 
 		// For now, boilerplate. If it's not interface do it later
-		AbstractType* GetSelf()
+		ITypeInfo* GetSelf()
 		{
 			return _self;
 		}
 
-		const AbstractType* GetSelf() const
+		const ITypeInfo* GetSelf() const
 		{
 			return _self;
 		}
@@ -88,17 +88,17 @@ namespace LEX
 
 		virtual void SetDefault(Variable&) { report::fault::critical("Not used"); }
 
-		virtual Type* GetExtends() { report::fault::critical("Not used"); }
+		virtual TypeInfo* GetExtends() { report::fault::critical("Not used"); }
 
 
-		AbstractType* CheckTypePolicy(ITemplatePart* args) override
+		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override
 		{
-			return dynamic_cast<AbstractType*>(ObtainSpecial(args));
+			return dynamic_cast<ITypeInfo*>(ObtainSpecial(args));
 		}
 
-		Type* GetTypePolicy(ITemplateBody* args) override
+		TypeInfo* GetTypePolicy(ITemplateBody* args) override
 		{
-			auto special = ObtainSpecial(args)->ToResolved<Type>();
+			auto special = ObtainSpecial(args)->ToResolved<TypeInfo>();
 
 			if (!special) {
 				//TODO: Scream maybe?

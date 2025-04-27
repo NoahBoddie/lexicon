@@ -63,7 +63,7 @@ namespace LEX
 
 
 
-	Type* ConcreteType::GetExtends()
+	TypeInfo* ConcreteType::GetExtends()
 	{
 		//I think I could have this in 2 forms. One where you output to an array and one where you just get at a point.
 		// I kinda don't really super want this though cause I'd have to define it twice, so maybe a const vector or something?

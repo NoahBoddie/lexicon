@@ -89,7 +89,7 @@ namespace LEX
 				//Kinda feel like this should be used but it isn't. This could cause some variables to go without value.
 				std::vector<ParameterInfo> params = _callData->GetParameters();
 
-				std::vector<IType*> types;
+				std::vector<ITypeInfo*> types;
 
 				std::transform(params.begin(), params.end(), std::back_inserter(types), [&](ParameterInfo& it) {return it.GetType(); });
 

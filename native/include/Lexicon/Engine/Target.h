@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/Register.h"
 #include "Lexicon/Variable.h"
-#include "Lexicon/Engine/AbstractType.h"
+#include "Lexicon/Engine/ITypeInfo.h"
 #include "Lexicon/IFunction.h"
 #include "Lexicon/MemberPointer.h"
 #include "OperandType.h"
@@ -24,7 +24,7 @@ namespace LEX
 		constexpr Target(Register arg) : reg{ arg } {}
 		constexpr Target(Literal arg) : lit{ arg } {}
 		constexpr Target(Variable* arg) : var{ arg } {}
-		constexpr Target(AbstractType* arg) : type{ arg } {}
+		constexpr Target(ITypeInfo* arg) : type{ arg } {}
 		constexpr Target(IFunction* arg) : func{ arg } {}
 		constexpr Target(ICallableUnit* arg) : call{ arg } {}
 		constexpr Target(MemberPointer arg) : member{ arg } {}
@@ -104,7 +104,7 @@ namespace LEX
 		}
 
 		template <>
-		bool Get<OperandType::Type, AbstractType*>(AbstractType*& out)
+		bool Get<OperandType::Type, ITypeInfo*>(ITypeInfo*& out)
 		{
 			out = type;
 			return true;
@@ -127,7 +127,7 @@ namespace LEX
 			Register reg;
 			Literal lit;
 			Variable* var;
-			AbstractType* type;
+			ITypeInfo* type;
 			IFunction* func;
 			ICallableUnit* call;
 			MemberPointer member;

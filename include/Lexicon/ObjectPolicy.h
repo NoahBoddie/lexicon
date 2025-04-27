@@ -184,7 +184,7 @@ namespace LEX
 		}
 
 
-		Type* SpecializeType(ObjectData& self, BasicType* type) override final
+		TypeInfo* SpecializeType(ObjectData& self, ITypeInfo* type) override final
 		{
 			return base->SpecializeType(self, type);
 		}

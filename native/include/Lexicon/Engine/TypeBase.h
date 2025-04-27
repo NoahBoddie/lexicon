@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/Engine/AbstractType.h"
+#include "Lexicon/Engine/ITypeInfo.h"
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/PolicyData.h"
 #include "Lexicon/Engine/OverloadClause.h"
@@ -28,7 +28,7 @@ namespace LEX
 		};
 
 		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like
-		// a specialization ending up in there (Seeing as they must be kept as IType)
+		// a specialization ending up in there (Seeing as they must be kept as ITypeInfo)
 		
 	public:
 
@@ -36,8 +36,8 @@ namespace LEX
 
 		
 
-		virtual AbstractType* AsAbstract() = 0;
-		virtual const AbstractType* AsAbstract() const = 0;
+		virtual ITypeInfo* AsAbstract() = 0;
+		virtual const ITypeInfo* AsAbstract() const = 0;
 		
 
 		//Rename to ForceTypeID, and then make set type ID the public one.
@@ -71,18 +71,18 @@ namespace LEX
 			return false;
 		}
 
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) override
+		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypeInfo* scope, OverloadFlag& flags) override
 		{
 			return {};
 		}
 
 
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypeInfo* scope, size_t offset, size_t index, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
 			return {};
 		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, AbstractType* scope, std::string name, OverloadFlag& flags) override
+		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypeInfo* scope, std::string name, OverloadFlag& flags) override
 		{
 			flags |= OverloadFlag::Failure;
 			return {};
@@ -90,7 +90,7 @@ namespace LEX
 		//*/
 		//~
 
-		AbstractType* GetHierarchyType() override
+		ITypeInfo* GetHierarchyType() override
 		{
 			return AsAbstract();
 		}
@@ -100,8 +100,7 @@ namespace LEX
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<AbstractType>::value):
-			case Hash(TypeName<IType>::value):
+			case Hash(TypeName<ITypeInfo>::value):
 				return AsAbstract();
 			
 			case Hash(TypeName<TypeBase>::value):
@@ -115,7 +114,7 @@ namespace LEX
 
 
 		//This needs some form of conversion result.
-		ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			if (AsAbstract() == other) {
 				return ConversionEnum::Exact;
@@ -194,7 +193,7 @@ namespace LEX
 			return ConversionEnum::TypeDefined;//Should have access
 		}
 
-		void CheckDeriveFrom(AbstractType* other) override;
+		void CheckDeriveFrom(ITypeInfo* other) override;
 
 		Flag& GetFlags() const
 		{
@@ -239,9 +238,9 @@ namespace LEX
 		// this is the final version of these functions.
 
 		//Still, this is terrible practice and this likely needs to get changed. SetTypeID doesn't really
-		// seem like it needs to stay virtual, due to no longer needing to be from IType. So maybe change that
+		// seem like it needs to stay virtual, due to no longer needing to be from ITypeInfo. So maybe change that
 		// and we're in the clear?
-		// Also replace IType's use in IdentityManager, and move it over to this thing (Meaning more source files. Yay).
+		// Also replace ITypeInfo's use in IdentityManager, and move it over to this thing (Meaning more source files. Yay).
 		//For now, this works
 		TypeBase();
 
@@ -275,17 +274,17 @@ namespace LEX
 		DataType GetDataType() const override { return TypeBase::GetDataType(); }
 
 
-		ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 		{
 			return TypeBase::GetConvertTo(other, scope, out, flags);
 		}
 
 
-		AbstractType* AsAbstract() override { return this; }
-		const AbstractType* AsAbstract() const override { return this; }
+		ITypeInfo* AsAbstract() override { return this; }
+		const ITypeInfo* AsAbstract() const override { return this; }
 
 	};
 
-	using GenericTypeBase = PivotTypeBase<AbstractType>;
-	using ConcreteTypeBase = PivotTypeBase<Type>;
+	using GenericTypeBase = PivotTypeBase<ITypeInfo>;
+	using ConcreteTypeBase = PivotTypeBase<TypeInfo>;
 }

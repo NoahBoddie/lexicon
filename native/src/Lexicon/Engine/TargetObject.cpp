@@ -17,13 +17,13 @@ namespace LEX
 	}
 
 
-	AbstractType* TargetObject::GetPartArgument(size_t i) const
+	ITypeInfo* TargetObject::GetPartArgument(size_t i) const
 	{
 		return target->policy->GetTemplate()[i];
 		//return _types[i];
 	}
 
-	Type* TargetObject::GetBodyArgument(size_t i) const
+	TypeInfo* TargetObject::GetBodyArgument(size_t i) const
 	{
 		if (GetState())
 		{

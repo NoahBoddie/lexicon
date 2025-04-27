@@ -6,7 +6,7 @@
 
 
 //*src
-#include BASIC_NAME(Type)
+#include "Lexicon/TypeInfo.h"
 
 namespace LEX
 {
@@ -19,14 +19,14 @@ namespace LEX
 
 		AnnotatedType(std::nullptr_t) {}
 
-		explicit AnnotatedType(BasicType* p) : policy{ p } {}
-		AnnotatedType(BasicType* p, Qualifier q) : policy{ p }, Qualifier{ q } {}
+		explicit AnnotatedType(ITypeInfo* p) : policy{ p } {}
+		AnnotatedType(ITypeInfo* p, Qualifier q) : policy{ p }, Qualifier{ q } {}
 
 		using Qualifier::operator=;//(const Qualifier& other) { __super::operator=(other); return *this; }
 
 
 		//private://Temporary to sus out where policy is expected from solutions and declarations.
-		BasicType* policy = nullptr;
+		ITypeInfo* policy = nullptr;
 
 	public:
 
@@ -34,21 +34,21 @@ namespace LEX
 		//Right here in qualified type, I can put a set of bits that I can use to relay some ideas of what I can turn it into.
 
 
-		operator BasicType* ()
+		operator ITypeInfo* ()
 		{
 			return policy;
 		}
-		operator const BasicType* () const
+		operator const ITypeInfo* () const
 		{
 			return policy;
 		}
 
 
-		BasicType* operator->()
+		ITypeInfo* operator->()
 		{
 			return policy;
 		}
-		const BasicType* operator->() const
+		const ITypeInfo* operator->() const
 		{
 			return policy;
 		}

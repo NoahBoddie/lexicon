@@ -2,7 +2,7 @@
 
 #include "String.h"
 #include "Number.h"
-#include "Type.h"
+#include "Lexicon/TypeInfo.h"
 //#include "AbstractFunction.h"
 //#include "ExternalHandle.h"
 #include "Object.h"
@@ -261,7 +261,7 @@ namespace LEX
     };
 
     //template <typename T>
-    //Type* TypeOf()
+    //TypeInfo* TypeOf()
     //{
         //The idea of this function is that it takes the core type and splits how it finds it's type.
         //For objects it should be their object interface that does it. However, part of this might be that the actual object will need to find that itself (if it can).
@@ -286,7 +286,7 @@ namespace LEX
         //TODO: All of this needs to be cleaned the fuck up PLEASE. Variable suffers from some unclear constructors and assignments.
        
         template <Constructible<VariableComponent> T>
-        Variable(const T& value)//, Type* type)
+        Variable(const T& value)//, TypeInfo* type)
         {
             //Move here
             _value = VariableComponent{ std::move(value) };
@@ -295,7 +295,7 @@ namespace LEX
         }
 
         template <Constructible<VariableComponent> T>
-        Variable(T&& value)//, Type* type)
+        Variable(T&& value)//, TypeInfo* type)
         {
             //Move here
             _value = VariableComponent{ std::move(value) };
@@ -319,7 +319,7 @@ namespace LEX
 
 
         template <Assignable<VariableComponent> T>
-        Variable(T&& other, Type* policy)
+        Variable(T&& other, TypeInfo* policy)
         {
             _value = other;
             //Might not do it like this no more.
@@ -331,7 +331,7 @@ namespace LEX
 
 
 
-        Variable(Variable& var, Type* policy)
+        Variable(Variable& var, TypeInfo* policy)
         {
             //Unsure about this one.
             _value = var._value;
@@ -398,7 +398,7 @@ namespace LEX
         }
 
 
-        Variable(Type* policy)
+        Variable(TypeInfo* policy)
         {
             *this = policy;
         }
@@ -432,7 +432,7 @@ namespace LEX
         }
 
 
-        Variable& operator=(Type* policy)
+        Variable& operator=(TypeInfo* policy)
         {
             //should clear
             SetPolicy(policy);
@@ -455,12 +455,12 @@ namespace LEX
         //*/
 
 
-        Type* _type = nullptr;
+        TypeInfo* _type = nullptr;
 
        
         VariableComponent _value{ Void::value() };
 
-        Type* Policy() const
+        TypeInfo* Policy() const
         {
             return _type;
         }
@@ -498,11 +498,11 @@ namespace LEX
             _value.GetData().SetFlag(VariableFlag::Polymorphic, value);
         }
 
-        Type* CheckVariableType() const;
+        TypeInfo* CheckVariableType() const;
 
 
     INTERNAL:
-        void SetPolicy(Type* policy)
+        void SetPolicy(TypeInfo* policy)
         {
             _type = policy;
         }
@@ -629,7 +629,7 @@ namespace LEX
         //Resolves a variable to be like another variable. If they aren't directly convertible, conversions
         // may be detected and used.
         [[deprecated("Should merge with Convert, making it use the bool returning one instead.")]]
-        bool Resolve(Type* policy)
+        bool Resolve(TypeInfo* policy)
         {
             //If resolution fails, it returns false and nullfies the variable.
 
@@ -655,7 +655,7 @@ namespace LEX
 
         }
     
-        void CheckAssign(Type* other)
+        void CheckAssign(TypeInfo* other)
         {
             //For now, fuck accountability.
        
@@ -735,7 +735,7 @@ namespace LEX
         }
 
 
-        static Type* GetVariableType(const Variable* it)
+        static TypeInfo* GetVariableType(const Variable* it)
         {
             if (it)
             {
@@ -750,7 +750,7 @@ namespace LEX
             return IdentityManager::instance->GetInherentType(InherentType::kVoidable)->FetchTypePolicy(nullptr);
         }
      
-        Type* GetVariableType()
+        TypeInfo* GetVariableType()
         {
             return GetVariableType(this);
         }
@@ -809,7 +809,7 @@ namespace LEX
             return false;
         }
 
-        RuntimeVariable Convert(Type* to);
+        RuntimeVariable Convert(TypeInfo* to);
 
 
     private:
@@ -866,11 +866,11 @@ namespace LEX
         VariableComponent temp{ other };
 
         //This shouldn't need to work like this, but it's what it does for now.
-        Type* policy = std::visit([](auto&& lhs) {
+        TypeInfo* policy = std::visit([](auto&& lhs) {
             return GetVariableType(lhs);
             }, temp);
 
-        //Type* policy = GetVariableType(other);
+        //TypeInfo* policy = GetVariableType(other);
         assert(policy);
 
         Variable result{ other, policy };
@@ -891,7 +891,7 @@ namespace LEX
         using Variable::operator=;
 
 
-        static Type* GetVariableType(const Voidable* it)
+        static TypeInfo* GetVariableType(const Voidable* it)
         {
             if (it) {
                 Variable::GetVariableType(it);
@@ -912,7 +912,7 @@ namespace LEX
 
 
 
-        Type* operator()(const std::optional<Variable>* var)
+        TypeInfo* operator()(const std::optional<Variable>* var)
         {
             if (var && var->has_value() == true) {
                 return VariableType<Variable>{}(std::addressof(var->value()));

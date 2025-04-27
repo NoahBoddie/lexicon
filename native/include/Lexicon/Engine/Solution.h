@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Engine/Target.h"
-#include "Lexicon/Engine/AbstractType.h"
+#include "Lexicon/Engine/ITypeInfo.h"
 #include "Lexicon/Engine/OperandType.h"
 #include "Lexicon/Engine/Operand.h"
 

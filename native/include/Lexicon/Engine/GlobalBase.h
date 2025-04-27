@@ -96,7 +96,7 @@ namespace LEX
 			return _declared.CopyWithFlags(SpecifierFlag::Static);
 		}
 
-		virtual AbstractType* GetType() const
+		virtual ITypeInfo* GetType() const
 		{
 			return _declared.policy;
 		}

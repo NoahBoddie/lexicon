@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/IType.h"
+#include "Lexicon/SimpleTypeInfo.h"
 
 namespace LEX
 {
@@ -17,7 +17,7 @@ namespace LEX
 
 	struct TemplateType;
 
-	struct AbstractType : public IType
+	struct ITypeInfo : public Hidden::SimpleTypeInfo
 	{
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.
@@ -38,14 +38,14 @@ namespace LEX
 		}
 
 
-		bool CanConvert(const BasicType* other) const override final
+		bool CanConvert(const ITypeInfo* other) const override final
 		{
 			return IsConvertibleTo(other, this, nullptr, ConversionFlag::IgnoreAccess);
 		}
 
 		//GetConvertTo
 		//GetConvertFrom
-		virtual ConvertResult GetConvertTo(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		virtual ConvertResult GetConvertTo(const ITypeInfo* rhs, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			if (this == rhs)
 				return ConversionEnum::Exact;
@@ -53,17 +53,17 @@ namespace LEX
 			return ConversionResult::Ineligible;
 		}
 
-		virtual ConvertResult GetConvertFrom(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		virtual ConvertResult GetConvertFrom(const ITypeInfo* rhs, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			return ConversionResult::Ineligible;
 		}
 
-		bool Convert(const Variable& from, Variable& to, const BasicType* to_type) const override final;
+		bool Convert(const Variable& from, Variable& to, const ITypeInfo* to_type) const override final;
 
 
 
-		//Scope should be an environment that turns itself into an IType.
-		ConvertResult IsConvertibleTo(const AbstractType* rhs, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		//Scope should be an environment that turns itself into an ITypeInfo.
+		ConvertResult IsConvertibleTo(const ITypeInfo* rhs, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
 			auto result = GetConvertTo(rhs, scope, out, flags);
 
@@ -78,7 +78,7 @@ namespace LEX
 			return result;
 		}
 
-		ConvertResult IsConvertibleTo(const AbstractType* rhs, const AbstractType* scope, Conversion& out, ConversionFlag flags = ConversionFlag::None) const
+		ConvertResult IsConvertibleTo(const ITypeInfo* rhs, const ITypeInfo* scope, Conversion& out, ConversionFlag flags = ConversionFlag::None) const
 		{
 			//TODO: this is going to be hidden once specialized, so rename this and make the main version a pivot
 			return IsConvertibleTo(rhs, scope, &out, flags);

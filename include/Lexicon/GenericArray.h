@@ -13,7 +13,7 @@ namespace LEX
 		
 		GenericArray() = default;
 		GenericArray(GenericBase* base, size_t size) : _client{ base }, _types{ size } { }
-		GenericArray(GenericBase* base, const std::vector<BasicType*>& args) : _client{ base }, _types{ args } { }
+		GenericArray(GenericBase* base, const std::vector<ITypeInfo*>& args) : _client{ base }, _types{ args } { }
 
 		//This type will likely protected inherit from ITemplateBody, instead relying on the promote function to work with it?
 
@@ -23,12 +23,12 @@ namespace LEX
 
 		
 
-		BasicType* GetPartArgument(size_t i) const override
+		ITypeInfo* GetPartArgument(size_t i) const override
 		{
 			return _types[i];
 		}
 
-		Type* GetBodyArgument(size_t i) const override
+		TypeInfo* GetBodyArgument(size_t i) const override
 		{
 			if (GetState())
 			{
@@ -41,7 +41,7 @@ namespace LEX
 		}
 
 
-		void InsertType(BasicType* body) override
+		void InsertType(ITypeInfo* body) override
 		{
 			//Update right here.
 			_types.emplace_back(body);
@@ -78,11 +78,11 @@ namespace LEX
 
 		//TODO: Allow this to be created via span, but able to transform into a vector if it begins inserting types.
 		// I think doing this will actually make setting this up a fair bit easier.
-		mutable std::vector<BasicType*> _types;
+		mutable std::vector<ITypeInfo*> _types;
 
 		//mutable for now. Should be non-mutable once types is closed off
 		mutable bool isResolved = true;
-		//std::variant<std::vector<BasicType*>
+		//std::variant<std::vector<ITypeInfo*>
 	};
 
 }

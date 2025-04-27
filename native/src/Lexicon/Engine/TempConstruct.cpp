@@ -203,7 +203,7 @@ namespace LEX
 					if (!from_type)
 						report::runtime::critical("NO FROM");
 
-					auto to_type = a_lhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
+					auto to_type = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 
 					
 					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result)
@@ -294,7 +294,7 @@ namespace LEX
 		
 			//RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);
-			Type* policy = a_rhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 			
 			//if no policy, fatal fault
 			if (!policy){
@@ -313,7 +313,7 @@ namespace LEX
 			// to result in an error within assign.
 
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);//s runtime->GetVariable(a_lhs.Get<Index>());
-			Type* policy = a_rhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 
 			//if no policy, fatal fault
 			if (!policy) {
@@ -460,7 +460,7 @@ namespace LEX
 		{
 
 			RuntimeVariable from = a_rhs.GetVariable(runtime);
-			Type* to = a_lhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
+			TypeInfo* to = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 			//from->
 		}
 
@@ -484,7 +484,7 @@ namespace LEX
 		static void Construct(RuntimeVariable& result, Operand a_lhs, Operand, InstructType, Runtime* runtime)
 		{
 			
-			Type* policy = a_lhs.Get<AbstractType*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 
 			if (!policy)
 				report::runtime::critical("No policy could be fetched.");
@@ -718,7 +718,7 @@ namespace LEX
 			//No need to deviate for now.
 			//InstructType type = OperatorToInstruction(op);
 
-			AbstractType* policy;
+			ITypeInfo* policy;
 
 			assert(it.policy);
 
@@ -775,7 +775,7 @@ namespace LEX
 			//No need to deviate for now.
 			//InstructType type = OperatorToInstruction(op);
 
-			AbstractType* policy;
+			ITypeInfo* policy;
 
 			assert(lhs.policy);
 			assert(rhs.policy);
@@ -1086,7 +1086,7 @@ namespace LEX
 
 
 				//*Slated for deletion
-				//static AbstractType* boolean = nullptr;
+				//static ITypeInfo* boolean = nullptr;
 				//if (!boolean) {
 				//	//This may use a different boolean type eventually.
 				//	boolean = IdentityManager::instance->GetTypeByOffset("NUMBER", GetNumberOffsetFromType<bool>());
@@ -1427,7 +1427,7 @@ namespace LEX
 
 			//TODO: Should be in error if has an explicit target.
 
-			AbstractType* type = compiler->GetScope()->SearchTypePath(target);
+			ITypeInfo* type = compiler->GetScope()->SearchTypePath(target);
 
 			if (type)
 			{
@@ -1861,7 +1861,7 @@ namespace LEX
 		{
 			using ConcreteType::ConcreteType;
 
-			ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
@@ -1895,7 +1895,7 @@ namespace LEX
 			//please, make this with a setting attached.
 
 
-			ConvertResult GetConvertTo(const AbstractType* other, const AbstractType* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
@@ -1946,7 +1946,7 @@ namespace LEX
 
 			using ConcreteType::ConcreteType;
 
-			std::vector<AbstractType*> GetPostAffixedTypes() const override
+			std::vector<ITypeInfo*> GetPostAffixedTypes() const override
 			{
 				return {};
 			}

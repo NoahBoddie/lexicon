@@ -9,7 +9,7 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/IScriptImpl.h"
 //
-#include "Lexicon/Type.h"
+#include "Lexicon/TypeInfo.h"
 #include "Lexicon/AbstractFunction.h"
 
 

@@ -113,7 +113,7 @@ namespace LEX
 			default:
 				report::compile::critical("Not a literal expression."); break;
 		}
-		Type* policy = result.Policy();
+		TypeInfo* policy = result.Policy();
 		//if (policy)
 		//I want this to report if for some reason a literal doesn't have a value.
 		//RGL_LOG(trace, "literal policy test {} -> {}", !!policy, policy ? (uint32_t)policy->GetTypeID() : 0);

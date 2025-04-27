@@ -147,7 +147,7 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/Impl/IElementSource.h
 		"native/include/Lexicon/Engine/IssueTable.h"
 		"native/include/Lexicon/Engine/SpecialType.h"
-		"native/include/Lexicon/Engine/AbstractType.h"
+		"native/include/Lexicon/Engine/ITypeInfo.h"
 		native/include/Lexicon/Engine/QualifiedType.h
 		"native/include/Lexicon/Engine/Field.h"
 
@@ -211,7 +211,7 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/SpecialBase.cpp"
 		native/src/Lexicon/Engine/QualifiedType.cpp
 		"native/src/Lexicon/Engine/Field.cpp"
-		"native/src/Lexicon/Engine/AbstractType.cpp"
+		"native/src/Lexicon/Engine/ITypeInfo.cpp"
 		"src/Lexicon/Conversion.cpp"
 		)
 else()
@@ -224,7 +224,7 @@ set(headers
 	include/Lexicon/AbstractGlobal.h
 	include/Lexicon/Formula.h
 	include/Lexicon/AbstractFunction.h
-	include/Lexicon/Type.h
+	include/Lexicon/TypeInfo.h
 	
 	include/Lexicon/Array.h
 	include/Lexicon/Conversion.h
@@ -239,7 +239,7 @@ set(headers
 	
 	
 	include/Lexicon/ISpecial.h
-	include/Lexicon/IType.h
+	"include/Lexicon/BasicTypeInfo.h"
 	include/Lexicon/IGlobal.h
 	include/Lexicon/IVariable.h
 	include/Lexicon/MemberPointer.h
@@ -260,7 +260,7 @@ set(headers
 	include/Lexicon/Unvariable.h
 	include/Lexicon/Variable.h
 	include/Lexicon/VariableType.h
-	include/Lexicon/VersionDeclareSpace.h
+	
 	include/Lexicon/Versioning.h
 	include/Lexicon/Impl/PCH.h
 	include/Lexicon/Impl/ref_wrapper.h
@@ -299,12 +299,12 @@ set(headers
 
 
 set(sources
-	src/Lexicon/Type.cpp
+	src/Lexicon/TypeInfo.cpp
 	src/Lexicon/Dispatcher.cpp
 
 	
 	src/Lexicon/ICallableUnit.cpp
-	src/Lexicon/IType.cpp
+	"src/Lexicon/BasicTypeInfo.cpp"
 	src/Lexicon/ObjectPolicy.cpp
 	src/Lexicon/ObjectPolicyHandle.cpp
 	

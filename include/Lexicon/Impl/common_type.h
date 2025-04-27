@@ -12,11 +12,11 @@ namespace LEX
 		//TODO: common_type needs to start returning the Type object instead of just the basic form
 
 
-		static BasicType* boolean()
+		static ITypeInfo* boolean()
 		{
 			constexpr auto bool_settings = Number::Settings::CreateFromType<bool>();
 
-			static BasicType* type = nullptr;
+			static ITypeInfo* type = nullptr;
 
 			if (!type){
 				type = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset());
@@ -26,11 +26,11 @@ namespace LEX
 		}
 
 
-		static BasicType* uboolean()
+		static ITypeInfo* uboolean()
 		{
 			constexpr auto bool_settings = Number::Settings{ NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound };
 
-			static BasicType* type = nullptr;
+			static ITypeInfo* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset());
@@ -39,11 +39,11 @@ namespace LEX
 			return type;
 		}
 
-		static BasicType* integer64()
+		static ITypeInfo* integer64()
 		{
 			constexpr auto int_settings = Number::Settings::CreateFromType<int32_t>();
 
-			static BasicType* type = nullptr;
+			static ITypeInfo* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetTypeByOffset("NUMBER", int_settings.GetOffset());
@@ -54,9 +54,9 @@ namespace LEX
 
 
 
-		static BasicType* void_t()
+		static ITypeInfo* void_t()
 		{
-			static BasicType* type = nullptr;
+			static ITypeInfo* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetInherentType(InherentType::kVoid);
@@ -66,9 +66,9 @@ namespace LEX
 		}
 		
 
-		static BasicType* object()
+		static ITypeInfo* object()
 		{
-			static BasicType* type = nullptr;
+			static ITypeInfo* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetTypeByOffset("CORE", 0)->GetTypePolicy(nullptr);
@@ -77,9 +77,9 @@ namespace LEX
 			return type;
 		}
 
-		static BasicType* voidable()
+		static ITypeInfo* voidable()
 		{
-			static BasicType* type = nullptr;
+			static ITypeInfo* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetInherentType(InherentType::kVoidable);
@@ -89,9 +89,9 @@ namespace LEX
 		}
 
 
-		static BasicType* type_info()
+		static ITypeInfo* type_info()
 		{
-			static BasicType* type = nullptr;
+			static ITypeInfo* type = nullptr;
 
 			if (!type) {
 				type = IdentityManager::instance->GetTypeByOffset("REFLECT_Type", 2);

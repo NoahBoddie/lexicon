@@ -16,7 +16,7 @@ namespace LEX
 	}
 
 
-	AbstractType* Scope::SearchTypePath(SyntaxRecord& _path)
+	ITypeInfo* Scope::SearchTypePath(SyntaxRecord& _path)
 	{
 		SyntaxRecord dummy{ "dummy", Syntax{ SyntaxType::None}, _path };
 

@@ -5,7 +5,7 @@ namespace LEX
 {
     class Variable; 
 
-    struct Type;
+    struct TypeInfo;
     /*
     class Array
     {
@@ -14,10 +14,10 @@ namespace LEX
         std::vector<Variable> data;
 
         //Arrays themselves will need to be stocked with a type to submit to the variable when called upon.
-        Type* type;
+        TypeInfo* type;
 
 
-        static Type* GetVariableType(const Array*)
+        static TypeInfo* GetVariableType(const Array*)
         {
             return nullptr;
         }

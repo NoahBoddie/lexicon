@@ -8,7 +8,7 @@
 
 namespace LEX
 {
-	struct AbstractType;
+	struct ITypeInfo;
 	struct TypeBase;
 	struct FunctionInfo;
 
@@ -190,7 +190,7 @@ namespace LEX
 		
 
 
-		AbstractType* SearchTypePath(SyntaxRecord& _path);
+		ITypeInfo* SearchTypePath(SyntaxRecord& _path);
 
 		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out);
 

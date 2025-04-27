@@ -4,7 +4,7 @@
 
 //src
 #include "Lexicon/TypeID.h"
-#include "Lexicon/Type.h"
+#include "Lexicon/TypeInfo.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 template <typename EnumType>
@@ -24,7 +24,7 @@ requires(std::is_enum_v<EnumType>&& !std::is_scoped_enum_v<EnumType>) struct fmt
 
 namespace LEX
 {
-    struct Type;
+    struct TypeInfo;
 
 
     //*
@@ -711,9 +711,9 @@ namespace LEX
             return operator<=>(other) == std::strong_ordering::equal;
         }
             
-        static Type* GetVariableType(const Number* it)
+        static TypeInfo* GetVariableType(const Number* it)
         {
-            BasicType* policy = IdentityManager::instance->GetTypeByOffset("NUMBER", !it ? 0 : it->GetOffset());
+            ITypeInfo* policy = IdentityManager::instance->GetTypeByOffset("NUMBER", !it ? 0 : it->GetOffset());
 
             //Should already be specialized, so just sending it.
             return policy->FetchTypePolicy(nullptr);
@@ -1255,10 +1255,10 @@ namespace LEX
     struct VariableType<T>
     {
 
-        Type* operator()()
+        TypeInfo* operator()()
         {
             //I could just make this numeric
-            static Type* result = nullptr;
+            static TypeInfo* result = nullptr;
 
             if (!result) {
 
@@ -1277,11 +1277,11 @@ namespace LEX
     //static_assert(std::assignable_from<VariableType<double>, VariableType<double>>, "false");
     /*
     template<numeric T>
-    Type* GetVariableType()
+    TypeInfo* GetVariableType()
     {
 
 
-        static Type* result = nullptr;
+        static TypeInfo* result = nullptr;
 
         if (!result) {
 

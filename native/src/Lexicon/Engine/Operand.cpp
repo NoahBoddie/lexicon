@@ -78,7 +78,7 @@ namespace LEX
 
 
 		case OperandType::Type: {
-			auto type = Get<AbstractType*>();
+			auto type = Get<ITypeInfo*>();
 			return type->GetTypePolicy(runtime);
 		}
 		

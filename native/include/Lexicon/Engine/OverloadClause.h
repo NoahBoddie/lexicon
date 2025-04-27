@@ -28,7 +28,7 @@ namespace LEX
 	{//The parameter side of the overload.
 
 
-		virtual Overload Match(OverloadClause*, AbstractType* scope, Overload* prev, OverloadFlag& flag)
+		virtual Overload Match(OverloadClause*, ITypeInfo* scope, Overload* prev, OverloadFlag& flag)
 		{
 			//This should use a similar type of match that signature uses.
 			flag |= OverloadFlag::Ambiguous;
@@ -43,15 +43,15 @@ namespace LEX
 
 		//Fuck it, these return non-booleans and use something else to denote their failures.
 
-		virtual OverloadEntry MatchSuggestedEntry(QualifiedType, AbstractType* scope, size_t offset, size_t index, OverloadFlag& flags) = 0;
-		virtual OverloadEntry MatchDefaultEntry(QualifiedType, AbstractType* scope, std::string name, OverloadFlag& flags) = 0;
+		virtual OverloadEntry MatchSuggestedEntry(QualifiedType, ITypeInfo* scope, size_t offset, size_t index, OverloadFlag& flags) = 0;
+		virtual OverloadEntry MatchDefaultEntry(QualifiedType, ITypeInfo* scope, std::string name, OverloadFlag& flags) = 0;
 		//^ I'm thinking of having an extra parameter to show if I mean generic args or not.
 
 
 		//This should only be called on the winnning one.
 		//This should actually accept the Overload comparison object, as that can represent optional parameter pack values as well.
 
-		virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, AbstractType* scope, OverloadFlag& flags) = 0;
+		virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypeInfo* scope, OverloadFlag& flags) = 0;
 		//After this is used, it should be resized.
 
 

@@ -7,7 +7,7 @@
 
 namespace LEX
 {
-	struct Type;
+	struct TypeInfo;
 
 	struct Object;
 
@@ -151,7 +151,7 @@ namespace LEX
 		}
 		
 
-		static Type* GetVariableType(const Object* obj)
+		static TypeInfo* GetVariableType(const Object* obj)
 		{
 			if (obj)
 			{
@@ -160,7 +160,7 @@ namespace LEX
 				return type;	
 			}
 				//_data()
-			//SpecializeType(ObjectData&, IType * type) override
+			//SpecializeType(ObjectData&, ITypeInfo * type) override
 			
 			//return core type instead.
 			return nullptr;
@@ -352,7 +352,7 @@ namespace LEX
 		// and instead functions that can be relied upon for failure recognition. So, instead of the operator for adding 2 objects, have a function for it that creates a 
 		// new object. This way the use is an explicit choice, never an accident.
 
-		Type* GetType()
+		TypeInfo* GetType()
 		{
 			//The concept of get type should be getting the object info, and submitting this to it. The base version should 
 			return nullptr;

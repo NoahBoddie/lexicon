@@ -43,16 +43,10 @@ namespace LEX
 		//ProjectClient is a class that's used to communicate with the owner of a project.
 		CURRENT_VERSION(ProjectClient, 1);
 		
-		namespace Current
-		{
-			using ProjectClientSingleton = ProjectClient;
-		}
 	}
 
-	using IProjectClient = Version::Current::ProjectClient;
-
-	//This will allow for forward declaration where type alias will not.
-	struct ProjectClient : public IProjectClient
+	
+	struct IMPL_VERSION(ProjectClient)
 	{
 		HMODULE GetParentModule() override final { return GetCurrentModule(); }
 

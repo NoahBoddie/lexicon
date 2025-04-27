@@ -81,7 +81,7 @@ namespace LEX
                 procedureData = -1;
             }
 
-            //IType* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
+            //ITypeInfo* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 
             QualifiedType type = QualifiedType{ header };
 
@@ -140,7 +140,7 @@ namespace LEX
 
                 //auto& tag = node.FindChild("type")->GetFront().GetTag();
 
-                //IType* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
+                //ITypeInfo* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
 
                 //if (!policy) {
                 //    report::link::error("Parameter type '{}' couldn't be found", tag);

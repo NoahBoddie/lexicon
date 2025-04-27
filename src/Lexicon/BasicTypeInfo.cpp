@@ -1,4 +1,4 @@
-#include "Lexicon/IType.h"
+#include "Lexicon/BasicTypeInfo.h"
 
 #include "Lexicon/Interfaces/IdentityManager.h"
 

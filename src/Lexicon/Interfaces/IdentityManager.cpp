@@ -6,7 +6,7 @@
 //src
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/TypeBase.h"
-#include "Lexicon/Engine/AbstractType.h"
+#include "Lexicon/Engine/ITypeInfo.h"
 #include "Lexicon/Engine/VoidPolicy.h"
 
 #include "Lexicon/InherentType.h"
@@ -127,7 +127,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 		return inherentTypes[type];
 	}
 	
-	BasicType* IdentityManager::GetInherentType(InherentType type)
+	ITypeInfo* IdentityManager::GetInherentType(InherentType type)
 	{
 		return GetInherentBase(type)->AsAbstract();
 	}
@@ -282,7 +282,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 
 	
-	BasicType* IdentityManager::GetTypeByID(TypeID id)
+	ITypeInfo* IdentityManager::GetTypeByID(TypeID id)
 	{
 		return GetBaseByID(id)->AsAbstract();
 	}

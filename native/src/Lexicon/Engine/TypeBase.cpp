@@ -30,7 +30,7 @@ namespace LEX
 	}
 
 
-	void TypeBase::CheckDeriveFrom(AbstractType* other)
+	void TypeBase::CheckDeriveFrom(ITypeInfo* other)
 	{
 		auto l_type = GetDataType();
 		auto r_type = other->GetDataType();

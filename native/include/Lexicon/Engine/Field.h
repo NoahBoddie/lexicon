@@ -43,7 +43,7 @@ namespace LEX
 
 		virtual Specifier GetSpecifiers() const = 0;
 
-		virtual BasicType* GetType() const = 0;
+		virtual ITypeInfo* GetType() const = 0;
 
 		//TODO: Make Field::AsSolution virtual
 		

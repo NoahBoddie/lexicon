@@ -18,5 +18,5 @@ namespace LEX
 		CURRENT_VERSION(IFormula, 1);
 	}
 
-	struct IFormula : public Version::Current::IFormula {};
+	struct IMPL_VERSION(IFormula) {};
 }

@@ -83,7 +83,6 @@
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceManager.h"
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
-#include "Lexicon/Versioning.h"
 
 #include "Lexicon/Specifier.h"
 
@@ -141,204 +140,6 @@ inline std::hash<std::vector<uint64_t>> hasher;
 
 namespace LEX
 {
-	
-	/////////////////////////
-	//Implementations
-	////////////////////////
-
-#define CONSEAL(mc) //mc
-
-	namespace Version
-	{
-		namespace _1
-		{
-			struct INTERFACE_VERSION(Base)
-			{
-
-				virtual int GetBar() = 0;
-				CONSEAL(int a_1);
-				CONSEAL(int a_2);
-				
-			};
-
-			struct INTERFACE_VERSION(Derives)
-			{
-				CONSEAL(int b_1);
-				CONSEAL(int b_2);
-			};
-		}
-
-		namespace _2
-		{
-			
-			struct INTERFACE_VERSION(Base)
-			{
-				CONSEAL(int a_3);
-				CONSEAL(int a_4);
-				CONSEAL(int a_5);
-
-			};
-			
-			struct INTERFACE_VERSION(Derives)
-			{
-				CONSEAL(int b_3);
-			};
-		}
-
-		namespace _3
-		{
-			struct INTERFACE_VERSION(Derives)
-			{
-				CONSEAL(int b_4);
-				CONSEAL(int b_5);
-			};
-		}
-
-		CURRENT_VERSION(Base, 2);
-		namespace Current {
-			struct Derives : public _3::Derives {
-				inline static constexpr uintptr_t version = 3; uintptr_t Version() const override final {
-					return 3;
-				}
-			};
-		};
-	}
-#undef CONSEAL
-
-
-	struct IMPL_VERSION(Base)
-	{
-		
-	};
-	
-
-	struct Derives : public Version::Current::Derives, public Base
-	{
-		virtual int GetBar() =0;
-	};
-
-	void TestD(Derives& foo)
-	{
-		foo.GetBar();
-
-		Base& bar = foo;
-	}
-
-	
-	/*
-	struct TestA
-	{
-	};
-
-
-	struct StructA
-	{
-		virtual TestA* Foo() = 0;
-	};
-
-
-	struct TestB;
-
-
-
-	struct StructB : public StructA
-	{
-		TestA* Foo() override final;
-
-		virtual TestB* Foo(int = 0) = 0;
-
-	};
-
-
-	
-
-	struct TestB : public TestA {};
-
-	TestA* StructB::Foo()
-	{
-		return Foo({});
-	}
-
-	struct StructC : public StructB 
-	{
-		TestB* Foo(int = 0) override
-		{
-			return nullptr;
-		}
-
-	};
-	//*/
-
-
-
-
-	namespace _1
-	{
-		namespace _2
-		{
-			struct Test
-			{
-				void foo()
-				{
-
-				}
-
-
-			};
-		}
-
-		namespace _3
-		{
-			struct Test 
-			{
-				void foo()
-				{
-
-				}
-
-
-			};
-		}
-	}
-
-	struct Test : public _1::_2::Test, public _1::_3::Test
-	{
-
-
-	};
-
-	namespace _A
-	{
-		namespace _B
-		{
-			namespace _C
-			{
-				int test;
-			}
-		}
-
-		namespace _B1
-		{
-			namespace _B
-			{
-				namespace _C
-				{
-					int test;
-				}
-			}
-		}
-
-		namespace _A1
-		{
-			void Foo()
-			{
-				_B::_C::test;
-			}
-		}
-	}
-
-
-//#requires /:Option
 
 
 
@@ -376,19 +177,20 @@ namespace LEX
 		Voidable result = Formula<Voidable>::Run("(25).CouldBeLiterallyAnything()");
 
 		logger::critical("{}", result.PrintString());
-#ifdef KILL
-		if (result.IsVoid())
-		{
-			logger::critical("is void");
-		}
-		else
-		{
-			logger::critical("value is {}", result.AsNumber());
-		}
-#endif
 
-		IObjectVTable;
 	}
+
+	struct Base
+	{
+		virtual int test() { return 1; };
+	};
+
+	struct Derived1 : public Base
+	{
+		virtual int test() { return 2; }
+	};
+
+
 
 
 
@@ -785,12 +587,12 @@ namespace LEX
 		size_t GetSize() const override { return leftEnd + right->GetSize(); }
 
 
-		AbstractType* GetPartArgument(size_t i) const override
+		ITypeInfo* GetPartArgument(size_t i) const override
 		{
 			return i < leftEnd ? left->GetPartArgument(i) : right->GetPartArgument(i - leftEnd);
 		}
 
-		Type* GetBodyArgument(size_t i) const override
+		TypeInfo* GetBodyArgument(size_t i) const override
 		{
 			if (GetState()) {
 				auto lhs = left ? left->TryPromoteTemplate() : nullptr;
@@ -987,7 +789,7 @@ namespace LEX
 
 
 
-		static Type* GetVariableType(const Array* self)
+		static TypeInfo* GetVariableType(const Array* self)
 		{
 			if (!self || !self->_type) {
 				auto result = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
@@ -1021,7 +823,7 @@ namespace LEX
 			return _container != nullptr;
 		}
 
-		Type* type() const
+		TypeInfo* type() const
 		{
 			return _type;
 		}
@@ -1055,7 +857,7 @@ namespace LEX
 		constexpr Array() noexcept = default;
 		
 	
-		Array(std::span<const Variable> range, Type* type = nullptr) : 
+		Array(std::span<const Variable> range, TypeInfo* type = nullptr) : 
 			_container{ std::make_unique<Helper>(std::vector<ArrayVariable>(range.begin(), range.end())) }, _type {type}
 		{
 
@@ -1162,12 +964,10 @@ namespace LEX
 
 		std::unique_ptr<Helper> _container{};
 
-		mutable Type* _type = nullptr;
+		mutable TypeInfo* _type = nullptr;
 
 
 	};
-
-	
 
 
 	
@@ -1176,8 +976,6 @@ namespace LEX
 	template <>
 	struct LEX::ObjectInfo<Array> : public QualifiedObjectInfo<Array>
 	{
-		using Type = LEX::Type;
-
 		template <specialization_of<std::vector> Vec>
 		static Array ToObject(const Vec& obj)
 		{
@@ -1203,9 +1001,9 @@ namespace LEX
 		}
 
 
-		Type* SpecializeType(ObjectData& data, BasicType* type) override
+		TypeInfo* SpecializeType(ObjectData& data, ITypeInfo* type) override
 		{
-			Type* result;
+			TypeInfo* result;
 
 			if (type->IsResolved() == false) {
 
@@ -1242,10 +1040,10 @@ namespace LEX
 
 	//This is a test, it has more qualifications to fill than this.
 	template <typename T> requires (!detail::subject_has_var_type<T>&&
-		requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>* ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<Type*>; })
+		requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>* ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<TypeInfo*>; })
 	struct VariableType<T>
 	{
-		Type* operator()(const std::remove_pointer_t<T>* arg)
+		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
 		{
 
 			return ProxyGuide<T>{}.VariableType(arg);
@@ -1258,7 +1056,7 @@ namespace LEX
 		}
 
 		//Can likely remove this
-		Type* operator()()
+		TypeInfo* operator()()
 		{
 			return this->operator()(nullptr);
 		}
@@ -1300,7 +1098,7 @@ namespace LEX
 	struct ProxyGuide <std::vector<T>> : public RefCollection
 	{
 
-		Type* VariableType(const std::vector<T>* vec)
+		TypeInfo* VariableType(const std::vector<T>* vec)
 		{
 			return IdentityManager::instance->GetTypeByOffset("ARRAY", 0)->GetTypePolicy(nullptr);
 			//TODO: This literally does not work, please implement this properly.
@@ -1753,7 +1551,7 @@ namespace LEX
 
 
 			//This should include TemplateTuple
-			std::vector<std::pair<AbstractType*, bool>> specialImplied;
+			std::vector<std::pair<ITypeInfo*, bool>> specialImplied;
 
 
 
@@ -1792,7 +1590,7 @@ namespace LEX
 				return true;
 			}
 
-			AbstractType* GetManualTemplateType(size_t index)
+			ITypeInfo* GetManualTemplateType(size_t index)
 			{
 				if (specialImplied.size() <= index) {
 					return nullptr;
@@ -1806,7 +1604,7 @@ namespace LEX
 
 
 			//Type is the actual type used. Entry is the optional entry to be filled by said type.
-			std::optional<bool> EmplaceTemplate(OverloadEntry& entry, AbstractType* type, AbstractType* scope, bool manual = true)
+			std::optional<bool> EmplaceTemplate(OverloadEntry& entry, ITypeInfo* type, ITypeInfo* scope, bool manual = true)
 			{
 				std::optional<bool> result = std::nullopt;
 				
@@ -1880,7 +1678,7 @@ namespace LEX
 				return result;
 			}
 
-			bool EmplaceEntry(OverloadEntry& entry, AbstractType* type, AbstractType* scope, std::string_view name = {})
+			bool EmplaceEntry(OverloadEntry& entry, ITypeInfo* type, ITypeInfo* scope, std::string_view name = {})
 			{
 				//EmplaceEntry needs to adapt the type to what's loaded.
 
@@ -2114,7 +1912,7 @@ namespace LEX
 		struct OverloadArgument
 		{//The argument side of the overload.
 			
-			virtual OverloadBias Match(OverloadParameter*, AbstractType* scope, Overload& out, Overload* prev) = 0;
+			virtual OverloadBias Match(OverloadParameter*, ITypeInfo* scope, Overload& out, Overload* prev) = 0;
 
 		};
 
@@ -2122,15 +1920,15 @@ namespace LEX
 		{//The parameter side of the overload.
 
 
-			virtual OverloadBias Match(OverloadParameter*, AbstractType* scope, Overload& out, Overload* prev)
+			virtual OverloadBias Match(OverloadParameter*, ITypeInfo* scope, Overload& out, Overload* prev)
 			{
 				return OverloadBias::kFailure;
 			}
 
 			virtual bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag) = 0;
 
-			virtual bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) = 0;
-			virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, AbstractType* scope, Overload& overload, std::string_view name, OverloadFlag& flags) = 0;
+			virtual bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) = 0;
+			virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) = 0;
 
 
 			virtual void QualifyOverload(Overload& overload) = 0;
@@ -2166,7 +1964,7 @@ namespace LEX
 		public:
 
 			
-			OverloadBias Match(OverloadParameter* param, AbstractType* scope, Overload& out, Overload* prev) override
+			OverloadBias Match(OverloadParameter* param, ITypeInfo* scope, Overload& out, Overload* prev) override
 			{
 				OverloadFlag flags{};
 
@@ -2349,8 +2147,8 @@ namespace LEX
 			TargetObject* object = nullptr;
 
 			//I'd like to order all these vectors in a much more friendly way.
-			std::vector<std::pair<AbstractType*, size_t>>			specialImplied;
-			std::unordered_map<std::string, std::vector<AbstractType*>> specialStated;
+			std::vector<std::pair<ITypeInfo*, size_t>>			specialImplied;
+			std::unordered_map<std::string, std::vector<ITypeInfo*>> specialStated;
 			
 		
 			std::vector<std::pair<Solution, size_t>> implied;
@@ -2431,7 +2229,7 @@ namespace LEX
 			}
 
 
-			bool MatchImpliedEntry_Lower(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags)
+			bool MatchImpliedEntry_Lower(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags)
 			{
 				//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
 				if (index != -1 && GetArgCountMax() <= index)
@@ -2500,7 +2298,7 @@ namespace LEX
 
 			}
 
-			bool MatchStatedEntry_Lower(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, Overload& overload, std::string_view name, OverloadFlag& flags)
+			bool MatchStatedEntry_Lower(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags)
 			{
 				
 
@@ -2571,7 +2369,7 @@ namespace LEX
 				return true;
 			}
 			
-			bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
+			bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
 			{
 				if (!(flags & OverloadFlag::IsTemplate)) {
 					return MatchImpliedEntry_Lower(out, type, scope, overload, index, offset, flags);
@@ -2625,7 +2423,7 @@ namespace LEX
 
 			}
 			
-			bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, AbstractType* scope, Overload& overload, std::string_view name, OverloadFlag& flags) override
+			bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) override
 			{
 				if (!(flags & OverloadFlag::IsTemplate)) {
 					return MatchStatedEntry_Lower(out, type, scope, overload, name, flags);
@@ -2832,15 +2630,15 @@ namespace LEX
 		specifier3._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
 
 
-		AbstractType* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
-		AbstractType* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
-		AbstractType* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+		ITypeInfo* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
+		ITypeInfo* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
+		ITypeInfo* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
 		floatSmall->IsResolved();
 
-		std::vector<AbstractType*> group1{ 3 };
-		std::vector<AbstractType*> group2{ 3 };
-		std::vector<AbstractType*> group3{ 3 };
+		std::vector<ITypeInfo*> group1{ 3 };
+		std::vector<ITypeInfo*> group2{ 3 };
+		std::vector<ITypeInfo*> group3{ 3 };
 
 
 		group1[0] = floatSmall;
@@ -3172,7 +2970,7 @@ namespace LEX
 		class ClassStruct
 		{
 		
-			Type* type = nullptr;
+			TypeInfo* type = nullptr;
 
 		private:
 			union
