@@ -53,7 +53,7 @@ namespace LEX
 
 #include "Lexicon/Impl/PCH.h"
 
-#include "Lexicon/AbstractFunction.h"
+#include "Lexicon/Function.h"
 #include "Lexicon/TypeInfo.h"
 #include "Lexicon/Array.h"
 #include "Lexicon/Conversion.h"
@@ -64,9 +64,9 @@ namespace LEX
 #include "Lexicon/Exception.h"
 #include "Lexicon/Engine/Field.h"
 #include "Lexicon/ICallableUnit.h"
-#include "Lexicon/IFunction.h"
+#include "Lexicon/BasicFunction.h"
 #include "Lexicon/ISpecial.h"
-#include "Lexicon/SimpleTypeInfo.h"
+#include "Lexicon/BasicTypeInfo.h"
 #include "Lexicon/IVariable.h"
 #include "Lexicon/MemberPointer.h"
 #include "Lexicon/Number.h"

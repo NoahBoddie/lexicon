@@ -60,6 +60,21 @@ namespace LEX
 			return specifiers.flags & SpecifierFlag::Virtual;
 		}
 
+		FunctionData* tmpSignature()
+		{
+			return signature;
+		}
+
+		MemberPointer GetMethod() const
+		{
+			return method;
+		}
+
+		IFunction* GetFunction() const
+		{
+			return function->AsFunction();
+		}
+
 		FunctionType* Get() const
 		{
 			if (IsVirtual() == false)

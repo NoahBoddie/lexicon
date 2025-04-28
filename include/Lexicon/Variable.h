@@ -3,7 +3,7 @@
 #include "String.h"
 #include "Number.h"
 #include "Lexicon/TypeInfo.h"
-//#include "AbstractFunction.h"
+//#include "Function.h"
 //#include "ExternalHandle.h"
 #include "Object.h"
 #include "Array.h"

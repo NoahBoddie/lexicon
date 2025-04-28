@@ -20,6 +20,8 @@
 
 #include "Lexicon/Engine/Signature.h"
 
+#include "Lexicon/Engine/ConcreteFunction.h"
+
 namespace LEX
 {
 

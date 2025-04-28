@@ -21,7 +21,7 @@
 //#include "OverloadClause.h"
 
 //#include "FunctionBase.h"
-//#include "AbstractFunction.h"
+//#include "Function.h"
 
 
 //#include "GlobalVariable.h"
@@ -40,7 +40,6 @@ namespace LEX
 	class FunctionBase;
 
 	struct ConcreteType;
-	struct Type;
 
 	struct Overload;
 	struct OverloadKey;
@@ -203,7 +202,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<IEnvironment>::value):
-				return (IEnvironment*)this;
+				return static_cast<IEnvironment*>(this);
 			case Hash(TypeName<Environment>::value):
 				return this;
 			}

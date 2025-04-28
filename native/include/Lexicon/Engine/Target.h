@@ -3,7 +3,7 @@
 #include "Lexicon/Engine/Register.h"
 #include "Lexicon/Variable.h"
 #include "Lexicon/Engine/ITypeInfo.h"
-#include "Lexicon/IFunction.h"
+#include "Lexicon/Engine/IFunction.h"
 #include "Lexicon/MemberPointer.h"
 #include "OperandType.h"
 #include "Literal.h"

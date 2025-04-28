@@ -1,19 +1,22 @@
 #pragma once
 
 #include "Lexicon/Engine/Element.h"
-#include "Lexicon/IFunction.h"
+#include "Lexicon/Engine/IFunction.h"
+#include "Lexicon/Function.h"
 #include "FunctionData.h"
 #include "OverloadClause.h"
 namespace LEX
 {
-	class FunctionBase : public virtual IFunction, public SecondaryElement, public OverloadClause, public FunctionData
+
+
+	class FunctionBase : public SecondaryElement, public OverloadClause, public FunctionData
 	{
 	public:
-		virtual IFunction* AsFunction() { return this; }
+		virtual IFunction* AsFunction() = 0;
+		virtual const IFunction* AsFunction() const = 0;
 
 
 	private:
-
 
 		//This is a pivot for for functions, more important than anywhere else, this set up excludes formulas
 		// from being able to be stored in a function, or having the same linking
@@ -29,9 +32,6 @@ namespace LEX
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<IFunction>::value):
-				return (IFunction*)this;
-
 			case Hash(TypeName<FunctionBase>::value):
 				return this;
 			}
@@ -77,21 +77,6 @@ namespace LEX
 
 	public:
 
-		bool IsMethod() const override { return !!_thisInfo; }
-
-		std::string_view GetName() const override
-		{//would an empty check be better?
-			if (_name == "")
-				return "<empty>";
-			
-			return _name;
-		}
-
-
-		virtual uint64_t GetProcedureData() const
-		{
-			return procedureData;
-		}
 
 		virtual void SetProcedureData(Procedure proc, uint64_t data)
 		{
@@ -112,5 +97,46 @@ namespace LEX
 
 	};
 
+
+	//For what it's worth, I really fucking loathe this system all together.
+	template <typename T>
+	struct PivotFuncBase : public FunctionBase, public T
+	{
+		using FunctionBase::FunctionBase;
+
+		IFunction* AsFunction() override { return this; }
+		const IFunction* AsFunction() const override { return this; }
+
+
+		bool IsMethod() const override { return !!_thisInfo; }
+
+		std::string_view GetName() const override
+		{//would an empty check be better?
+			if (_name == "")
+				return "<empty>";
+
+			return _name;
+		}
+
+
+		uint64_t GetProcedureData() const override
+		{
+			return procedureData;
+		}
+
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IFunction>::value):
+				return static_cast<IFunction*>(this);
+			}
+
+			return __super::Cast(name);
+		}
+	};
+
+	using GenericFuncBase = PivotFuncBase<IFunction>;
+	using ConcreteFuncBase = PivotFuncBase<Function>;
 
 }

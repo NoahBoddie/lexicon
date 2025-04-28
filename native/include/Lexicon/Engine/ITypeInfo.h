@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/SimpleTypeInfo.h"
+#include "Lexicon/BasicTypeInfo.h"
 
 namespace LEX
 {
@@ -13,11 +13,23 @@ namespace LEX
 		NoReturn = 1 << 1,	//Controls if the type can be used in a return or not
 		NoVariable = 1 << 2,	//Specifies it cannot be used as a parameter or variable.
 		NoGlobal = 1 << 3,	//Specifies it can't be used as a global (runtime classes have this)
+		NoInstant = 1 << 4, //Type cannot be instantiated
+	};
+
+	ENUM(ConversionFlag)
+	{
+		None = 0 << 0,
+		Explicit = 1 << 0,
+		Return = 1 << 1,
+		Parameter = 1 << 2,
+		Initialize = 1 << 3,
+		Template = 1 << 4,
+		IgnoreAccess = 1 << 5,
 	};
 
 	struct TemplateType;
 
-	struct ITypeInfo : public Hidden::SimpleTypeInfo
+	struct ITypeInfo : public Hidden::BasicTypeInfo
 	{
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.

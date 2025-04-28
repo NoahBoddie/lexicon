@@ -1,12 +1,17 @@
 #include "Lexicon/Interfaces/ProcedureHandler.h"
 
 #include "Lexicon/Engine/Signature.h"
-#include "Lexicon/Engine/FunctionBase.h"
+//#include "Lexicon/Engine/FunctionBase.h"
 #include "Lexicon/Engine/Script.h"
 
-#include "Lexicon/AbstractFunction.h"
+//#include "Lexicon/Function.h"
 #include "Lexicon/Dispatcher.h"
 #include "Lexicon/ProcedureData.h"
+
+#include "Lexicon/Engine/ConcreteFunction.h"
+
+
+
 namespace LEX
 {
 
@@ -20,7 +25,7 @@ namespace LEX
 
 		OverloadFlag flag = OverloadFlag::AllAccess;
 
-		auto overload = sign.Match(dynamic_cast<FunctionBase*>(func), nullptr, nullptr, flag);
+		auto overload = sign.Match(dynamic_cast<ConcreteFunction*>(func), nullptr, nullptr, flag);
 
 		bool result;
 

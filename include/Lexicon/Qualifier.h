@@ -58,6 +58,11 @@ namespace LEX
 		Scoped,			//A reference to a variable created outside of this
 		Global,			//A reference to a global variable, existing externally, as a global variable, or detached and shared.
 		Generic,		//Generic refs aren't any one type, but are context based. Should accept all except temp
+
+
+		//Membered- Name may be subject to change but the idea would be that this is a type that is beholden to whatever type is currently
+		// being viewed from the perspective of the QualifiedField that owns it. Generic might actually fit this bill.
+		// So the idea 
 	};
 
 	ENUM (Constness, uint8_t)

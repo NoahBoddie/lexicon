@@ -8,7 +8,7 @@
 #include "Lexicon/Impl/ref_wrapper.h"
 
 //*src
-#include "Lexicon/IFunction.h"
+#include "Lexicon/Function.h"
 
 namespace LEX
 {

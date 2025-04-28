@@ -4,7 +4,7 @@
 #ifdef LEX_SOURCE
 #include "Lexicon/Engine/ITypeInfo.h"
 #else
-#include "Lexicon/SimpleTypeInfo.h"
+#include "Lexicon/BasicTypeInfo.h"
 #endif
 
 namespace LEX

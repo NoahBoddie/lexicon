@@ -10,7 +10,7 @@
 #include "Lexicon/Engine/IScriptImpl.h"
 //
 #include "Lexicon/TypeInfo.h"
-#include "Lexicon/AbstractFunction.h"
+#include "Lexicon/Function.h"
 
 
 
@@ -83,7 +83,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<IScript>::value):
-				return (IScript*)this;
+				return static_cast<IScript*>(this);
 			case Hash(TypeName<Script>::value):
 				return this;
 			}

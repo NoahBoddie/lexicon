@@ -88,7 +88,7 @@ namespace LEX
 		}
 
 
-		virtual const AbstractFunction* GetFunction() const
+		virtual const Function* GetFunction() const
 		{
 			return _function;
 		}
@@ -203,7 +203,7 @@ namespace LEX
 		{}
 
 		//
-		AbstractFunction* _function = nullptr;
+		Function* _function = nullptr;
 
 		RoutineBase& _data;
 

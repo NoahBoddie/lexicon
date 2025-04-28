@@ -50,7 +50,7 @@ namespace LEX
 
     LinkResult FunctionBase::OnLink(LinkFlag flags)
     {
-        
+
         SyntaxRecord& target = *GetSyntaxTree();
 
         //I would cycle_switch but seems a bit shit.

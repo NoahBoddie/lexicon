@@ -41,7 +41,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<IProject>::value):
-				return (IProject*)this;
+				return static_cast<IProject*>(this);
 			case Hash(TypeName<Project>::value):
 				return this;
 			}

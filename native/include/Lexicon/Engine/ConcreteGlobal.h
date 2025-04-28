@@ -53,7 +53,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<AbstractGlobal>::value):
-				return (AbstractGlobal*)this;
+				return static_cast<AbstractGlobal*>(this);
 
 			case Hash(TypeName<ConcreteGlobal>::value):
 				return this;

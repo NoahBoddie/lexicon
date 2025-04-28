@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Lexicon/Engine/FunctionBase.h"
-#include "Lexicon/AbstractFunction.h"
+#include "Lexicon/Function.h"
 
 namespace LEX
 {
 	class RuntimeVariable;
 
-	class ConcreteFunction : public FunctionBase, public AbstractFunction
+	class ConcreteFunction : public ConcreteFuncBase
 	{
 	public:
 		ISpecializable* GetSpecializable() override { return nullptr; }
@@ -15,7 +15,13 @@ namespace LEX
 		//void LoadFromRecord(Record&)
 
 	
+		IFunction* CheckFunction(ITemplatePart* args) override
+		{
+			return this;
+		}
+
 		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override;
+
 
 
 	protected:
@@ -23,8 +29,8 @@ namespace LEX
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<AbstractFunction>::value):
-				return (AbstractFunction*)this;
+			case Hash(TypeName<Function>::value):
+				return static_cast<Function*>(this);
 
 			case Hash(TypeName<ConcreteFunction>::value):
 				return this;
@@ -34,6 +40,4 @@ namespace LEX
 		}
 
 	};
-
-	using Function = ConcreteFunction;
 }

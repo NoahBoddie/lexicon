@@ -18,7 +18,6 @@ namespace LEX
 	class Variable;
 	struct ICallableUnit;//No longer needed
 	struct IFunction;
-	struct Type;
 	class RuntimeVariable;
 	struct TypeBase;
 	struct HierarchyData;
@@ -35,25 +34,11 @@ namespace LEX
 
 	struct ITypeInfo;
 
-	//Using this will allow manual conversions to other types that ordinarily cannot convert, even without a explicitly declared conversion.
-	//using Conversion = std::function<RuntimeVariable(RuntimeVariable)>;
 	
-
-	//use this instead of the other.
-	ENUM(ConversionFlag)
-	{
-		None = 0 << 0,
-		Explicit = 1 << 0,
-		Return = 1 << 1,
-		Parameter = 1 << 2,
-		Initialize = 1 << 3,
-		Template = 1 << 4,
-		IgnoreAccess = 1 << 5,
-	};
 
 	namespace Hidden
 	{
-		struct SimpleTypeInfo : public ISpecial, public Reflection
+		struct BasicTypeInfo : public ISpecial, public Reflection
 		{
 		private:
 			enum Offset
@@ -174,7 +159,7 @@ namespace LEX
 
 #ifndef LEX_SOURCE
 	//Only accessible outside of the source.
-	struct ITypeInfo : public Hidden::SimpleTypeInfo {};
+	struct ITypeInfo : public Hidden::BasicTypeInfo {};
 #endif
 	
 }

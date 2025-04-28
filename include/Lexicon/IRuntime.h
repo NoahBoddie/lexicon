@@ -6,7 +6,7 @@
 namespace LEX
 {
 
-	struct AbstractFunction;
+	struct Function;
 	struct RuntimeVariable;
 	class Runtime;
 	struct ITemplateBody;
@@ -21,7 +21,7 @@ namespace LEX
 				virtual IRuntime* GetPreviousRuntime() const = 0;
 
 
-				virtual const AbstractFunction* GetFunction() const = 0;
+				virtual const Function* GetFunction() const = 0;
 
 				virtual RuntimeVariable* GetDefault() const = 0;
 

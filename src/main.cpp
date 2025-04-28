@@ -221,7 +221,8 @@ void LexTesting(std::string formula)
     Component::Link(LinkFlag::Loaded);
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
-	
+   
+
     //return;
     //ProjectManager::instance->GetFunctionFromPath("Shared::Commons::size");
     if (1)

@@ -2513,7 +2513,7 @@ namespace LEX
 			QualifiedType floatBig = QualifiedType{ IdentityManager::instance->GetTypeByOffset("NUMBER", 45) };
 			QualifiedType stringB = QualifiedType{ IdentityManager::instance->GetTypeByOffset("STRING", 0) };
 			
-
+			auto caster = dynamic_cast<TypeBase*>(floatSmall.policy);
 			
 			floatSmall->GetHierarchyData()->FinalizeAndSort();
 			floatBig->GetHierarchyData()->FinalizeAndSort();

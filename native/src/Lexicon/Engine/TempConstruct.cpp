@@ -147,7 +147,7 @@ namespace LEX
 
 			IFunction* itfc = a_lhs.Get<IFunction*>();
 
-			AbstractFunction* func = itfc->GetFunction(runtime);
+			Function* func = itfc->GetFunction(runtime);
 
 			Index count = a_rhs.Get<Index>();
 
@@ -1343,7 +1343,8 @@ namespace LEX
 				report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
 			}
 
-			FunctionBase* func = info->Get();
+			//FunctionBase* func = info->Get();
+			FunctionData* func = info->tmpSignature();
 
 			if (!func) {
 				report::compile::error("No callable for info at '{}' detected.", target.GetTag());
@@ -1403,10 +1404,19 @@ namespace LEX
 
 			//default is dealt with here.
 
+			Operand function;
 
-			list.emplace_back(InstructType::Call, compiler->GetPrefered(),
-				Operand{ func, OperandType::Function },
-				Operand{ alloc_size, OperandType::Index });
+			if (info->IsVirtual() == true) {
+				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
+					Operand{ info->GetMethod(), OperandType::Member},
+					Operand{ alloc_size, OperandType::Index });
+			}
+			else {
+				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
+					Operand{ info->GetFunction(), OperandType::Function},
+					Operand{ alloc_size, OperandType::Index });
+			}
+			
 
 			compiler->ModArgCount(-alloc_size, -sub_alloc, false);
 

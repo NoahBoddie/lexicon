@@ -90,8 +90,8 @@ namespace LEX
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<Type>::value):
-				return (TypeInfo*)this;
+			case Hash(TypeName<TypeInfo>::value):
+				return static_cast<TypeInfo*>(this);
 
 			case Hash(TypeName<ConcreteType>::value):
 				return this;

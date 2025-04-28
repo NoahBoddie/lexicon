@@ -1,6 +1,14 @@
 #pragma once
 
-#include "IFunction.h"
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/IFunction.h"
+#else
+#include "Lexicon/BasicFunction.h"
+#endif
+
+
+
 #include "ICallableUnit.h"
 
 namespace LEX
@@ -9,7 +17,7 @@ namespace LEX
 	struct ITemplateBody;
 	struct TypeInfo;
 
-	struct AbstractFunction : public virtual IFunction, public ICallableUnit
+	struct Function : public IFunction, public ICallableUnit
 	{
 		//virtual size_t GetParameterCount() = 0;
 
@@ -23,7 +31,7 @@ namespace LEX
 		
 
 		//Change this when generic gets into the picture
-		AbstractFunction* GetFunction(ITemplateBody* args) override
+		Function* GetFunction(ITemplateBody* args) override
 		{
 			return this;
 		}

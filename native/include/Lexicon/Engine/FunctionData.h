@@ -103,7 +103,7 @@ namespace LEX
 			return { GetArgCountReq(), GetArgCountMax() };
 		}
 
-		//Needs to be moved into IFunction/AbstractFunction.
+		//Needs to be moved into IFunction/Function.
 		QualifiedType GetReturnType() const
 		{
 			return _returnType;
