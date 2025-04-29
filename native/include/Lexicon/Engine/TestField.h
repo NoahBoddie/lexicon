@@ -1794,7 +1794,7 @@ namespace LEX
 
 			}
 
-
+			
 
 			//TODO: the safe compares of Overload are not yet completely resolved. The main issue being it doesn't account for conversions.
 			// to expand on the above, detecting a conversion is grounds for prefering one over the other, then it depends which conversion has the value closer to zero.
@@ -2633,7 +2633,7 @@ namespace LEX
 		ITypeInfo* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
 		ITypeInfo* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
 		ITypeInfo* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
-
+		
 		floatSmall->IsResolved();
 
 		std::vector<ITypeInfo*> group1{ 3 };

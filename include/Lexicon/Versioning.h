@@ -79,7 +79,7 @@ namespace Version
 //private ::RGL_INCLUDE_NAMESPACE::detail::SelfHelper<mc_name>,
 
 //If I can make these the same function some how, that'd be great.
-#define INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, mc_base, ...)\
+#define INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, mc_base, ...) __declspec(novtable) \
 			mc_name : public std::conditional_t<Previous::version != version, Previous::mc_name, mc_base> __VA_OPT__(,) __VA_ARGS__
 
 #define INTERFACE_VERSION_DERIVES(mc_name, mc_base, ...) INTERFACE_VERSION_DERIVES_NO_SFX(CONCAT(IV_,mc_name), mc_base,__VA_ARGS__)
@@ -91,7 +91,7 @@ namespace Version
 #define CURRENT_VERSION_NO_SFX(mc_type, mc_number, ...)								\
 	namespace Current																\
 	{																				\
-		struct mc_type :  public _##mc_number::mc_type __VA_OPT__(,) __VA_ARGS__	\
+		struct __declspec(novtable)  mc_type :  public _##mc_number::mc_type __VA_OPT__(,) __VA_ARGS__	\
 		{																			\
 			inline static constexpr uintptr_t version = mc_number;					\
 																					\
