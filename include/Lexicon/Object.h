@@ -567,7 +567,7 @@ namespace LEX
 			report::runtime::critical("no policies");
 		}
 
-		IObjectVTable* vtable = GetObjectInfo<ObType>();
+		ObjectVTable* vtable = GetObjectInfo<ObType>();
 
 		if (policy->IsCompatible(vtable) == false) {
 			report::runtime::critical("incompatible policies");

@@ -31,7 +31,7 @@ namespace LEX
 
 
 		//This function is used to check the object versions of this and that to tell if it's valid to use. Most times it will be.
-		bool IsCompatible(const IObjectVTable* other) override final
+		bool IsCompatible(const ObjectVTable* other) override final
 		{
 			return base->IsCompatible(other);
 		}

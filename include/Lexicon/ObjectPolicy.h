@@ -73,7 +73,7 @@ namespace LEX
 
 
 	//This is
-	struct __declspec(novtable) IMPL_VERSION_DERIVES(IObjectPolicy, ObjectPolicy), public IObjectVTable
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(IObjectPolicy, ObjectPolicy), public ObjectVTable
 	{
 		//Make const plz
 		Object CreateObject(uint32_t);
