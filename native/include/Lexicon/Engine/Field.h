@@ -16,7 +16,7 @@ namespace LEX
 		Invalid,
 		Local,
 		Parameter,
-		Variable,
+		Global,
 		Member,
 		Function,//Doesn't differentiate between method or function
 	};

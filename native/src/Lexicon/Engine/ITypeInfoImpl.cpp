@@ -1,6 +1,6 @@
-#pragma once
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 
-#include "Lexicon/TypeInfo.h"
+
 #include "Lexicon/Variable.h"
 
 namespace LEX

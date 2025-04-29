@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/IGlobal.h"
+#include "Lexicon/Global.h"
 #include "Lexicon/Engine/Field.h"
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/GlobalData.h"
@@ -11,17 +11,25 @@ namespace LEX
 
 
 	
-	struct GlobalBase : public virtual IGlobal, public SecondaryElement, public GlobalData, public Field
+	struct GlobalBase : public SecondaryElement, public GlobalData, public Field
 	{
 	public:
+
+
+		virtual IGlobal* AsGlobal() = 0;
+		virtual const IGlobal* AsGlobal() const = 0;
+
+		virtual std::string_view GetName() const = 0;
+
+		//Attempts to revert value. If the global is const or a special part, it will fail to revert.
+		// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
+		// information. Will not throw.
+		virtual bool Revert(bool just_default) = 0;
 
 		void* Cast(std::string_view name) override
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<IGlobal>::value):
-				return static_cast<IGlobal*>(this);
-
 			case Hash(TypeName<GlobalBase>::value):
 				return this;
 			}
@@ -45,11 +53,6 @@ namespace LEX
 
 
 
-		std::string_view GetName() const override
-		{
-			return _name;
-		}
-
 		virtual std::string GetFieldName() const override
 		{
 			return _name;
@@ -57,7 +60,7 @@ namespace LEX
 
 		virtual FieldType GetFieldType() const override
 		{
-			return FieldType::Variable;
+			return FieldType::Global;
 		}
 
 		virtual uint32_t GetFieldIndex() const override
@@ -86,5 +89,39 @@ namespace LEX
 
 		
 	};
+
+
+
+	//For what it's worth, I really fucking loathe this system all together.
+	template <typename T>
+	struct PivotGlobalBase : public GlobalBase, public T
+	{
+		using GlobalBase::GlobalBase;
+
+		IGlobal* AsGlobal() override { return this; }
+		const IGlobal* AsGlobal() const override { return this; }
+
+
+
+		std::string_view GetName() const override
+		{
+			return _name;
+		}
+
+
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IGlobal>::value):
+				return static_cast<IGlobal*>(this);
+			}
+
+			return __super::Cast(name);
+		}
+	};
+
+	using GenericGlobalBase = PivotGlobalBase<IGlobal>;
+	using ConcreteGlobalBase = PivotGlobalBase<Global>;
 
 }

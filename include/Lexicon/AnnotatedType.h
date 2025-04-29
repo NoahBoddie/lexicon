@@ -22,6 +22,7 @@ namespace LEX
 		explicit AnnotatedType(ITypeInfo* p) : policy{ p } {}
 		AnnotatedType(ITypeInfo* p, Qualifier q) : policy{ p }, Qualifier{ q } {}
 
+		//TODO:Remove this plz it's confusing looking
 		using Qualifier::operator=;//(const Qualifier& other) { __super::operator=(other); return *this; }
 
 

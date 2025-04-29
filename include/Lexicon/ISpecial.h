@@ -1,11 +1,18 @@
 #pragma once
 
+#include "Lexicon/Interfaces/Interface.h"
+
 namespace LEX
 {
 	struct OverloadClause;
 	struct ISpecializable;
 
-	struct ISpecial//This should be INTERNAL inherited. External stuff doesn't need to be concerned with this.
+
+	//TODO: Make ISpecial a variation of Interface. And make sure you have ALL it's faculties in place
+
+
+
+	struct ISpecial : public Interface//This should be INTERNAL inherited. External stuff doesn't need to be concerned with this.
 	{
 		//TODO: Rename ISpecial "ISpecialType". Other things claim the name interface.
 

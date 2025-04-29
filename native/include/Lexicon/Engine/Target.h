@@ -2,8 +2,8 @@
 
 #include "Lexicon/Engine/Register.h"
 #include "Lexicon/Variable.h"
-#include "Lexicon/Engine/ITypeInfo.h"
-#include "Lexicon/Engine/IFunction.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
+#include "Lexicon/Engine/IFunctionImpl.h"
 #include "Lexicon/MemberPointer.h"
 #include "OperandType.h"
 #include "Literal.h"
@@ -14,6 +14,8 @@ namespace LEX
 	using Index = uint64_t;
 	using Differ = int64_t;
 
+	struct IGlobal;
+
 	struct Target
 	{
 		//Needs to be able to handle literals, which are not variable pointers.
@@ -23,7 +25,7 @@ namespace LEX
 		constexpr Target(Index arg) : index{ arg } {}
 		constexpr Target(Register arg) : reg{ arg } {}
 		constexpr Target(Literal arg) : lit{ arg } {}
-		constexpr Target(Variable* arg) : var{ arg } {}
+		constexpr Target(IGlobal* arg) : glob{ arg } {}
 		constexpr Target(ITypeInfo* arg) : type{ arg } {}
 		constexpr Target(IFunction* arg) : func{ arg } {}
 		constexpr Target(ICallableUnit* arg) : call{ arg } {}
@@ -97,9 +99,9 @@ namespace LEX
 		}
 
 		template <>
-		bool Get<OperandType::Variable, Variable*>(Variable*& out)
+		bool Get<OperandType::Global, IGlobal*>(IGlobal*& out)
 		{
-			out = var;
+			out = glob;
 			return true;
 		}
 
@@ -126,7 +128,7 @@ namespace LEX
 			Index index;
 			Register reg;
 			Literal lit;
-			Variable* var;
+			IGlobal* glob;
 			ITypeInfo* type;
 			IFunction* func;
 			ICallableUnit* call;

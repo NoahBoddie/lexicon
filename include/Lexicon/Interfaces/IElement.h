@@ -86,11 +86,5 @@ namespace LEX
 
 			return reinterpret_cast<T*>(result);
 		}
-
-		template <typename T>
-		operator T& ()
-		{
-			return *As<T>();
-		}
 	};
 }

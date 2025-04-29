@@ -9,27 +9,43 @@ namespace LEX
 	struct ITemplatePart;
 	struct ITemplateBody;
 	
-	struct AbstractGlobal;
+	struct IGlobal;
+	struct Global;
 
-
-	struct IGlobal : public ISpecial
+	namespace Version
 	{
+		namespace _1
+		{
+			struct INTERFACE_VERSION_DERIVES(IGlobal, ISpecial)
+			{
 
-	virtual IGlobal* CheckGlobal(GenericBase* base, ITemplatePart* args) { return this; };
+				virtual IGlobal* CheckGlobal(ITemplatePart* args) = 0;
 
-	virtual AbstractGlobal* GetGlobal(ITemplateBody* args) = 0;
+				virtual Global* GetGlobal(ITemplateBody* args) = 0;
 
-	virtual std::string_view GetName() const = 0;
+				virtual std::string_view GetName() const = 0;
 
-	//Attempts to revert value. If the global is const or a special part, it will fail to revert.
-	// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
-	// information. Will not throw.
-	virtual bool Revert(bool just_default) = 0;
+				//Attempts to revert value. If the global is const or a special part, it will fail to revert.
+				// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
+				// information. Will not throw.
+				virtual bool Revert(bool just_default) = 0;
 
-	AbstractGlobal* FetchGlobal(ITemplateBody* args)
-	{
-		return this ? GetGlobal(args) : nullptr;
+				Global* FetchGlobal(ITemplateBody* args)
+				{
+					return this ? GetGlobal(args) : nullptr;
+				}
+
+			};
+		}
+
+		CURRENT_VERSION(IGlobal, 1);
+		
 	}
 
-	};
+
+
+#ifndef LEX_SOURCE
+	//Only accessible outside of the source.
+	struct IMPL_VERSION(IGlobal) {};
+#endif
 }

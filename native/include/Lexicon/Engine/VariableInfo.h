@@ -4,6 +4,7 @@
 #include "MemberInfo.h"
 #include "Lexicon/MemberPointer.h"
 //*src
+#include "Lexicon/Global.h"
 #include "GlobalData.h"
 #include "GlobalVariable.h"
 
@@ -18,7 +19,7 @@ namespace LEX
 		//}
 
 
-		FieldType GetFieldType() const override { return FieldType::Variable; }
+		FieldType GetFieldType() const override { return IsStatic() ? FieldType::Global : FieldType::Member; }
 
 		ITypeInfo* GetType() const override { return nullptr; }
 

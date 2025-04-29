@@ -12,7 +12,7 @@ namespace LEX
 
 		Argument,
 		Register,
-		Variable,	//This is a hard variable pointer.
+		Global,		//This is a hard variable pointer.
 		Type,
 		Function,	//This is an IFunction pointer, and must be specialized before use
 		Callable,	//This is a callable unit, it comes specialized and may not actually be a function with a routine.

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/BasicTypeInfo.h"
+#include "Lexicon/ITypeInfo.h"
 
 namespace LEX
 {
@@ -29,7 +29,7 @@ namespace LEX
 
 	struct TemplateType;
 
-	struct ITypeInfo : public Hidden::BasicTypeInfo
+	struct  IMPL_VERSION(ITypeInfo)
 	{
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.

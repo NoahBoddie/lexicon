@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Engine/ITypeInfo.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/HierarchyData.h"
 
 //*src

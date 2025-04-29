@@ -6,7 +6,7 @@
 //src
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/TypeBase.h"
-#include "Lexicon/Engine/ITypeInfo.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/VoidPolicy.h"
 
 #include "Lexicon/InherentType.h"

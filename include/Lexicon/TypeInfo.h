@@ -1,11 +1,6 @@
 #pragma once
 
-
-#ifdef LEX_SOURCE
-#include "Lexicon/Engine/ITypeInfo.h"
-#else
-#include "Lexicon/BasicTypeInfo.h"
-#endif
+#include "Lexicon/ITypeInfo.hpp"
 
 namespace LEX
 {

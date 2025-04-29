@@ -10,6 +10,8 @@
 
 #include "Lexicon/Engine/Parser.h"
 
+#include "Lexicon/Engine/GlobalBase.h"
+
 namespace LEX
 {
 	Variable Operand::CopyVariable(Runtime* runtime)
@@ -68,11 +70,11 @@ namespace LEX
 
 			return AsVariable(runtime).AsRef();
 
-		case OperandType::Variable:
+		case OperandType::Global: {
 			//-1 should mean the default target.
-		{
-			auto& variable = *Get<Variable*>();
-			return std::ref(variable);
+			auto buff = Get<IGlobal*>();
+			auto global = buff->GetGlobal(runtime);
+			return global->GetReference();
 		}
 			
 

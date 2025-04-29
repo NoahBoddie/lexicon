@@ -25,15 +25,17 @@ namespace LEX
 		//Used for specific handling of versions. Say a function has to change functionality and the expectation is no longer valid.
 
 		virtual bool CanHandle(uintptr_t) const { return true; }
-	
-	protected:
-		Interface() = default;
+	};
 
-		Interface(Interface&&) = delete;
-		Interface(const Interface&) = delete;
+	struct UnmovableInterface : public Interface
+	{
+		UnmovableInterface() = default;
 
-		Interface& operator=(Interface&&) = delete;
-		Interface& operator=(const Interface&) = delete;
+		UnmovableInterface(UnmovableInterface&&) = delete;
+		UnmovableInterface(const UnmovableInterface&) = delete;
+
+		UnmovableInterface& operator=(UnmovableInterface&&) = delete;
+		UnmovableInterface& operator=(const UnmovableInterface&) = delete;
 	};
 
 }

@@ -8,7 +8,7 @@
 
 
 //*src
-#include "Lexicon/Engine/ITypeInfo.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/ITemplateBody.h"
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/Environment.h"

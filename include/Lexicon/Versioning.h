@@ -75,21 +75,24 @@ namespace Version
 
 //INTERFACE_VERSION Doesn't need to do this because it doesn't have a body.
 
+//I previously used this to get the name of the self when using the interface types but screw it.
+//private ::RGL_INCLUDE_NAMESPACE::detail::SelfHelper<mc_name>,
+
 //If I can make these the same function some how, that'd be great.
 #define INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, mc_base, ...)\
-			mc_name : private ::RGL_INCLUDE_NAMESPACE::detail::SelfHelper<mc_name>, public std::conditional_t<Previous::version != version, Previous::mc_name, mc_base> __VA_OPT__(,) __VA_ARGS__
+			mc_name : public std::conditional_t<Previous::version != version, Previous::mc_name, mc_base> __VA_OPT__(,) __VA_ARGS__
 
 #define INTERFACE_VERSION_DERIVES(mc_name, mc_base, ...) INTERFACE_VERSION_DERIVES_NO_SFX(CONCAT(IV_,mc_name), mc_base,__VA_ARGS__)
 
 
-#define INTERFACE_VERSION_NO_SFX(mc_name, ...) INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, Interface, __VA_ARGS__)
-#define INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, Interface, __VA_ARGS__)
+#define INTERFACE_VERSION_NO_SFX(mc_name, ...) INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, UnmovableInterface, __VA_ARGS__)
+#define INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, UnmovableInterface, __VA_ARGS__)
 
-#define CURRENT_VERSION_NO_SFX(mc_type, mc_number, ...)																								\
-	namespace Current																																\
-	{																																				\
-		struct mc_type : private ::RGL_INCLUDE_NAMESPACE::detail::SelfHelper<mc_type>, public _##mc_number::mc_type __VA_OPT__(,) __VA_ARGS__		\
-		{																																			\
+#define CURRENT_VERSION_NO_SFX(mc_type, mc_number, ...)								\
+	namespace Current																\
+	{																				\
+		struct mc_type :  public _##mc_number::mc_type __VA_OPT__(,) __VA_ARGS__	\
+		{																			\
 			inline static constexpr uintptr_t version = mc_number;					\
 																					\
 			uintptr_t Version() const override final								\

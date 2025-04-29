@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/HierarchyData.h"
 
-#include "Lexicon/Engine/ITypeInfo.h"
+
 #include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/OverloadEntry.h"
 #include "Lexicon/Interfaces/IdentityManager.h"

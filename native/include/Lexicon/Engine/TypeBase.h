@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/Engine/ITypeInfo.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/PolicyData.h"
 #include "Lexicon/Engine/OverloadClause.h"

@@ -147,10 +147,11 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/Impl/IElementSource.h
 		"native/include/Lexicon/Engine/IssueTable.h"
 		"native/include/Lexicon/Engine/SpecialType.h"
-		"native/include/Lexicon/Engine/ITypeInfo.h"
+		"native/include/Lexicon/Engine/ITypeInfoImpl.h"
 		native/include/Lexicon/Engine/QualifiedType.h
 		"native/include/Lexicon/Engine/Field.h"
-		"native/include/Lexicon/Engine/IFunction.h"
+		"native/include/Lexicon/Engine/IFunctionImpl.h"
+		"native/include/Lexicon/Engine/IGlobalImpl.h"
 	)
 		
 
@@ -211,7 +212,7 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/SpecialBase.cpp"
 		native/src/Lexicon/Engine/QualifiedType.cpp
 		"native/src/Lexicon/Engine/Field.cpp"
-		"native/src/Lexicon/Engine/ITypeInfo.cpp"
+		"native/src/Lexicon/Engine/ITypeInfoImpl.cpp"
 		"src/Lexicon/Conversion.cpp"
 		)
 else()
@@ -221,7 +222,7 @@ endif()
 
 set(headers
 	include/Lexicon.h
-	include/Lexicon/AbstractGlobal.h
+	"include/Lexicon/Global.h"
 	include/Lexicon/Formula.h
 	"include/Lexicon/Function.h"
 	include/Lexicon/TypeInfo.h
@@ -235,12 +236,12 @@ set(headers
 	include/Lexicon/Exception.h
 	
 	include/Lexicon/ICallableUnit.h
-	"include/Lexicon/BasicFunction.h"
+	"include/Lexicon/IFunction.h"
 	
 	
 	include/Lexicon/ISpecial.h
-	"include/Lexicon/BasicTypeInfo.h"
-	include/Lexicon/IGlobal.h
+	"include/Lexicon/ITypeInfo.h"
+	"include/Lexicon/IGlobal.h"
 	include/Lexicon/IVariable.h
 	include/Lexicon/MemberPointer.h
 	include/Lexicon/Number.h
@@ -286,8 +287,12 @@ set(headers
 	"include/Lexicon/FormulaHandler.h"
 	"include/Lexicon/Interfaces/ReportManager.h" 
 	"include/Lexicon/Impl/common_type.h" 
-	
-	 
+	include/Lexicon/ITypeInfo.hpp
+	include/Lexicon/TypeInfo.hpp
+	include/Lexicon/IFunction.hpp
+	include/Lexicon/Function.hpp
+	include/Lexicon/IGlobal.hpp
+	include/Lexicon/Global.hpp
 	 
 	
 	"include/Lexicon/IElementProxy.h"
@@ -295,7 +300,7 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h" )
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"  )
 
 
 set(sources
@@ -304,7 +309,7 @@ set(sources
 
 	
 	src/Lexicon/ICallableUnit.cpp
-	"src/Lexicon/BasicTypeInfo.cpp"
+	"src/Lexicon/ITypeInfo.cpp"
 	src/Lexicon/ObjectPolicy.cpp
 	src/Lexicon/ObjectPolicyHandle.cpp
 	

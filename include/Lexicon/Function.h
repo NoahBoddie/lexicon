@@ -1,11 +1,6 @@
 #pragma once
 
-
-#ifdef LEX_SOURCE
-#include "Lexicon/Engine/IFunction.h"
-#else
-#include "Lexicon/BasicFunction.h"
-#endif
+#include "Lexicon/IFunction.hpp"
 
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Engine/Element.h"
-#include "Lexicon/Engine/IFunction.h"
+#include "Lexicon/Engine/IFunctionImpl.h"
 #include "Lexicon/Function.h"
 #include "FunctionData.h"
 #include "OverloadClause.h"
