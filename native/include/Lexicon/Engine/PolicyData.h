@@ -10,7 +10,7 @@ namespace LEX
 
 	class ConcretePolicy;
 
-	FRWD_DECL_OBJECT_POLICY;
+	struct ObjectPolicy;
 
 	//Give their own.
 
@@ -47,7 +47,7 @@ namespace LEX
 		DataType _dataType = DataType::Invalid;
 
 		//Should be inherited, only one can exist.
-		OBJECT_POLICY* policy = nullptr;
+		ObjectPolicy* policy = nullptr;
 
 		std::string category;
 		TypeOffset offset;

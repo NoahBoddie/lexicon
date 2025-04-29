@@ -167,11 +167,7 @@ namespace LEX
 			return type->GetTypePolicy((ITemplateBody*)nullptr);
 		}
 
-		void SetPolicy(ObjectPolicy* policy)
-		{
-			if (!_policy)
-				_policy = policy;
-		}
+		
 
 
 		String PrintString(ObjectData& self, std::string_view context) override
@@ -185,6 +181,13 @@ namespace LEX
 
 		//*/
 	INTERNAL:
+
+		void SetPolicy(ObjectPolicy* policy)
+		{
+			if (!_policy)
+				_policy = policy;
+		}
+
 		//This policy is the only 
 		mutable ObjectPolicy* _policy = nullptr;
 	};

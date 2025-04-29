@@ -5,7 +5,7 @@
 
 namespace LEX
 {
-	Object ObjectPolicy::CreateObject(uint32_t context_id)
+	Object IObjectPolicy::CreateObject(uint32_t context_id)
 	{
 		auto index = GetPolicyID();
 

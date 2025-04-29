@@ -71,7 +71,9 @@ namespace LEX
 		Modable,
 		Mutable,
 		Const,
-		Readonly,//Probably not going to be used
+		Readonly,	//Similar to const in that it won't allow the slot to be edited, but will allow it to be placed in non-const spaces
+					// Think of it as int* const, it can still use non-const functions, the value of the slot can't be assigned however.
+					// for struct types this should cause a copy to be used instead of the type itself
 	};
 	
 	

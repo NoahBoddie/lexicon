@@ -29,6 +29,7 @@ namespace LEX
 
 	struct UnmovableInterface : public Interface
 	{
+	protected:
 		UnmovableInterface() = default;
 
 		UnmovableInterface(UnmovableInterface&&) = delete;

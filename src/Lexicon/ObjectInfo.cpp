@@ -1,6 +1,6 @@
 #include "Lexicon/ObjectInfo.h"
 
-#include "Lexicon/ObjectPolicy.h"
+#include "Lexicon/ObjectPolicy.hpp"
 
 #include "Lexicon/Interfaces/IdentityManager.h"
 

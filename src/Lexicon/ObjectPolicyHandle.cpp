@@ -9,7 +9,7 @@ namespace LEX
 {
 	
 
-	OBJECT_POLICY* ObjectPolicyHandle::get() const
+	ObjectPolicy* ObjectPolicyHandle::get() const
 	{
 		if (_index == invalid_index) {
 			report::error("Invalid index given: {}", _index);

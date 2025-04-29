@@ -671,16 +671,6 @@ namespace LEX
 
 
 
-#ifdef LEX_SOURCE
-#define OBJECT_POLICY ObjectPolicyImpl
-#define FRWD_DECL_OBJECT_POLICY class OBJECT_POLICY
-#else
-#define OBJECT_POLICY ObjectPolicy
-#define FRWD_DECL_OBJECT_POLICY struct OBJECT_POLICY
-#endif // LEX_SOURCE
-
-
-
 //Internal macro
 #ifdef LEX_SOURCE
 #define INTERNAL public
