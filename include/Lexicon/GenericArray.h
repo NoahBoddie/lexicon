@@ -47,24 +47,35 @@ namespace LEX
 			_types.emplace_back(body);
 		}
 
-		void tmp_UpdateResolution() const
+		bool Update() const
 		{
-			for (auto type : _types)
+			for (; updateLine < _types.size(); updateLine++)
 			{
+				auto type = _types[updateLine];
+
+				if (!type) {
+					return false;
+				}
+
 				if (type->IsResolved() == false) {
-					isResolved = false;
-					return;
+					updateLine = -1;
+					ResetState();
+					return false;
 				}
 			}
 
-			isResolved = true;
+			return updateLine != -1;
+		}
+
+
+		bool ShouldUpdateState() const override
+		{
+			return updateLine < _types.size();
 		}
 
 		bool IsResolved() const
 		{
-			//I will only do this temporarily.
-			tmp_UpdateResolution();
-			return isResolved;
+			return Update();
 		}
 
 		GenericBase* GetClient() const override
@@ -80,9 +91,10 @@ namespace LEX
 		// I think doing this will actually make setting this up a fair bit easier.
 		mutable std::vector<ITypeInfo*> _types;
 
-		//mutable for now. Should be non-mutable once types is closed off
-		mutable bool isResolved = true;
-		//std::variant<std::vector<ITypeInfo*>
+
+		mutable size_t updateLine = 0;
+
+
 	};
 
 }

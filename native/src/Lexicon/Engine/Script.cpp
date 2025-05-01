@@ -5,6 +5,7 @@
 
 #include "Lexicon/Interfaces/IdentityManager.h"
 #include "Lexicon/Engine/ConcreteType.h"
+#include "Lexicon/Engine/GenericType.h"
 #include "Lexicon/Engine/ConcreteFunction.h"
 #include "Lexicon/Engine/GlobalVariable.h"
 #include "Lexicon/Engine/ConcreteGlobal.h"
@@ -42,7 +43,7 @@ namespace LEX
 
 
 
-	inline TypeBase* Script::tempObtainPolicy(SyntaxRecord& ast)
+	inline TypeBase* Script::tempObtainPolicy(SyntaxRecord& ast, Element* parent)
 	{
 		SyntaxRecord& settings = ast.GetChild(0);
 
@@ -63,14 +64,14 @@ namespace LEX
 
 
 		SyntaxRecord* genericSet = settings.FindChild(parse_strings::generic);
-		bool is_generic = genericSet && genericSet->size();
+		bool is_generic = parent && parent->IsGenericElement() || genericSet && genericSet->size();
 
 
 		using PolicyCtor = TypeBase*(std::string, TypeOffset);
 
 		//using ConcreteType = ConcreteType;
 		using GenericPolicy = ConcreteType;
-		PolicyCtor* create_func = !is_generic ? _PolicyMaker<ConcreteType> : _PolicyMaker<GenericPolicy>;
+		PolicyCtor* create_func = !is_generic ? _PolicyMaker<ConcreteType> : _PolicyMaker<GenericType>;
 
 
 
@@ -87,7 +88,7 @@ namespace LEX
 				if (lookup)
 					result = IdentityManager::instance->GetBaseByOffset(name, offset);
 				else
-					result = is_generic ? new GenericPolicy{ name, offset } : new ConcreteType{ name, offset };
+					result = is_generic ? static_cast<TypeBase*>(new GenericType{ name, offset }) : new ConcreteType{ name, offset };
 
 				return result;
 			};

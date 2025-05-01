@@ -135,7 +135,7 @@ namespace LEX
 
 
 
-		TypeBase* tempObtainPolicy(SyntaxRecord& ast);
+		TypeBase* tempObtainPolicy(SyntaxRecord& ast, Element* parent = nullptr);
 
 
 

@@ -102,7 +102,7 @@ namespace LEX
 
 		
 		//This needs to confirm it's proper
-		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, parse_strings::no_name) == false) {
+		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, nullptr, parse_strings::no_name) == false) {
 			return 3;
 		}
 

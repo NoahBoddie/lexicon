@@ -33,7 +33,7 @@ namespace LEX
 	
 	struct FunctionInfo;
 
-
+	struct GenericBase;
 
 	using ElementSearch = bool(std::vector<Environment*>&);
 
@@ -57,7 +57,11 @@ namespace LEX
 
 		virtual SyntaxRecord* GetSyntaxTree() = 0;
 
-	
+		virtual GenericBase* AsGenericElement() { return nullptr; }
+
+		bool IsGenericElement() const override final { return const_cast<Element*>(this)->AsGenericElement(); }
+
+
 		Script* GetScript() override;
 
 		Project* GetProject() override;
@@ -313,6 +317,8 @@ namespace LEX
 			if (!_syntax)
 				_syntax = &rec.Transform<SyntaxRecord>();
 		}
+
+		
 
 	protected:
 

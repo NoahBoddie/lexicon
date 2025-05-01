@@ -9,6 +9,16 @@ namespace LEX
 
 	struct GenericType : public GenericTypeBase, public GenericBase
 	{
+
+		GenericType() : GenericTypeBase{} {}
+
+		GenericType(uint32_t i) : GenericTypeBase{ i } {}
+
+		GenericType(std::string_view name, TypeOffset offset) : GenericTypeBase{ name, offset } {}
+
+
+		GenericBase* AsGenericElement() override { return this; }
+
 		ISpecializable* GetSpecializable() override { return this; }
 
 		bool IsResolved() const override { return false; }

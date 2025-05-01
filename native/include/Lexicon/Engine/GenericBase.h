@@ -20,7 +20,7 @@ namespace LEX
 
 
 
-	struct GenericBase : public ISpecializable
+	struct GenericBase : public ISpecializable, public ITemplatePart
 	{
 		//This is the class that handles Generic stuff, old name ISpecializable
 
@@ -30,6 +30,22 @@ namespace LEX
 		{
 			return const_cast<GenericBase*>(this);
 		}
+
+
+
+		GenericBase* GetClient() const override { return GetGeneric(); }
+
+
+		size_t GetSize() const override
+		{
+			return _templates.size();
+		}
+
+		ITypeInfo* GetPartArgument(size_t i) const override
+		{
+			return const_cast<TemplateType*>(std::addressof(_templates.at(i)));
+		}
+
 
 		SpecialBase* FindPart(GenericBase* tar, ITemplatePart* args);
 
@@ -62,7 +78,7 @@ namespace LEX
 			return result;
 		}
 
-		SpecialBase* ObtainBody(ITemplateBody* args) override
+		SpecialBase* ObtainBody(ITemplateBody* args)
 		{
 			if (TemplateMatches(args) == false)
 			{
@@ -94,7 +110,14 @@ namespace LEX
 
 		void SpecializeParts(ITemplateBody* args);
 
-		SpecialBase* ObtainSpecial(ITemplatePart* args);
+		SpecialBase* ObtainSpecial(ITemplatePart* args) override;
+
+		virtual SpecialBase* TryObtainTemporary(ITemplatePart* args)
+		{
+			return ObtainSpecial(args);
+		}
+
+		virtual void ClearTemporary() {}
 
 		bool TemplateMatches(ITemplatePart* args) override
 		{

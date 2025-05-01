@@ -30,7 +30,7 @@ namespace LEX
 	{
 		for (auto& part : incomplete) {
 			report::info("thing {}", (uintptr_t)part.get());
-			part->ObtainBody(args);
+			part->ObtainSpecial(args);
 		}
 	}
 

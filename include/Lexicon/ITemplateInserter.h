@@ -1,23 +1,26 @@
 #pragma once
 
+//*src
+#include "Lexicon/ITemplatePart.h"
+
 namespace LEX
 {
 	struct ITemplateInserter
 	{
 
-		virtual void InsertType(ITypeInfo* part) = 0;
+		virtual void InsertType(ITypeInfo* type) = 0;
 
-		//void AcceptTypes(std::span<ITypeInfo*> types);
+		void InsertTemplate(ITemplatePart* part)
+		{
+			auto size = part->GetSize();
+
+			for (size_t i = 0; i < size; i++)
+			{
+				ITypeInfo* type = part->GetPartArgument(i);
+				assert(type);
+				InsertType(type);
+			}
+		}
 	};
 
-	/*
-	void InsertType(ITypeInfo* part) override
-	{
-		auto back = part->GetTypePolicy((ITemplateBody*)nullptr);
-
-		assert(back);
-
-		return InsertType(back);
-	}
-	//*/
 }

@@ -1244,8 +1244,6 @@ namespace LEX
 				report::compile::error("Cannot find variable '{}'.", target.GetTag());
 			}
 
-			//XTOR
-			//Solution result{ var->GetType(), OperandType::Index, var->GetFieldIndex() };
 			Solution result = var.AsSolution();
 
 

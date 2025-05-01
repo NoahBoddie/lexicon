@@ -33,6 +33,8 @@ namespace LEX
 				virtual std::string_view GetName() const = 0;
 				//virtual Record* GetSyntaxTree() = 0;//Do not use this, it won't be able to handle the request.
 				
+				virtual bool IsGenericElement() const = 0;
+
 				virtual IScript* GetScript(bool = {}) = 0;
 				virtual IProject* GetProject(bool = {}) = 0;
 				virtual LEX::IElement* GetParent(bool = {}) = 0;
@@ -56,6 +58,7 @@ namespace LEX
 
 	struct IMPL_VERSION(IElement) 
 	{
+		bool IsGenericElement() const override { return false; }
 
 		std::string GetFullName() //const
 		{

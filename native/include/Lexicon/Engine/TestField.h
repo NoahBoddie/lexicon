@@ -255,7 +255,7 @@ namespace LEX
 
 	namespace detail
 	{
-		
+		//TODO: I want to use this in member formulas very soon.
 		struct ThisHelperImpl
 		{
 			using _Base = ThisHelperImpl;
@@ -451,9 +451,47 @@ namespace LEX
 	}
 
 
-	
+	namespace OuterTest
+	{
+		namespace A
+		{
+			struct D
+			{
+				inline static int t = 0;
+			};
 
+			void C(int) {}
+			template<typename T>
+			struct B {
+				inline static int t = 0;
 
+			};
+		}
+
+		namespace TEST
+		{
+			namespace A
+			{
+				namespace D
+				{
+
+				}
+
+				void C(float) {}
+				template<typename T>
+				struct B {
+
+				};
+			}
+
+			void Testing()
+			{
+				//A::D::t;
+				//A::C(1);
+				//auto v = A::B<void>{};
+			}
+		}
+	}
 
 
 	//Creator function for numbers
@@ -616,6 +654,192 @@ namespace LEX
 
 		
 	};
+
+
+	struct TemplateSpan : public ITemplateBodyPart
+	{
+		//The idea of this is that it basically serves as a span for an ITemplatePart. Mainly used for template matching to prevent it from having issues
+		ITemplatePart* target = nullptr;
+		size_t limit = -1;
+
+
+		//The client is whoever we'd be accessing from. So this is a little less cut and dry, and more prevailent to the circumstances.
+		GenericBase* GetClient() const override { return target->GetClient(); }
+
+
+		size_t GetSize() const override { return std::min(target->GetSize(), limit); }
+
+
+		ITypeInfo* GetPartArgument(size_t i) const override
+		{
+			if (i >= limit)
+				return nullptr;
+			return target->GetPartArgument(i);
+		}
+
+		TypeInfo* GetBodyArgument(size_t i) const override
+		{
+			if (i >= limit)
+				return nullptr;
+
+			if (auto tar = target->TryPromoteTemplate()) {
+				return tar->GetBodyArgument(i);
+			}
+
+			return nullptr;
+		}
+
+		bool IsResolved() const override
+		{
+			return target->TryPromoteTemplate();
+		}
+
+	};
+
+
+	namespace TemporaryTypes
+	{
+		//I think this system should actually be for all types, but finalized by the field a the very end
+
+		struct GenericTempOwner;
+
+		struct TempSpecial : public SpecialBase
+		{
+			//Main function of this class is to act as a temporary special so we don't accidentally specialize something that shouldn't be yet. 
+			~TempSpecial() override;
+
+
+
+			GenericTempOwner* GetTempOwner();
+
+			SpecialBase* ObtainSpecial(ITemplatePart* args) override
+			{
+				auto array = SpecializeTemplate(args);
+
+				auto result = GetGeneric()->ObtainSpecial(array);
+
+				//I'm unsure how safe of an idea this is.
+				delete this;
+
+				return result;
+			}
+
+			TempSpecial(GenericTempOwner* base, ITemplatePart* args);
+
+			TempSpecial(GenericTempOwner* base, ITemplateBody* args);
+
+
+		};
+
+
+		struct GenericTempOwner : public GenericBase
+		{
+			void RemoveTemporary(TempSpecial* temp)
+			{
+				std::erase_if(tempList, [temp](auto& it) {return it.get() == temp; });
+			}
+
+			virtual std::unique_ptr<TempSpecial> CreateTemporary(ITemplatePart* args) = 0;
+
+			virtual SpecialBase* TryObtainTemporary(ITemplatePart* args) override
+			{
+				if (TemplateMatches(args) == false) {
+					report::fault::error("cant handle args");
+				}
+
+				//TODO: Merge ObtainBody/ObtainPart into this, there's no specialization for it, so no need.
+
+				if (auto temp = args->TryPromoteTemplate(); temp)
+					return ObtainBody(temp);
+				else
+					return ObtainPart(args);
+			}
+
+
+
+			virtual void ClearTemporary()
+			{
+				tempList.clear();
+			}
+
+
+
+			std::vector<std::unique_ptr<TempSpecial>> tempList;
+		};
+
+
+		TempSpecial::TempSpecial(GenericTempOwner* base, ITemplatePart* args) : SpecialBase{ base, args } {}
+
+		TempSpecial::TempSpecial(GenericTempOwner* base, ITemplateBody* args) : SpecialBase{ base, args } {}
+
+		GenericTempOwner* TempSpecial::GetTempOwner()
+		{
+			return static_cast<GenericTempOwner*>(GetGeneric());
+		}
+		TempSpecial::~TempSpecial()
+		{
+			GetTempOwner()->RemoveTemporary(this);
+		}
+
+	}
+
+
+	namespace SearchingTest
+	{
+
+		struct Element : public LEX::Element
+		{
+			virtual Environment* FindEnvironment(SyntaxRecord*& record, ITemplateInserter& inserter)
+			{
+				return nullptr;
+			}
+
+
+			Environment* WalkEnvironmentPath(SyntaxRecord*& path, ITemplateInserter& inserter)//bool search_scripts)
+			{
+				Element* a_this = this;
+
+				while (path->IsPath() == true)
+				{
+					//if (path->IsPath() == false) {
+					//	path = nullptr;
+					//	return FetchEnvironment();
+					//}
+					
+					if (!a_this)
+						return nullptr;
+
+
+					auto left = path->FindChild(parse_strings::lhs);
+
+
+
+					if (!left) {
+						path = nullptr;
+
+						return a_this->FindEnvironment(path, inserter);
+					}
+
+					if constexpr (1 == 1)//If not generic.
+					{
+						//Environment* _this = a_this->FindEnvironment(path, inserter);
+						a_this = (Element*)a_this->FindEnvironment(path, inserter);
+
+						path = path->FindChild(parse_strings::rhs);
+
+						a_this = (Element*)a_this->FindEnvironment(path, inserter);
+					}
+
+
+				}
+
+				return a_this->FetchEnvironment();
+
+			}
+		};
+
+		
+	}
 
 
 	template <typename T>

@@ -119,6 +119,9 @@ namespace LEX
 		RuntimeVariable ObtainVariable(Runtime* runtime);
 		RuntimeVariable& ObtainAsVariable(Runtime* runtime);
 
+		//This should be used later to retrieve functions that need to be called. Also to be used to get specific functions I'd presume
+		//Function* GetFunction(Runtime* runtime);
+
 		constexpr bool IsTemporary() const noexcept
 		{
 			switch (type)

@@ -13,9 +13,10 @@ namespace LEX
 
 
 		case FieldType::Global: {
-			GlobalBase* glob = static_cast<GlobalBase*>(_target);
+			IGlobal* glob = static_cast<GlobalBase*>(_target)->AsGlobal();
+			
 
-			Solution result{ QualifiedType{ GetType(), GetQualifiers() }, OperandType::Global, glob->AsGlobal() };
+			Solution result{ QualifiedType{ GetType(), GetQualifiers() }, OperandType::Global, glob };
 
 			return result;
 		}

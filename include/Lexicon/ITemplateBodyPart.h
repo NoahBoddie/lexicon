@@ -20,9 +20,14 @@ namespace LEX
 
 		virtual bool IsResolved() const = 0;
 
+		virtual bool ShouldUpdateState() const
+		{
+			return _state == kUnknown;
+		}
+
 		State GetState() const
 		{
-			if (_state == kUnknown)
+			if (ShouldUpdateState() == true)
 			{
 				if (IsResolved() == true)
 					_state = kBody;
@@ -35,8 +40,7 @@ namespace LEX
 
 		void ResetState() const
 		{
-			_state = kUnknown;
-			GetState();
+			_state = kUnknown;		
 		}
 
 		ITemplateBody* TryPromoteTemplate() override

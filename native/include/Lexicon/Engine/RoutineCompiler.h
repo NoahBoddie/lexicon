@@ -8,10 +8,14 @@
 
 #include "parse_strings.h"
 
+#include "Lexicon/ITemplatePart.h"
+
 //*src
 #include "ConcreteFunction.h"
 #include "TargetObject.h"
 #include "CompileUtility.h"
+#include "Lexicon/Engine/GenericBase.h"
+
 namespace LEX
 {
 
@@ -65,7 +69,7 @@ namespace LEX
 	inline std::map<SyntaxType, Generator> generatorList;//Kinda temp.
 
 
-	struct CompilerBase
+	struct CompilerBase : public ITemplatePart
 	{
 	protected:
 		struct TempListHandle
@@ -87,13 +91,25 @@ namespace LEX
 		};
 
 	public:
+		//Put all information from this into a Base with routine compiler just being the highest level
+		friend class Scope;
 
 		virtual ~CompilerBase() = default;
 
 
-		//Put all information from this into a Base with routine compiler just being the highest level
-		friend class Scope;
+		size_t GetSize() const override
+		{
+			return _generic ? _generic->GetSize() : 0;
+		}
 
+		virtual ITypeInfo* GetPartArgument(size_t i) const 
+		{
+			return _generic ? _generic->GetPartArgument(i) : 0;
+		}
+
+
+
+		
 		//Important thing to note. This is only for THE CODE. So while everything else is important, all it does is create routine stuff.
 
 		Register GetPrefered()
@@ -200,108 +216,6 @@ namespace LEX
 
 	protected:
 
-		//Please merge these 2 functions. make them mod var count, with a boolean to handle it being a param.
-
-		
-		//Mods the count for parameters, not including the increment instructions.
-		/*
-		size_t ModParamCountOLD(int64_t inc, std::vector<ITypeInfo*> policies = {})
-		{
-			auto size = policies.size();
-
-			if (inc > 0 && size != inc)
-			{
-				//TODO: make error a Fatal Fault
-				report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
-				throw nullptr;
-			}
-
-			//make the below use this.
-			size_t count = varCount[0];
-
-			if ((varCount[0] += inc) > varCount[1])
-				varCount[1] = varCount[0];
-
-
-			auto& op_list = GetOperationList();
-
-
-			if (inc > 0)
-			{
-				for (auto i = 0; i < size; i++)
-				{
-					//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-					// the respective variable index by instruction, and if the ITypeInfo is generic, then it should
-					// have an instruction intend to specialize.
-
-					size_t index = count + i;
-					ITypeInfo* policy = policies[i];
-					op_list.emplace_back(InstructionType::DefineParameter, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
-				}
-			}
-
-
-			return count;
-		}
-
-		
-		size_t ModVarCountOLD(int64_t inc, std::vector<ITypeInfo*> policies = {})
-		{
-			size_t count = varCount[0];
-
-			//If there is no operative list, we're at the very end, and there's no reason to actually decrement.
-			if (_current)
-			{
-
-				auto size = policies.size();
-
-				if (inc > 0 && size != inc)
-				{
-					//TODO: make error a Fatal Fault
-					report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
-					throw nullptr;
-				}
-
-				if ((varCount[0] += inc) > varCount[1])
-					varCount[1] = varCount[0];
-				
-				auto& op_list = GetOperationList();
-				
-				op_list.emplace_back(InstructionType::ModVarStack, Operand{ inc , OperandType::Differ });
-				
-
-				if (inc > 0)
-				{
-					for (auto i = 0; i < size; i++)
-					{
-						//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-						// the respective variable index by instruction, and if the ITypeInfo is generic, then it should
-						// have an instruction intend to specialize.
-
-						size_t index = count + i;
-
-						ITypeInfo* policy = policies[i];
-						op_list.emplace_back(InstructionType::DefineVariable, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
-					}
-				}
-			}
-
-
-			return count;
-		}
-
-		size_t ModVarCountOLD(ITypeInfo* policy)
-		{
-			return ModVarCountOLD(1, { policy });
-		}
-
-
-		size_t ModParamCountOLD(ITypeInfo* policy)
-		{
-			return ModParamCountOLD(1, { policy });
-		}
-		//*/
-
 
 		size_t ModVarCount(int64_t inc);
 
@@ -353,19 +267,22 @@ namespace LEX
 		//friend std::vector<Operation>& Scope::GetOperationList();
 
 
-		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Element* elem) : CompilerBase { ast, owner, elem, owner->_name }
+		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Element* elem, GenericBase* base) : CompilerBase { ast, owner, elem, base, owner->_name }
 		{
 
 		}
 
-		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Element* elem, std::string_view name= "<no name>") :
+		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Element* elem, GenericBase* base, std::string_view name = "<no name>") :
 			funcRecord{ ast },
-			_name { name },
+			_name{ name },
 			_callData{ owner },
+			_generic{ base },
 			_element{ elem }
 		{
 
 		}
+
+
 
 
 		//Don't use this no more. Each must provide their own container
@@ -398,7 +315,7 @@ namespace LEX
 
 		//Replacement for targetFunc
 		BasicCallableData* _callData = nullptr;
-		
+		GenericBase* _generic = nullptr;
 		std::string_view _name;
 
 		size_t GetParamAllocSize() const
@@ -714,18 +631,18 @@ namespace LEX
 		
 		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionBase* owner)
 		{
-			return Compile(routine, ast, owner, owner, owner->GetName());
+			return Compile(routine, ast, owner, owner, owner->AsGenericElement(), owner->GetName());
 		}
 		
 		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Element* elem)
 		{
-			return Compile(routine, ast, owner, elem, owner->name());
+			return Compile(routine, ast, owner, elem, nullptr, owner->name());
 		}
 		
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Element* elem, std::string_view name = parse_strings::no_name)
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Element* elem, GenericBase* gen, std::string_view name = parse_strings::no_name)
 		{
 			report _{ IssueType::Compile };
-			RoutineCompiler compiler{ ast, owner, elem, name };
+			RoutineCompiler compiler{ ast, owner, elem, gen, name };
 			bool result = compiler.CompileRoutine(routine);
 			
 			if (!result) {

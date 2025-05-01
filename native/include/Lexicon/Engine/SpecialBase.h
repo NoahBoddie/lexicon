@@ -116,12 +116,12 @@ namespace LEX
 		//Get rid of this, AsTemplate handles this.
 		//virtual ITypeInfo* GetArgument(size_t i) const = 0;
 
-		virtual SpecialBase* ObtainSpecial(ITemplatePart* args);
+		SpecialBase* ObtainSpecial(ITemplatePart* args) override;
 
-		virtual SpecialBase* ObtainBody(ITemplateBody* args) override
-		{
-			return nullptr;
-		}
+		//virtual SpecialBase* ObtainBody(ITemplateBody* args) override
+		//{
+		//	return nullptr;
+		//}
 
 
 		virtual size_t GetSize() const { return _types.size(); }
