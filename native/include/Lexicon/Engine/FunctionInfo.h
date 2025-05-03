@@ -7,39 +7,76 @@
 namespace LEX
 {
 
-	struct FunctionInfo : public MemberInfo, public OverloadClause
+
+
+
+	struct FunctionNode
 	{
-		using FunctionType = FunctionBase;//
-		
-
-
-		struct Newstructure
+		enum Type
 		{
-			//Since this takes up the same about of space, I think what I'll do is this.
-			//it holds function data
-
-			//So the concept here is it always holds function data, and that this is the thing that's used with overloads.
-			//This thing to find if something matches will try for equality.
-
-			//the structure
-
-			//There's a slight problem with the idea and the implementation of generics would cause me some issues. So, instead, I think it would probably be better
-			// to just have it the way that I have it now, either a function or a method pointer. That being said, I can likely drop the FunctionData and just stick with the member
-			// pointer, having an empty function at said location.
-			// I might instead spend that information on this being able to know it's owner, OR just require that to be submitted in order to get that.
-
-			FunctionData* signature;
-
-			union
-			{
-				uint64_t raw = 0;
-				MemberPointer virtualMethod;
-				FunctionBase* declaredMethod;
-			};
-
-			bool isPureVirtual = false;
+			kInvalid,
+			kMethod,
+			kFunction
 		};
 
+		FunctionNode(FunctionData* data, const MemberPointer& met) : _type{ kMethod }, signature{ data }, method{ met } {}
+		FunctionNode(FunctionData* data, IFunction* func) : _type{ kFunction }, signature{ data }, function{ func } {}
+
+
+	private:
+		union
+		{
+			uint64_t raw = 0;
+			MemberPointer method;
+			IFunction* function;
+		};
+
+	public:
+		FunctionData* signature = nullptr;
+
+
+		Type _type = kInvalid;
+
+
+		Type type() const
+		{
+			return _type;
+		}
+
+
+		FunctionData* GetSignature()
+		{
+			return signature;
+		}
+
+		MemberPointer GetMethod() const
+		{
+			if (_type != kMethod)
+				return {};
+
+			return method;
+		}
+
+		IFunction* GetFunction() const
+		{
+			if (_type != kFunction)
+				return {};
+
+
+			return function;
+		}
+		
+		constexpr operator bool() const
+		{
+			return signature && raw;
+		}
+
+	};
+
+	struct FunctionInfo : public MemberInfo, public OverloadClause
+	{
+		using FunctionType = FunctionBase;
+		
 
 		struct {
 
@@ -60,6 +97,15 @@ namespace LEX
 			return specifiers.flags & SpecifierFlag::Virtual;
 		}
 
+		FunctionNode CreateNode(ITemplatePart* part)
+		{
+			if (IsVirtual() == true)
+				return FunctionNode{ signature, method };
+			else
+				return FunctionNode{ signature, function->AsFunction()->CheckFunction(part) };
+		}
+
+
 		FunctionData* tmpSignature()
 		{
 			return signature;
@@ -70,9 +116,15 @@ namespace LEX
 			return method;
 		}
 
+
 		IFunction* GetFunction() const
 		{
 			return function->AsFunction();
+		}
+
+		IFunction* GetFunction(ITemplatePart* part) const
+		{
+			return function->AsFunction()->CheckFunction(part);
 		}
 
 		FunctionType* Get() const
@@ -125,5 +177,6 @@ namespace LEX
 
 
 	};
+
 
 }

@@ -146,7 +146,9 @@ namespace LEX
 			return typeid(Project);
 		}
 
-		
+
+		Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) override;
+
 
 		Script* FindScript(std::string_view name);
 	};

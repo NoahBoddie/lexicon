@@ -35,10 +35,11 @@ namespace LEX
 
 	struct GenericBase;
 
-	using ElementSearch = bool(std::vector<Environment*>&);
+	struct ITemplateInserter;
 
+	using ElementSearch = bool(std::vector<Environment*>&/*, ITemplatePart* */);
 	
-
+	
 	struct Element : public Component, public IElementImpl
 	{
 		enum Flag
@@ -49,6 +50,8 @@ namespace LEX
 			_next		= 1 << 1
 		};
 
+		//TODO: I'd like to devise a situation where Element wasn't derived from IElement, just so the inheritance wouldn't have
+		// to be virtual
 
 
 	public:
@@ -71,6 +74,8 @@ namespace LEX
 		Environment* GetEnvironment() = 0;
 
 	public:
+
+
 
 		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadKey* sign = nullptr);
 
@@ -97,17 +102,17 @@ namespace LEX
 		}
 
 
+		virtual Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) { return nullptr; }
+
 
 		static Environment* GetEnvironmentTMP(Environment* a_this, SyntaxRecord* path, bool& search_scripts);
 
-		static Environment* WalkEnvironmentPath(Environment* a_this, SyntaxRecord*& path, bool search_scripts = true);
-
-		static Environment* SpecializeEnvironments(std::vector<Environment*>& generics);
+		Environment* WalkEnvironmentPath(SyntaxRecord* path);
 
 		static std::vector<Environment*> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
 
 
-		static bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
+		static bool HandlePathOld(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
 
 
 
@@ -115,9 +120,14 @@ namespace LEX
 		
 
 		//I think the reutnr of this function should probably be why it failed if anything.
+		static bool SearchPathBaseOld(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func);
+
+
+
+		static bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
+
+
 		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func);
-
-
 
 
 		static TypeBase* SearchTypePath(Element* a_this, SyntaxRecord& _path);

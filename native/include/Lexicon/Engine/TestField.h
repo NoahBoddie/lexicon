@@ -838,6 +838,45 @@ namespace LEX
 			}
 		};
 
+
+		namespace A
+		{
+			namespace B
+			{
+				inline int test1 = 0;
+			}
+		}
+
+namespace T
+{
+
+	namespace A
+	{
+		namespace B
+		{
+			inline int test1 = 0;
+		}
+	}
+}
+
+namespace Template
+{
+	//using namespace T;
+
+	namespace A
+	{
+		namespace B
+		{
+			inline int test = 0;
+		}
+	}
+
+	void Test()
+	{
+		//A::B::test1;
+	}
+}
+
 		
 	}
 

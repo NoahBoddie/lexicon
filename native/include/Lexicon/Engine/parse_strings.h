@@ -50,6 +50,8 @@ namespace LEX
 
 		constexpr static auto temp_generic_open = "[:";
 		constexpr static auto temp_generic_shut = ":]";
+
+
 	};
 
 }

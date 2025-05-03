@@ -11,6 +11,11 @@
 #include "Lexicon/Engine/FunctionInfo.h"
 #include "Lexicon/Engine/GlobalBase.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
+
+#include "Lexicon/Engine/ParseUtility.h"
+
+#include "Lexicon/GenericArray.h"
+
 namespace LEX
 {
 
@@ -57,44 +62,42 @@ namespace LEX
 
 
 	
-
-	Environment* Element::WalkEnvironmentPath(Environment* a_this, SyntaxRecord*& path, bool search_scripts)
+	Environment* Element::WalkEnvironmentPath(SyntaxRecord* path)//, ITemplateInserter& inserter)
 	{
-		//If record is empty afterwords, this means that it has completed iteration.
-		if (path->IsPath() == false) {
-			path = nullptr;
-			return a_this;
-		}
-		auto left = path->FindChild(parse_strings::lhs);
+		TypeBase;
+		GenericArray inserter;
 
-		if (!left) {
+		Element* a_this = this;
 
-			auto result = GetEnvironmentTMP(a_this, path, search_scripts);
-
-			path = nullptr;
-
-			return result;
-		}
-
-		if constexpr (1 == 1)//If not generic.
+		while (path->IsPath() == true)
 		{
-			Environment* _this = GetEnvironmentTMP(a_this, left, search_scripts);
+			//if (path->IsPath() == false) {
+			//	path = nullptr;
+			//	return FetchEnvironment();
+			//}
+
+			if (!a_this)
+				return nullptr;
+
+
+			auto left = path->FindChild(parse_strings::lhs);
+
+
+
+			if (!left) {
+				return a_this->FindEnvironment(path->GetFront(), inserter);
+			}
+		
+
+			a_this = a_this->FindEnvironment(left->GetFront(), inserter);
 
 			path = path->FindChild(parse_strings::rhs);
-
-			return WalkEnvironmentPath(a_this, path, search_scripts);
 		}
-		else
-		{
 
-		}
+		return a_this->FetchEnvironment();
+
 	}
 
-	Environment* Element::SpecializeEnvironments(std::vector<Environment*>& generics)
-	{
-		//Specialize environment brings everything down to a single point.
-		return {};
-	}
 
 	std::vector<Environment*> Element::GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched)
 	{
@@ -115,7 +118,11 @@ namespace LEX
 
 		std::vector<Environment*> result{ };
 
-		std::vector<Environment*> out{ a_this->GetEnvironment() };
+		std::vector<Environment*> out{ };
+
+		if (auto env = a_this->GetEnvironment()) {
+			out.push_back(env);
+		}
 
 		//maybe there's a better way to do this, but whatever innit.
 		while (out.size() != 0)//Overloop
@@ -146,32 +153,17 @@ namespace LEX
 
 			for (auto& env : result)
 			{
-				auto _step = step;
-				env = WalkEnvironmentPath(env, _step);
-
-				if (_step)
-					specialize = true;
+				env = env->WalkEnvironmentPath(step);
 			}
 
 			result.erase(std::remove(std::begin(result), std::end(result), nullptr), std::end(result));
 		}
 
-		if (specialize) {
-			auto new_this = SpecializeEnvironments(result);
-
-			if (new_this)
-				return GetEnvironments(new_this, step, a, searched);
-
-			return {};
-		}
-		else
-		{
-			return result;
-		}
+		return result;
 	}
 
 
-	bool Element::HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate)
+	bool Element::HandlePathOld(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate)
 	{
 		if (!focus)
 			return false;
@@ -526,7 +518,7 @@ namespace LEX
 	
 	
 	
-	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
+	bool Element::SearchPathBaseOld(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
 	{
 		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
 
@@ -683,7 +675,7 @@ namespace LEX
 
 
 
-				bool success = HandlePath(target, _focus, func, *searched, !is_direct);
+				bool success = HandlePathOld(target, _focus, func, *searched, !is_direct);
 
 				if (success)
 					return true;
@@ -716,6 +708,181 @@ namespace LEX
 
 		return false;
 	}
+	
+
+
+
+
+	bool Element::HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate)
+	{
+		if (!focus) {
+			auto name = ParseUtility::SeekNextPath(rec);
+
+			focus = ProjectManager::instance->GetProject(name->GetView());
+
+			if (!focus)
+				return false;
+		}
+			
+		Element* secondary = nullptr;
+
+		RelateType ship = RelateType::Included;
+
+		Environment* env = focus->GetEnvironment();
+
+		Element* target;
+
+		if (!env) {
+			//The only time something like this happens is if it's a project. SO, we will have a secondary bit where it will be loaded later, and if
+			// it's not null, it will run HandlePath on commons.
+			target = focus;
+		
+			if (need_associate)
+				secondary = focus->GetCommons();
+		}
+		else
+		{
+			target = env;
+		}
+
+		//I'm thinking that the above should be handled before we get here maybe.
+
+		for (; ship != RelateType::None; ship--)
+		{
+
+
+			std::vector<Environment*> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<Environment*>{};
+
+			if (env && !need_associate) {
+				query.push_back(env);
+			}
+
+
+			bool success = func(query);
+
+			if (success)
+				return true;
+		}
+
+		if (secondary) {
+			return HandlePath(secondary, rec, func, searched, need_associate);
+		}
+
+
+		return false;
+	}
+
+	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
+	{
+		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
+
+		SyntaxRecord* path = rec.FindChild(parse_strings::path);
+
+		//Identifier is searched for directly, it won't search up or to it's associates.
+		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
+
+		auto first = ParseUtility::PeekCurrentPath(rec);
+
+		
+
+		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
+		// path is.
+
+
+		Element* target = a_this;
+
+		//Each of these sets are used to hold data for when "find" is used on a project or when it's regularly used.
+		std::set<Element*> full_search{};
+		std::set<Element*> find_search{};
+
+		do
+		{
+			auto _focus = first;
+
+
+			bool cont = false;
+
+			std::set<Element*>* searched = &full_search;
+			//Each find will have something shaved off, so it will use a seperate set.
+			//Don't remember how to apply this, but replicate the use of it. I think it's used for whenever we have to find a specific part first.
+			//searched = &find_search;
+
+			if (path) {
+				//I need to use 
+				switch (path->GetSyntax().type)
+				{
+				case SyntaxType::Path:
+					if (!a_this && !is_direct)
+						target = ProjectManager::instance->GetShared()->GetCommons();
+					break;
+
+
+					//If any of these happened, it actually is direct.
+				case SyntaxType::SpecifyGlobal:
+					target = nullptr;
+					break;
+
+				case SyntaxType::SpecifyProject:
+					target = a_this->GetProject();
+
+					if (!target)
+						target = ProjectManager::instance->GetShared();
+
+					break;
+
+				case SyntaxType::SpecifyScript:
+					target = a_this->FetchScript();
+
+					if (!target)
+						target = ProjectManager::instance->GetShared()->GetCommons();
+
+					break;
+
+
+				case SyntaxType::SpecifyCommons:
+					target = a_this->FetchCommons();
+
+					if (!target)
+						target = ProjectManager::instance->GetShared()->GetCommons();
+
+
+					break;
+
+
+				case SyntaxType::SpecifyShared:
+					target = ProjectManager::instance->GetShared();
+
+					break;
+					//case "__type"_ih:
+				}
+			}
+			bool success = HandlePath(target, _focus, func, *searched, !is_direct);
+
+			if (success)
+				return true;
+
+			if (!is_direct)
+			{
+					target = target->FetchParent();
+			}
+			else
+			{
+				break;
+			}
+
+			//if (target)
+			//	state--;
+
+
+			continue;
+		}
+		while (target);
+		//ProjectManager::
+
+
+		return false;
+	}
+	
 	//*/
 
 

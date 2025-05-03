@@ -23,7 +23,21 @@ namespace LEX
 
 	bool SyntaxBody::IsPath()
 	{
-		return GetSyntax().type == SyntaxType::Path;
+		switch (GetSyntax().type)
+		{
+		case SyntaxType::Path:
+		case SyntaxType::SpecifyShared:
+		case SyntaxType::SpecifyCommons:
+		case SyntaxType::SpecifyScript:
+		case SyntaxType::SpecifyProject:
+		case SyntaxType::SpecifyGlobal:
+		case SyntaxType::SpecifyType:
+
+			return true;
+
+		default:
+			return false;
+		}
 	}
 
 

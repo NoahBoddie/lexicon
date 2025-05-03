@@ -4,6 +4,16 @@
 
 namespace LEX
 {
+	/*
+	MemberPointers will need a change, along with an addition to runtime. When trying to access a member, 
+	there are times you'll need to access a member from a specific type. When this is relevant, 
+	the field type will be loaded into the runtime and then a call will be made on the member pointer. 
+	It will target this specific one, not using the shared inherited type, but the one specifically owned by that type.
+
+	There can only be one type that derives from that type internally and still visible by this point.
+	//*/
+
+
 	//TODO: Member pointer should PORBABLY be engine. Also, I'd like to use bitfields to allow for a virtual mode and non-virtual mode.
 	// Maybe will use unions to help with that
 	struct MemberPointer

@@ -11,10 +11,15 @@
 #include "Lexicon/Engine/ConcreteGlobal.h"
 #include "Lexicon/Engine/parse_strings.h"
 #include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/Parser.h"
+
+
 
 #include "Lexicon/Interfaces/ProjectClient.h"
 #include "Lexicon/Interfaces/IElement.h"
+
+
 namespace LEX
 {
 	//TODO: ObtainPolicy needs to be moved else where at some point.
@@ -449,7 +454,16 @@ namespace LEX
 		return  LinkFlag::Loaded;
 	}
 
+	Environment* Script::FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter)
+	{
+		auto types = FindTypes(path.GetView());
 
+		if (types.size() == 1)
+			//result = nullptr;
+			return types[0];
+
+		return nullptr;
+	}
 
 
 
@@ -497,6 +511,8 @@ namespace LEX
 	//{
 	//	return "CORE";
 	//}
+
+
 
 
 

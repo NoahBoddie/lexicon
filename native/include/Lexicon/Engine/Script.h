@@ -133,6 +133,8 @@ namespace LEX
 		LinkFlag GetLinkFlags();
 
 
+		Environment* FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter) override;
+
 
 
 		TypeBase* tempObtainPolicy(SyntaxRecord& ast, Element* parent = nullptr);

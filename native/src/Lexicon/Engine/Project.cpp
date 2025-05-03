@@ -71,4 +71,10 @@ namespace LEX
 	{
 		return _commons;
 	}
+
+	Environment* Project::FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter)
+	{
+		return FindScript(record.GetView());
+	}
+
 }
