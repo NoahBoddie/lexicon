@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Lexicon/ITemplatePart.h"
+
 namespace LEX
 {
 	struct ITemplatePart;
@@ -24,6 +26,7 @@ namespace LEX
 		{
 			return this ? GetGeneric() : nullptr;
 		}
+
 
 		//virtual SpecialBase* GetPart(ITemplatePart* args) = 0;
 

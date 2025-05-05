@@ -47,6 +47,11 @@ namespace LEX
 			return __super::ObtainPart(args);
 		}
 
+		ITemplatePart* GetSpecialPart() override
+		{
+			return this;
+		}
+
 		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
 	};
 

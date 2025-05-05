@@ -154,6 +154,7 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/IGlobalImpl.h"
 		"native/include/Lexicon/Engine/ObjectPolicyImpl.h"
 		"native/include/Lexicon/Engine/ParseUtility.h"
+		"native/include/Lexicon/Engine/QualifiedName.h"
 	)
 		
 

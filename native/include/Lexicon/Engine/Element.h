@@ -37,7 +37,9 @@ namespace LEX
 
 	struct ITemplateInserter;
 
-	using ElementSearch = bool(std::vector<Environment*>&/*, ITemplatePart* */);
+	struct QualifiedName;
+
+	using ElementSearch = bool(std::vector<QualifiedName>&/*, ITemplatePart* */);
 	
 	
 	struct Element : public Component, public IElementImpl
@@ -109,7 +111,7 @@ namespace LEX
 
 		Environment* WalkEnvironmentPath(SyntaxRecord* path);
 
-		static std::vector<Environment*> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
+		static std::vector<QualifiedName> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
 
 
 		static bool HandlePathOld(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
@@ -141,7 +143,7 @@ namespace LEX
 
 
 
-		static bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
+		static size_t CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
 
 
 		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 

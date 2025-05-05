@@ -15,6 +15,8 @@
 #include "Lexicon/Engine/ParseUtility.h"
 
 #include "Lexicon/GenericArray.h"
+#include "Lexicon/Engine/QualifiedName.h"
+
 
 namespace LEX
 {
@@ -99,7 +101,7 @@ namespace LEX
 	}
 
 
-	std::vector<Environment*> Element::GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched)
+	std::vector<QualifiedName> Element::GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched)
 	{
 		/*
 		make variable that stores temp environment here.
@@ -116,7 +118,7 @@ namespace LEX
 
 		//This could be cleaner, but it works for now.
 
-		std::vector<Environment*> result{ };
+		std::vector<QualifiedName> result{ };
 
 		std::vector<Environment*> out{ };
 
@@ -182,10 +184,10 @@ namespace LEX
 		{
 
 
-			std::vector<Environment*> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<Environment*>{ target };
+			std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{ target };
 
 
-			bool success = func(query);
+			bool success = false;//func(query);
 
 			if (success)
 				return true;
@@ -201,7 +203,7 @@ namespace LEX
 	{
 		TypeBase* result = nullptr;
 
-		SearchPathBase(a_this, _path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, _path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -344,15 +346,18 @@ namespace LEX
 	}
 
 
-	bool Element::CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret)
+	size_t Element::CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret)
 	{
 		Overload out;
 
 		Overload* last = nullptr;
 
+		size_t result = -1;
 
-		for (auto clause : clauses)
+		for (auto i = 0; i < clauses.size(); i++)
 		{
+			auto clause = clauses[i];
+
 			OverloadFlag flags = OverloadFlag::None;
 
 			Overload overload = input.Match(clause, nullptr, last, flags);
@@ -362,13 +367,14 @@ namespace LEX
 				continue;
 			}
 
-
+			result = i;
 
 			if (flags & OverloadFlag::Ambiguous) {
 				logger::info("Ambiguous");
 				last = nullptr;
 				break;
 			}
+
 
 			out = std::move(overload);
 
@@ -378,7 +384,7 @@ namespace LEX
 		if (last)
 			ret = *last;//this should move
 
-		return last;
+		return last ? result : -1;
 	}
 
 
@@ -387,13 +393,51 @@ namespace LEX
 	{
 		FunctionInfo* result = nullptr;
 
-		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
 			{
-				//std::verctor
+				std::vector<std::pair<size_t, ITemplatePart*>> genericList;
 
-
-				for (auto env : query)
+				std::vector<FunctionInfo*> funcs{};
+				for (int i = 0; i < query.size(); i++)
 				{
+					auto& env = query[i];
+
+					auto buff = env->FindFunctions(path.GetView());
+
+					auto size = buff.size();
+
+					//this should compile and then run.
+					funcs.insert_range(funcs.end(), buff);
+
+
+					genericList.emplace_back(std::make_pair(size, env.AsPart()));
+				
+				}
+
+
+				if (funcs.size() != 0)
+				{
+					if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
+					{
+						result = static_cast<FunctionInfo*>(out.clause);
+
+						auto pair = std::find_if(genericList.begin(), genericList.end(), [index](auto& it) {return index < it.first; });
+
+						//Index will be useless right now
+						//result->CreateNode(pair->second);
+						return true;
+					}
+
+				}
+
+
+
+				return false;
+
+				for (int i = 0; i < query.size(); i++)
+				{
+					auto& env = query[i];
+
 					//this should compile and then run.
 					auto funcs = env->FindFunctions(path.GetView());
 
@@ -408,9 +452,12 @@ namespace LEX
 						//	return true;
 						//}
 
-						if (CheckOverload(key, { funcs.begin(), funcs.end() }, out) == true)
+						if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
 						{
-							result = dynamic_cast<FunctionInfo*>(out.clause);
+							result = static_cast<FunctionInfo*>(out.clause);
+
+							//Index will be useless right now
+							result->CreateNode(env);
 							return true;
 						}
 
@@ -433,7 +480,7 @@ namespace LEX
 	
 		QualifiedField result{ nullptr };
 
-		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -465,7 +512,7 @@ namespace LEX
 
 		Script* result = nullptr;
 
-		SearchPathBase(a_this, path, [&](std::vector<Environment*>& query) -> bool
+		SearchPathBase(a_this, path, [&](std::vector<QualifiedName>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -751,7 +798,7 @@ namespace LEX
 		{
 
 
-			std::vector<Environment*> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<Environment*>{};
+			std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{};
 
 			if (env && !need_associate) {
 				query.push_back(env);

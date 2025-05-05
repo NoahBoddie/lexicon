@@ -7,6 +7,7 @@ namespace LEX
 	struct OverloadClause;
 	struct ISpecializable;
 
+	struct ITemplatePart;
 
 	//TODO: Make ISpecial a variation of Interface. And make sure you have ALL it's faculties in place
 
@@ -22,6 +23,13 @@ namespace LEX
 
 		//This is a function that helps determine if the given Type/Function is merely an abstraction of an implementation. Which I should have named slightly better.
 		virtual bool IsResolved() const = 0;
+
+
+		virtual ITemplatePart* GetSpecialPart()
+		{
+			//This exists so someone can get the part of a generic type, either before or after specializing.
+			return nullptr;
+		}
 
 		//Rename this shit please.
 

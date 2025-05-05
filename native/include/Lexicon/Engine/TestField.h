@@ -874,6 +874,9 @@ namespace Template
 	void Test()
 	{
 		//A::B::test1;
+		ITypeInfo* test;
+
+		//test->GetSpecializable()->FetchBase
 	}
 }
 
@@ -1788,8 +1791,10 @@ namespace Template
 
 
 
-		struct Overload
+		struct Overload// : public ITemplateBodyPart
 		{
+			//Making this an ITemplateBodyPart and then using it is the ideal
+
 			enum Bias
 			{
 				kPrevious = -1,

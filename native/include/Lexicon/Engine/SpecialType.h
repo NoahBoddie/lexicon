@@ -106,6 +106,14 @@ namespace LEX
 
 			return special;
 		}
+
+
+		ITemplatePart* GetSpecialPart() override
+		{
+			//This exists so someone can get the part of a generic type, either before or after specializing.
+			return this;
+		}
+
 		
 	};
 }
