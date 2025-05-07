@@ -1791,7 +1791,7 @@ namespace Template
 
 
 
-		struct Overload// : public ITemplateBodyPart
+		struct Overload : public ITemplateBodyPart
 		{
 			//Making this an ITemplateBodyPart and then using it is the ideal
 
@@ -1843,6 +1843,38 @@ namespace Template
 			
 			size_t requiredTemplate = 0;
 
+			bool isResolved = true;
+
+
+
+			bool IsResolved() const override
+			{
+				return isResolved;
+			}
+
+
+			ITypeInfo* GetPartArgument(size_t i) const override
+			{
+				specialImplied[i].first;
+			}
+
+			TypeInfo* GetBodyArgument(size_t i) const override
+			{
+				if (!isResolved)
+					return nullptr;
+
+				specialImplied[i].first->GetTypePolicy(nullptr);
+
+			}
+
+			size_t GetSize() const
+			{
+				return specialImplied.size();
+			}
+
+
+
+
 			//Returns if there are any missing elements unfulfilled. Templates in particular.
 			bool IsValid() const
 			{
@@ -1891,6 +1923,10 @@ namespace Template
 						}
 
 						if (auto& slot = specialImplied[index]; !slot.first) {
+							if (isResolved && type->IsResolved() == false) {
+								isResolved = false;
+							}
+
 							slot.first = type;
 							slot.second = manual;
 							//Move this outside
