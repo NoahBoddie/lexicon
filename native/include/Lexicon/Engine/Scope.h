@@ -192,7 +192,7 @@ namespace LEX
 
 		ITypeInfo* SearchTypePath(SyntaxRecord& _path);
 
-		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out);
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out);
 
 		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadKey* key = nullptr);
 

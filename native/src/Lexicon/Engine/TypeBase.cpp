@@ -84,7 +84,7 @@ namespace LEX
 			//static_assert(false);
 			if (auto derives = settings->FindChild(parse_strings::derives)) {
 				for (auto& inherit : derives->children()) {
-					TypeBase* type = GetParent()->FetchEnvironment()->SearchTypePath(inherit);
+					ITypeInfo* type = GetParent()->FetchEnvironment()->SearchTypePath(inherit).info;
 
 					Access access = Access::None;
 
@@ -100,7 +100,7 @@ namespace LEX
 					if (!type)  //I'd actually rather report.
 						report::critical("no type, I dont actually know where I am right now, please figure out what this means later thx");
 
-					SetDerivesTo(type->AsAbstract(), access);
+					SetDerivesTo(type, access);
 				}
 
 

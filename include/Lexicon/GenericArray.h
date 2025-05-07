@@ -12,6 +12,7 @@ namespace LEX
 	public:
 		
 		GenericArray() = default;
+		GenericArray(GenericBase* base) : _client{ base } { }
 		GenericArray(GenericBase* base, size_t size) : _client{ base }, _types{ size } { }
 		GenericArray(GenericBase* base, const std::vector<ITypeInfo*>& args) : _client{ base }, _types{ args } { }
 

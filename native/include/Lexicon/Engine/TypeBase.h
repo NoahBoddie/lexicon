@@ -6,9 +6,22 @@
 #include "Lexicon/Engine/PolicyData.h"
 #include "Lexicon/Engine/OverloadClause.h"
 
+//*src
+#include "Lexicon/ITemplatePart.h"
+
 namespace LEX
 {
-	
+	class TypeBase;
+
+	struct TypeNode
+	{
+		TypeNode() = default;
+		TypeNode(TypeBase* b, ITypeInfo* i) : base{ b }, info{ i } {}
+
+		TypeBase* base = nullptr;
+		ITypeInfo* info = nullptr;
+	};
+
 	class TypeBase : public SecondaryEnvironment, public OverloadClause, public PolicyData
 	{//TypeBase Might not even use clauses directly. We shall see.
 
@@ -32,12 +45,18 @@ namespace LEX
 		
 	public:
 
+		TypeNode CreateNode(ITemplatePart* part) 
+		{
+			auto type = AsType();
+			return TypeNode{ this, part->GetSize() ? type->CheckTypePolicy(part) : type };
+		}
+
 		//TODO: I would like have more information here telling the compiler what it can and can't do with it.
 
 		
 
-		virtual ITypeInfo* AsAbstract() = 0;
-		virtual const ITypeInfo* AsAbstract() const = 0;
+		virtual ITypeInfo* AsType() = 0;
+		virtual const ITypeInfo* AsType() const = 0;
 		
 
 		//Rename to ForceTypeID, and then make set type ID the public one.
@@ -92,7 +111,7 @@ namespace LEX
 
 		ITypeInfo* GetHierarchyType() override
 		{
-			return AsAbstract();
+			return AsType();
 		}
 
 		
@@ -101,7 +120,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<ITypeInfo>::value):
-				return AsAbstract();
+				return AsType();
 			
 			case Hash(TypeName<TypeBase>::value):
 				return this;
@@ -116,7 +135,7 @@ namespace LEX
 		//This needs some form of conversion result.
 		ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
 		{
-			if (AsAbstract() == other) {
+			if (AsType() == other) {
 				return ConversionEnum::Exact;
 			}
 
@@ -280,8 +299,9 @@ namespace LEX
 		}
 
 
-		ITypeInfo* AsAbstract() override { return this; }
-		const ITypeInfo* AsAbstract() const override { return this; }
+
+		ITypeInfo* AsType() override { return this; }
+		const ITypeInfo* AsType() const override { return this; }
 
 	};
 

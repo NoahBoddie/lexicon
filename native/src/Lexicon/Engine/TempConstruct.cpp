@@ -1333,16 +1333,16 @@ namespace LEX
 			Overload instructions;
 
 			//Around here, you'd use the args.
-			FunctionInfo* info = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
+			FunctionNode node = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
 
 			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
 
-			if (!info) {
+			if (!node) {
 				report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
 			}
 
 			//FunctionBase* func = info->Get();
-			FunctionData* func = info->tmpSignature();
+			FunctionData* func = node.GetSignature();
 
 			if (!func) {
 				report::compile::error("No callable for info at '{}' detected.", target.GetTag());
@@ -1404,23 +1404,28 @@ namespace LEX
 
 			Operand function;
 
-			if (info->IsVirtual() == true) {
+			switch (node.type())
+			{
+			case FunctionNode::kFunction:
 				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
-					Operand{ info->GetMethod(), OperandType::Member},
+					Operand{ node.GetFunction(), OperandType::Function },
 					Operand{ alloc_size, OperandType::Index });
-			}
-			else {
+				break;
+			case FunctionNode::kMethod:
 				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
-					Operand{ info->GetFunction(), OperandType::Function},
+					Operand{ node.GetMethod(), OperandType::Member },
 					Operand{ alloc_size, OperandType::Index });
+				break;
+
+			default:
+				report::error("invalid function type detected");
+				break;
 			}
-			
 
 			compiler->ModArgCount(-alloc_size, -sub_alloc, false);
 
-			
-
-			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
+			//TODO: The thing fed to the return type here should be the overload.
+			return Solution{ func->GetReturnType(nullptr), OperandType::Register, compiler->GetPrefered()};
 		}
 
 

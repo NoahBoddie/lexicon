@@ -151,6 +151,7 @@ namespace LEX
 
 
 			public:
+				
 				virtual std::string_view GetName() const = 0;
 
 				virtual std::span<ITypeInfo*> GetTemplate() { return {}; }

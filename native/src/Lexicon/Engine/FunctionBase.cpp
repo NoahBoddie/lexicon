@@ -58,11 +58,7 @@ namespace LEX
         {
         case LinkFlag::Declaration:
         {
-            Environment* environment = GetEnvironment();
-
-            if (!environment) {
-                report::link::error("environ issues cont.");
-            }
+            //Environment* environment = GetEnvironment();
 
             SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
@@ -70,7 +66,7 @@ namespace LEX
 				report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, environment, Reference::Local };
+            Declaration header{ *head_rec, this, Reference::Local };
 
             if (header.Matches(DeclareMatches::Constness) == false) {
 				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
@@ -100,7 +96,7 @@ namespace LEX
 
                 auto& tag = extend->GetFront().GetTag();
 
-                auto target_type = GetPolicyFromSpecifiers(*extend, environment);
+                auto target_type = GetPolicyFromSpecifiers(*extend, this);
                 
 
                 if (!target_type) {
@@ -118,7 +114,7 @@ namespace LEX
                 //Include things like whether this is
 
                 
-                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type->AsAbstract() }, parse_strings::this_word, 0);
+                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type }, parse_strings::this_word, 0);
             }
 
 
@@ -129,7 +125,7 @@ namespace LEX
                 if (!node_head)
 					report::compile::critical("No record named header.");
 
-                Declaration header{ *node_head, environment, Reference::Scoped, Reference::Auto };
+                Declaration header{ *node_head, this, Reference::Scoped, Reference::Auto };
 
                 //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
                 if (header.Matches(DeclareMatches::Constness | DeclareMatches::Reference) == false) {

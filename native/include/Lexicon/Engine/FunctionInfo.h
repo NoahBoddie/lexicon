@@ -9,70 +9,6 @@ namespace LEX
 
 
 
-
-	struct FunctionNode
-	{
-		enum Type
-		{
-			kInvalid,
-			kMethod,
-			kFunction
-		};
-
-		FunctionNode(FunctionData* data, const MemberPointer& met) : _type{ kMethod }, signature{ data }, method{ met } {}
-		FunctionNode(FunctionData* data, IFunction* func) : _type{ kFunction }, signature{ data }, function{ func } {}
-
-
-	private:
-		union
-		{
-			uint64_t raw = 0;
-			MemberPointer method;
-			IFunction* function;
-		};
-
-	public:
-		FunctionData* signature = nullptr;
-
-
-		Type _type = kInvalid;
-
-
-		Type type() const
-		{
-			return _type;
-		}
-
-
-		FunctionData* GetSignature()
-		{
-			return signature;
-		}
-
-		MemberPointer GetMethod() const
-		{
-			if (_type != kMethod)
-				return {};
-
-			return method;
-		}
-
-		IFunction* GetFunction() const
-		{
-			if (_type != kFunction)
-				return {};
-
-
-			return function;
-		}
-		
-		constexpr operator bool() const
-		{
-			return signature && raw;
-		}
-
-	};
-
 	struct FunctionInfo : public MemberInfo, public OverloadClause
 	{
 		using FunctionType = FunctionBase;
@@ -100,9 +36,9 @@ namespace LEX
 		FunctionNode CreateNode(ITemplatePart* part)
 		{
 			if (IsVirtual() == true)
-				return FunctionNode{ signature, method };
+				return FunctionNode{ nullptr, signature, method };
 			else
-				return FunctionNode{ signature, function->AsFunction()->CheckFunction(part) };
+				return FunctionNode{ function, signature, function->AsFunction()->CheckFunction(part) };
 		}
 
 

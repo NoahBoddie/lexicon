@@ -129,7 +129,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 	
 	ITypeInfo* IdentityManager::GetInherentType(InherentType type)
 	{
-		return GetInherentBase(type)->AsAbstract();
+		return GetInherentBase(type)->AsType();
 	}
 
 
@@ -284,7 +284,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 	
 	ITypeInfo* IdentityManager::GetTypeByID(TypeID id)
 	{
-		return GetBaseByID(id)->AsAbstract();
+		return GetBaseByID(id)->AsType();
 	}
 	//This too is used often.(What does this mean?)
 	TypeBase* IdentityManager::GetBaseByID(TypeID id)

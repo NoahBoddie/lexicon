@@ -64,14 +64,13 @@ namespace LEX
 
 
 	
-	Environment* Element::WalkEnvironmentPath(SyntaxRecord* path)//, ITemplateInserter& inserter)
+	Environment* Element::WalkEnvironmentPath(SyntaxRecord* path, ITemplateInserter& inserter)
 	{
 		TypeBase;
-		GenericArray inserter;
 
 		Element* a_this = this;
 
-		while (path->IsPath() == true)
+		while (path && path->IsPath() == true)
 		{
 			//if (path->IsPath() == false) {
 			//	path = nullptr;
@@ -82,18 +81,25 @@ namespace LEX
 				return nullptr;
 
 
-			auto left = path->FindChild(parse_strings::lhs);
+			if constexpr (1) {
+				auto below = ParseUtility::SeekNextPath(path);
 
-
-
-			if (!left) {
-				return a_this->FindEnvironment(path->GetFront(), inserter);
+				a_this = a_this->FindEnvironment(*below, inserter);
 			}
-		
+			else
+			{
+				auto left = path->FindChild(parse_strings::lhs);
 
-			a_this = a_this->FindEnvironment(left->GetFront(), inserter);
 
-			path = path->FindChild(parse_strings::rhs);
+				if (!left) {
+					return a_this->FindEnvironment(path->GetFront(), inserter);
+				}
+
+
+				a_this = a_this->FindEnvironment(left->GetFront(), inserter);
+
+				path = path->FindChild(parse_strings::rhs);
+			}
 		}
 
 		return a_this->FetchEnvironment();
@@ -118,94 +124,56 @@ namespace LEX
 
 		//This could be cleaner, but it works for now.
 
-		std::vector<QualifiedName> result{ };
+		std::vector<QualifiedName> result{};
+		std::vector<Element*> elements{ };
+		
 
-		std::vector<Environment*> out{ };
+		std::vector<Element*> out{ a_this };
 
-		if (auto env = a_this->GetEnvironment()) {
-			out.push_back(env);
-		}
 
 		//maybe there's a better way to do this, but whatever innit.
 		while (out.size() != 0)//Overloop
 		{
-			std::vector<Environment*> buffer{};
 
 
-			for (auto env : out)
+			std::vector<Element*> buffer{};
+
+			for (auto elem : out)
 			{
-				if (!env || !searched.emplace(env).second) {
+				if (!elem || !searched.emplace(elem).second) {
 					continue;
-				}
-				buffer.emplace_back(env);
+				}			
+				
 
+				GenericArray inserter{ FetchGenericElement(), };
+				Environment* env = step ? elem->WalkEnvironmentPath(step, inserter) : elem->GetEnvironment();
+				
+				if (env)
+					result.emplace_back(env, std::move(inserter));
+				
 				if (a != RelateType::None)
-					buffer.insert_range(buffer.end(), env->GetAssociates(a));
+					buffer.insert_range(buffer.end(), elem->GetAssociates(a));
 			}
-			result.insert_range(result.end(), buffer);
+
 			out = std::move(buffer);
-		}
-
-		bool specialize = false;
-
-		if (step)
-		{
-			//out.clear();
-			//out.reserve(result.size());
-
-			for (auto& env : result)
-			{
-				env = env->WalkEnvironmentPath(step);
-			}
-
-			result.erase(std::remove(std::begin(result), std::end(result), nullptr), std::end(result));
 		}
 
 		return result;
 	}
 
-
-	bool Element::HandlePathOld(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate)
+	TypeNode Element::SearchTypePath(SyntaxRecord& _path)
 	{
-		if (!focus)
-			return false;
-
-
-		RelateType ship = RelateType::Included;
-
-		Environment* target = focus->GetEnvironment();
-
-		if (focus != target) {
-			target = focus->GetCommons();
-		}
-
-
-		for (; ship != RelateType::None; ship--)
-		{
-
-
-			std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{ target };
-
-
-			bool success = false;//func(query);
-
-			if (success)
-				return true;
-		}
-
-		return false;
+		return SearchTypePath(this, _path);
 	}
 
 
-
-
-	TypeBase* Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
+	TypeNode Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
 	{
-		TypeBase* result = nullptr;
+		TypeNode result;
 
 		SearchPathBase(a_this, _path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
 			{
-				for (auto env : query)
+				for (auto& env : query)
 				{
 
 					std::vector<TypeBase*> types = env->FindTypes(_path.GetView());
@@ -223,15 +191,7 @@ namespace LEX
 					}
 					else if (size)
 					{
-						if (!result)
-						{
-							result = types[0];
-						}
-						else
-						{
-							report::error("path no work. Make better error later");
-						}
-
+						result = types[0]->CreateNode(env);
 						return true;
 					}
 
@@ -246,6 +206,7 @@ namespace LEX
 
 	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadKey* sign)
 	{
+		//I feel like searching for a general element should be reusing this.
 		SyntaxRecord path_record;
 		
 		if (auto result = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(path_record, path); !result){
@@ -266,7 +227,9 @@ namespace LEX
 			//Do the search for each type here.
 
 		case kTypeElement:
-			return SearchTypePath(a_this, path_record);
+			//TODO: Types don't count as elements, neither do functions Only environments seem to matter
+			report::fault::critical("cant search for types currently");
+			return SearchTypePath(a_this, path_record).base;
 		case kFuncElement:
 		{
 			if (!sign) {
@@ -275,7 +238,7 @@ namespace LEX
 			}
 
 			auto func =  SearchFunctionPath(a_this, path_record, *sign);
-			return func ? func->Get() : nullptr;
+			return func ? func.GetBase() : nullptr;
 		}
 		case kGlobElement:
 			return dynamic_cast<GlobalBase*>(SearchFieldPath(a_this, path_record).GetField());
@@ -389,42 +352,48 @@ namespace LEX
 
 
 
-	FunctionInfo* Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out)
+	FunctionNode Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out)
 	{
-		FunctionInfo* result = nullptr;
+		FunctionNode result;
 
 		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
 			{
 				std::vector<std::pair<size_t, ITemplatePart*>> genericList;
 
 				std::vector<FunctionInfo*> funcs{};
-				for (int i = 0; i < query.size(); i++)
-				{
-					auto& env = query[i];
+				size_t i = 0;
 
+				for (auto& env : query)
+				{
 					auto buff = env->FindFunctions(path.GetView());
 
-					auto size = buff.size();
+					i += buff.size();
 
 					//this should compile and then run.
 					funcs.insert_range(funcs.end(), buff);
 
 
-					genericList.emplace_back(std::make_pair(size, env.AsPart()));
+					genericList.emplace_back(std::make_pair(i, env.AsPart()));
 				
 				}
 
 
 				if (funcs.size() != 0)
 				{
+					if (path.GetView() == "size")
+					{
+						logger::info("registering");
+					}
+
 					if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
 					{
-						result = static_cast<FunctionInfo*>(out.clause);
+						auto info = static_cast<FunctionInfo*>(out.clause);
 
 						auto pair = std::find_if(genericList.begin(), genericList.end(), [index](auto& it) {return index < it.first; });
 
 						//Index will be useless right now
-						//result->CreateNode(pair->second);
+						//result = info->CreateNode(pair->second);
+						result = info->CreateNode(genericList[0].second);
 						return true;
 					}
 
@@ -454,10 +423,10 @@ namespace LEX
 
 						if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
 						{
-							result = static_cast<FunctionInfo*>(out.clause);
+							//result = static_cast<FunctionInfo*>(out.clause);
 
 							//Index will be useless right now
-							result->CreateNode(env);
+							//result->CreateNode(env);
 							return true;
 						}
 
@@ -564,199 +533,6 @@ namespace LEX
 	}
 	
 	
-	
-	bool Element::SearchPathBaseOld(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
-	{
-		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
-
-		SyntaxRecord* path = rec.FindChild(parse_strings::path);
-
-		//Identifier is searched for directly, it won't search up or to it's associates.
-		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
-
-		auto left = path ? path->FindChild(parse_strings::lhs) : nullptr;
-		auto right = left ? path->FindChild(parse_strings::rhs) : nullptr;
-
-
-
-		//I'm considering not using these.
-		//auto first = left ?
-		//	&GetPath(*left) : path ?
-		//	&path->GetFront() : nullptr;
-
-		//This is what should be submitted to functions
-		//auto next = right ?
-		//	&GetPath(*right, false) : path ?
-		//	&path->GetFront() : &rec;
-
-
-		auto first = left ? left : path;
-
-		//If right exists then it's right. If it doesn't, theres only one path and thus 
-		auto next = right ? right : nullptr;
-
-		enum ProjectState
-		{
-			kNone,
-			kFindProject,
-			kFindShared,
-			kGetShared,
-			kFindCurrent,
-			k_GetCurrent,
-		} state = !a_this ? kFindProject : k_GetCurrent;//Force to be find depending on what heads path.
-
-		if (first && state == k_GetCurrent)
-		{
-			switch (first->GetFront().GetSyntax().type)
-			{
-			case SyntaxType::ProjectName:
-				state = kFindProject;
-				break;
-			case SyntaxType::Scriptname:
-				state = kFindCurrent;
-				break;
-			}
-		}
-		
-		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
-		// path is.
-
-
-		Element* target = a_this;
-
-		//Each of these sets are used to hold data for when "find" is used on a project or when it's regularly used.
-		std::set<Element*> full_search{};
-		std::set<Element*> find_search{};
-
-		while (state != kNone)
-		{
-			auto _focus = first;
-
-			
-			bool cont = false;
-
-			std::set<Element*>* searched = &full_search;
-
-			if (state != k_GetCurrent)
-			{
-				Project* project;
-				if (path)
-				{
-					switch (state)
-					{
-
-					case kGetShared://Should get shared commons and search it
-						target = ProjectManager::instance->GetShared();
-						break;
-
-					//case kGetCurrent://Should get current commons and search it
-						//target = a_this->FetchCommons();
-						//break;
-
-
-					case kFindShared://Should get shared, then search
-						project = ProjectManager::instance->GetShared();
-						goto find;
-
-					case kFindCurrent://Should get current project, then search
-						project = a_this->FetchProject();
-
-						goto find;
-
-					case kFindProject:// should find project and search for script.
-						project = ProjectManager::instance->GetProject(first->GetFront().GetView());
-
-
-						_focus = next;
-						//IM CHANGING THIS, KEEP AN EYE ON IT
-						//if (!next || next->GetSyntax().type != SyntaxType::Path) {
-						//	cont = true;
-						//	break;
-						//}
-
-						if (!next) {		
-							target = project;
-							break;
-						}
-						else if (next->GetSyntax().type != SyntaxType::Path)
-						{
-							cont = true;
-							break;
-						}
-
-						//next = &GetPath(*next, true);
-						next = next->FindChild(parse_strings::rhs);
-						
-						//Thie final find project will have an even more shaved off, thus it should use a completely clear one.
-						find_search.clear();
-
-					find:
-						//Each find will have something shaved off, so it will use a seperate set.
-						searched = &find_search;
-
-						if (project) {
-
-							auto& tar = GetPath(*_focus, false);
-
-
-							if (auto script = project->FindScript(tar.GetView()); script) {
-								target = script;
-								_focus = next;
-								break;
-							}
-							else {
-								cont = true;
-							}
-						}
-						break;
-					}
-				}
-				else
-				{
-					cont = true;
-				}
-			}
-
-			if (!cont && target)
-			{
-
-
-
-				bool success = HandlePathOld(target, _focus, func, *searched, !is_direct);
-
-				if (success)
-					return true;
-
-			}
-			
-			if (!is_direct)
-			{
-				if (state == k_GetCurrent)
-					target = target->FetchParent();
-
-				if (state != k_GetCurrent || !target) {
-					state--;
-				}
-			}
-			else
-			{
-				break;
-			}
-
-			//if (target)
-			//	state--;
-			
-
-			continue;
-		}
-
-		//ProjectManager::
-
-
-		return false;
-	}
-	
-
 
 
 
@@ -765,10 +541,20 @@ namespace LEX
 		if (!focus) {
 			auto name = ParseUtility::SeekNextPath(rec);
 
-			focus = ProjectManager::instance->GetProject(name->GetView());
+			auto project = ProjectManager::instance->GetProject(name->GetView());
+
+			if (!project)
+				return false;
+
+			//I didn't want to do this, but I think this is probably proper.
+
+			name = ParseUtility::SeekNextPath(rec);
+
+			focus = project->FindScript(name->GetView());
 
 			if (!focus)
 				return false;
+
 		}
 			
 		Element* secondary = nullptr;
@@ -903,7 +689,7 @@ namespace LEX
 					//case "__type"_ih:
 				}
 			}
-			bool success = HandlePath(target, _focus, func, *searched, !is_direct);
+			bool success = a_this->HandlePath(target, path, func, *searched, !is_direct);
 
 			if (success)
 				return true;

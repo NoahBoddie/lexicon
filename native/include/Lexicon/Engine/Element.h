@@ -21,7 +21,7 @@
 #include "Lexicon/Engine/QualifiedField.h"
 #include "Lexicon/Interfaces/ProjectManager.h"
 #include "Lexicon/RelateType.h"
-
+#include "Lexicon/Engine/FunctionNode.h"
 
 
 namespace LEX
@@ -38,6 +38,8 @@ namespace LEX
 	struct ITemplateInserter;
 
 	struct QualifiedName;
+
+	struct TypeNode;
 
 	using ElementSearch = bool(std::vector<QualifiedName>&/*, ITemplatePart* */);
 	
@@ -63,6 +65,8 @@ namespace LEX
 		virtual SyntaxRecord* GetSyntaxTree() = 0;
 
 		virtual GenericBase* AsGenericElement() { return nullptr; }
+
+		GenericBase* FetchGenericElement() { return this ? AsGenericElement() : nullptr; }
 
 		bool IsGenericElement() const override final { return const_cast<Element*>(this)->AsGenericElement(); }
 
@@ -109,37 +113,23 @@ namespace LEX
 
 		static Environment* GetEnvironmentTMP(Environment* a_this, SyntaxRecord* path, bool& search_scripts);
 
-		Environment* WalkEnvironmentPath(SyntaxRecord* path);
+		Environment* WalkEnvironmentPath(SyntaxRecord* path, ITemplateInserter& inserter);
 
-		static std::vector<QualifiedName> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
-
-
-		static bool HandlePathOld(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
+		std::vector<QualifiedName> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
 
 
 
-
-		
-
-		//I think the reutnr of this function should probably be why it failed if anything.
-		static bool SearchPathBaseOld(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func);
-
-
-
-		static bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
+		bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
 
 
 		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func);
 
 
-		static TypeBase* SearchTypePath(Element* a_this, SyntaxRecord& _path);
+		static TypeNode SearchTypePath(Element* a_this, SyntaxRecord& _path);
 
 
 
-		TypeBase* SearchTypePath(SyntaxRecord& _path)
-		{
-			return SearchTypePath(this, _path);
-		}
+		TypeNode SearchTypePath(SyntaxRecord& _path);
 
 
 
@@ -148,18 +138,18 @@ namespace LEX
 
 		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 
 		// to handle multiple different functions.
-		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out);
+		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out);
 
-		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key)
+		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key)
 		{
 			Overload out{};
 			auto result = SearchFunctionPath(a_this, path, key, out);
 			return result;
 		}
 
-		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key, Overload& out) { return SearchFunctionPath(this, path, key, out); }
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadKey& key, Overload& out) { return SearchFunctionPath(this, path, key, out); }
 
-		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key) { return SearchFunctionPath(this, path, key); }
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadKey& key) { return SearchFunctionPath(this, path, key); }
 
 
 

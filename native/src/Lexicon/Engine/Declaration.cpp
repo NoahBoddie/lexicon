@@ -82,9 +82,9 @@ namespace LEX
 	//*/
 
 
-	TypeBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem)
+	ITypeInfo* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem)
 	{
-		TypeBase* result = nullptr;
+		ITypeInfo* result = nullptr;
 
 		if (node.size() != 0)
 		{
@@ -165,17 +165,17 @@ namespace LEX
 					break;
 
 				case "void"_h:
-					return IdentityManager::instance->GetInherentBase(InherentType::kVoid);
+					return IdentityManager::instance->GetInherentType(InherentType::kVoid);
 
 				case "voidable"_h:
-					return IdentityManager::instance->GetInherentBase(InherentType::kVoidable);
+					return IdentityManager::instance->GetInherentType(InherentType::kVoidable);
 
 				case "object"_h:
-					return IdentityManager::instance->GetBaseByOffset("CORE", 0);
+					return IdentityManager::instance->GetTypeByOffset("CORE", 0);
 
 
 				case "string"_h:
-					return IdentityManager::instance->GetBaseByOffset("STRING", 0);
+					return IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
 				default://typename
 					type_name = &entry;
@@ -184,7 +184,7 @@ namespace LEX
 			}
 
 			if (type_name) {
-				result = elem->SearchTypePath(*type_name);
+				result = elem->SearchTypePath(*type_name).info;
 			}
 			else {
 				settings.limit = settings.limit == Limit::Invalid ? Limit::Overflow : settings.limit;
@@ -195,7 +195,7 @@ namespace LEX
 				auto offset = settings.GetOffset();
 				
 				//result = LEX::IdentityManager::GetTypeByID(offset + 1);
-				result = LEX::IdentityManager::instance->GetBaseByOffset("NUMBER", offset);
+				result = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", offset);
 				assert(result);
 				
 			}
@@ -276,7 +276,7 @@ namespace LEX
 			type = static_cast<decltype(type)>(type + 1);
 		}
 		
-		policy = GetPolicyFromSpecifiers(type_spec, source)->AsAbstract();
+		policy = GetPolicyFromSpecifiers(type_spec, source);
 		*this = GetQualifiersFromStrings(type_qual);
 		*this = GetSpecifiersFromStrings(decl_spec);
 

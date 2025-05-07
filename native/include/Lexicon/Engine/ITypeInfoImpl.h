@@ -14,6 +14,7 @@ namespace LEX
 		NoVariable = 1 << 2,	//Specifies it cannot be used as a parameter or variable.
 		NoGlobal = 1 << 3,	//Specifies it can't be used as a global (runtime classes have this)
 		NoInstant = 1 << 4, //Type cannot be instantiated
+		NoMembers = 1 << 5,
 	};
 
 	ENUM(ConversionFlag)
@@ -28,6 +29,8 @@ namespace LEX
 	};
 
 	struct TemplateType;
+
+	//struct QualifiedType;
 
 	struct IMPL_VERSION(ITypeInfo)
 	{
@@ -105,5 +108,7 @@ namespace LEX
 		{
 			return !this ? def : CheckRuleset(rule);
 		}
+
+		
 	};
 }

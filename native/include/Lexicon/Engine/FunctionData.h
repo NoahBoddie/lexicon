@@ -109,6 +109,12 @@ namespace LEX
 			return _returnType;
 		}
 
+		QualifiedType GetReturnType(ITemplatePart* part) const
+		{
+			return _returnType.QualifySpecial(part);
+		}
+
+
 		QualifiedType GetTargetType() const
 		{
 			return _thisInfo ? _thisInfo->GetQualifiedType() : nullptr;;

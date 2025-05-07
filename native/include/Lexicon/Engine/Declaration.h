@@ -38,7 +38,7 @@ namespace LEX
 
 
 	//TODO: I'd like to have GetPolicyFromSpecifiers dealt with via strings, and/or able to be dealt with via a record.
-	TypeBase* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem);
+	ITypeInfo* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem);
 
 
 

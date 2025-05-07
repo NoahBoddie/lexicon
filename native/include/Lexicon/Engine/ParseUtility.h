@@ -22,7 +22,7 @@ namespace LEX
 
 			auto left = a_this->FindChild(parse_strings::lhs);
 			
-			return left ? left : &a_this->GetFront();
+			return left ? &left->GetFront() : &a_this->GetFront();
 		}
 	public:
 
