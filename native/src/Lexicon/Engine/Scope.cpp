@@ -33,13 +33,13 @@ namespace LEX
 	
 
 	//This actually probably will want to return the function info, because of something like generic functions.
-	FunctionNode Scope::SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out)
+	FunctionNode Scope::SearchFunctionPath(SyntaxRecord& path, OverloadArgument& input, Overload& out)
 	{
 		return process->GetElement()->SearchFunctionPath(path, input, out);
 
 	}
 
-	QualifiedField Scope::SearchFieldPath(SyntaxRecord& _path, OverloadKey* key)
+	QualifiedField Scope::SearchFieldPath(SyntaxRecord& _path, OverloadArgument* key)
 	{
 
 

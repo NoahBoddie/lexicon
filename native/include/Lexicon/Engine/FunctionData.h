@@ -120,6 +120,11 @@ namespace LEX
 			return _thisInfo ? _thisInfo->GetQualifiedType() : nullptr;;
 		}
 
+		bool HasTarget() const
+		{
+			return !!_thisInfo;
+		}
+
 		//These sorts of things should be protected, not used up front.
 		//std::string name(){return _name;}
 
@@ -167,7 +172,14 @@ namespace LEX
 
 		std::string _name;
 
+		//TODO: Please move Overload functionality back to base. Instead, give this a generic base
+		GenericBase* base = nullptr;
 		
+
+
+
+
+
 		size_t defaultIndex = (size_t)-1;  //max_value<size_t>;//basically whenever the defaults start.
 		size_t paramsIndex = (size_t)-1;
 		//
@@ -217,6 +229,38 @@ namespace LEX
 
 
 
+
+		void CheckDefault(size_t index, size_t offset, OverloadFlag& flags)
+		{
+			if (defaultIndex <= index && !offset) {
+
+				flags |= OverloadFlag::DefFilled;
+			}
+		}
+		bool CanMatchConcrete(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags);
+
+
+		bool MatchImpliedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
+
+		bool MatchStatedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags);
+
+
+
+
+		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags);
+
+		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
+
+		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags);
+
+
+		void ResolveOverload(Overload& result, OverloadFlag& flags);
+
+
+
+		void QualifyOverload(Overload& out);
+
+
 		//TypeInfo* GetConcreteReturnType();//move to abstractFunction
 
 
@@ -224,17 +268,6 @@ namespace LEX
 		// like I think it would.
 
 
-
-
-		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag);
-
-
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypeInfo* scope, size_t offset, size_t index, OverloadFlag& flags);
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypeInfo* scope, std::string name, OverloadFlag& flags);
-
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypeInfo* scope, OverloadFlag& flags);
 
 
 

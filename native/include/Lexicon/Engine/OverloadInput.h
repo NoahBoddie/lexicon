@@ -16,189 +16,204 @@ namespace LEX
 	struct ITypeInfo;
 	struct TargetObject;
 
-	class OverloadInput : public OverloadKey
+
+	class OverloadInput : public OverloadArgument
 	{
 	public:
 
-		//Make these 2 a single function.
-		Overload MatchFailure(OverloadFlag& flag, Overload* prev = nullptr)
+
+		OverloadBias Match(OverloadParameter* param, ITypeInfo* scope, Overload& out, Overload* prev) override
 		{
-			logger::critical("Force failure");
+			OverloadFlag flags{};
 
-			//This should only be used when it's an ambiguous match I think.
-			flag |= OverloadFlag::Failure;
-			//This feels very unnecessary and possibly unused.
-			if (prev)
-				return *prev;
+			//...
 
-			return {};
-		}
-
-		Overload MatchAmbiguous(OverloadFlag& flag)
-		{
-			logger::critical("Force ambiguous");
-
-			//This should only be used when it's an ambiguous match I think.
-			flag |= OverloadFlag::Ambiguous;
-
-			return {};
-		}
-
-		QualifiedType GetTarget() const override
-		{
-			if (!object)
-				return QualifiedType{};
-
-			return *object->target;
-		}
-
-		//This boolean needs to say if this failed to match, failed to be better, or resulted in ambiguity.
-		virtual Overload Match(OverloadClause* clause, ITypeInfo* scope, Overload* prev, OverloadFlag& a_flag) override
-		{
-
-			if (defaultInput.empty() == false) {
-				a_flag |= OverloadFlag::UsesDefault;
+			if (specialStated.empty() == false) {
+				flags |= OverloadFlag::StatesTemplate;
+			}
+			if (stated.empty() == false) {
+				flags |= OverloadFlag::StatesArgument;
 			}
 
-
-
-			if (clause->CanMatch(nullptr, paramInput.size(), defaultInput.size(), a_flag) == false) {
+			if (param->CanMatch(nullptr, implied.size(), specialImplied.size(), flags) == false) {
 				logger::info("pre-eval fail");
-				return MatchFailure(a_flag);
+				return OverloadBias::kFailure;
+			}
+
+			param->QualifyOverload(out);
+
+#pragma region TemplateParts
+			flags |= OverloadFlag::IsTemplate;
+
+			//IMPORTANT TO REMEMBER PART, any use of a template type is a loss to a real type.
+
+			for (int i = 0; i < specialImplied.size(); i++)
+			{
+				auto& pair = specialImplied[i];
+
+				QualifiedType type{ pair.first };
+				auto offset = pair.second;
+
+
+				OverloadEntry entry;
+
+				if (param->MatchImpliedEntry(entry, type, scope, out, i, offset, flags) == false) {
+					//Needs to send the given issue object
+					return OverloadBias::kFailure;
+				}
+
+
+
+				if (out.EmplaceTemplate(entry, type, scope) == false) {
+					return OverloadBias::kFailure;
+				}
 			}
 
 
-			//I want to phase out of function. Maybe combine it with prev in some way.
+#pragma endregion
 
-			//Make a copy as to not completely mutate this.
+			flags &= ~OverloadFlag::Clearable;
 
+#pragma region CallParts
 
-			Overload overload;
-
-			QualifiedType type;
+			QualifiedType this_type;
 
 			if (object->IsValid() == true)
 			{
-				
-				if (object->IsImplicit() == true)
-					a_flag |= OverloadFlag::TargetOpt;
 
-				type = *object->target;
+				if (object->IsImplicit() == true)
+					flags |= OverloadFlag::TargetOpt;
+
+				this_type = *object->target;
 
 			}
 
-			OverloadFlag flag = a_flag;
+			OverloadEntry tar;
+			tar.index = -1;
 
+			if (param->MatchImpliedEntry(tar, this_type, scope, out, -1, -1, flags) == false) {
+				return OverloadBias::kFailure;
+			}
 
-			OverloadEntry tar = clause->MatchSuggestedEntry(type, scope, -1, -1, flag);
-			//object->flag
+			//out.target = tar.entry.type;
+			if (tar.type && out.EmplaceEntry(tar, this_type, scope) == false) {
+				return OverloadBias::kFailure;
+			}
 
-			if (flag & OverloadFlag::Failure)
-				return MatchFailure(a_flag, prev);
+			out.target = tar.type;
+			out.param = param;
 
-
-			//Also a thought, [this] is a parameter too. Granted a hidden one.
-
-			overload.target = tar.type;
-			overload.clause = clause;
-
-			constexpr auto offset_placeholder = 0;
 
 			int winner = 0;
 
-			for (int i = 0; i < paramInput.size(); i++)
+
+			for (int i = 0; i < implied.size(); i++)
 			{
-				QualifiedType input = paramInput[i];
+				auto& pair = implied[i];
 
-				OverloadEntry entry = clause->MatchSuggestedEntry(input, scope, offset_placeholder, i, flag);
-
-				if (flag & OverloadFlag::Failure)
-					return MatchFailure(a_flag, prev);
+				QualifiedType type = pair.first;
+				auto offset = pair.second;
 
 
+				OverloadEntry entry;
+
+				if (param->MatchImpliedEntry(entry, type, scope, out, i, offset, flags) == false) {
+					//Needs to send the given issue object
+					return OverloadBias::kFailure;
+				}
 
 				//entry.funcs = conversion;
 				//entry.type = input;
 				//entry.index = index;
 
 				//Compare should this input-> prev vs entry
-				auto new_winner = prev->SafeCompare(i, entry, input);
+				auto new_winner = prev->SafeCompare(entry, type);
 
 				if (!winner)
 					winner = new_winner;
-				else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
-				{// shit isn't valid anymore.
-					return MatchAmbiguous(a_flag);
+
+				else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1) {// shit isn't valid anymore.
+					return OverloadBias::kAmbiguous;
 				}
 
+				//out.implied.push_back(temp.entry);
 
-				overload.given.push_back(entry);
+				if (out.EmplaceEntry(entry, type, scope) == false) {
+					return OverloadBias::kFailure;
+				}
 			}
 
-			auto it = defaultInput.begin();
 
-			for (int i = 0; it != defaultInput.end(); i++, it++)
+			for (auto& [name, sol] : stated)
 			{
-				QualifiedType input = it->second;
+				OverloadEntry entry;
+				//Some new flags should be used here I believe.
+				if (param->MatchStatedEntry(entry, sol, scope, out, name, flags) == false) {
+					//Needs to send the given issue object
+					return OverloadBias::kFailure;
+				}
 
-				OverloadEntry entry = clause->MatchDefaultEntry(input, scope, it->first, flag);
-
-				if (flag & OverloadFlag::Failure)
-					return MatchFailure(a_flag, prev);
-
-
-				//entry.funcs = conversion;
-				//entry.type = input->second;
-				//entry.index = index;
-
-
-				auto new_winner = prev->SafeCompare(it->first, entry, input);
+				auto new_winner = prev->SafeCompare(name, entry, sol);
 
 				if (!winner)
 					winner = new_winner;
-				else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1)
-				{// shit isn't valid anymore.
-					return MatchAmbiguous(a_flag);
+
+				else if (winner < 0 && new_winner > 1 || winner > 0 && new_winner < 1) {// shit isn't valid anymore.
+					return OverloadBias::kAmbiguous;
 				}
 
+				if (out.EmplaceEntry(entry, sol, scope, name) == false) {
+					return OverloadBias::kFailure;
+				}
+			}
 
-				overload.defaults[it->first] = entry;
+#pragma endregion
+
+			if (out.IsValid() == false) {
+				return OverloadBias::kFailure;
 			}
 
 
-			if (!winner){
-				winner = prev->SafeCompare(-1, tar, type);
+			if (!winner) {
+				winner = prev->SafeCompare(tar, this_type);
 			}
-
 
 
 			if (winner > 0) {
 				logger::trace("right winner");
 				//This is just failure tbh, doing so means I don't need to use move or set the pointer.
-				return *prev;
+				return OverloadBias::kPrevious;
 			}
 			else if (winner < 0) {
 				logger::trace("left winner");
-				return overload;
+				return OverloadBias::kCurrent;
 			}
 			else {
-				logger::trace("no winner {}" , prev != nullptr);
-				return MatchAmbiguous(a_flag);
+				logger::trace("no winner {}", prev != nullptr);
+				return OverloadBias::kAmbiguous;
 			}
+
+
 
 		}
 
 
-
-
+		//Note to self, maintain using using Solutions. Later passed friendship is a thing that I use.
+		// Additionally, if I go that way I want to find a way that inputting types in generic spaces that private inheritance from
+		// telling it no when temporary friendship has been given.
 
 		TargetObject* object = nullptr;
-		std::vector<ITypeInfo*>			genericInput;
-		
-		//On reflection, this doesn't expressly need to be a solution, just a qualified type. This can help with syntax that
-		// parses which overload to use by showing which function is being used.
-		std::vector<Solution>				paramInput;
-		std::map<std::string, Solution>		defaultInput;//rename
+
+		//I'd like to order all these vectors in a much more friendly way.
+		std::vector<std::pair<ITypeInfo*, size_t>>			specialImplied;
+		std::unordered_map<std::string, std::vector<ITypeInfo*>> specialStated;
+
+
+		std::vector<std::pair<Solution, size_t>> implied;
+		std::map<std::string, Solution> stated;//The stated can possibly declare an array/tuple. For this
+
+
 	};
+
 
 }

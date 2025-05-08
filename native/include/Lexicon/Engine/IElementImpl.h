@@ -8,7 +8,7 @@ namespace LEX
 	class Project;
 	struct Element;
 	struct Environment;
-	struct OverloadKey;
+	struct OverloadArgument;
 
 	template <std::derived_from<IElement> Base>
 	struct IElementBase : public Base
@@ -26,7 +26,7 @@ namespace LEX
 		virtual Project* GetProject() = 0;
 		virtual IElement* GetParent() = 0;
 		virtual Environment* GetEnvironment() = 0;
-		virtual Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) = 0;
+		virtual Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) = 0;
 		virtual Script* GetCommons() = 0;
 	};
 

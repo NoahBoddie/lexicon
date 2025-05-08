@@ -204,7 +204,7 @@ namespace LEX
 		return result;
 	}
 
-	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadKey* sign)
+	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadArgument* sign)
 	{
 		//I feel like searching for a general element should be reusing this.
 		SyntaxRecord path_record;
@@ -309,10 +309,8 @@ namespace LEX
 	}
 
 
-	size_t Element::CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret)
+	size_t Element::CheckOverload(OverloadArgument& input, std::vector<FunctionInfo*> clauses, Overload& ret)
 	{
-		Overload out;
-
 		Overload* last = nullptr;
 
 		size_t result = -1;
@@ -321,38 +319,39 @@ namespace LEX
 		{
 			auto clause = clauses[i];
 
-			OverloadFlag flags = OverloadFlag::None;
+			Overload buffer;
 
-			Overload overload = input.Match(clause, nullptr, last, flags);
-
-			if (flags & OverloadFlag::Failure) {
-				logger::info("Failure");
-				continue;
+			if (clause->GetFieldName() == "TestNumber")
+			{
+				logger::info("im in");
 			}
 
-			result = i;
+			auto bias = input.Match(clauses[i], nullptr, buffer, last);
+				
+			switch (bias)
+			{
+			case OverloadBias::kAmbiguous:
+				result = -1;
+				break;
 
-			if (flags & OverloadFlag::Ambiguous) {
-				logger::info("Ambiguous");
-				last = nullptr;
+			case OverloadBias::kCurrent:
+				ret = std::move(buffer);
+				last = &ret;
+				result = i;
 				break;
 			}
-
-
-			out = std::move(overload);
-
-			last = &out;
 		}
 
-		if (last)
-			ret = *last;//this should move
+		//if (last)
+		//	ret = *last;//this should move
 
-		return last ? result : -1;
+		//return last ? result : -1;
+		return result;
 	}
 
 
 
-	FunctionNode Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out)
+	FunctionNode Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key, Overload& out)
 	{
 		FunctionNode result;
 
@@ -387,7 +386,7 @@ namespace LEX
 
 					if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
 					{
-						auto info = static_cast<FunctionInfo*>(out.clause);
+						auto info = static_cast<FunctionInfo*>(out.param);
 
 						auto pair = std::find_if(genericList.begin(), genericList.end(), [index](auto& it) {return index < it.first; });
 

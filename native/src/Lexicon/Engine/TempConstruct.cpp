@@ -1279,7 +1279,7 @@ namespace LEX
 
 			TargetObject* self = compiler->GetTarget();
 
-			std::vector<Solution> args;
+			std::vector<std::pair<Solution, size_t>> args;
 			std::vector<std::vector<Operation>> operations;
 
 			int64_t alloc_size = arg_record->size();
@@ -1288,7 +1288,7 @@ namespace LEX
 			args.resize(alloc_size);
 			operations.resize(alloc_size);
 
-
+			//static_assert(false, "Some error in judgement has caused this to not produce an argument to be loaded. Address plz");
 
 			//At a later point, one will get the ability to define default arg out of order, via the below:
 			// function(arg1, arg2, def_param4 = arg3);
@@ -1316,7 +1316,7 @@ namespace LEX
 
 				//compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
 
-				args[i] = result;
+				args[i] = std::make_pair(result, 0);
 
 				i++;
 			}
@@ -1328,9 +1328,11 @@ namespace LEX
 
 			OverloadInput input;
 			input.object = self;
-			input.paramInput = args;//can probably move here.
+			input.implied = args;//can probably move here.
 
 			Overload instructions;
+
+			
 
 			//Around here, you'd use the args.
 			FunctionNode node = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
@@ -1367,7 +1369,9 @@ namespace LEX
 
 			bool has_tar = func->GetTargetType();
 
-			alloc_size += instructions.defaults.size() + has_tar;
+			//alloc_size = instructions.implied.size() + has_tar;
+			alloc_size = instructions.implied.size();
+			alloc_size += has_tar;
 
 			auto& list = compiler->GetOperationList();
 
@@ -1385,8 +1389,8 @@ namespace LEX
 
 			for (size_t i = 0; i < args.size(); i++)
 			{
-				auto& o_entry = instructions.given[i];
-				auto& arg = args[i];
+				auto& o_entry = instructions.implied[i];
+				auto& arg = args[i].first;
 				auto& ops = operations[i];
 
 				list.append_range(std::move(ops));

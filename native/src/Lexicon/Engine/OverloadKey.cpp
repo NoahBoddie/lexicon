@@ -5,8 +5,8 @@
 
 namespace LEX
 {
-	QualifiedType OverloadKey::GetTarget() const
-	{
-		return {};
-	}
+	//QualifiedType OverloadArgument::GetTarget() const
+	//{
+	//	return {};
+	//}
 }

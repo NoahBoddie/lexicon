@@ -108,7 +108,7 @@ namespace LEX
 		}
 
 
-		ITemplatePart* GetSpecialPart() override
+		ITemplatePart* GetTemplatePart() override
 		{
 			//This exists so someone can get the part of a generic type, either before or after specializing.
 			return this;

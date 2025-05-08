@@ -9,7 +9,7 @@ namespace LEX
 {
 
 
-	class FunctionBase : public SecondaryElement, public OverloadClause, public FunctionData
+	class FunctionBase : public SecondaryElement, public OverloadParameter, public FunctionData
 	{
 	public:
 		virtual IFunction* AsFunction() = 0;
@@ -48,28 +48,230 @@ namespace LEX
 		
 #pragma region Clause
 
-		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
+		void CheckDefault(size_t index, size_t offset, OverloadFlag& flags)
 		{
-			return FunctionData::CanMatch(type, suggested, optional, flag);
+			if (defaultIndex <= index && !offset) {
+
+				flags |= OverloadFlag::DefFilled;
+			}
+		}
+		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags) override
+		{
+			if (target) {
+				logger::info("Names {} vs {}", target->GetName(), _returnType->GetName());
+
+				if (target != _returnType)
+					return false;
+			}
+
+			//This isn't necessary
+			//if (flags & OverloadFlag::StatesArgument && GetArgCountReq() < callArgs) {
+			//	logger::debug("uses more than required but also states");
+			//	return false;
+			//}
+
+
+			if (flags & OverloadFlag::StatesArgument && defaultIndex == -1)// || tempArgs.second
+			{
+				logger::debug("uses optionals");
+				return false;
+			}
+
+			auto required = GetArgCountReq();
+
+			if (required > callArgs) {
+				logger::debug("uses param diff {} vs {}", required, callArgs);
+				return false;
+			}
+
+			auto max = GetArgCountMax();
+
+			if (max < callArgs) {
+				logger::debug("uses more than max {} vs {}", max, callArgs);
+				return false;
+			}
+
+
+			return true;
 		}
 
 
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypeInfo* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
 		{
-			return FunctionData::MatchSuggestedEntry(type, scope, offset, index, flags);
+			//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
+			if (index != -1 && GetArgCountMax() <= index)
+			{
+				logger::critical("Failure to evaluate");
+				return false;
+			}
+
+			CheckDefault(index, offset, flags);
+
+			ParameterInfo* subject = FindParameterByPos(index);
+
+
+
+
+			QualifiedType sub_type = subject->FetchQualifiedType();
+
+
+
+			ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
+
+			if (flags & OverloadFlag::AllAccess) {
+				con_flags |= ConversionFlag::IgnoreAccess;
+			}
+
+
+
+			if (type && sub_type)
+			{
+				/*
+				if constexpr (0)
+					if (auto temp = sub_type->AsTemplate()) {
+						if (auto type = overload.GetManualTemplateType(temp->index); type) {
+							logger::info("template type already placed");
+							sub_type.policy = type;
+						}
+					}
+				//*/
+
+				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
+
+				out.convertType = convertType;
+
+				if (convertType <= ConversionEnum::Failure) {
+					return false;
+				}
+
+
+				//out.convertType = ConversionEnum::TypeDefined;
+				out.index = subject->GetFieldIndex();
+				out.type = sub_type;
+			}
+			else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
+			{
+				//This bit will need to change, as you may be able to access static functions from a member function.
+				out.convertType = ConversionEnum::Exact;
+				out.index = -1;
+			}
+			else
+			{
+
+				out.convertType = ConversionResult::Ineligible;
+				out.index = -1;
+				return false;
+			}
+
+			return true;
 
 		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypeInfo* scope, std::string name, OverloadFlag& flags) override
+
+		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) override
 		{
-			return FunctionData::MatchDefaultEntry(type, scope, name, flags);
+
+
+			//I'd maybe like to rework this VariableInfo to work like this.
+
+			//ParameterInfo* subject = index != -1 ?
+			//	&parameters[index + HasTarget()] : HasTarget() ?
+			//	&parameters[0] : nullptr;
+
+			ParameterInfo* subject = FindParameter(name);
+
+			if (!subject) {
+				report::failure("Couldn't find parameter '{}'.", name);
+				return false;
+			}
+
+			if (subject->IsOptional() == false) {
+				report::failure("Parameter '{}' isn't optional.", name);
+				return false;
+			}
+
+			QualifiedType sub_type = subject->FetchQualifiedType();
+
+
+
+			ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
+
+			if (flags & OverloadFlag::AllAccess) {
+				con_flags |= ConversionFlag::IgnoreAccess;
+			}
+
+
+
+			if (type && sub_type)
+			{
+				//TODO: I'm not sure if I actually want to do this, C++ doesn't do it largely because it's not possible to tell which is actually prefered
+				/*
+				if constexpr (0)
+					if (auto temp = sub_type->AsTemplate()) {
+						if (auto type = overload.GetManualTemplateType(temp->index); type) {
+							logger::info("template type already placed");
+							sub_type.policy = type;
+						}
+					}
+				//*/
+
+
+				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
+
+				out.convertType = convertType;
+
+				out.index = subject->GetFieldIndex();
+				out.type = sub_type;
+
+				if (convertType <= ConversionEnum::Failure) {
+					return false;
+				}
+
+			}
+			else
+			{
+
+				out.convertType = ConversionResult::Ineligible;
+				out.index = subject->GetFieldIndex();
+				return false;
+			}
+
+			return true;
 		}
 
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypeInfo* scope, OverloadFlag& flags) override
+
+		void ResolveOverload(Overload& result, OverloadFlag& flags)
 		{
-			return FunctionData::ResolveEntries(entries, scope, flags);
+			auto& call_args = result.implied;
+
+			call_args.resize(parameters.size());
+
+
+			for (auto i = defaultIndex; i < call_args.size(); i++)
+			{
+				auto& entry = call_args[i];
+
+				if (entry.type) {
+					continue;
+				}
+
+				report::critical("Cant handle this yet.");
+
+
+				auto& param = parameters[i];
+
+
+				RoutineBase* def_routine = nullptr;
+
+				entry.routine = def_routine;
+				entry.convertType = ConversionEnum::Exact;
+				entry.type = param.GetQualifiedType();
+				entry.index = param.GetFieldIndex();
+			}
 		}
+
+
+
+
 
 #pragma endregion
 

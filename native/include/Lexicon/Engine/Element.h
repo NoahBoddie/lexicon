@@ -83,9 +83,9 @@ namespace LEX
 
 
 
-		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadKey* sign = nullptr);
+		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadArgument* sign = nullptr);
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
 		{ 
 			return GetElementFromPath(this, path, elem, sign);
 		}
@@ -133,23 +133,23 @@ namespace LEX
 
 
 
-		static size_t CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
+		static size_t CheckOverload(OverloadArgument& input, std::vector<FunctionInfo*> clauses, Overload& ret);
 
 
 		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 
 		// to handle multiple different functions.
-		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out);
+		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key, Overload& out);
 
-		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key)
+		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key)
 		{
 			Overload out{};
 			auto result = SearchFunctionPath(a_this, path, key, out);
 			return result;
 		}
 
-		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadKey& key, Overload& out) { return SearchFunctionPath(this, path, key, out); }
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadArgument& key, Overload& out) { return SearchFunctionPath(this, path, key, out); }
 
-		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadKey& key) { return SearchFunctionPath(this, path, key); }
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadArgument& key) { return SearchFunctionPath(this, path, key); }
 
 
 

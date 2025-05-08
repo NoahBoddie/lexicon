@@ -24,49 +24,26 @@ namespace LEX
 
 
 
-	struct OverloadClause : public OverloadKey
+
+	struct OverloadParameter : public OverloadArgument
 	{//The parameter side of the overload.
 
 
-		virtual Overload Match(OverloadClause*, ITypeInfo* scope, Overload* prev, OverloadFlag& flag)
+		virtual OverloadBias Match(OverloadParameter*, ITypeInfo* scope, Overload& out, Overload* prev)
 		{
-			//This should use a similar type of match that signature uses.
-			flag |= OverloadFlag::Ambiguous;
-			return {};
+			return OverloadBias::kFailure;
 		}
 
+		virtual bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag) = 0;
+
+		virtual bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) = 0;
+		virtual bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) = 0;
 
 
-		//TrueName: CanMatch
-		//QualifiedType should only be used if it is available.
-		virtual bool CanMatch(QualifiedType, size_t suggested, size_t optional, OverloadFlag) = 0;
-
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
-		virtual OverloadEntry MatchSuggestedEntry(QualifiedType, ITypeInfo* scope, size_t offset, size_t index, OverloadFlag& flags) = 0;
-		virtual OverloadEntry MatchDefaultEntry(QualifiedType, ITypeInfo* scope, std::string name, OverloadFlag& flags) = 0;
-		//^ I'm thinking of having an extra parameter to show if I mean generic args or not.
+		virtual void QualifyOverload(Overload& overload) {}
 
 
-		//This should only be called on the winnning one.
-		//This should actually accept the Overload comparison object, as that can represent optional parameter pack values as well.
-
-		virtual std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypeInfo* scope, OverloadFlag& flags) = 0;
-		//After this is used, it should be resized.
-
-
-		//This is missing the ability to process default stuff.
-
-		//Basically it needs the information to be able to edit
-		// OverloadEntry can possibly be instructions as overload stuff. The idea being that it also outputs where a given portion of data is supposed to go.
-		// To do this, I could use solutions as to not corrupt what is given.
-		//But having it like this also allows for more freedom in terms of loading into shit.
-
-
-		//Also, the place where OverloadInputs get loaded shouldn't try to move register data around. Instead, it should have vectors of instruction lists.
-		// Then, I should free each individually.
-
-		//virtual Void EvaluateDefault(std::vector)
+		virtual void ResolveOverload(Overload& entries, OverloadFlag& flags) = 0;
 	};
 
 }

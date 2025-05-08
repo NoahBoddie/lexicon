@@ -22,7 +22,7 @@ namespace LEX
 		ITypeInfo* info = nullptr;
 	};
 
-	class TypeBase : public SecondaryEnvironment, public OverloadClause, public PolicyData
+	class TypeBase : public SecondaryEnvironment, public OverloadParameter, public PolicyData
 	{//TypeBase Might not even use clauses directly. We shall see.
 
 	private:
@@ -85,27 +85,16 @@ namespace LEX
 
 		/*/
 
-		bool CanMatch(QualifiedType, size_t suggested, size_t optional, OverloadFlag flag) override
-		{
-			return false;
-		}
-
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypeInfo* scope, OverloadFlag& flags) override
-		{
-			return {};
-		}
 
 
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypeInfo* scope, size_t offset, size_t index, OverloadFlag& flags) override
-		{
-			flags |= OverloadFlag::Failure;
-			return {};
-		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypeInfo* scope, std::string name, OverloadFlag& flags) override
-		{
-			flags |= OverloadFlag::Failure;
-			return {};
-		}
+		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag) override
+		{return false;}
+		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
+		{return false;}
+		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags)override
+		{return false;}
+		void QualifyOverload(Overload& overload) override {}
+		void ResolveOverload(Overload& entries, OverloadFlag& flags) override {}
 		//*/
 		//~
 

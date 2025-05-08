@@ -19,7 +19,7 @@ namespace LEX
 		//May make a GetAt by default but still allow overriding with virtual
 		//virtual std::vector<TypeInfo*> GetParameters() = 0;
 
-		bool IsResolved() const override final { return true; }
+		bool IsResolved() const override { return true; }
 
 		virtual bool IsGeneric() const { return false; }
 		

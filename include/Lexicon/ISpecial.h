@@ -25,7 +25,7 @@ namespace LEX
 		virtual bool IsResolved() const = 0;
 
 
-		virtual ITemplatePart* GetSpecialPart()
+		virtual ITemplatePart* GetTemplatePart()
 		{
 			//This exists so someone can get the part of a generic type, either before or after specializing.
 			return nullptr;

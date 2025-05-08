@@ -2,23 +2,19 @@
 
 #include "OverloadFlag.h"
 
-
+#include "Lexicon/Engine/Overload.h"
 
 namespace LEX
 {
 	struct Overload;
-	struct OverloadClause;
+	struct OverloadParameter;
 	struct ITypeInfo;
 	struct QualifiedType;
-	
-	struct OverloadKey
+
+	struct OverloadArgument
 	{//The argument side of the overload.
 
-		virtual QualifiedType GetTarget() const;
-
-		//True name: TryMatch
-		virtual Overload Match(OverloadClause*, ITypeInfo* scope, Overload* prev, OverloadFlag& flag) = 0;
-
+		virtual OverloadBias Match(OverloadParameter*, ITypeInfo* scope, Overload& out, Overload* prev) = 0;
 
 	};
 

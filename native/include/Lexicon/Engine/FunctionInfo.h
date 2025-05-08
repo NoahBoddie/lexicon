@@ -9,7 +9,7 @@ namespace LEX
 
 
 
-	struct FunctionInfo : public MemberInfo, public OverloadClause
+	struct FunctionInfo : public MemberInfo, public OverloadParameter
 	{
 		using FunctionType = FunctionBase;
 		
@@ -88,30 +88,33 @@ namespace LEX
 		}
 
 
-		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
+
+		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags) override
 		{
-			return signature->CanMatch(type, suggested, optional, flag);
+			return signature->CanMatch(target, callArgs, tempArgs, flags);
+		}
+
+		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
+		{
+			return signature->MatchImpliedEntry(out, type, scope, overload, index, offset, flags);
 		}
 
 
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypeInfo* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) override
 		{
-			return signature->MatchSuggestedEntry(type, scope, offset, index, flags);
-
-		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypeInfo* scope, std::string name, OverloadFlag& flags) override
-		{
-			return signature->MatchDefaultEntry(type, scope, name, flags);
-		}
-
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypeInfo* scope, OverloadFlag& flags) override
-		{
-			return signature->ResolveEntries(entries, scope, flags);
+			return signature->MatchStatedEntry(out, type, scope, overload, name, flags);
 		}
 
 
+		void QualifyOverload(Overload& overload) override
+		{
+			return signature->QualifyOverload(overload);
+		}
+
+		void ResolveOverload(Overload& entries, OverloadFlag& flags) override
+		{
+			return signature->ResolveOverload(entries, flags);
+		}
 	};
 
 

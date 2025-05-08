@@ -42,7 +42,7 @@ namespace LEX
 	struct ConcreteType;
 
 	struct Overload;
-	struct OverloadKey;
+	struct OverloadArgument;
 
 	//For now, this is just a fucking dummy class, as nothing uses it, but it's here to remind myself of it. For now.
 	class CompilerMemory;
@@ -258,9 +258,6 @@ namespace LEX
 		// Includes and Imports, and I'll just compile all of their functions. These import functions are not nested. From there, I'll just have a wrapper function handle the 
 		// nested getting.
 
-
-		//This is in Environment.cpp, needs to be moved out.
-		bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
 
 
 

@@ -192,9 +192,9 @@ namespace LEX
 
 		ITypeInfo* SearchTypePath(SyntaxRecord& _path);
 
-		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out);
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadArgument& input, Overload& out);
 
-		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadKey* key = nullptr);
+		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadArgument* key = nullptr);
 
 
 		Scope* parent() { return _parent; }

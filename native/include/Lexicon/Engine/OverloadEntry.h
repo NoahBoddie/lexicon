@@ -7,12 +7,10 @@
 
 namespace LEX
 {
-	//TODO:Delete me
-	struct FakeType;
 
 	struct HierarchyData;
 
-	//struct RoutineBase;
+	struct RoutineBase;
 
 	struct OverloadCode
 	{
@@ -37,13 +35,13 @@ namespace LEX
 	{
 		//I'd care about the padding and stuff here but its so small I do not care.
 
-		QualifiedType type;//Only qualified because the going to place isn't important for 
+		QualifiedType type;
 		Conversion convert;
-		ConvertResult convertType;
 		OverloadCode code;
-
+		ConvertResult convertType = ConversionResult::Ineligible;
 		size_t index;//The guide of where to put the given entries routine information.
 
+		RoutineBase* routine = nullptr;
 
 		QualifiedType Sanitize(const QualifiedType& type)
 		{

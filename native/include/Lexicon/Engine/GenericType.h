@@ -47,7 +47,7 @@ namespace LEX
 			return __super::ObtainPart(args);
 		}
 
-		ITemplatePart* GetSpecialPart() override
+		ITemplatePart* GetTemplatePart() override
 		{
 			return this;
 		}
