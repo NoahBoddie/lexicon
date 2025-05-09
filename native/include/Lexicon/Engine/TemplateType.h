@@ -33,7 +33,7 @@ namespace LEX
 		std::string name;
 		size_t index = -1;
 		TemplateTuple* _tupleData = nullptr;
-		TemplateType(std::string n, size_t i) : name{ n }, index{ i } {};
+		TemplateType(const std::string_view& n, size_t i) : name{ n }, index{ i } {};
 
 		//TODO: TemplateType needs it's fucking specializable I'm fucking off
 		ISpecializable* GetSpecializable() override { return nullptr; }

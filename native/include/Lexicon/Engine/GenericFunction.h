@@ -17,6 +17,18 @@ namespace LEX
 			base = this;
 		}
 
+		GenericBase* AsGenericElement() override
+		{
+			return this;
+		}
+
+
+		LinkResult OnLink(LinkFlag flags) override;
+
+
+
+
+
 		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
 
 

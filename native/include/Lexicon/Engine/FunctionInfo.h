@@ -111,7 +111,7 @@ namespace LEX
 			return signature->QualifyOverload(overload);
 		}
 
-		void ResolveOverload(Overload& entries, OverloadFlag& flags) override
+		bool ResolveOverload(Overload& entries, OverloadFlag& flags) override
 		{
 			return signature->ResolveOverload(entries, flags);
 		}

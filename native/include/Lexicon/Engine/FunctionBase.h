@@ -7,7 +7,7 @@
 #include "OverloadClause.h"
 namespace LEX
 {
-
+	class Runtime;
 
 	class FunctionBase : public SecondaryElement, public OverloadParameter, public FunctionData
 	{
@@ -16,7 +16,7 @@ namespace LEX
 		virtual const IFunction* AsFunction() const = 0;
 
 
-	private:
+	protected:
 
 		//This is a pivot for for functions, more important than anywhere else, this set up excludes formulas
 		// from being able to be stored in a function, or having the same linking
@@ -46,6 +46,13 @@ namespace LEX
 		virtual void SetReturnType(QualifiedType type);
 
 		
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def);
+
+
+
+
+
+
 #pragma region Clause
 
 		void CheckDefault(size_t index, size_t offset, OverloadFlag& flags)
@@ -239,7 +246,7 @@ namespace LEX
 		}
 
 
-		void ResolveOverload(Overload& result, OverloadFlag& flags)
+		bool ResolveOverload(Overload& result, OverloadFlag& flags)
 		{
 			auto& call_args = result.implied;
 
@@ -254,7 +261,7 @@ namespace LEX
 					continue;
 				}
 
-				report::critical("Cant handle this yet.");
+				//report::critical("Cant handle this yet.");
 
 
 				auto& param = parameters[i];
@@ -267,6 +274,8 @@ namespace LEX
 				entry.type = param.GetQualifiedType();
 				entry.index = param.GetFieldIndex();
 			}
+
+			return true;
 		}
 
 

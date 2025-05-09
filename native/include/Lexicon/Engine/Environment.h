@@ -92,9 +92,7 @@ namespace LEX
 	struct VariableInfo;
 
 	//change to unique pointer please
-	using FunctionContainer = std::vector<FunctionInfo*>;
-	using TypeContainer = TypeBase*;
-
+	
 
 
 	//I may not need to use IFunction for these because generic functions will carry around members, as they cannot 
@@ -116,7 +114,7 @@ namespace LEX
 			//>-------------------------
 			//This is for environment
 
-			std::map<std::string, FunctionContainer> functionMap;
+			std::map<std::string, std::vector<FunctionInfo*>> functionMap;
 
 			//>------------------------
 			//This is for classes.
@@ -133,7 +131,7 @@ namespace LEX
 		{
 			//>-------------------------
 			//This is for environment
-			std::map<std::string, TypeContainer> typeMap;
+			std::map<std::string, TypeBase*> typeMap;
 			std::vector<GlobalBase*> variables;//should be global variables
 
 
@@ -269,6 +267,9 @@ namespace LEX
 
 		void SetParent(Element* par) override;
 
+		void CreateFunction(SyntaxRecord& node);
+
+
 	protected:
 		//Actually not going to use this.
 		//virtual QualifiedField QualifyField(InfoBase* field);
@@ -282,12 +283,12 @@ namespace LEX
 		//>-------------------------
 		//This is for environment
 
-		std::map<std::string_view, FunctionContainer> functionMap;
+		std::map<std::string_view, std::vector<FunctionInfo*>> functionMap;
 
 
 		//>-------------------------
 		//This is for environment
-		std::map<std::string_view, TypeContainer> typeMap;
+		std::map<std::string_view, TypeBase*> typeMap;
 		//TODO: I need a class called policy base that will handle TypeBases. Basically it'd be something like what ITypeInfo is to ITypeInfo.
 		// largely, it'd serve as a good wrapper for type aliases or other types such as generic arguments.
 

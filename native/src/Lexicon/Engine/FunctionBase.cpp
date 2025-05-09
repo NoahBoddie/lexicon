@@ -6,6 +6,10 @@
 #include "Lexicon/Engine/RoutineCompiler.h"
 #include "Lexicon/Engine/TypeBase.h"
 
+#include "Lexicon/ProcedureData.h"
+
+#include "Lexicon/Engine/Runtime.h"
+
 #include "Lexicon/Engine/parse_strings.h"
 
 namespace LEX
@@ -190,6 +194,117 @@ namespace LEX
         //Needs to handle linking once when declaration happens 
         return LinkFlag::Declaration | LinkFlag::Definition;
     }
+
+
+    RuntimeVariable FunctionBase::BasicExecute(Function* self, ITemplateBody* body, api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
+    {
+        if (IsValid() == false) {
+            report::log("Function '{}' is not valid. Maybe say error later.", IssueType::Apply, def ? IssueLevel::Failure : IssueLevel::Error, GetName());
+
+            //disable this warning.
+
+            return *def;
+        }
+
+
+        Variable* target = nullptr;
+
+        if (args->size() != GetParamCount())
+            report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
+
+
+
+        VisitParameters([&](ParameterInfo& param)
+            {
+
+                //Cancelling this for now. It should be used in Invoke, rather than here.
+                return;
+                int i = param.GetFieldIndex();
+
+                TypeInfo* expected = param.GetType()->FetchTypePolicy(caller);
+
+
+                if (!expected)
+                    report::apply::critical("unexpected?");
+
+                RuntimeVariable check = args[i]->Convert(expected);
+
+                if (check.IsVoid() == true)
+                    report::apply::critical("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
+
+                args[i] = check;
+            });
+
+
+
+        RuntimeVariable result;
+
+        if (Procedure prod = GetProcedure(); prod)
+        {
+            ProcedureData data;
+
+            data.runtime = caller;
+            data.defOption = def;
+            data.function = self;
+
+            auto begin = args->begin();
+
+            std::vector<Variable*> send_args;
+
+            send_args.reserve(GetArgCount());
+
+            if (self->IsMethod() == true)
+            {
+                target = args[0].Ptr();
+                begin++;
+            }
+
+            std::transform(begin, args->end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
+
+            report _{ IssueType::Runtime };
+
+            prod(result, target, send_args, data);
+
+            if (result.IsRefNegated())
+            {
+                logger::debug("triggered");
+                void* ptr = result.Ptr();
+
+                for (auto& rvar : *args)
+                {
+                    if (rvar.Ptr() == ptr)
+                    {
+                        if (rvar.IsReference() == false) {
+                            report::fault::critical("Non-reference argument referenced in return.");
+                        }
+
+                        result = rvar.AsRef();
+
+                        break;
+                    }
+                }
+
+            }
+
+
+            for (auto& rvar : *args) {
+                rvar.TryUpdateRef();
+            }
+        }
+        else
+        {
+            Runtime runtime{ *GetRoutine(), args, caller, body };//The creation of caller yields 2 numbers that should not exist.
+
+            result = runtime.Run();
+
+            //verify
+
+            return result;
+        }
+
+        return result;
+    }
+
 
 
 }

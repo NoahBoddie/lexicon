@@ -113,6 +113,7 @@ namespace LEX::Impl
 			"import",
 			"as",
 			"typeof",
+			"generic",
 		};
 
 		inline static std::vector<std::string_view> _ConKeyCodes

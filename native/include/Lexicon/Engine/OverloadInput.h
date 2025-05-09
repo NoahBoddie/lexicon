@@ -169,6 +169,11 @@ namespace LEX
 
 #pragma endregion
 
+			flags &= ~OverloadFlag::Clearable;
+
+			if (param->ResolveOverload(out, flags) == false)
+				return OverloadBias::kFailure;
+
 			if (out.IsValid() == false) {
 				return OverloadBias::kFailure;
 			}

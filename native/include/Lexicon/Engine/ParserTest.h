@@ -1893,6 +1893,60 @@ namespace LEX::Impl
 
 
 
+		struct GenericParser : public AutoParser<GenericParser>
+		{
+			//The idea of this should be the lowest priority possible. It expects an identifier and if nothing else claims it then it's a field.
+
+
+			//uint32_t GetPriority() const override
+			//{
+			//	return ModulePriority::None;
+			//}
+
+			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			{
+				return !target && parser->IsType(TokenType::Keyword, "generic");
+			}
+
+
+
+
+
+			Record HandleToken(Parser* parser, Record*) override
+			{
+				auto generic = Parser::CreateExpression(parser->next(), SyntaxType::Header);
+
+				generic.GetTag() = parse_strings::generic;
+
+
+				auto hits = parser->Delimited("<", ">", ",", [](Parser* parser) { return Parser::CreateExpression(parser->next(), SyntaxType::Identifier); });
+
+				generic.EmplaceChildren(std::move(hits));
+
+				auto target = parser->ParseExpression();
+
+				//check if it can use generic or not
+				switch (target.SYNTAX().type)
+				{
+				case SyntaxType::Function:
+				case SyntaxType::Variable:
+				case SyntaxType::Type:
+					break;
+
+				default:
+					report::parse::info("cannot make expression generic");
+				}
+
+				target.EmplaceChild(std::move(generic));
+
+				return target;
+			}
+
+			bool IsAtomic() const override { return true; }
+
+
+		};
+
 
 
 

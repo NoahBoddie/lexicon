@@ -94,7 +94,7 @@ namespace LEX
 		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags)override
 		{return false;}
 		void QualifyOverload(Overload& overload) override {}
-		void ResolveOverload(Overload& entries, OverloadFlag& flags) override {}
+		bool ResolveOverload(Overload& entries, OverloadFlag& flags) override { return true; }
 		//*/
 		//~
 

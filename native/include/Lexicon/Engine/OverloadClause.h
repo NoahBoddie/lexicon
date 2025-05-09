@@ -43,7 +43,7 @@ namespace LEX
 		virtual void QualifyOverload(Overload& overload) {}
 
 
-		virtual void ResolveOverload(Overload& entries, OverloadFlag& flags) = 0;
+		virtual bool ResolveOverload(Overload& entries, OverloadFlag& flags) = 0;
 	};
 
 }

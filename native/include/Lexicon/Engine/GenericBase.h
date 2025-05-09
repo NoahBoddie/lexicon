@@ -171,7 +171,7 @@ namespace LEX
 		}
 
 
-		TemplateType* GetTemplateByName(std::string_view name)
+		TemplateType* GetTemplateByName(const std::string_view& name)
 		{
 			for (auto& temp_type : _templates)
 			{
@@ -190,6 +190,12 @@ namespace LEX
 			return _templates;
 		}
 
+
+		void AddTemplate(const std::string_view& name)//Might have types later
+		{
+			auto& temp = _templates.emplace_back(name, _templates.size());
+			temp.HandleInheritance();
+		}
 
 		//For when something inherits from one and falls into the other?
 		//std::vector<uint32_t> inheritGroups{};

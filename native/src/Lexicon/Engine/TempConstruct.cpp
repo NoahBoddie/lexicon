@@ -1408,6 +1408,9 @@ namespace LEX
 
 			Operand function;
 
+
+			auto generic = node.GetFunction();
+
 			switch (node.type())
 			{
 			case FunctionNode::kFunction:
@@ -1428,8 +1431,8 @@ namespace LEX
 
 			compiler->ModArgCount(-alloc_size, -sub_alloc, false);
 
-			//TODO: The thing fed to the return type here should be the overload.
-			return Solution{ func->GetReturnType(nullptr), OperandType::Register, compiler->GetPrefered()};
+			//TODO: The return of call should probably handled by whatever generic element it has, the proposed plan that could handle members
+			return Solution{ func->GetReturnType(generic->GetTemplatePart()), OperandType::Register, compiler->GetPrefered()};
 		}
 
 

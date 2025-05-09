@@ -18,6 +18,7 @@
 #include "Lexicon/Engine/FunctionInfo.h"
 #include "Lexicon/Engine/VariableInfo.h"//For tests only
 //*src
+#include "Lexicon/Engine/GenericFunction.h"
 #include "Lexicon/Engine/ConcreteFunction.h"
 
 #include "Lexicon/Engine/GlobalVariable.h"
@@ -197,6 +198,22 @@ namespace LEX
 				DeclareParentTo(policy);
 			}
 
+		}
+
+		void Environment::CreateFunction(SyntaxRecord& node)
+		{
+			std::unique_ptr<FunctionBase> func;
+
+			if (IsGenericElement() || node.FindChild(parse_strings::generic) != nullptr) {
+				func = std::unique_ptr<FunctionBase>(Component::Create<GenericFunction>(node));
+			}
+			else {
+				func = std::unique_ptr<FunctionBase>(Component::Create<ConcreteFunction>(node));
+			}
+
+			AddFunction(func.get());
+
+			func.release();
 		}
 
 

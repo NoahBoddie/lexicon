@@ -5,17 +5,20 @@
 #include "Lexicon/Engine/SpecialBase.h"
 #include "Lexicon/Engine/GenericFunction.h"
 
+//*src
+#include "Lexicon/Engine/FunctionBase.h"
+
 namespace LEX
 {
 
 	struct SpecialFunction : public Function, public SpecialBase
 	{
-		IFunction* _self = nullptr;
+		FunctionBase* _self = nullptr;
 
-		SpecialFunction(GenericBase* base, IFunction* func, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ func }
-		{
-			report::info("NewBodyPart {}", (uintptr_t)this);
-		}
+		//SpecialFunction(GenericBase* base, IFunction* func, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ func }
+		//{
+		//	report::info("NewBodyPart {}", (uintptr_t)this);
+		//}
 
 		SpecialFunction(GenericFunction* base, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ base }
 		{
@@ -25,12 +28,12 @@ namespace LEX
 
 		//TODO: The below part about itself seems to maybe be possible to template away. If there's merit I'll do it. 
 		// For now, boilerplate. If it's not interface do it later
-		IFunction* GetSelf()
+		FunctionBase* GetSelf()
 		{
 			return _self;
 		}
 
-		const IFunction* GetSelf() const
+		const FunctionBase* GetSelf() const
 		{
 			return _self;
 		}
@@ -46,6 +49,7 @@ namespace LEX
 
 
 		virtual std::string_view GetName() const { return GetSelf()->GetName(); }
+
 
 
 
@@ -78,7 +82,11 @@ namespace LEX
 
 		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
 		{
-			report::fault::critical("SpecialFunction::Execute not implemented yet");
+			if (IsResolved() == false)
+				report::apply::error("Specialized function is not resolved");
+
+
+			return _self->BasicExecute(this, this, args, runtime, def);
 		}
 
 

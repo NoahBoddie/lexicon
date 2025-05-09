@@ -16,8 +16,8 @@
 
 #include "Lexicon/GenericArray.h"
 #include "Lexicon/Engine/QualifiedName.h"
-
-
+#include "Lexicon/Engine/GenericBase.h"
+#include "Lexicon/MergeTemplate.h"
 namespace LEX
 {
 
@@ -169,9 +169,21 @@ namespace LEX
 
 	TypeNode Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
 	{
+		if (a_this && _path.FindChild(parse_strings::path) == nullptr)
+		{
+			if (auto gen_elem = a_this->AsGenericElement())
+			{
+				if (auto temp = gen_elem->GetTemplateByName(_path.GetView())) {
+					return TypeNode{nullptr, temp };
+				}
+			}
+		}
+
+
+
 		TypeNode result;
 
-		SearchPathBase(a_this, _path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
+		SearchPathBase(a_this, _path, [&](std::vector<QualifiedName>& query) -> bool
 			{
 				for (auto& env : query)
 				{
@@ -321,7 +333,7 @@ namespace LEX
 
 			Overload buffer;
 
-			if (clause->GetFieldName() == "TestNumber")
+			if (clause->GetFieldName() == "TestGeneric")
 			{
 				logger::info("im in");
 			}
@@ -341,6 +353,10 @@ namespace LEX
 				break;
 			}
 		}
+
+		//if (last) {
+		//	last->param->ResolveOverload()
+		//}
 
 		//if (last)
 		//	ret = *last;//this should move
@@ -392,7 +408,10 @@ namespace LEX
 
 						//Index will be useless right now
 						//result = info->CreateNode(pair->second);
-						result = info->CreateNode(genericList[0].second);
+						MergeTemplate merger{ pair->second, out };
+
+						//result = info->CreateNode(genericList[0].second);
+						result = info->CreateNode(merger);
 						return true;
 					}
 

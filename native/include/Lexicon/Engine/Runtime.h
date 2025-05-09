@@ -119,20 +119,23 @@ namespace LEX
 		}
 
 
-		virtual size_t GetSize() const
+
+
+		virtual size_t GetSize() const override
 		{
-			return 0;
+			return _tempBody ? _tempBody->GetSize() : 0;
 		}
 
 
+		
 		ITypeInfo* GetPartArgument(size_t i) const override
 		{
-			return nullptr;
+			return _tempBody ? _tempBody->GetPartArgument(i) : nullptr;
 		}
 
 		TypeInfo* GetBodyArgument(size_t i) const override
 		{
-			return nullptr;
+			return _tempBody ? _tempBody->GetBodyArgument(i) : nullptr;
 		}
 
 	public:
@@ -168,13 +171,14 @@ namespace LEX
 		}
 		//*/
 		//Very temporary, delete me
-		Runtime(RoutineBase& base, container<RuntimeVariable> args, Runtime* caller) :
+		Runtime(RoutineBase& base, container<RuntimeVariable> args, Runtime* caller, ITemplateBody* body = nullptr) :
 			_data{ base }
 			//These accidently create numbers.
 			//, _varStack{ _data.GetVarCapacity() }
 			//, _argStack{ _data.GetArgCapacity() }
 			//, _psp{ 0 }
 			//, _vsp{ 0 }//The size should actually be based on the callable unit
+			, _tempBody { body }
 			, _caller{ caller }
 		{
 			//because this is temp, no resolution is fired.
@@ -242,6 +246,7 @@ namespace LEX
 		// Expand on when references become more important, as well as give it a fancy type to aide its struggles
 		void* _cxxStackIndex = nullptr;
 
+		ITemplateBody* _tempBody = nullptr;
 
 		size_t AdjustStackPointer(StackPointer type, int64_t step)
 		{

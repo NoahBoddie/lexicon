@@ -237,8 +237,7 @@ namespace LEX
 				flags |= OverloadFlag::DefFilled;
 			}
 		}
-		bool CanMatchConcrete(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags);
-
+		
 
 		bool MatchImpliedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
 
@@ -254,7 +253,7 @@ namespace LEX
 		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags);
 
 
-		void ResolveOverload(Overload& result, OverloadFlag& flags);
+		bool ResolveOverload(Overload& result, OverloadFlag& flags);
 
 
 

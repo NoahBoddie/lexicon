@@ -13,45 +13,6 @@
 
 namespace LEX
 {
-	bool FunctionData::CanMatchConcrete(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags)
-	{
-		if (target) {
-			logger::info("Names {} vs {}", target->GetName(), _returnType->GetName());
-
-			if (target != _returnType)
-				return false;
-		}
-
-		//This isn't necessary
-		//if (flags & OverloadFlag::StatesArgument && GetArgCountReq() < callArgs) {
-		//	logger::debug("uses more than required but also states");
-		//	return false;
-		//}
-
-
-		if (flags & OverloadFlag::StatesArgument && defaultIndex == -1)// || tempArgs.second
-		{
-			logger::debug("uses optionals");
-			return false;
-		}
-
-		auto required = GetArgCountReq();
-
-		if (required > callArgs) {
-			logger::debug("uses param diff {} vs {}", required, callArgs);
-			return false;
-		}
-
-		auto max = GetArgCountMax();
-
-		if (max < callArgs) {
-			logger::debug("uses more than max {} vs {}", max, callArgs);
-			return false;
-		}
-
-
-		return true;
-	}
 
 
 	bool FunctionData::MatchImpliedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags)
@@ -202,7 +163,57 @@ namespace LEX
 
 	bool FunctionData::CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags)
 	{
-		return CanMatchConcrete(target, callArgs, tempArgs, flags);
+		if (target) {
+			logger::info("Names {} vs {}", target->GetName(), _returnType->GetName());
+
+			if (target != _returnType)
+				return false;
+		}
+
+		//This isn't necessary
+		//if (flags & OverloadFlag::StatesArgument && GetArgCountReq() < callArgs) {
+		//	logger::debug("uses more than required but also states");
+		//	return false;
+		//}
+
+
+		if (flags & OverloadFlag::StatesArgument && defaultIndex == -1)// || tempArgs.second
+		{
+			logger::debug("uses optionals");
+			return false;
+		}
+
+		auto required = GetArgCountReq();
+
+		if (required > callArgs) {
+			logger::debug("uses param diff {} vs {}", required, callArgs);
+			return false;
+		}
+
+		auto max = GetArgCountMax();
+
+		if (max < callArgs) {
+			logger::debug("uses more than max {} vs {}", max, callArgs);
+			return false;
+		}
+
+		if (base)
+		{
+			/*
+			if (base->GetSize() != tempArgs)
+			{
+				report::failure("mismatch template sizes {} vs {}", base->GetSize(), tempArgs);
+				return false;
+			}
+			//*/
+		}
+		else if (tempArgs)
+		{
+			report::failure("Templates used on a non-template overload");
+			return false;
+		}
+
+		return true;
 	}
 
 	bool FunctionData::MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags)
@@ -314,11 +325,19 @@ namespace LEX
 	}
 
 
-	void FunctionData::ResolveOverload(Overload& result, OverloadFlag& flags)
+	bool FunctionData::ResolveOverload(Overload& result, OverloadFlag& flags)
 	{
+		//TODO: This needs to handle generics pls
+		for (auto [type, manual] : result.specialImplied)
+		{
+			if (!type)
+				return false;
+		}
+
 		auto& call_args = result.implied;
 
-		call_args.resize(parameters.size());
+		//careful about this resize
+		//call_args.resize(parameters.size());
 
 
 		for (auto i = defaultIndex; i < call_args.size(); i++)
@@ -340,8 +359,10 @@ namespace LEX
 			entry.routine = def_routine;
 			entry.convertType = ConversionEnum::Exact;
 			entry.type = param.GetQualifiedType();
-			entry.index = param.GetFieldIndex();
+			entry.index = (size_t)param.GetFieldIndex() - HasTarget();
 		}
+
+		return true;
 	}
 
 

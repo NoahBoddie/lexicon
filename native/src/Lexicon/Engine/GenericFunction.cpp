@@ -22,4 +22,30 @@ namespace LEX
 		return std::unique_ptr<SpecialBase>{ new SpecialFunction{ this, args } };
 	}
 
+
+
+
+    LinkResult GenericFunction::OnLink(LinkFlag flags)
+    {
+
+        SyntaxRecord& generic = *GetSyntaxTree()->FindChild(parse_strings::generic);
+
+        //I would cycle_switch but seems a bit shit.
+        switch (flags)
+        {
+        case LinkFlag::Declaration: {
+            for (auto& temp : generic.children()) {
+                AddTemplate(temp.GetView());
+            }
+        }
+        break;
+
+
+        }
+
+
+        return __super::OnLink(flags);
+    }
+
+
 }

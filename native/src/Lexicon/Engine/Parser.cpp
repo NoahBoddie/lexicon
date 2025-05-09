@@ -169,7 +169,11 @@ namespace LEX::Impl
 
 	bool Parser::IsType(TokenType type, std::string_view str) {
 		RecordData tok = tokenizer.peek();
-		return tok && tok.GetEnum<Token>().type == type && (str == "" || tok.GetTag() == str);
+
+		if (!tok)
+			return false;
+
+		return (type == TokenType::Invalid || tok.GetEnum<Token>().type == type) && (str == "" || tok.GetTag() == str);
 	}
 
 	bool Parser::WasType(TokenType type, std::string_view str) {
@@ -217,19 +221,19 @@ namespace LEX::Impl
 		
 		//if it's empty it will consume anything.
 		if (start.empty() == false)
-			SkipType(TokenType::Punctuation, start);
+			SkipType(TokenType::Invalid, start);
 		
 		while (tokenizer.eof() == false) {
 			//bool start = first;
 
-			if (IsType(TokenType::Punctuation, stop) == true) break;
+			if (IsType(TokenType::Invalid, stop) == true) break;
 
 			//RGL_LOG(debug, "skipping seperator '{}'", separator);
 
 			if (first) first = false; 
 			else if (separator) separator();
 
-			if (IsType(TokenType::Punctuation, stop) == true) break;
+			if (IsType(TokenType::Invalid, stop) == true) break;
 
 			//Thinking of using the second arg for something.
 			//Record entry = start && begin ? begin(this, nullptr) : func(this, nullptr);
@@ -243,7 +247,7 @@ namespace LEX::Impl
 			}
 		}
 
-		SkipType(TokenType::Punctuation, stop);
+		SkipType(TokenType::Invalid, stop);
 
 		return result;
 	}

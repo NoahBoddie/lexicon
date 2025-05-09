@@ -257,7 +257,9 @@ namespace LEX
 				//AddFunction(function);
 
 				//function->ConstructFromRecord(node);
-				AddFunction(Component::Create<ConcreteFunction>(node));
+				//AddFunction(Component::Create<ConcreteFunction>(node));
+
+				CreateFunction(node);
 				break;
 
 			}
