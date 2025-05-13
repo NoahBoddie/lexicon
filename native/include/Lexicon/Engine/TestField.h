@@ -125,6 +125,9 @@
 #include "Lexicon/Revariable.h"
 #include "Lexicon/Engine/SpecialFunction.h"
 #include "Lexicon/Engine/GenericFunction.h"
+
+
+
 namespace std
 {
 	template <class _Elem, class _Alloc>
@@ -163,18 +166,18 @@ namespace LEX
 			}
 
 			logger::info("{} = {}", routine, formula(15.0, 10.0, "fifth"));
-			
+
 			logger::info("2nd: {} = {}", routine, formula(15, 15, "fifthfourth"));
 		}
 
 		Formula<void(void)>::Create("otherTest() => otherTest() => otherTest() => otherTest()")();
-		
+
 
 		Formula<void>::RunDefault("otherTest() => otherTest() => otherTest()");
-		
+
 		std::system("pause");
 
-		
+
 		Voidable result = Formula<Voidable>::Run("(25).CouldBeLiterallyAnything()");
 
 		logger::critical("{}", result.PrintString());
@@ -197,7 +200,7 @@ namespace LEX
 
 	namespace FunctionalInlining
 	{
-		
+
 
 		//This will need a fair few things from the compiler in order to make this rigt. So I'm not dealing with it for right now.
 		inline InstructType preserve = InstructType::Invalid;
@@ -224,7 +227,8 @@ namespace LEX
 					if (reg != exception)
 						runtime->GetArgument(it + reg) = runtime->GetRegister(reg);
 				}
-			} else {
+			}
+			else {
 				size_t size = runtime->GetStackPointer(StackPointer::Argument);
 
 				size_t it = size - Register::Total;
@@ -382,8 +386,8 @@ namespace LEX
 #undef METHOD
 		//*/
 	}
-	
-	
+
+
 
 	namespace NumberNew
 	{
@@ -539,12 +543,12 @@ namespace LEX
 		//do something with values.
 	}
 
-	
+
 	class IntrinsicPolicy : public ConcreteType
 	{
 		//The concept of an intrinsic policy is first simply that intrinsic policies are the only 
 		// policies that can Claim a specific space. Think like how void would or something like that.
-			
+
 		//Second, further branches of it will be able to present default versions of things such as strings, numbers
 		// arrays, etc. This prevents us from having to carry the variable around in every single type despite not needing it.
 
@@ -558,9 +562,338 @@ namespace LEX
 	};
 
 
+	namespace EnumTesting
+	{
+
+		struct IEnumInfo : public TypeInfo
+		{
+			//All that enum info will need, is the ability to turn strings into numbers, and numbers into strings.
+
+			//In terms of reading and loading flags, I think what I'll likely do is have it filled one by one, submitting string_view
+			// to be filled by the info.
+
+
+			virtual bool GetEnumName(uint64_t value, std::string_view& out) const = 0;
+			virtual bool GetFlagName(uint64_t flags, uint8_t& pos, std::string_view& out) const = 0;//Keep calling til it returns false
+
+
+			virtual bool GetValue(const std::string_view& name, uint64_t& out) const = 0;
+
+			virtual bool GetNameAtIndex(size_t index, bool isFlag, std::string_view& out) const = 0;
+
+
+			virtual bool SetEnumValue(const std::string_view& name, uint64_t& value) const = 0;
+
+			virtual bool SetFlagValue(const std::span<std::string_view>& names, bool is_add, uint64_t& value) const = 0;
+			
+
+			//Pulls all flags. Must use if only trying to operate on flags.
+			virtual uint64_t GetAllFlags() const = 0;
+		};
+
+
+		using EnumTypeBase = PivotTypeBase<IEnumInfo>;
+
+
+		struct EnumInfo : public EnumTypeBase
+		{
+			//The idea of this being a type info is that I can instead use this when trying to assign enum members to each other.
+			struct EnumMember// : public TypeInfo
+			{
+				std::string_view name;
+				uint64_t useMask = -1;
+				size_t parindex = -1;
+			};
+
+			//static constexpr EnumMember defaultScope{ "default", -1 };
+
+			struct EnumEntry
+			{
+				std::string_view name;
+				uint64_t value{};
+				size_t parindex = -1;
+
+			};
+
+			//When it comes to operators, I'd like to manually have those here be only accessible if the enum has some flag values.
+
+
+			//I'd like it that enums can inherit
+
+
+			void AddEntry(const std::string_view& name, bool is_flag, std::optional<uint64_t> value)
+			{
+				if (!value)
+				{
+					//value = is_flag ? 
+				}
+			}
+
+			//This is the only one of these I need. The index is kinda not really needed other than to make this quicker
+			size_t nextValue = 0;
+
+			size_t incValue(bool is_flag)
+			{
+				size_t result;
+				
+				if (is_flag) {
+					auto width = std::bit_width(nextValue);
+
+					if (!nextValue || nextValue & (nextValue - 1)){
+						result = nextValue = 1 << (++width);
+					}
+
+					nextValue = 1 << (++width);
+				}
+				else
+				{
+					result = nextValue++;
+					return nextValue++;
+				}
+			}
+
+			uint32_t enumCount = 0;
+			uint32_t enumIndex = 0;
+
+
+			uint8_t flagCount = 0;//Only one of these really needs to be respected
+			uint8_t flagIndex = 0;
+
+			uint64_t enumBits = 0;
+			uint64_t flagBits = 0;
+
+
+			//This can actually be shortened to less than a byte if need be.
+			Size   size{ Size::Byte };
+			Signage   sign{ Signage::Unsigned };
+
+			std::vector<EnumMember> members;
+
+			std::vector<EnumEntry> entries;
+
+
+			//I can actually use the counts for the starting points and iterate through them. These should be ordered.
+			const EnumEntry* FindEntry(uint64_t value, std::optional<bool> isFlag) const
+			{
+
+				if (value) {
+			
+					for (auto i = isFlag.value_or(false) ? 0 : enumCount; i < isFlag.value_or(true) ? entries.size() : enumCount; i++)
+					{
+						auto& entry = entries[i];
+						if (entry.value == value)
+							return &entry;
+					}
+
+					//for (auto& entry : entries)
+					//{
+					//	if (entry.value == value && (!isFlag.has_value() || isFlag.value() == entry.isFlag))
+					//		return &entry;
+					//}
+				}
+				return nullptr;
+			}
+
+			const EnumEntry* FindEntry(const std::string_view& name, std::optional<bool> isFlag) const
+			{
+
+				if (name.empty() == false) {
+					for (auto i = isFlag.value_or(false) ? 0 : enumCount; i < isFlag.value_or(true) ? entries.size() : enumCount; i++)
+					{
+						auto& entry = entries[i];
+						if (entry.name == name)
+							return &entry;
+					}
+					
+					
+					//for (auto& entry : entries)
+					//{
+					//	if (entry.name == name && (!isFlag.has_value() || isFlag.value() == entry.isFlag))
+					//		return &entry;
+					//}
+				}
+				return nullptr;
+			}
+
+			const EnumEntry* GetEntry(size_t i, bool isFlag) const
+			{
+				if (isFlag)
+					i += enumCount;
+
+				if (entries.size() <= i)
+					return nullptr;
+
+				return &entries[i];
+			}
 
 
 
+
+			bool GetEnumName(uint64_t value, std::string_view& out) const override
+			{
+				value &= enumBits;
+				const EnumEntry* entry = FindEntry(value, false);
+
+				if (entry)
+					out = entry->name;
+
+				return entry;
+
+			}
+			bool GetFlagName(uint64_t flags, uint8_t& pos, std::string_view& out) const
+			{
+				while (pos <= sizeof(uint64_t))
+				{
+					if (auto value = (static_cast<uint64_t>(1) << pos++) & flags; value & flagBits)
+					{
+						const EnumEntry* entry = FindEntry(value, true);
+
+						out = entry->name;
+						return true;
+					}
+					//else if (value >= flagBits) return false;
+					
+				} 
+
+				return false;
+			}
+
+
+
+			bool GetValue(const std::string_view& name, uint64_t& out) const override
+			{
+				
+				const EnumEntry* entry = FindEntry(name, std::nullopt);
+
+				if (entry)
+					out = entry->value;
+
+				return entry;
+			}
+
+			bool GetNameAtIndex(size_t index, bool isFlag, std::string_view& out) const override
+			{
+				const EnumEntry* entry = GetEntry(index, isFlag);
+
+
+				if (entry)
+					out = entry->name;
+
+				return entry;
+			}
+
+			bool SetEnumValue(const std::string_view& name, uint64_t& out) const override
+			{
+
+				const EnumEntry* entry = FindEntry(name, true);
+
+
+				if (entry)
+					out = entry->value;
+
+				return entry;
+			}
+
+			bool SetFlagValue(const std::span<std::string_view>& names, bool is_add, uint64_t& out) const override
+			{
+				//returns false if only one of them fails
+
+				//Unsure if I want it to not work full stop  if one fails
+				uint64_t prox = out;
+				
+
+				for (auto& name : names)
+				{
+
+					const EnumEntry* entry = FindEntry(name, true);
+
+
+					if (!entry)
+						return false;
+
+					if (is_add)
+						prox |= entry->value;
+					else
+						prox &= entry->value;
+				}
+
+				out = prox;
+
+				return true;
+			}
+
+			//Pulls all flags. Must use if only trying to operate on flags.
+			uint64_t GetAllFlags() const override
+			{
+				return flagBits;
+			}
+
+		};
+
+		//Terms
+		//Enum-primary value
+		//Flags- secondary value
+		//Name- name of the enumeration
+		//Value- the number value.
+
+
+		struct BasicEnum
+		{
+			BasicEnum(IEnumInfo* info, const std::string_view& value)
+			{
+
+			}
+
+			uint64_t value = 0;
+			IEnumInfo* info = nullptr;
+
+
+			std::string_view GetEnumName()
+			{
+				std::string_view result;
+
+				if (info->GetEnumName(value, result) == false)
+					return "<Unknown>";
+
+				return result;
+			}
+
+			std::vector<std::string_view> GetFlagNames()
+			{
+				//Doing this in case it changes mid function
+				auto buff = value;
+
+				std::vector<std::string_view> result;
+
+				uint8_t index = 0;
+
+				while (true)
+				{
+					std::string_view entry;
+
+					if (info->GetFlagName(buff, index, entry) == false) {
+						break;
+					}
+
+					result.push_back(entry);
+
+				}
+
+
+				return result;
+			}
+
+		};
+
+		template <StringLiteral EnumName>
+		struct Enum : public BasicEnum
+		{
+			//Enum(const std::string_view& value)
+		};
+
+
+
+	}
 
 
 
@@ -828,6 +1161,9 @@ namespace Template
 	}
 
 
+
+
+	//Nothing highlights after this
 	template <typename T>
 	struct ContainerHelper
 	{
@@ -2290,6 +2626,7 @@ void foo()
 
 namespace LEX
 {
+	inline int tv = 1;
 	int& function(int t)
 	{
 		std::vector<int> m{ 1, 23, 4, 5, 6 };
@@ -2303,7 +2640,7 @@ namespace LEX
 		
 		//Some notice should be given, I think I'll largely make it ill advised to use such a thing.
 		
-		return t;
+		return tv;
 
 		
 	}
