@@ -201,6 +201,10 @@ namespace LEX
 		{
 			auto& refs = GetData().refs;
 			assert(refs);
+			
+			if (!refs)
+				report::fault::critical("Decrementing refs below 0.");
+
 			//logger::critical("dec {:X}", (uintptr_t)this);
 			return --refs;
 		}
