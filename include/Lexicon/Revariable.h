@@ -19,7 +19,7 @@ namespace LEX
 		void Collect(const void* entry, Variable* var)
 		{
 			//Make sure var is NOT an actual variable.
-			collection[entry] = RuntimeVariable::CreateTempRef(var);
+			collection[entry] = std::ref(*var);
 		}
 
 

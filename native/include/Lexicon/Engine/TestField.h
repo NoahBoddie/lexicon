@@ -34,7 +34,6 @@
 #include "Lexicon/Engine/OperatorType.h"
 #include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/RuntimeVariable.h"
-#include "Lexicon/IVariable.h"
 #include "Lexicon/Engine/GlobalVariable.h"
 #include "Lexicon/Engine/Literal.h"
 #include "Lexicon/Engine/LiteralManager.h"
@@ -42,10 +41,8 @@
 #include "Lexicon/Engine/Solution.h"
 #include "Lexicon/Engine/RoutineBase.h"
 #include "Lexicon/Engine/Operation.h"
-#include "Lexicon/Engine/Operand.h"
 #include "Lexicon/Engine/OperandType.h"
 #include "Lexicon/Engine/Target.h"
-#include "Lexicon/RuntimeVariable.h"
 #include "Lexicon/MemberPointer.h"
 #include "Lexicon/Engine/RoutineCompiler.h"
 
@@ -139,12 +136,16 @@ namespace std
 	};
 }
 
-//This is to be my method of hashing.
-inline std::hash<std::vector<uint64_t>> hasher;
+
+
 
 namespace LEX
 {
 
+
+
+
+	
 
 
 
@@ -456,50 +457,10 @@ namespace LEX
 	}
 
 
-	namespace OuterTest
-	{
-		namespace A
-		{
-			struct D
-			{
-				inline static int t = 0;
-			};
-
-			void C(int) {}
-			template<typename T>
-			struct B {
-				inline static int t = 0;
-
-			};
-		}
-
-		namespace TEST
-		{
-			namespace A
-			{
-				namespace D
-				{
-
-				}
-
-				void C(float) {}
-				template<typename T>
-				struct B {
-
-				};
-			}
-
-			void Testing()
-			{
-				//A::D::t;
-				//A::C(1);
-				//auto v = A::B<void>{};
-			}
-		}
-	}
 
 
-	//Creator function for numbers
+
+
 
 	inline void TestCreateAllSettings()
 	{
@@ -528,7 +489,7 @@ namespace LEX
 					{
 						Number::Settings settings{ (NumeralType)a, (Size)b, (Signage)c, (Limit)d };
 						ConcreteType* number_policy = new ConcreteType{ "NUMBER", settings.GetOffset() };
-						Variable defaultValue{ settings, number_policy };
+						Variable defaultValue{ settings };
 						number_policy->EmplaceDefault(defaultValue);
 						results.emplace_back(number_policy);
 
@@ -561,7 +522,7 @@ namespace LEX
 
 	};
 
-
+#ifdef ENUM_TEST
 	namespace EnumTesting
 	{
 
@@ -634,6 +595,9 @@ namespace LEX
 
 			size_t incValue(bool is_flag)
 			{
+				//This doesn't quite work out I think, largely, incValue should prevent overlap
+				// between used values and proposed new values. I'll need to do this manually I think.
+
 				size_t result;
 				
 				if (is_flag) {
@@ -647,7 +611,6 @@ namespace LEX
 				}
 				else
 				{
-					result = nextValue++;
 					return nextValue++;
 				}
 			}
@@ -894,7 +857,7 @@ namespace LEX
 
 
 	}
-
+#endif
 
 
 
@@ -1870,7 +1833,24 @@ namespace Template
 
 	INITIALIZE()
 	{
-		
+
+		{
+			
+			const RuntimeVariable test1{};
+			RuntimeVariable test2{};
+			RuntimeVariable test3 = test1;
+			RuntimeVariable test4 = std::move(test3);
+
+			test2 = test1;
+			test2 = std::move(test1);
+			test2.operator=(test1);
+			test2.operator=(test2);
+		}
+		{
+			Variable test1;
+			RuntimeVariable test2 = std::ref(test1);
+			//return;
+		}
 
 		//This surprisingly, actually fucking works.
 		//constexpr auto TEST = convertible_variant_index_v<VariableValue, std::vector<int>>;
@@ -2608,6 +2588,8 @@ namespace Template
 
 
 }
+
+
 struct A {};
 struct B : public A {};
 
@@ -2757,7 +2739,7 @@ namespace LEX
 							{
 								if (out.IsEmpty() && PullAddress(result) == PullAddress(entry))
 								{
-									out = RuntimeVariable::CreateTempRef(arg);
+									out = std::ref(*arg);
 								}
 							}
 						}
@@ -2874,7 +2856,8 @@ namespace LEX
 			ValueExport<TheLook>(out, result, tuple, nullptr, front_args);
 			
 			//This is a resolving function, it should be done whenever a procedure is completed, to make sure that the return type is proper.
-			if (out.IsRefNegated())
+			//if (out.IsRefNegated())
+			if (false)
 			{
 				logger::debug("triggered");
 				void* ptr = out.Ptr();

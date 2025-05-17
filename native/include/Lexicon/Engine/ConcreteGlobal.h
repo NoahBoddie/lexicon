@@ -38,12 +38,8 @@ namespace LEX
 			if (just_default) {
 				Variable& a_this = value.Ref();//this shouldn't work
 				
-				auto type = a_this.Policy();
-
-				if (!type) {
-					type = _declared.policy->GetTypePolicy((ITemplateBody*)nullptr);
-					a_this.SetPolicy(type);
-				}
+				//auto type = a_this.Policy();
+				auto type = _declared->GetTypePolicy(nullptr);
 
 				a_this = type->GetDefault();
 			}

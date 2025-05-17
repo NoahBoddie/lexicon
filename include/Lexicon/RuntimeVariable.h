@@ -62,7 +62,7 @@ namespace LEX
 
 
 		static constexpr auto offset = sizeof(RunValue) - sizeof(RunVarData);
-
+		/*
 		RunVarData& GetData()
 		{
 			auto a_this = (uintptr_t)this;
@@ -76,7 +76,7 @@ namespace LEX
 
 			return *reinterpret_cast<RunVarData*>(a_this + offset);
 		}
-
+		//*/
 		RunValue& GetValue()
 		{
 			return *reinterpret_cast<RunValue*>(this);
@@ -98,103 +98,71 @@ namespace LEX
 		}
 
 
-		const RunDataHelper* GetRefHelper() const
+		const Variable* GetRefVariable() const
 		{
-
-			constexpr auto ref_index = variant_index<RunValue, _Ref>();
 
 			const RunValue& a_this = GetValue();
 
-			const RunDataHelper* ret;
-
 			switch (a_this.index())
 			{
-			case kVariable:
-			case kDetached:
-			case kExternal:
-				ret = this; break;
-
 			case kReference: 
-				ret = reinterpret_cast<RunDataHelper*>(&std::get<_Ref>(a_this).get()); break;
+				return std::addressof(std::get<_Ref>(a_this).get());
 
 
 			default:
-				ret = nullptr;
-				break;
+				return nullptr;
 			}
-
-
-			return ret;
 		}
 
 
 	protected:
 
 		
-
-		auto Inc() const
-		{
-			//logger::critical("inc {:X}", (uintptr_t)this);
-			return ++GetData().refs;
-		}
-
-		auto Dec() const
-		{
-			//logger::critical("dec {:X}", (uintptr_t)this);
-			return --GetData().refs;
-		}
 	public:
-		bool IsRefNegated() const
-		{
-			return index() == kReference && Refs();
-		}
+		//bool IsRefNegated() const
+		//{
+		//	return index() == kReference && Refs();
+		//}
 	private:
-		void SetNegate(bool value) const 
-		{
-			GetData().refs = value ? -1 : 0;
-		}
+		//void SetNegate(bool value) const 
+		//{
+			//auto var = GetRefVariable();
+			//if (var)
+			//var->GetData().refs = value ? -1 : 0;
+		//}
 
 	protected:
 
-		void TrySetNegated(bool value) const
-		{
-			if (index() == kReference)
-			{
-				SetNegate(value);
-			}
-		}
+		//void TrySetNegated(bool value) const
+		//{
+		//	if (index() == kReference)
+		//	{
+		//		SetNegate(value);
+		//	}
+		//}
 
 		void Unhandle()
 		{
 			if (index() == kReference)
 			{
-				if (!Refs())
-					GetRefHelper()->Dec();
+				//if (!Refs())
+				GetRefVariable()->Dec();
 			}
 			else if (index() == kVariable)
 			{
-				if (auto refs = GetData().refs; refs) {
-					report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
-				}
+				//if (auto refs = GetData().refs; refs) {
+				//	report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
+				//}
 			}
 		}
 		
-		void Handle(const RunDataHelper* other, Flag flags = Flag::None)
+		void Handle(const Variable& var)noexcept
 		{
-			if (other && other->IsRefNegated() == true) {
-				GetData().refs = other->GetData().refs;
-				return;
-			}
-
-
-			if (IsReference() || flags & Flag::Init) {
-				GetData().refs = 0;
-			}
-			if (other && (flags & Flag::Refr || other->index() == kReference))
+			//if (index() == kReference)
 			{
 				//auto* help = other->GetRefHelper();
-				if (!other->IsRefNegated())
-					other->GetRefHelper()->Inc();
+				//if (!other->IsRefNegated())
+				var.Inc();
 			}
 			
 
@@ -202,9 +170,12 @@ namespace LEX
 
 		}
 
-		void Handle(const RunDataHelper& other, Flag flags = Flag::None)
+		void Handle(const RunDataHelper& other) noexcept
 		{
-			return Handle(&other, flags);
+			if (auto var = other.GetRefVariable())
+			{
+				Handle(*var);
+			}
 		}
 
 		public:
@@ -212,26 +183,26 @@ namespace LEX
 
 		int32_t Refs() const
 		{
-			return GetData().refs;
+			return GetRefVariable()->GetData().refs;//GetData().refs;
 		}
 
-
+		constexpr RunDataHelper() noexcept = default;
 		
-		RunDataHelper()
+		~RunDataHelper()
 		{
-			Handle(nullptr, Flag::Init);
+			Unhandle();
 		}
 
 		RunDataHelper(const RunDataHelper& other)
 		{
-			Handle(other, Flag::Init);
+			Handle(other);
 	
 		}
 
 
 		RunDataHelper(RunDataHelper&& other)
 		{
-			Handle(other, Flag::Init);
+			Handle(other);
 		}
 		
 
@@ -250,9 +221,34 @@ namespace LEX
 			Handle(other);
 			return *this;
 		}
+
+		RunDataHelper(const VariableRef& other)
+		{
+			Handle(other.get());
+		}
+
+
+		RunDataHelper(VariableRef&& other)
+		{
+			Handle(other.get());
+		}
+		
+		/*
+		//I don't think this will actually do anything
+		RunDataHelper& operator=(const VariableRef& other)
+		{
+			Unhandle();
+			Handle(other.get());
+			return *this;
+		}
+		RunDataHelper& operator=(VariableRef&& other)
+		{
+			Unhandle();
+			Handle(other.get());
+			return *this;
+		}
+		//*/
 	};
-
-
 
 
 
@@ -262,9 +258,17 @@ namespace LEX
 	{
 	public:
 		
-		ALIAS_HEADER;
+		//IMPORTANT
+		//The problem is effectively the inability to deal with direct settings from literally anything through variant. Namely, unhandling.
+		// This is what the helper was for, and now this set up is littered with this sort of issue.
+
+		//Maybe go back to using constructors, instead of defining assign operators, rely on things being constructed as a runtime variable
+		// and then beig converted over
+
+		ALIAS_CTOR;
+		//using RunDataHelper::IsRefNegated;
+
 		
-		using RunDataHelper::IsRefNegated;
 
 	private: 
 	public:
@@ -287,21 +291,6 @@ namespace LEX
 			}
 		};
 
-		//TODO: Ref count idea for RuntimeVariable below
-		// The concept is for every reference to a Variable that's housed within the runtime variable, that's an additional reference.
-		//  When a runtime variable that holds a simple variable ends, it will check if the ref count is 0. 
-		//  If not, it will detect there's undefined behaviour, as there's a reference pointing to nothing somewhere.
-		// On the other hand, if it's a reference, it carries an offset of bytes to the helper data (this helps with changing sizes).
-		// For this element, I can implement a similar helper to variable, it would look like this:
-		//struct Helper
-		//{
-		//	TestB& operator=(TestB&)
-		//	{
-		//		//Helping here
-		//	}
-		//};
-		//struct RuntimeVariable : public Helper, ClassAlias<>...
-
 
 		void _CheckAssign(const RuntimeVariable& other)
 		{
@@ -312,7 +301,7 @@ namespace LEX
 				report::runtime::error("Assigning undefined to a non-undefined?");
 			
 			//This should only be checking if this has a type.
-			Ref().CheckAssign(GetVariableType(*other));
+			//Ref().CheckAssign(GetVariableType(*other));
 
 			//Conversion must be a type conversion.
 			//if (other->IsConvertibleTo(_type) == false)
@@ -322,6 +311,7 @@ namespace LEX
 
 	public:
 
+		/*
 		static RuntimeVariable CreateTempRef(Variable* var)
 		{
 			if (!var)
@@ -338,14 +328,85 @@ namespace LEX
 		{
 			return CreateTempRef(&var);
 		}
-
+		//*/
 
 
 		~RuntimeVariable()
 		{
 			//TryUpdateRef();//NOTE: TEMP IDEA EXPERIMENTAL
-			Unhandle();
+			//Unhandle();
 		}
+
+		//*
+
+
+
+		RuntimeVariable(const RuntimeVariable& other) = default;
+
+
+		RuntimeVariable(RuntimeVariable&& other) = default;
+		
+		RuntimeVariable(const VariableRef& other) :
+			Alias{ other },
+			RunDataHelper{ other }
+		{
+		}
+
+		RuntimeVariable(VariableRef&& other) :
+			Alias{ other },
+			RunDataHelper{ other }
+		{
+		}
+		/*
+		RuntimeVariable(const Variable& other) : Alias{ other }
+		{
+		}
+
+
+		RuntimeVariable(Variable&& other) : Alias{ other }
+		{
+		}
+		//*/
+
+
+		RuntimeVariable& operator=(const RuntimeVariable& other) = default;//{ return *this; }
+		RuntimeVariable& operator=(RuntimeVariable&& other) = default;// { return *this; }
+		/*
+
+		RuntimeVariable& operator=(const VariableRef& other)
+		{
+			RunDataHelper::operator=(other);
+			Alias::operator=(other);
+			return *this;
+		}
+
+
+		RuntimeVariable& operator=(VariableRef&& other)
+		{
+			RunDataHelper::operator=(other);
+			Alias::operator=(other);
+			return *this;
+		}
+		//*/
+
+		/*
+		RuntimeVariable& operator=(const Variable& other)
+		{
+			Alias::operator=(other);
+			return *this;
+		}
+
+
+		RuntimeVariable& operator=(Variable&& other)
+		{
+			Alias::operator=(other);
+			return *this;
+		}
+	
+		//*/
+		//*/
+
+
 
 		using VariableRef = std::reference_wrapper<Variable>;
 
@@ -398,7 +459,7 @@ namespace LEX
 			_CheckAssign(other);
 
 			if (move)
-				*this = std::move(other);
+				*this = other;
 			else
 				*this = other;
 			return *this;
@@ -444,7 +505,7 @@ namespace LEX
 			// to this. Long story short, ensures it's passed by ref not val. Use with caution.
 			RuntimeVariable result = std::ref(Ref());
 			
-			result.Handle(this, Flag::Refr);
+			//result.Handle(this, Flag::Refr);
 
 			return result;
 		}

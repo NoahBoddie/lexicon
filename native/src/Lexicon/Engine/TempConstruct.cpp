@@ -203,13 +203,13 @@ namespace LEX
 					if (!from_type)
 						report::runtime::critical("NO FROM");
 
-					auto to_type = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+					auto to_type = a_lhs.GetTypeInfo(runtime);
 
 					
 					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result)
 					{
 						ret = var.Ref();
-						ret->SetPolicy(to_type->FetchTypePolicy(runtime));
+						//ret->SetPolicy(to_type->FetchTypePolicy(runtime));
 					}
 					else
 					{
@@ -312,6 +312,8 @@ namespace LEX
 			//While this may seem useless, this prevents things like where a float is given where a number is expected, causing any giving of a non-float number
 			// to result in an error within assign.
 
+			return;
+
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);//s runtime->GetVariable(a_lhs.Get<Index>());
 			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 
@@ -322,7 +324,7 @@ namespace LEX
 
 			logger::debug(" index of set {}", a_lhs.Get<Index>());
 
-			var->SetPolicy(policy);
+			//var->SetPolicy(policy);
 
 		}
 		
@@ -490,8 +492,6 @@ namespace LEX
 				report::runtime::critical("No policy could be fetched.");
 
 			result = policy->GetDefault();
-
-			logger::critical("type is in result? {}, is void {}", !!result->Policy(), result->IsVoid());
 		}
 
 
@@ -508,7 +508,7 @@ namespace LEX
 			auto& variable = a_lhs.AsVariable(runtime);
 
 			//This second one is checking for local
-			if (!variable->IsPolymorphic() && !variable->IsPolymorphic())
+			//if (!variable->IsPolymorphic() && !variable->IsPolymorphic())
 			{
 				decltype(auto) out = variable.Detach();
 
@@ -1219,7 +1219,7 @@ namespace LEX
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
 
-			Solution sol{ QualifiedType{ result->GetVariableType(), Constness::Const }, OperandType::Literal, result };
+			Solution sol{ QualifiedType{ result->GetTypeInfo(), Constness::Const }, OperandType::Literal, result };
 			
 			return sol;
 		}

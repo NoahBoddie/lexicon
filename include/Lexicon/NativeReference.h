@@ -33,7 +33,7 @@ namespace LEX
 			T& dest = *reinterpret_cast<T*>(target);
 
 			if (value) {
-				proxy = MakeVariable(dest);
+				proxy = dest;
 			}
 			else {
 				//Here I would like some way to define equivalency so setting isn't required.
@@ -109,7 +109,7 @@ namespace LEX
 		}
 
 	};
-	REQ_OR_LESS_SIZE(NativeReference, sizeof(Variable));
+	//REQ_OR_LESS_SIZE(NativeReference, sizeof(Variable));
 
 	template<typename T>
 	NativeReference extern_ref(T& tar)

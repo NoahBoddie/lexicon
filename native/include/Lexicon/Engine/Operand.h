@@ -122,6 +122,8 @@ namespace LEX
 		//This should be used later to retrieve functions that need to be called. Also to be used to get specific functions I'd presume
 		//Function* GetFunction(Runtime* runtime);
 
+		TypeInfo* GetTypeInfo(Runtime* runtime);
+
 		constexpr bool IsTemporary() const noexcept
 		{
 			switch (type)

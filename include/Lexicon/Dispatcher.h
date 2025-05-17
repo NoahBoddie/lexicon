@@ -266,7 +266,7 @@ namespace LEX
 							if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
 							{
 								static_assert(k_ret_type != detail::ref_type::kLocalRef);
-								out = Variable{ static_cast<RetElem&>(result), GetVariableType<RetElem>() };
+								out = Variable{ static_cast<RetElem&>(result) };
 							}
 					}
 

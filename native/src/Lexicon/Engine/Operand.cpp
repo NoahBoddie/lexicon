@@ -172,6 +172,20 @@ namespace LEX
 		return GetVariable(runtime);
 	}
 
+
+	TypeInfo* Operand::GetTypeInfo(Runtime* runtime)
+	{
+		switch (type)
+		{
+		case OperandType::Type:
+			return Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+
+		default:
+			report::fault::critical("Operand didn't exist. Fixer later. {} ", (uint8_t)type);
+		}
+
+		return nullptr;
+	}
 	
 
 

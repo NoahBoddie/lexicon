@@ -265,7 +265,8 @@ namespace LEX
 
             prod(result, target, send_args, data);
 
-            if (result.IsRefNegated())
+            //if (result.IsRefNegated())
+            if (false)
             {
                 logger::debug("triggered");
                 void* ptr = result.Ptr();

@@ -7,7 +7,7 @@ namespace LEX
     RuntimeVariable Variable::Convert(TypeInfo* to)
     {
         //TODO: Needs cleaning.
-        TypeInfo* from = Policy();
+        TypeInfo* from = GetTypeInfo();
         Variable result{};
         if (from)
         {
@@ -17,11 +17,11 @@ namespace LEX
         return result;
     }
     
-    TypeInfo* Variable::CheckVariableType() const
+    TypeInfo* Variable::GetTypeInfo() const
     {
         TypeInfo* result = std::visit([](auto&& lhs) -> TypeInfo* {
             return LEX::GetVariableType(lhs);
-            }, _value);
+            }, value());
 
         return result;
     }

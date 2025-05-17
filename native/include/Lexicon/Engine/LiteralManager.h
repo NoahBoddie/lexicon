@@ -74,14 +74,14 @@ namespace LEX
 		{
 			case SyntaxType::Boolean:
 				if (code == "true") {
-					result = MakeVariable(true);
+					result = true;
 					//result = true;
 				}
 				else if (code == "maybe") {
-					result = MakeVariable(NumberConstant::Maybe);
+					result = NumberConstant::Maybe;
 				}
 				else {
-					result = MakeVariable(false);
+					result = false;
 					//result = true;
 				}
 				break;
@@ -99,25 +99,22 @@ namespace LEX
 					report::compile::critical("invalid to be a number");
 				}
 
-				result = MakeVariable(out);
+				result = out;
 				//result = out;
 			}
 			break;
 
 			case SyntaxType::Object:
 			case SyntaxType::String:
-				result = MakeVariable(code);
+				result = code;
 				//result = code;
 				break;
 
 			default:
 				report::compile::critical("Not a literal expression."); break;
 		}
-		TypeInfo* policy = result.Policy();
-		//if (policy)
-		//I want this to report if for some reason a literal doesn't have a value.
-		//RGL_LOG(trace, "literal policy test {} -> {}", !!policy, policy ? (uint32_t)policy->GetTypeID() : 0);
 		
+
 		return result;
 	}
 

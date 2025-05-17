@@ -249,7 +249,7 @@ set(headers
 	include/Lexicon/ISpecial.h
 	"include/Lexicon/ITypeInfo.h"
 	"include/Lexicon/IGlobal.h"
-	include/Lexicon/IVariable.h
+	
 	include/Lexicon/MemberPointer.h
 	include/Lexicon/Number.h
 	include/Lexicon/Object.h

@@ -4,7 +4,6 @@
 #include "Lexicon/IGlobal.hpp"
 
 
-#include "Lexicon/IVariable.h"
 #include "Lexicon/RuntimeVariable.h"
 
 namespace LEX

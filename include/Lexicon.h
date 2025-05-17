@@ -67,7 +67,6 @@ namespace LEX
 #include "Lexicon/IFunction.h"
 #include "Lexicon/ISpecial.h"
 #include "Lexicon/ITypeInfo.h"
-#include "Lexicon/IVariable.h"
 #include "Lexicon/MemberPointer.h"
 #include "Lexicon/Number.h"
 #include "Lexicon/SignatureBase.h"

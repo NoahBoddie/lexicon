@@ -16,6 +16,8 @@ namespace LEX
 {
 	struct TypeInfo;
 	
+	//TODO: I would like rename ths to something like TypeOf, with the usage names being GetTypeOf
+
 
 	namespace detail
 	{

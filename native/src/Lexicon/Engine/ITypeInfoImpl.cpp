@@ -9,7 +9,7 @@ namespace LEX
 	{
 		Conversion convert;
 
-		TypeInfo* from_type = from.Policy();
+		TypeInfo* from_type = from.GetTypeInfo();
 
 		//I want to make a variable vtable to handle this at a later point
 		bool success = from_type && from_type->IsConvertibleTo(to_type, to_type, convert, ConversionFlag::Explicit);

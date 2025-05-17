@@ -73,7 +73,7 @@ namespace LEX
 		Conversion out;
 
 		auto convert = from.IsConvertToQualified(to, nullptr, &out, flags);
-
+		
 		if (!convert) {
 			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert.data));
 		}
