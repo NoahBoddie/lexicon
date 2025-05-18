@@ -7,7 +7,7 @@ namespace LEX
 {
 	using VariableRef = std::reference_wrapper<Variable>;
 	using DetachedRef = std::shared_ptr<Variable>;
-	using ExternalRef = NativeReference;//Rename pls
+	using ExternalRef = std::shared_ptr<INativeReference>;
 	using RunValue = std::variant<
 		Void, 
 		Variable, 
@@ -443,7 +443,7 @@ namespace LEX
 				return *std::get<DetachedRef>(*this);
 
 			case kExternal:
-				return std::get<ExternalRef>(*this).Ref();
+				return std::get<ExternalRef>(*this)->Ref();
 			}
 		}
 
@@ -563,7 +563,7 @@ namespace LEX
 			if (index() == (int)kExternal)
 			{
 				auto& extern_ref = std::get<ExternalRef>(*this);
-				extern_ref.Update(value);
+				extern_ref->Update(value);
 			}
 		}
 

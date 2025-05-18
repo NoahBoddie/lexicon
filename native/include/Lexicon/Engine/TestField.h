@@ -1833,7 +1833,6 @@ namespace Template
 
 	INITIALIZE()
 	{
-
 		{
 			
 			const RuntimeVariable test1{};
