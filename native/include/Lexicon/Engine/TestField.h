@@ -175,7 +175,22 @@ namespace LEX
 
 
 		Formula<void>::RunDefault("otherTest() => otherTest() => otherTest()");
+		
+		//*
+		auto formula = Formula<double(std::string::*)()>::Create("size()");
+		//std::string six = "six";
+		//static_assert(!std::is_pointer_v<decltype(formula)::TarType>);
+		double result_of_string;
 
+		if (formula) {
+			result_of_string = formula("six").Call();
+		}
+		else {
+			result_of_string = NAN;
+		}
+
+		logger::critical("result of new form << {}", result_of_string);
+		//*/
 		std::system("pause");
 
 

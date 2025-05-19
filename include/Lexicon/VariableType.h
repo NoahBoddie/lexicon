@@ -17,6 +17,7 @@ namespace LEX
 	struct TypeInfo;
 	
 	//TODO: I would like rename ths to something like TypeOf, with the usage names being GetTypeOf
+	struct pointer_variable {};
 
 
 	namespace detail
@@ -70,10 +71,23 @@ namespace LEX
 			{ T::GetVariableType() } -> pointer_derived_from<TypeInfo*>;
 		};
 
-		template<typename T> concept subject_has_var_type_Value = requires(const std::remove_pointer_t<T>* t)
+		template<typename T> concept subject_has_var_type_Value = requires(const std::remove_pointer_t<T>* ptr)
 		{
-			{ T::GetVariableType(t) } -> pointer_derived_from<TypeInfo*>;
+			{ T::GetVariableType(decltype(ptr){ptr}) } -> pointer_derived_from<TypeInfo*>;
 		};
+
+
+		template<typename T> concept subject_has_var_type_Pointer = requires(const std::remove_pointer_t<T>*t, pointer_variable pv)
+		{
+			{ T::GetVariableType(t, pv) } -> pointer_derived_from<TypeInfo*>;
+		};
+
+		template<typename T> concept subject_has_var_type_Pointer2 = requires(const std::remove_pointer_t<T>* ptr)
+		{
+			{ T::GetVariableType(ptr) } -> pointer_derived_from<TypeInfo*>;
+		} && !subject_has_var_type_Value<T>;
+
+
 
 		template<typename T> concept subject_has_var_type = subject_has_var_type_Value<T> || subject_has_var_type_Store<T>;
 
@@ -137,7 +151,8 @@ namespace LEX
 		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
 		{
 			if constexpr (detail::subject_has_var_type_Value<T>) {
-				return T::GetVariableType(arg);
+				//return T::GetVariableType(arg);
+				return T::GetVariableType(static_cast<const std::remove_pointer_t<T>*&&>(arg));
 			}
 			else {
 				return T::GetVariableType();
@@ -153,7 +168,41 @@ namespace LEX
 	};
 
 
+	/*
+	template <detail::subject_has_var_type_Pointer T>
+	struct VariableType<T*>
+	{
+		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
+		{
+			return T::GetVariableType(arg);
+		}
 
+		//Can likely remove this
+		TypeInfo* operator()()
+		{
+			return this->operator()(nullptr);
+		}
+
+	};
+
+
+	/*/
+	template <detail::subject_has_var_type_Pointer2 T>
+	struct VariableType<T*>
+	{
+		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
+		{
+			return T::GetVariableType(arg);
+		}
+
+		//Can likely remove this
+		TypeInfo* operator()()
+		{
+			return this->operator()(nullptr);
+		}
+
+	};
+	//*/
 
 	//These are spotty right now. Please redo.
 	namespace detail
@@ -333,7 +382,7 @@ namespace LEX
 	//*/
 
 	template <detail::function_has_var_type T> requires (std::is_pointer_v<T>)
-	TypeInfo* GetVariableType(const detail::custom_decay<T>&& arg)
+	TypeInfo* GetVariableType(const detail::custom_decay<T>& arg)
 	{
 		using Ty = detail::remove_qual_t<T>;
 
