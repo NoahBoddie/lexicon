@@ -21,6 +21,8 @@ namespace LEX
 	enum ElementType : uint8_t;
 
 
+	//TODO: Make an implementation version of ProjectManager.
+
 	enum struct APIResult
 	{
 		Success,
@@ -119,7 +121,7 @@ namespace LEX
 				virtual LEX::IProject* GetProject(std::string_view name, EXTERN_NAME) = 0;
 			public:
 				virtual APIResult CreateScript(LEX::IProject* project, std::string_view name, std::string_view path, 
-					std::optional<std::string_view> content = std::nullopt, LEX::IScript** out = nullptr, api::vector<std::string_view> options = {}) = 0;
+					std::optional<std::string_view> content = std::nullopt, LEX::IScript** out = nullptr, std::span<std::string_view> options = {}) = 0;
 				
 				virtual APIResult CreateProject(std::string_view name, LEX::ProjectClient* client, LEX::IProject** out = nullptr, HMODULE source = GetCurrentModule()) = 0;
 				
@@ -171,7 +173,7 @@ namespace LEX
 
 	public:
 		APIResult CreateScript(IProject* project, std::string_view name, std::string_view path, 
-			std::optional<std::string_view> content = std::nullopt, IScript** out = nullptr, api::vector<std::string_view> options = {}) override;
+			std::optional<std::string_view> content = std::nullopt, IScript** out = nullptr, std::span<std::string_view> options = {}) override;
 			
 		APIResult CreateProject(std::string_view name, LEX::ProjectClient* client, IProject** out = nullptr, HMODULE source = GetCurrentModule()) override;
 
@@ -181,7 +183,7 @@ namespace LEX
 	public://Ease of Use Functions
 
 		//Make a version without project, something like defaults to a certain project.
-		APIResult CreateScript(IProject* project, std::string_view name, std::string_view path, std::string_view content, IScript*& out, api::vector<std::string_view> options = {})
+		APIResult CreateScript(IProject* project, std::string_view name, std::string_view path, std::string_view content, IScript*& out, std::span<std::string_view> options = {})
 		{
 			return CreateScript(project, name, path, content, std::addressof(out), options);
 		}

@@ -1735,7 +1735,7 @@ namespace LEX
 
 			inline static Self* instance = &GetSingleton();
 
-			RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime*, RuntimeVariable*) override
+			RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime*, RuntimeVariable*) override
 			{
 				return (double)args[0]->AsString().size();
 			}
@@ -1765,7 +1765,7 @@ namespace LEX
 
 				inline static Self* instance = &GetSingleton();
 
-				virtual RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime*, RuntimeVariable*)
+				virtual RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime*, RuntimeVariable*)
 				{
 
 					//Convert should be real simple.

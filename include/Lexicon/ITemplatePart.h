@@ -18,12 +18,12 @@ namespace LEX
 		//TODO: Instead of all this, why not make a hash of each entry?
 
 		//Always try to promote before using. 
-		virtual ITemplateBody* TryPromoteTemplate() { return nullptr; }
+		virtual ITemplateBody* TryResolve() { return nullptr; }
 
 		//This should be pure
 		virtual GenericBase* GetClient() const { return nullptr; }
 
-		bool IsSpecialized() { return TryPromoteTemplate(); }
+		bool IsSpecialized() { return TryResolve(); }
 
 
 

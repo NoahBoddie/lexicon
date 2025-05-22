@@ -80,7 +80,7 @@ namespace LEX
 			return 0;
 		}
 
-		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
+		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
 		{
 			if (IsResolved() == false)
 				report::apply::error("Specialized function is not resolved");

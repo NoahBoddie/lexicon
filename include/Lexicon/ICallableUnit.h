@@ -54,7 +54,7 @@ namespace LEX
 	INTERNAL:
 		//This is internal only so I'll just make runtime the thing that's used here. 
 		// IRuntime should be able to transfer into runtime directly anyhow.
-		virtual RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) = 0;
+		virtual RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) = 0;
 
 
 	public:
@@ -62,7 +62,7 @@ namespace LEX
 
 		//Invoke is to be the function that handles external function calls, doing conversions before hand. 
 		// internally, it just calls execute. later, it will call execute after converting and handling some checks.
-		virtual RuntimeVariable Invoke(api::vector<RuntimeVariable> args, RuntimeVariable* def);
+		virtual RuntimeVariable Invoke(std::span<RuntimeVariable> args, RuntimeVariable* def);
 
 
 		//TODO: Call shouldn't be able to use a runtime variable due to it not really being certain if the returning reference is even alive still or not.

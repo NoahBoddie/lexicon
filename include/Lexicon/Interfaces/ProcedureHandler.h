@@ -15,7 +15,7 @@ namespace LEX
 	struct RuntimeVariable;
 
 	//This exists elsewhere, please move this some how.
-	using Procedure = void(*)(RuntimeVariable&, Variable* target, api::vector<Variable*>, ProcedureData&);
+	using Procedure = void(*)(RuntimeVariable&, Variable* target, std::span<Variable*>, ProcedureData&);
 
 	namespace Version
 	{

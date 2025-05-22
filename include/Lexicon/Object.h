@@ -518,6 +518,14 @@ namespace LEX
 			}
 		}
 
+		bool IsNull() const
+		{
+			if (policy)
+				return policy->Exists(data());
+			else
+				return true;
+		}
+
 
 		std::string PrintString() const;
 

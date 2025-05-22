@@ -23,10 +23,10 @@ namespace LEX
 		//Think this should probably store the string that it came from perhaps. Could be useful.
 
 
-		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def) override
+		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def) override
 		{
-			if (args->size() != GetParamCount())
-				report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), GetParamCount());
+			if (args.size() != GetParamCount())
+				report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), GetParamCount());
 
 			if (!1)
 				VisitParameters([&](ParameterInfo& param)

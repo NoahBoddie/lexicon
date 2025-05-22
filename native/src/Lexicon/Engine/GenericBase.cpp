@@ -45,7 +45,7 @@ namespace LEX
 
 		//TODO: Merge ObtainBody/ObtainPart into this, there's no specialization for it, so no need.
 
-		if (auto temp = args->TryPromoteTemplate(); temp)
+		if (auto temp = args->TryResolve(); temp)
 			return ObtainBody(temp);
 		else
 			return ObtainPart(args);

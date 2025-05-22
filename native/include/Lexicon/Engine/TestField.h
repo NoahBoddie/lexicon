@@ -937,7 +937,7 @@ namespace LEX
 			if (i >= limit)
 				return nullptr;
 
-			if (auto tar = target->TryPromoteTemplate()) {
+			if (auto tar = target->TryResolve()) {
 				return tar->GetBodyArgument(i);
 			}
 
@@ -946,7 +946,7 @@ namespace LEX
 
 		bool IsResolved() const override
 		{
-			return target->TryPromoteTemplate();
+			return target->TryResolve();
 		}
 
 	};
@@ -1004,7 +1004,7 @@ namespace LEX
 
 				//TODO: Merge ObtainBody/ObtainPart into this, there's no specialization for it, so no need.
 
-				if (auto temp = args->TryPromoteTemplate(); temp)
+				if (auto temp = args->TryResolve(); temp)
 					return ObtainBody(temp);
 				else
 					return ObtainPart(args);
@@ -1330,7 +1330,7 @@ namespace Template
 			//TODO: Remove the boilerplate from using a GenericArray, it's common to want to do something like this
 			GenericArray array{ nullptr, {self->type() }};
 
-			auto result = type->GetTypePolicy(array.TryPromoteTemplate());
+			auto result = type->GetTypePolicy(array.TryResolve());
 
 			if (!result) {
 				report::error("Failed to specialized 'ARRAY' offset of 1.");
@@ -1533,7 +1533,7 @@ namespace Template
 
 				GenericArray array{ nullptr, {data.get<Array>().type()} };
 
-				auto result = type->GetTypePolicy(array.TryPromoteTemplate());
+				auto result = type->GetTypePolicy(array.TryResolve());
 
 				if (!result) {
 					report::error("Failed to specialized 'ARRAY' offset of 1.");
@@ -2174,8 +2174,8 @@ namespace Template
 		auto type1 = to_spec.CheckTypePolicy(part1);
 		auto type2 = to_spec.CheckTypePolicy(part2);
 		auto type3 = to_spec.CheckTypePolicy(part3);
-		//specifier1.GetTypePolicy(part3.TryPromoteTemplate());
-		//specifier2.GetTypePolicy(part3.TryPromoteTemplate());
+		//specifier1.GetTypePolicy(part3.TryResolve());
+		//specifier2.GetTypePolicy(part3.TryResolve());
 		report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
 
 		//int test1;
@@ -2184,14 +2184,14 @@ namespace Template
 
 		//This isn't supposed to make 3 new bodies
 
-		//auto a2 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
-		//auto a3 = to_spec.GetTypePolicy(part3->TryPromoteTemplate());
+		//auto a2 = to_spec.GetTypePolicy(part3->TryResolve());
+		//auto a3 = to_spec.GetTypePolicy(part3->TryResolve());
 
-		auto a1 = type1->GetTypePolicy(part3.TryPromoteTemplate());
-		auto a2 = type2->GetTypePolicy(part3.TryPromoteTemplate());
-		auto a3 = type3->GetTypePolicy(part3.TryPromoteTemplate());
+		auto a1 = type1->GetTypePolicy(part3.TryResolve());
+		auto a2 = type2->GetTypePolicy(part3.TryResolve());
+		auto a3 = type3->GetTypePolicy(part3.TryResolve());
 
-		auto a4 = to_spec.GetTypePolicy(part3.TryPromoteTemplate());
+		auto a4 = to_spec.GetTypePolicy(part3.TryResolve());
 
 		//ERROR This is no longer functioning.
 		report::info("exists? {} {} {} -> {}?", (uintptr_t)a1, (uintptr_t)a2, (uintptr_t)a3, (uintptr_t)a4);

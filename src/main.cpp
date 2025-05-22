@@ -200,15 +200,106 @@ void TestParse(Script* append_to = nullptr)
 
 }
 
+void funct(int*const name, std::string_view)
+{
+    //name = nullptr;
+}
+
+
+template <typename... Qualifiers>
+struct QualifierLayer;
+
+template <>
+struct QualifierLayer <> 
+{
+    inline void operator()(Qualifier& qualifiers) {}
+};
+
+template <typename T, typename... Qualifiers>
+struct QualifierLayer <T, Qualifiers...> : public T, QualifierLayer<Qualifiers...> 
+{
+    using Base = QualifierLayer<Qualifiers...>;
+
+    inline void operator()(Qualifier& qualifiers) 
+    {
+        T::operator()(qualifiers);
+        Base::operator()(qualifiers);
+    }
+};
+
+
+template<size_t I, auto F> requires std::is_function_v<std::remove_pointer_t<decltype(F)>>
+struct deduce_qualifiers : public QualifierLayer<> {};
+
+
+
+
+//When we handle it like this, we'll want to derive it from the qualifiers we want to use. 
+// This system will NOT be used with references however, what they seek to represent able to be made iron clad, where the concept of readonly
+// can never truly be represented at compile time.
+
+
+constexpr size_t return_pos = (size_t)-1;
+
+
+template<typename T, typename F> requires std::is_function_v<std::remove_pointer_t<F>>
+struct parameter_index;
+
+
+template<size_t I, typename T, typename... Args>
+struct parameter_detect_layer : public
+    std::conditional_t
+    <std::is_same_v<std::tuple_element_t<I, std::tuple<Args...>>, T>,
+        std::integral_constant<size_t, I>,
+        std::conditional_t
+        <I == sizeof...(Args) - 1,
+            std::monostate,
+            parameter_detect_layer<I + 1, T, Args...>
+        >
+    > {};
+
+
+template<size_t I, typename T>
+struct parameter_detect_layer<I, T> {};
+
+template<typename T, typename R, typename... Args>
+struct parameter_index<T, R(Args...)> : public std::conditional_t <
+    std::is_same_v<R, T>,
+    std::integral_constant<size_t, (size_t)-1>,
+    parameter_detect_layer<0, T, Args...>
+>
+{};
+
+template<typename T, typename R, typename... Args>
+struct parameter_index<T, R(*)(Args...)> : public parameter_index<T, R(Args...)>
+{};
+
+constexpr auto loc2 = parameter_detect_layer<0, int, void, std::string, const int&, int>::value;
+
+constexpr auto loc = parameter_index<int, void(std::string, const int&, int)>::value;
+
+
+
+#define ADD_QUALIFIERS(mc_index, mc_func,...) template<>  \
+struct deduce_qualifiers<mc_index, mc_func> __VA_OPT__( : public) QualifierLayer<__VA_ARGS__> {};
+
+#define ADD_TYPE_QUALIFIERS(mc_type, mc_func,...) template<>  \
+struct deduce_qualifiers<parameter_index<mc_type, decltype(mc_func)>::value, mc_func> __VA_OPT__( : public) QualifierLayer<__VA_ARGS__> {}
+
+
+struct readonly { 
+    void operator()(Qualifier& qualifiers) { qualifiers.MakeReadonly(); }
+};
+
+
+ADD_QUALIFIERS(0, funct, readonly);
+ADD_TYPE_QUALIFIERS(std::string_view, funct, readonly);
+
+
+
+
 void LexTesting(std::string formula)
 {
-
-
-    constexpr auto testeetet1 = GetNumberOffset(NumeralType::Integral, Size::QWord, Signage::Signed, Limit::Overflow);
-    constexpr auto testeetet2 = GetNumberOffset(NumeralType::Integral, Size::QWord, Signage::Unsigned, Limit::Overflow);
-    constexpr auto testeetet3 =  GetNumberOffset(NumeralType::Integral, Size::DWord, Signage::Signed, Limit::Overflow);
-
-
     
     
     ProjectManager::instance->InitMain();
@@ -222,7 +313,7 @@ void LexTesting(std::string formula)
     Component::Link(LinkFlag::Declaration);
 	Component::Link(LinkFlag::Definition);
    
-
+    
     //return;
     //ProjectManager::instance->GetFunctionFromPath("Shared::Commons::size");
     if (1)

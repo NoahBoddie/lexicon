@@ -47,7 +47,7 @@ namespace LEX
 
 		_dispatchList.emplace_back(std::unique_ptr<Dispatcher>{ dispatch });
 
-		auto reciever = [](RuntimeVariable& result, Variable* target, api::vector<Variable*> args, ProcedureData& data) -> void {
+		auto reciever = [](RuntimeVariable& result, Variable* target, std::span<Variable*> args, ProcedureData& data) -> void {
 			auto p_data = data.function->GetProcedureData();
 
 			//check data here.

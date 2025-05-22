@@ -27,7 +27,7 @@ namespace LEX
 
 		static bool TryRegister(Dispatcher* dispatch, IFunction* func);
 
-		virtual void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*>& args, ProcedureData& data) = 0;
+		virtual void Dispatch(RuntimeVariable& result, Variable* target, std::span<Variable*>& args, ProcedureData& data) = 0;
 
 
 	protected:
@@ -120,7 +120,7 @@ namespace LEX
 
 		//Need a copy of this called value export.
 		template <class T1, size_t I = 1>
-		static inline void ValueImport(T1& tuple, std::vector<Variable*>& args)
+		static inline void ValueImport(T1& tuple, std::span<Variable*>& args)
 		{
 			if constexpr (I < std::tuple_size_v<T1>) {
 				using _Elem = std::tuple_element_t<I, T1>;
@@ -154,7 +154,7 @@ namespace LEX
 		//I HEAVILY suspect this will not work as I wish.
 		//Tuple first, and then a make index sequence to unpack it. Function should be inlined.
 		template<typename Ty, size_t... Indices>
-		auto ValueImport2(std::vector<Variable*>& args, std::index_sequence<Indices...>)
+		auto ValueImport2(std::span<Variable*>& args, std::index_sequence<Indices...>)
 		{
 			constexpr auto I = first<Indices...>;
 
@@ -176,7 +176,7 @@ namespace LEX
 		struct exporter : public RefCollection
 		{
 			template <class TParam, class TResult, typename TArgs, size_t I = 0>
-			void ValueExport(RuntimeVariable& out, TResult& result, TArgs& tuple, Variable* target, std::vector<Variable*>& args)
+			void ValueExport(RuntimeVariable& out, TResult& result, TArgs& tuple, Variable* target, std::span<Variable*>& args)
 			{
 				using RetElem = detail::simplify_wrapper_t<TResult>;
 
@@ -278,7 +278,7 @@ namespace LEX
 		//*
 		//If I can find a way to put the onus of this on the type perhaps? Would debugging be easier?
 		template<size_t... Indices>
-		inline void DispatchImpl(RuntimeVariable& out, Variable* target, std::vector<Variable*>& args, ProcedureData& data, std::index_sequence<Indices...>) 
+		inline void DispatchImpl(RuntimeVariable& out, Variable* target, std::span<Variable*>& args, ProcedureData& data, std::index_sequence<Indices...>) 
 		{
 			//Concat this?
 			using Param = std::tuple<detail::try_wrap_param_t<T>, detail::try_wrap_param_t<Args>...>;
@@ -300,7 +300,7 @@ namespace LEX
 		}
 		
 
-		void Dispatch(RuntimeVariable& out, Variable* target, std::vector<Variable*>& args, ProcedureData& data) override
+		void Dispatch(RuntimeVariable& out, Variable* target, std::span<Variable*>& args, ProcedureData& data) override
 		{
 			return DispatchImpl(out, target, args, data, std::make_index_sequence<sizeof...(Args)>{});
 		}

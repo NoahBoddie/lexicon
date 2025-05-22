@@ -46,7 +46,7 @@ namespace LEX
 		virtual void SetReturnType(QualifiedType type);
 
 		
-		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def);
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def);
 
 
 

@@ -104,7 +104,7 @@ namespace LEX
 				(uint32_t&)GetFlags() &= ~Flag::Incremental;
 		}
 
-		bool AppendContent(std::string_view content, api::vector<std::string_view> options = {}) override;
+		bool AppendContent(const std::string_view& content, std::span<std::string_view> options = {}) override;
 
 		bool AppendContent(SyntaxRecord& content);
 

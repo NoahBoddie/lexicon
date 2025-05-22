@@ -25,7 +25,7 @@ namespace LEX
 			return std::addressof(singleton);
 		}
 
-		virtual RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable*)
+		virtual RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable*)
 		{
 			auto settings = Number::Settings::CreateFromType<bool>();
 			
@@ -208,7 +208,7 @@ namespace LEX
 				if (r_comp == Constness::Const)
 				{
 					//If left is const, it must be a class type.
-					if (IsDataTypeRef(policy->FetchDataType()) == false)
+					if (policy->IsReferType() == false)
 						return ConversionResult::IneligibleQuals;
 				}
 			}
@@ -217,7 +217,7 @@ namespace LEX
 			if (l_comp == Constness::Const)
 			{
 				//If right is const, it must be a value.
-				if (IsDataTypeVal(other.policy->FetchDataType()) == false)
+				if (other.policy->IsValueType() == false)
 					return ConversionResult::IneligibleQuals;
 			}
 

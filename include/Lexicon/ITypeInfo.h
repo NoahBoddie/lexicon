@@ -131,9 +131,16 @@ namespace LEX
 				{
 					return this ? GetDataType() : DataType::Invalid;
 				}
+				//*
+				virtual bool IsReferType() const = 0;
 
+				bool IsValueType() const
+				{
+					return !IsReferType();
+				}
+				//*/
 
-
+				
 				TypeID FetchTypeID() const
 				{
 					return this ? GetTypeID() : TypeID{ 0 };

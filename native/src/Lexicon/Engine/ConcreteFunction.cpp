@@ -6,7 +6,7 @@
 
 namespace LEX
 {
-	RuntimeVariable ConcreteFunction::Execute(api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
+	RuntimeVariable ConcreteFunction::Execute(std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
 	{
 		if (IsValid() == false) {
 			report::log("Function '{}' is not valid. Maybe say error later.", IssueType::Apply, def ? IssueLevel::Failure : IssueLevel::Error, GetName());
@@ -19,8 +19,8 @@ namespace LEX
 
 		Variable* target = nullptr;
 
-		if (args->size() != GetParamCount())
-			report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
+		if (args.size() != GetParamCount())
+			report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
 
 
 
@@ -57,7 +57,7 @@ namespace LEX
 			data.defOption = def;
 			data.function = this;
 
-			auto begin = args->begin();
+			auto begin = args.begin();
 			
 			std::vector<Variable*> send_args;
 			
@@ -69,7 +69,7 @@ namespace LEX
 				begin++;
 			}
 			
-			std::transform(begin, args->end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
+			std::transform(begin, args.end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
 
 			report _{ IssueType::Runtime };
 			
@@ -81,7 +81,7 @@ namespace LEX
 				logger::debug("triggered");
 				void* ptr = result.Ptr();
 
-				for (auto& rvar : *args)
+				for (auto& rvar : args)
 				{
 					if (rvar.Ptr() == ptr)
 					{
@@ -98,7 +98,7 @@ namespace LEX
 			}
 
 
-			for (auto& rvar : *args) {
+			for (auto& rvar : args) {
 				rvar.TryUpdateRef();
 			}
 		}

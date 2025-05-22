@@ -74,14 +74,20 @@ namespace LEX
 		Readonly,	//Similar to const in that it won't allow the slot to be edited, but will allow it to be placed in non-const spaces
 					// Think of it as int* const, it can still use non-const functions, the value of the slot can't be assigned however.
 					// for struct types this should cause a copy to be used instead of the type itself
+		ConstReadonly,
+
+		//Readonly probably should probably be before modable
 	};
 	
 	
 	ENUM (QualifierFlag, int8_t)
 	{
+		//TODO: As it turns out, I think all of these qualifier flags are actually closer to being solution flags. None of these are
+		// actually to be used o a qualified type.
+
 		//Please note QualifierFlags aren't to be observed in an official capacity, they're mostly used for compiling. They also may be subject to change.
 		None = 0,
-
+		Params = 1 << 0,
 #ifdef LEX_SOURCE
 		
 		//Initialized,		//Used when a value can be initialized. Think for out and in
@@ -224,6 +230,38 @@ namespace LEX
 		constexpr bool IsPromoted() const
 		{
 			return flags & QualifierFlag::Promoted;
+		}
+
+		void MakeReadonly()
+		{
+			switch (constness)
+			{
+			default:
+				constness = Constness::Readonly;
+				break;
+
+			case Constness::Const:
+			case Constness::ConstReadonly:
+				constness = Constness::ConstReadonly;
+				break;
+
+			}
+		}
+
+		void MakeConst()
+		{
+			switch (constness)
+			{
+			default:
+				constness = Constness::Const;
+				break;
+
+			case Constness::Readonly:
+			case Constness::ConstReadonly:
+				constness = Constness::ConstReadonly;
+				break;
+
+			}
 		}
 
 		operator bool() const

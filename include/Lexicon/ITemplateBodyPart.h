@@ -43,7 +43,7 @@ namespace LEX
 			_state = kUnknown;		
 		}
 
-		ITemplateBody* TryPromoteTemplate() override
+		ITemplateBody* TryResolve() override
 		{
 			return GetState() ? this : nullptr;
 		}

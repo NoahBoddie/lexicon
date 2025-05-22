@@ -384,8 +384,8 @@ namespace api
 	using string = container<std::string>;
 
 	//todo: I think I should probably use std::span more here.
-	template <class T, class Alloc = std::allocator<T>>
-	using vector = container<std::vector<T, Alloc>>;
+	//template <class T, class Alloc = std::allocator<T>>
+	//using vector = container<std::vector<T, Alloc>>;
 	//using 
 
 	/*

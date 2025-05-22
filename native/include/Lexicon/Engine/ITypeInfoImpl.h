@@ -109,6 +109,24 @@ namespace LEX
 			return !this ? def : CheckRuleset(rule);
 		}
 
+
+
+		bool IsReferType() const override
+		{
+				get_switch (FetchDataType())
+				{
+				case DataType::Class:
+				case DataType::Interface:
+					return true;
+
+				case DataType::Struct:
+					return false;
+
+				default:
+					report::fault::critical("Unknown data type '{}' unable to be read.", magic_enum::enum_name(switch_value));
+				}
+		}
+
 		
 	};
 }

@@ -60,7 +60,7 @@ namespace LEX
 	}
 
 
-	ObjectPolicy* ObjectPolicyManager::RegisterObjectType(ObjectVTable* vtable, api::vector<std::string_view> aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source)
+	ObjectPolicy* ObjectPolicyManager::RegisterObjectType(ObjectVTable* vtable, const std::span<std::string_view>& aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source)
 	{
 		//Change parameters of this, include a main name. Maybe a category. But maybe not.
 		report::message::info("adding category {}", category);
@@ -98,7 +98,7 @@ namespace LEX
 
 		auto end = aliasList.end();
 
-		for (auto& alias : *aliases)
+		for (auto& alias : aliases)
 		{
 			auto it = aliasList.find(alias);
 

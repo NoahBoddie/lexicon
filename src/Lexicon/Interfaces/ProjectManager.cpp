@@ -583,7 +583,7 @@ namespace LEX
 	}
 
 
-	APIResult ProjectManager::CreateScript(IProject* a_project, std::string_view name, std::string_view path, std::optional<std::string_view> content, IScript** out, api::vector<std::string_view> options)
+	APIResult ProjectManager::CreateScript(IProject* a_project, std::string_view name, std::string_view path, std::optional<std::string_view> content, IScript** out, std::span<std::string_view> a_options)
 	{
 		//Path and name are still included, as they can be used to help refer to the location of the file when debugging.
 		SyntaxRecord ast;
@@ -593,6 +593,8 @@ namespace LEX
 		bool made_from_script;
 
 		auto project = dynamic_cast<Project*>(a_project);
+
+		std::vector<std::string_view> options { a_options.begin(), a_options.end() };
 
 		if (content.has_value() == true) {
 			made_from_script = true;
@@ -612,7 +614,7 @@ namespace LEX
 
 		Script* script = name == "Commons" ? Component::Create<CommonScript>(ast) : Component::Create<Script>(ast);
 
-		for (auto& entry : *options)
+		for (auto& entry : options)
 		{
 			constexpr std::string_view inc = "incremental";
 

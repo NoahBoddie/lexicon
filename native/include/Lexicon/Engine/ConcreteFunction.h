@@ -20,7 +20,7 @@ namespace LEX
 			return this;
 		}
 
-		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override;
+		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override;
 
 
 

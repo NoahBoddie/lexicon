@@ -15,7 +15,7 @@ namespace LEX
 			{
 				//Relationship information
 
-				virtual bool AppendContent(std::string_view content, api::vector<std::string_view> options = {}) = 0;
+				virtual bool AppendContent(const std::string_view& content, std::span<std::string_view> options = {}) = 0;
 			};
 
 		}

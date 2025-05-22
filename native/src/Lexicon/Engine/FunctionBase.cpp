@@ -196,7 +196,7 @@ namespace LEX
     }
 
 
-    RuntimeVariable FunctionBase::BasicExecute(Function* self, ITemplateBody* body, api::vector<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
+    RuntimeVariable FunctionBase::BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
     {
         if (IsValid() == false) {
             report::log("Function '{}' is not valid. Maybe say error later.", IssueType::Apply, def ? IssueLevel::Failure : IssueLevel::Error, GetName());
@@ -209,8 +209,8 @@ namespace LEX
 
         Variable* target = nullptr;
 
-        if (args->size() != GetParamCount())
-            report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
+        if (args.size() != GetParamCount())
+            report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
 
 
 
@@ -247,7 +247,7 @@ namespace LEX
             data.defOption = def;
             data.function = self;
 
-            auto begin = args->begin();
+            auto begin = args.begin();
 
             std::vector<Variable*> send_args;
 
@@ -259,7 +259,7 @@ namespace LEX
                 begin++;
             }
 
-            std::transform(begin, args->end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
+            std::transform(begin, args.end(), std::back_inserter(send_args), [&](auto& it) { return it.Ptr(); });
 
             report _{ IssueType::Runtime };
 
@@ -271,7 +271,7 @@ namespace LEX
                 logger::debug("triggered");
                 void* ptr = result.Ptr();
 
-                for (auto& rvar : *args)
+                for (auto& rvar : args)
                 {
                     if (rvar.Ptr() == ptr)
                     {
@@ -288,7 +288,7 @@ namespace LEX
             }
 
 
-            for (auto& rvar : *args) {
+            for (auto& rvar : args) {
                 rvar.TryUpdateRef();
             }
         }
@@ -305,6 +305,43 @@ namespace LEX
 
         return result;
     }
+    /*
+    RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def) override
+    {
+        if (args->size() != GetParamCount())
+            report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), GetParamCount());
+
+        if (!1)
+            VisitParameters([&](ParameterInfo& param)
+                {
+                    //Cancelling this for now. This should be in invoke
+                    return;
+                    int i = param.GetFieldIndex();
+
+                    TypeInfo* expected = param.GetType()->FetchTypePolicy(caller);
+                    if (!expected)
+                        report::apply::critical("unexpected?");
+
+                    RuntimeVariable check = args[i]->Convert(expected);
+
+                    if (check.IsVoid() == true)
+                        report::apply::error("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
+
+                    args[i] = check;
+                });
+
+
+        {
+            RuntimeVariable result;
+
+            Runtime runtime{ *GetRoutine(), args, caller };
+
+            result = runtime.Run();
+
+            return result;
+        }
+    }
+    //*/
 
 
 

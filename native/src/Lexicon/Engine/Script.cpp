@@ -347,7 +347,7 @@ namespace LEX
 		
 	}
 
-	bool Script::AppendContent(std::string_view content, api::vector<std::string_view> options)
+	bool Script::AppendContent(const std::string_view& content, std::span<std::string_view> options)
 	{
 		//In order for append to work, new objects need to  play catch up with already existing things. To do this, we can check if linkage already
 		// finalized, and then finalize it again.

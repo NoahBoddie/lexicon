@@ -21,7 +21,7 @@ namespace LEX
 		//I need to use bodies for this.
 		SpecialBase(GenericBase* base, ITemplatePart* args) :
 			_base{ base }, 
-			ITemplateBodyPart{ args->TryPromoteTemplate() ? State::kBody : State::kPart}
+			ITemplateBodyPart{ args->TryResolve() ? State::kBody : State::kPart}
 		{
 			LoadTypes(args);
 		}
@@ -83,7 +83,7 @@ namespace LEX
 		bool TemplateMatches(ITemplatePart* args) override
 		{
 			//Since this is both part and body now, there's no early exist.
-			//if (args->TryPromoteTemplate() != nullptr)
+			//if (args->TryResolve() != nullptr)
 			//	return false;
 
 			auto size = _types.size();

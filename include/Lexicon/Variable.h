@@ -292,6 +292,19 @@ namespace LEX
 
 		TypeInfo* GetTypeInfo() const;
 
+		bool IsNull() const
+		{
+			bool result = std::visit([](auto&& lhs) -> bool {
+				if constexpr (requires () { { lhs.IsNull() } ->std::same_as<bool>; }) {
+					return lhs.IsNull();
+				}
+				else {
+					return false;
+				}
+				}, value());
+
+			return result;
+		}
 
 		bool IsDefined() const
 		{

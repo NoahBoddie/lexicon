@@ -171,7 +171,7 @@ namespace LEX
 		}
 		//*/
 		//Very temporary, delete me
-		Runtime(RoutineBase& base, container<RuntimeVariable> args, Runtime* caller, ITemplateBody* body = nullptr) :
+		Runtime(RoutineBase& base, std::span<RuntimeVariable> args = {}, Runtime* caller = nullptr, ITemplateBody* body = nullptr) :
 			_data{ base }
 			//These accidently create numbers.
 			//, _varStack{ _data.GetVarCapacity() }
@@ -200,11 +200,8 @@ namespace LEX
 			}
 
 			_psp = _vsp = args.size();
-
-			return;
 		}
-		Runtime(RoutineBase& base, container<Variable> args = {}) : Runtime{ base,  container<RuntimeVariable>{args.begin(), args.end()}, nullptr }
-		{}
+	
 
 		//
 		Function* _function = nullptr;

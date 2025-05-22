@@ -17,7 +17,7 @@ namespace LEX
 		virtual TypeInfo* GetBodyArgument(size_t i) const = 0;
 
 
-		ITemplateBody* TryPromoteTemplate() override
+		ITemplateBody* TryResolve() override
 		{
 			return this;
 		}

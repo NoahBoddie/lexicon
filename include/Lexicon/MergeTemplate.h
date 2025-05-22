@@ -41,8 +41,8 @@ namespace LEX
 		TypeInfo* GetBodyArgument(size_t i) const override
 		{
 			if (GetState()) {
-				auto lhs = left ? left->TryPromoteTemplate() : nullptr;
-				auto rhs = right->TryPromoteTemplate();
+				auto lhs = left ? left->TryResolve() : nullptr;
+				auto rhs = right->TryResolve();
 				return i < leftEnd ? lhs->GetBodyArgument(i) : rhs->GetBodyArgument(i - leftEnd);
 			}
 
@@ -57,7 +57,7 @@ namespace LEX
 
 		bool IsResolved() const
 		{
-			return (!left || left->TryPromoteTemplate()) && right->TryPromoteTemplate();
+			return (!left || left->TryResolve()) && right->TryResolve();
 		}
 
 
