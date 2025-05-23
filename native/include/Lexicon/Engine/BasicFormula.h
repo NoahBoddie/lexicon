@@ -25,41 +25,8 @@ namespace LEX
 
 		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def) override
 		{
-			if (args.size() != GetParamCount())
-				report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), GetParamCount());
-
-			if (!1)
-				VisitParameters([&](ParameterInfo& param)
-					{
-						//Cancelling this for now. This should be in invoke
-						return;
-						int i = param.GetFieldIndex();
-
-						TypeInfo* expected = param.GetType()->FetchTypePolicy(caller);
-						if (!expected)
-							report::apply::critical("unexpected?");
-
-						RuntimeVariable check = args[i]->Convert(expected);
-
-						if (check.IsVoid() == true)
-							report::apply::error("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
-
-						args[i] = check;
-					});
-
-
-			{
-				RuntimeVariable result;
-
-				Runtime runtime{ *GetRoutine(), args, caller };
-
-				result = runtime.Run();
-
-				return result;
-			}
+			return BasicExecute(nullptr, nullptr, args, caller, def);
 		}
-		
-
 	};
 
 }

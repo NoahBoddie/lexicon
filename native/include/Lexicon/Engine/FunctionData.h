@@ -154,6 +154,13 @@ namespace LEX
 			return std::addressof(parameters.at(index));
 		}
 
+
+
+	protected:
+
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, Procedure prod = nullptr);
+
+
 	};
 
 	struct FunctionData : public BasicCallableData
@@ -260,12 +267,16 @@ namespace LEX
 		void QualifyOverload(Overload& out);
 
 
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
+		{
+			return __super::BasicExecute(self, body, args, caller, def, GetProcedure());
+		}
+
 		//TypeInfo* GetConcreteReturnType();//move to abstractFunction
 
 
 		//Possible use in deductions with generics, then I realized this isn't C++ and auto cannot exactly exist
 		// like I think it would.
-
 
 
 
