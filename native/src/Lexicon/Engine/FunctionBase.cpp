@@ -173,8 +173,10 @@ namespace LEX
 
         case LinkFlag::Final:
         {
-            if (procedureData && !_procedure)
-                report::link::error("Function '{}' did not register a procedure.");
+            if (procedureData && !_procedure) {
+                report::link::failure("Function '{}' did not register a procedure.");
+                return LinkResult::Failure;
+            }
             break;
         }
         break;

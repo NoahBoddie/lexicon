@@ -122,7 +122,7 @@
 #include "Lexicon/Revariable.h"
 #include "Lexicon/Engine/SpecialFunction.h"
 #include "Lexicon/Engine/GenericFunction.h"
-
+#include "Lexicon/Array.h"
 
 
 namespace std
@@ -897,7 +897,7 @@ namespace LEX
 
 
 
-
+#ifdef TTTTTTTTTT
 	//Nothing highlights after this
 	template <typename T>
 	struct ContainerHelper
@@ -1250,8 +1250,6 @@ namespace LEX
 
 	};
 
-
-	
 	//TODO: Make built in object infos, where if a type is denoted as such, it will make it's own object info, trying to 
 	// call a static version of the classes functions
 	template <>
@@ -1314,6 +1312,8 @@ namespace LEX
 
 	};
 
+#endif
+
 	
 	//TODO: Move the set up for 
 
@@ -1372,7 +1372,7 @@ namespace LEX
 	//*/
 
 
-
+#ifdef TTTTTTTTTT
 	template<typename T>
 	struct ProxyGuide <std::vector<T>> : public RefCollection
 	{
@@ -1525,19 +1525,15 @@ namespace LEX
 
 	template <typename T> requires (std::is_same_v<std::remove_cvref_t<T>, Array> && (std::is_const_v<T> || std::is_reference_v<T>))
 		struct Revariable<T> : public Revariable<Array> {};
+#endif
 
 
 
-
-	int ArraySize(Array&& a_this)
+	int size(Array&& a_this)
 	{
 		return a_this.data().size();
 	}
 
-	int ArraySize_(Array a_this, Array second)
-	{
-		return a_this.data().size();
-	}
 
 
 
@@ -1588,11 +1584,10 @@ namespace LEX
 			logger::break_debug("failure rft3");
 		}
 		int num = 1;
-		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(ArraySize, "ArraySize"));
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(get_backend, "get"));
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(CreateOne, "CreateOne"));
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(resize, "resize"));
-		//logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(size, "size"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(size, "size"));
 
 		std::system("pause");
 	}

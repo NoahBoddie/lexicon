@@ -6,7 +6,6 @@
 //#include "Function.h"
 //#include "ExternalHandle.h"
 #include "Object.h"
-#include "Array.h"
 //#include "Delegate.h"
 //#include "FunctionHandle.h"
 
@@ -549,7 +548,6 @@ namespace LEX
 	};
 	static_assert(sizeof(Variable) == (sizeof(VariableValue)), "Size of Variable Component and Value must be equal for data helper to work.");
 	
-
 
 
 	struct Voidable : public Variable

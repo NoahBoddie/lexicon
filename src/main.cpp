@@ -333,6 +333,7 @@ void LexTesting(std::string formula)
 
     Initializer::Execute("function_register");
 
+    Component::Link(LinkFlag::Object);
     Component::Link(LinkFlag::External);
 
     auto funcs = script->FindFunctions("GetActorValue");

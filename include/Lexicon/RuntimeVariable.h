@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Variable.h"
+#include "Lexicon/Variable.h"
 #include "Lexicon/NativeReference.h"
 
 namespace LEX
