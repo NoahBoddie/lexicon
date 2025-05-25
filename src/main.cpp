@@ -288,7 +288,7 @@ struct deduce_qualifiers<parameter_index<mc_type, decltype(mc_func)>::value, mc_
 
 
 struct readonly { 
-    void operator()(Qualifier& qualifiers) { qualifiers.MakeReadonly(); }
+    void operator()(Qualifier& qualifiers) { qualifiers.MakeReadonly(false); }
 };
 
 

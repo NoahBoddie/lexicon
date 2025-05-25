@@ -27,7 +27,7 @@ namespace LEX
 		None = 0,
 		//Type = 1 << 0,//This was taken away due to not being relevant, declarations always have types
 		Constness = 1 << 1,
-		Reference = 1 << 2,
+		Refness = 1 << 2,
 
 		All = -1,
 	};
@@ -58,19 +58,25 @@ namespace LEX
 
 			switch (Hash(name))
 			{
+			case "readonly"_h:
+				qualifiers.MakeReadonly(false);
+				break;
+
 			case "mutable"_h:
 				qualifiers.constness = Constness::Mutable;
 				break;
 
 			case "const"_h:
-				qualifiers.constness = Constness::Const;
+				qualifiers.MakeConst();
 				break;
 
 			case "ref"_h:
 				//report::break_warn("Sorry dumbo, don't know how to handle refs yet");
-				qualifiers.reference = Reference::Generic;
+				qualifiers.reference = Refness::Generic;
 				break;
 
+			default:
+				report::error("unknown qualifier '{}' detected", name);
 			}
 		}
 
@@ -135,7 +141,7 @@ namespace LEX
 		Declaration() = default;
 
 		//Do this via function
-		Declaration(SyntaxRecord& header, Element* source, Reference genericRef, Reference defaultRef = Reference::Temp);
+		Declaration(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef = Refness::Temp);
 
 		using QualifiedType::operator=;
 		Declaration& operator=(const Specifier& other) { __super::operator=(other); return *this; }
@@ -169,7 +175,7 @@ namespace LEX
 				{
 					switch ((DeclareMatches)i)
 					{
-					case DeclareMatches::Reference:
+					case DeclareMatches::Refness:
 						if (!reference)
 							filter.reference = reference;
 						break;

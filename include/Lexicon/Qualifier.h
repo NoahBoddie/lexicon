@@ -48,7 +48,7 @@ namespace LEX
 
 
 	//May rename this to "Refness". Sounds dumb but fits and doesn't take up a common word
-	ENUM(Reference, uint8_t)
+	ENUM(Refness, uint8_t)
 	{
 		Temp,			//The result of an expression, a value with no home
 		Maybe,			//May be a reference to a variable or a temporary value
@@ -60,22 +60,21 @@ namespace LEX
 		Generic,		//Generic refs aren't any one type, but are context based. Should accept all except temp
 
 
-		//Membered- Name may be subject to change but the idea would be that this is a type that is beholden to whatever type is currently
-		// being viewed from the perspective of the QualifiedField that owns it. Generic might actually fit this bill.
-		// So the idea 
+			//Membered- Name may be subject to change but the idea would be that this is a type that is beholden to whatever type is currently
+			// being viewed from the perspective of the QualifiedField that owns it. Generic might actually fit this bill.
+			// So the idea 
 	};
 
 	ENUM (Constness, uint8_t)
 	{
 		
 		Modable,
-		Mutable,
 		Const,
 		Readonly,	//Similar to const in that it won't allow the slot to be edited, but will allow it to be placed in non-const spaces
 					// Think of it as int* const, it can still use non-const functions, the value of the slot can't be assigned however.
 					// for struct types this should cause a copy to be used instead of the type itself
 		ConstReadonly,
-
+		Mutable,
 		//Readonly probably should probably be before modable
 	};
 	
@@ -88,6 +87,7 @@ namespace LEX
 		//Please note QualifierFlags aren't to be observed in an official capacity, they're mostly used for compiling. They also may be subject to change.
 		None = 0,
 		Params = 1 << 0,
+		ImplicitReadonly = 1 << 1,
 #ifdef LEX_SOURCE
 		
 		//Initialized,		//Used when a value can be initialized. Think for out and in
@@ -108,13 +108,13 @@ namespace LEX
 	public:
 		Qualifier() = default;
 
-		Qualifier(Reference ref, Constness cnst, QualifierFlag flgs) :
+		Qualifier(Refness ref, Constness cnst, QualifierFlag flgs) :
 			reference{ ref },
 			constness{ cnst },
 			flags{ flgs }
 		{}
 
-		constexpr Qualifier(Reference ref) noexcept :
+		constexpr Qualifier(Refness ref) noexcept :
 			reference{ ref },
 			constness{ Constness::Mutable },
 			flags{ QualifierFlag::None }
@@ -122,7 +122,7 @@ namespace LEX
 
 
 		constexpr Qualifier(Constness cnst) noexcept :
-			reference{ Reference::Temp },
+			reference{ Refness::Temp },
 			constness{ cnst },
 			flags{ QualifierFlag::None }
 		{}
@@ -131,10 +131,34 @@ namespace LEX
 
 		constexpr bool IsConst() const noexcept
 		{
-			return constness == Constness::Const;
+			switch (constness)
+			{
+			case Constness::Const:
+			case Constness::ConstReadonly:
+				return true;
+
+			default:
+				return false;
+			}
 		}
 
-		constexpr Constness GetConstNormalized() const
+		constexpr bool IsReadonly() const noexcept
+		{
+			switch (constness)
+			{
+			case Constness::Readonly:
+			case Constness::ConstReadonly:
+				return true;
+
+			default:
+				return flags & QualifierFlag::ImplicitReadonly;
+			}
+		}
+
+		
+
+
+		constexpr Constness GetConstness() const
 		{
 			return constness == Constness::Mutable ? Constness::Modable : constness;
 		}
@@ -144,14 +168,14 @@ namespace LEX
 			std::optional<bool> result;
 			switch (reference)
 			{
-			case Reference::Maybe:
+			case Refness::Maybe:
 				result = std::nullopt;
 				break;
 
-			case Reference::Global:
-			case Reference::Local:
-			case Reference::Scoped:
-			case Reference::Generic:
+			case Refness::Global:
+			case Refness::Local:
+			case Refness::Scoped:
+			case Refness::Generic:
 				result = true;
 				break;
 
@@ -178,11 +202,11 @@ namespace LEX
 		{
 			switch (reference)
 			{
-			case Reference::Global:
-			case Reference::Local:
-			case Reference::Scoped:
-			case Reference::Auto:
-			case Reference::Static:
+			case Refness::Global:
+			case Refness::Local:
+			case Refness::Scoped:
+			case Refness::Auto:
+			case Refness::Static:
 				return true;
 
 			default:
@@ -190,29 +214,42 @@ namespace LEX
 			}
 		}
 
+		constexpr bool IsConstnessEqual(const Qualifier& other) const noexcept
+		{
+			if (constness != other.constness) {
+				return false;
+			}
+
+			if (flags & QualifierFlag::ImplicitReadonly != other.flags & QualifierFlag::ImplicitReadonly) {
+				return false;
+			}
+
+			return true;
+		}
+
 		bool PromoteRefness()
 		{
 			switch (reference)
 			{
-				case Reference::Maybe:
-					reference = Reference::Local;
+				case Refness::Maybe:
+					reference = Refness::Local;
 					break;
 
-				case Reference::Local:
-					reference = Reference::Scoped;
+				case Refness::Local:
+					reference = Refness::Scoped;
 					break;
 
-				case Reference::Scoped:
-					reference = Reference::Global;
+				case Refness::Scoped:
+					reference = Refness::Global;
 					break;
 
-				case Reference::Global:
+				case Refness::Global:
 					return false;
 
-				case Reference::Auto:
-				case Reference::Static:
-				case Reference::Generic:
-				case Reference::Temp:
+				case Refness::Auto:
+				case Refness::Static:
+				case Refness::Generic:
+				case Refness::Temp:
 
 			default:
 				return false;
@@ -232,8 +269,14 @@ namespace LEX
 			return flags & QualifierFlag::Promoted;
 		}
 
-		void MakeReadonly()
+
+		void MakeReadonly(bool implicit)
 		{
+			if (implicit) {
+				flags |= QualifierFlag::ImplicitReadonly;
+				return;
+			}
+
 			switch (constness)
 			{
 			default:
@@ -269,11 +312,11 @@ namespace LEX
 			return reinterpret_cast<const uint64_t&>(*this);
 		}
 
-		//operator Reference& () { return reference; }
+		//operator Refness& () { return reference; }
 		//operator Constness& () { return constness; }
 		//operator QualifierFlag& () { return flags; }
 
-		//Qualifier& operator=(const Reference& other) { reference = other; return *this; }
+		//Qualifier& operator=(const Refness& other) { reference = other; return *this; }
 		//Qualifier& operator=(const Constness& other) { constness = other; return *this; }
 		//Qualifier& operator=(const QualifierFlag& other) { flags = other; return *this; }
 		
@@ -294,7 +337,7 @@ namespace LEX
 		uint8_t _budget[5]{};
 
 	public:
-		Reference reference = Reference::Temp;
+		Refness reference = Refness::Temp;
 		Constness constness = Constness::Modable;
 
 

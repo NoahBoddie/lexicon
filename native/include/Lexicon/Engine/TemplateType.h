@@ -5,6 +5,7 @@
 
 //*src
 #include "Lexicon/Interfaces/IdentityManager.h"
+#include "Lexicon/Qualifier.h"
 namespace LEX
 {
 	constexpr TypeID Trival = 0xDEADBEEF;
@@ -95,6 +96,13 @@ namespace LEX
 		{
 			return this;
 		}
+
+
+		void SetSelfQualifiers(Qualifier& qualifiers) const override
+		{
+			qualifiers.MakeReadonly(true);
+		}
+
 
 	};
 

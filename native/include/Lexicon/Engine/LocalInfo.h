@@ -26,27 +26,27 @@ namespace LEX
 		std::string GetFieldName() const override { return std::format("<local var {}>", _index); }
 
 
-		void MutateReference(Reference ref)
+		void MutateReference(Refness ref)
 		{
-			if (qualifiers.reference == Reference::Generic)
+			if (qualifiers.reference == Refness::Generic)
 			{
 				switch (ref)
 				{
-				case Reference::Static:
-					qualifiers.reference = Reference::Global;
+				case Refness::Static:
+					qualifiers.reference = Refness::Global;
 					break;
 				
 
-				case Reference::Global:
-				case Reference::Local:
-				case Reference::Scoped:
+				case Refness::Global:
+				case Refness::Local:
+				case Refness::Scoped:
 					qualifiers.reference = ref;
 					break;
 					//return true;
 
 				default:
 					report::error("cant do this '{}' not recognized", magic_enum::enum_name(ref));
-					qualifiers.reference = Reference::Local;
+					qualifiers.reference = Refness::Local;
 					break;
 					//return false;
 				}

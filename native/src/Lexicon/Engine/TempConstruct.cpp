@@ -238,7 +238,7 @@ namespace LEX
 		{
 			RuntimeVariable variable = a_lhs.GetVariable(runtime);
 
-			auto type = (Reference)a_rhs.Get<Index>();
+			auto type = (Refness)a_rhs.Get<Index>();
 			
 			auto result = RunUtil::CantPromote(variable, runtime, type);
 
@@ -978,7 +978,7 @@ namespace LEX
 
 				if (to.IsReadOnly() == true) {
 
-					report::compile::error("target solution is read only.");
+					report::compile::error("target solution must be an assignable value.");
 				}
 
 				//TODO: Please make some compiler shorthand for this. Like free register
@@ -1227,7 +1227,7 @@ namespace LEX
 
 		Solution TypeofProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
-			Declaration decl{ target, compiler->GetElement(), Reference::Temp };
+			Declaration decl{ target, compiler->GetElement(), Refness::Temp };
 
 			Solution sol{ QualifiedType{ common_type::type_info() }, OperandType::Type, decl.policy };
 
@@ -1495,12 +1495,12 @@ namespace LEX
 			if (!head_rec)
 				report::compile::error("No record named header.");
 
-			Declaration header{ *head_rec, compiler->GetElement(), Reference::Generic, Reference::Auto };
+			Declaration header{ *head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto };
 
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
 			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
-			if (header.Matches(DeclareMatches::Constness | DeclareMatches::Reference) == false) {
+			if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
 				report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
 			}
 
@@ -1620,7 +1620,7 @@ namespace LEX
 
 			auto& rhs = target.FindChild(parse_strings::rhs)->GetFront();
 
-			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Reference::Temp };
+			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp };
 
 			if (!header) {
 				report::compile::error("No type found for cast");
@@ -1914,6 +1914,8 @@ namespace LEX
 
 			//please, make this with a setting attached.
 
+			//Numbers are final so they don't have to deal with this.
+			void SetSelfQualifiers(Qualifier& qualifiers) const override {}
 
 			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{

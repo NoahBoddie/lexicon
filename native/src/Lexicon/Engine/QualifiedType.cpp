@@ -11,7 +11,7 @@ namespace LEX
 
 	//I just realized that QualifiedType will have some isuses when it comes to che
 
-	template<Reference Ref, bool IsSigned>
+	template<Refness Ref, bool IsSigned>
 	struct ReferenceCheck final : public ICallableUnit
 	{
 		using Self = ReferenceCheck<Ref, IsSigned>;
@@ -54,7 +54,7 @@ namespace LEX
 
 	};
 
-	inline std::map<std::pair<Reference, bool>, ICallableUnit*> refCheckList{};
+	inline std::map<std::pair<Refness, bool>, ICallableUnit*> refCheckList{};
 
 	template <typename T>
 	void RegisterRefChecker(T* singleton)
@@ -65,17 +65,17 @@ namespace LEX
 	TEST_INIT()
 	{
 		//TODO:This won't work unless I do this I'm unsure why.
-		RegisterRefChecker(ReferenceCheck<Reference::Local, true>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Reference::Local, false>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Reference::Scoped, true>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Reference::Scoped, false>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Reference::Global, true>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Reference::Global, false>::GetSingleton());
+		RegisterRefChecker(ReferenceCheck<Refness::Local, true>::GetSingleton());
+		RegisterRefChecker(ReferenceCheck<Refness::Local, false>::GetSingleton());
+		RegisterRefChecker(ReferenceCheck<Refness::Scoped, true>::GetSingleton());
+		RegisterRefChecker(ReferenceCheck<Refness::Scoped, false>::GetSingleton());
+		RegisterRefChecker(ReferenceCheck<Refness::Global, true>::GetSingleton());
+		RegisterRefChecker(ReferenceCheck<Refness::Global, false>::GetSingleton());
 
 	};
 #undef TEST_INIT
 
-	ConvertResult QualifiedType::IsQualified(const QualifiedType& other, ConversionFlag flags, Conversion** out) const
+	ConvertResult QualifiedType::IsQualified(const QualifiedType& to_left, ConversionFlag flags, Conversion** out) const
 	{
 		//TODO: I don't know why this shit is reversed like this but fix it. I know it doesn't work the other way around, but fix it.
 
@@ -83,11 +83,11 @@ namespace LEX
 
 		if (this->flags & QualifierFlag::Promoted)
 		{
-			if (other.IsReference(true) == true) {
+			if (to_left.IsReference(true) == true) {
 				//Pass?
 			}
 			//This needs more
-			else if (common_type::boolean() == other) {//Is a boolean
+			else if (common_type::boolean() == to_left) {//Is a boolean
 				(*out)->implDefined = refCheckList[std::make_pair(reference, false)];
 				return ConversionEnum::ImplDefined;
 			}
@@ -117,8 +117,8 @@ namespace LEX
 
 		//*/
 
-
-		//Reference section
+		report::message::info("left: {}, right: {}", policy->GetName(), to_left->GetName());
+		//Refness section
 		bool init = flags & ConversionFlag::Initialize;
 		bool param = flags & ConversionFlag::Parameter;
 		bool ret = flags & ConversionFlag::Return;
@@ -133,24 +133,24 @@ namespace LEX
 
 
 			//We only care about references if they're being initialized
-			Reference refl = other.reference;
-			Reference refr = reference;
+			Refness refl = to_left.reference;
+			Refness refr = reference;
 
 			//While maybe ref is technically a reference, it needs to be promoted first
-			bool not_ref = refr == Reference::Temp || refr == Reference::Maybe;
+			bool not_ref = refr == Refness::Temp || refr == Refness::Maybe;
 			bool equals = refl == refr;
 
 			bool ref_check = true;
 
 			switch (refl)
 			{
-			case Reference::Global://For global it must be equal, no exceptions
-				if (!equals && refr != Reference::Static)
+			case Refness::Global://For global it must be equal, no exceptions
+				if (!equals && refr != Refness::Static)
 					return ConversionResult::IneligibleQuals;
 				break;
 
-			case Reference::Scoped:
-			case Reference::Local:
+			case Refness::Scoped:
+			case Refness::Local:
 				if (not_ref)
 					return ConversionResult::IneligibleQuals;
 
@@ -164,17 +164,16 @@ namespace LEX
 				}
 				break;
 
-			case Reference::Static://These 2 literally should never be a return type, and assign wise, this has no issues.
-			case Reference::Auto:
-			case Reference::Maybe:
-			case Reference::Temp://Is this immutable?
+			case Refness::Static://These 2 literally should never be a return type, and assign wise, this has no issues.
+			case Refness::Auto:
+			case Refness::Maybe:
+			case Refness::Temp://Is this immutable?
 				//Anything can go into these, there's no restrictions
 				ref_check = false;
-				
 				break;
 
-			case Reference::Generic:
-				if (refr == Reference::Temp) {
+			case Refness::Generic:
+				if (refr == Refness::Temp) {
 					return ConversionResult::IneligibleQuals;//I have no idea if this is the right one, I just don't much care right now.
 				}
 
@@ -182,13 +181,16 @@ namespace LEX
 			}
 
 
-			if (IsReference(true) && other.IsReferential() && !equals) {
+			if (IsReference(true) && to_left.IsReferential() && !equals) {
 				result = ConversionEnum::RefConvert;
 			}
 
 			//Auto cannot be accepted by anything at all
 		}
-
+		else if (to_left.IsAssignable() == false) {
+			//If this isn't the initialization of something, and isn't assignable,that's a problem
+			return ConversionResult::Unassignable;
+		}
 
 
 
@@ -197,10 +199,11 @@ namespace LEX
 		//auto comp = qualifiers & other.qualifiers;
 
 		//These in essence did a switch. need to rename to To and from.
-		Constness l_comp = other.constness;
+		Constness l_comp = to_left.constness;
 		Constness r_comp = constness;
 
-		if (l_comp != r_comp) {
+		//if (l_comp != r_comp) {
+		if (IsConstnessEqual(to_left) == false) {
 
 			//this  first bit makes no sense, if the left side is const anything can still go into it (as long as we are initializing).
 			if (1 != 1) {
@@ -212,12 +215,17 @@ namespace LEX
 						return ConversionResult::IneligibleQuals;
 				}
 			}
+
+
+
+
 			//This doesn't seem to work, but it will be hit by a forcible transfer issue.
-			//if (r_comp == Qualifier::Const)
-			if (l_comp == Constness::Const)
+			//if (l_comp == Constness::Const)
+			//if (other.IsAssignable(param) == false)
+			if (to_left.IsConst() == true)
 			{
 				//If right is const, it must be a value.
-				if (other.policy->IsValueType() == false)
+				if (to_left.policy->IsValueType() == false)
 					return ConversionResult::IneligibleQuals;
 			}
 
@@ -230,7 +238,7 @@ namespace LEX
 	}
 
 
-	ConvertResult QualifiedType::IsConvertToQualified(const QualifiedType& other, ITypeInfo* scope, Conversion* out, ConversionFlag flags) const
+	ConvertResult QualifiedType::IsConvertToQualified(const QualifiedType& to_left, ITypeInfo* scope, Conversion* out, ConversionFlag flags) const
 	{
 
 		//TODO: ConvertQualified needs 2 rules, read below
@@ -240,22 +248,22 @@ namespace LEX
 
 
 #ifdef DISABLE_THIS
-		if (auto result = IsQualified(other, flags, &out); result != ConversionEnum::Exact || out)
+		if (auto result = IsQualified(to_left, flags, &out); result != ConversionEnum::Exact || out)
 			return result;
 
 		//Simple for now.
-		return policy->IsConvertibleTo(other.policy, scope, out, flags);
+		return policy->IsConvertibleTo(to_left.policy, scope, out, flags);
 #endif
 
 		//TODO: ConverstResult needs to be comprised of more types.  \/
 		// Namely, something to tell what error it should give, as well as a function that takes the qualified types that failed
 
-		ConvertResult qual_result = IsQualified(other, flags, &out);
+		ConvertResult qual_result = IsQualified(to_left, flags, &out);
 
 		if (qual_result <= ConversionEnum::Failure || qual_result > ConversionEnum::Transformative)
 			return qual_result;
 
-		if (auto type_result = policy->IsConvertibleTo(other.policy, scope, out, flags); type_result != ConversionEnum::Exact)
+		if (auto type_result = policy->IsConvertibleTo(to_left.policy, scope, out, flags); type_result != ConversionEnum::Exact)
 			return type_result;
 
 		return qual_result;

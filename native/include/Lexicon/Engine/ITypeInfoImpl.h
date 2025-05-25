@@ -4,6 +4,7 @@
 
 namespace LEX
 {
+	
 
 	//Please move this
 	ENUM(TypeRuleset, uint64_t)
@@ -29,11 +30,14 @@ namespace LEX
 	};
 
 	struct TemplateType;
-
+	struct Qualifier;
 	//struct QualifiedType;
 
 	struct IMPL_VERSION(ITypeInfo)
 	{
+		
+		
+		
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.
 		virtual HierarchyData* GetHierarchyData() const = 0;
@@ -109,7 +113,7 @@ namespace LEX
 			return !this ? def : CheckRuleset(rule);
 		}
 
-
+		virtual void SetSelfQualifiers(Qualifier& qualifiers) const = 0;
 
 		bool IsReferType() const override
 		{

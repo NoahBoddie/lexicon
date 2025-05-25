@@ -77,7 +77,7 @@ namespace LEX
 		ITypeInfo* GetType() const override { return nullptr; }
 
 
-		Qualifier GetQualifiers() const override { return Qualifier{ Reference{}, Constness::Const, {} }; }	//Functions do not have qualifiers.
+		Qualifier GetQualifiers() const override { return Qualifier{ Refness{}, Constness::Const, {} }; }	//Functions do not have qualifiers.
 		Specifier GetSpecifiers() const override { return specifiers; }
 
 		std::string GetFieldName() const override { return std::string{ Get()->GetName() }; }

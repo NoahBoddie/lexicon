@@ -10,8 +10,8 @@ namespace LEX
 
 	inline int CompareConstness(Qualifier lhs, Qualifier rhs)
 	{
-		Constness left = lhs.GetConstNormalized();
-		Constness right = rhs.GetConstNormalized();
+		Constness left = lhs.GetConstness();
+		Constness right = rhs.GetConstness();
 
 		return right - left;
 	}

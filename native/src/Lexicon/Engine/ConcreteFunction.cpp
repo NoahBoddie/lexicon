@@ -8,6 +8,8 @@ namespace LEX
 {
 	RuntimeVariable ConcreteFunction::Execute(std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
 	{
+		return BasicExecute(this, nullptr, args, caller, def);
+
 		if (IsValid() == false) {
 			report::log("Function '{}' is not valid. Maybe say error later.", IssueType::Apply, def ? IssueLevel::Failure : IssueLevel::Error, GetName());
 			

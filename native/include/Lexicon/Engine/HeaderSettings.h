@@ -21,13 +21,14 @@ namespace LEX
 		Signable	= 1 << 0,
 		Sizable		= 1 << 1,
 		Reference	= 1 << 2,
-		Constness	= 1 << 3,
-		DeclConst	= 1 << 4,
-		DeclMute	= 1 << 5,
-		Storage		= 1 << 6,
-		Primary		= 1 << 7,
-		Access1st	= 1 << 8,
-		Access2nd	= 1 << 9,
+		Mutable		= 1 << 3,
+		Constness	= 1 << 4,
+		DeclConst	= 1 << 5,
+		DeclMute	= 1 << 6,
+		Storage		= 1 << 7,
+		Primary		= 1 << 8,
+		Access1st	= 1 << 9,
+		Access2nd	= 1 << 10,
 		All			= -1,
 		MostlyAll	= HeaderFlag::All & ~HeaderFlag::Storage,
 	};
@@ -54,10 +55,10 @@ namespace LEX
 		headerGuide[KeywordType::TypeQual]["global"] = { HeaderFlag::Reference, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["maybe"] = { HeaderFlag::Reference, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["scoped"] = { HeaderFlag::Reference, HeaderFlag::None };
-		
-		headerGuide[KeywordType::TypeQual]["const"] = { HeaderFlag::Constness, HeaderFlag::None };
-		headerGuide[KeywordType::TypeQual]["mutable"] = { HeaderFlag::Constness, HeaderFlag::None };
-		headerGuide[KeywordType::TypeQual]["readonly"] = { HeaderFlag::Constness, HeaderFlag::None };
+	
+		headerGuide[KeywordType::TypeQual]["mutable"] = { HeaderFlag::Mutable, HeaderFlag::None };
+		headerGuide[KeywordType::TypeQual]["const"] = { HeaderFlag::Constness, HeaderFlag::Mutable };
+		headerGuide[KeywordType::TypeQual]["readonly"] = { HeaderFlag::Constness, HeaderFlag::Mutable };
 
 		headerGuide[KeywordType::DeclSpec]["const"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["static"] = { HeaderFlag::Storage, HeaderFlag::None };

@@ -81,20 +81,20 @@ namespace LEX
 			if constexpr (T != SignatureEnum::Target)
 			{
 				if constexpr (k_ref_type == detail::kMaybeRef) {
-					entry.reference = Reference::Maybe;
+					entry.reference = Refness::Maybe;
 				}
 				else if constexpr (k_ref_type == detail::kLocalRef) {
-					entry.reference = Reference::Local;
+					entry.reference = Refness::Local;
 				}
 				else if constexpr (k_ref_type == detail::kScopeRef) {
-					entry.reference = Reference::Scoped;
+					entry.reference = Refness::Scoped;
 				}
 				else if constexpr (k_ref_type == detail::kGlobalRef) {
-					entry.reference = Reference::Global;
+					entry.reference = Refness::Global;
 				}
 				else {
 					if (T != SignatureEnum::Result) {
-						entry.reference = Reference::Auto;
+						entry.reference = Refness::Auto;
 					}
 				}
 			}

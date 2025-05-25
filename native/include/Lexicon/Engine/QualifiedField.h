@@ -45,7 +45,7 @@ namespace LEX
 		Constness _constState = Constness::Modable;
 
 		//Thi
-		Reference _refState = Reference::Temp;
+		Refness _refState = Refness::Temp;
 
 
 
@@ -74,13 +74,13 @@ namespace LEX
 			auto result = GetRawQualifiers();
 
 
-			if (result.GetConstNormalized() < _constState)
+			if (result.constness < _constState)
 			{
 				result.constness = _constState;
 			}
 
 
-			if (_refState != Reference::Temp)
+			if (_refState != Refness::Temp)
 			{
 				result.reference = _refState;
 			}

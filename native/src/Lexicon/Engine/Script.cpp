@@ -84,10 +84,8 @@ namespace LEX
 		std::string name;
 		TypeOffset offset;
 
-		auto LookUpOrMake = [&](std::string str, TypeOffset offset, bool lookup) -> TypeBase*
+		auto LookUpOrMake = [&](const std::string_view& name, TypeOffset offset, bool lookup) -> TypeBase*
 			{
-				std::string_view name = std::string_view{ str };
-
 				TypeBase* result = nullptr;
 
 				if (lookup)

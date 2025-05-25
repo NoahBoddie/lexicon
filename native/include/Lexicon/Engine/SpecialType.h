@@ -91,6 +91,8 @@ namespace LEX
 		virtual TypeInfo* GetExtends() { report::fault::critical("Not used"); }
 
 
+		void SetSelfQualifiers(Qualifier& qualifiers) const override { return _self->SetSelfQualifiers(qualifiers); }
+
 		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override
 		{
 			return dynamic_cast<ITypeInfo*>(ObtainSpecial(args));

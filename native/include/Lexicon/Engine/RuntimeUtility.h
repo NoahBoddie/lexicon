@@ -9,19 +9,19 @@ namespace LEX
 {
 	struct RunUtil
 	{
-		static int CantPromote(const RuntimeVariable& var, Runtime* runtime, Reference type)
+		static int CantPromote(const RuntimeVariable& var, Runtime* runtime, Refness type)
 		{
-			if (type >= Reference::Local) {
+			if (type >= Refness::Local) {
 
 				if (var.IsReference() == false)
 					return 1;
 
-				if (type >= Reference::Scoped) {
+				if (type >= Refness::Scoped) {
 
 					if (runtime->ContainsVariable(var) == true)
 						return 2;
 
-					if (type >= Reference::Global) {
+					if (type >= Refness::Global) {
 						if (runtime->GetCaller()->OwnsVariable(var) == true)
 							return 3;
 					}

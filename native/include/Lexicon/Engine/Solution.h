@@ -37,7 +37,7 @@ namespace LEX
 		bool IsReadOnly() const
 		{
 			//TODO: Literals should be qualified as const. If they are not please address this.
-			return type == OperandType::Literal || IsConst();
+			return type == OperandType::Literal || !IsAssignable();
 		}
 
 		

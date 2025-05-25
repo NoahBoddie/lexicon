@@ -289,6 +289,18 @@ namespace LEX
 
 
 
+		void SetSelfQualifiers(Qualifier& qualifiers) const override
+		{
+			//TODO: If a struct is the only one of it's kind, it shouldn't have to make itself readonly.
+			// This is the reason C# structs are the way they are, and if I can make that promise that there is nothing else and will be nothing else it's good
+			// Also, if the struct is final, it's also good.
+			if (!this->IsValueType() || IsLinkExtern() == true)
+				qualifiers.MakeReadonly(true);
+		}
+
+
+
+
 		ITypeInfo* AsType() override { return this; }
 		const ITypeInfo* AsType() const override { return this; }
 

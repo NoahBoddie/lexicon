@@ -47,16 +47,16 @@ namespace LEX
                 report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, environment, Reference::Global, Reference::Static };
+            Declaration header{ *head_rec, environment, Refness::Global, Refness::Static };
             
             switch (header.reference)
             {
-            case Reference::Auto:
-            case Reference::Temp:
+            case Refness::Auto:
+            case Refness::Temp:
                 //These 2 are supposed to be genuinely impossible btw.
-            case Reference::Local:
-            case Reference::Maybe:
-            case Reference::Scoped:
+            case Refness::Local:
+            case Refness::Maybe:
+            case Refness::Scoped:
                 //TODO: This is supposed to fire from the declaration specifiers
                 report::compile::failure("Global variable '{}' cannot have be a '{}' reference type.", GetName(), magic_enum::enum_name(header.reference));
                 return LinkResult::Failure;

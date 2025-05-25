@@ -70,7 +70,7 @@ namespace LEX
 				report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, this, Reference::Local };
+            Declaration header{ *head_rec, this, Refness::Local };
 
             if (header.Matches(DeclareMatches::Constness) == false) {
 				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
@@ -119,6 +119,7 @@ namespace LEX
 
                 
                 _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type }, parse_strings::this_word, 0);
+                target_type->SetSelfQualifiers(_thisInfo->qualifiers);
             }
 
 
@@ -129,10 +130,10 @@ namespace LEX
                 if (!node_head)
 					report::compile::critical("No record named header.");
 
-                Declaration header{ *node_head, this, Reference::Scoped, Reference::Auto };
+                Declaration header{ *node_head, this, Refness::Scoped, Refness::Auto };
 
                 //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
-                if (header.Matches(DeclareMatches::Constness | DeclareMatches::Reference) == false) {
+                if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
 					report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
                 }
 

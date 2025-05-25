@@ -32,8 +32,16 @@ namespace LEX
 			{
 				OverloadEntry tar;
 				
-				if (clause->MatchImpliedEntry(tar, target, nullptr, out, -1, -1, flag) == false ||  tar.convertType != ConversionEnum::Exact)
+				if (clause->MatchImpliedEntry(tar, target, nullptr, out, -1, -1, flag) == false)
 					return OverloadBias::kFailure;
+					
+				//This only compares stated constness rather than implied constness.
+				if (tar.convertType == ConversionEnum::ConstConvert && target.constness != tar.type.constness)
+					return OverloadBias::kFailure;
+
+				if (tar.convertType != ConversionEnum::Exact)
+					return OverloadBias::kFailure;
+
 
 				if (out.EmplaceEntry(tar, target, nullptr) == false)
 					return OverloadBias::kFailure;

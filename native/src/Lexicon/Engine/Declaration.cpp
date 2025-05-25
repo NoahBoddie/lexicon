@@ -204,7 +204,7 @@ namespace LEX
 	}
 
 
-	Declaration::Declaration(SyntaxRecord& header, Element* source, Reference genericRef, Reference defaultRef)
+	Declaration::Declaration(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef)
 	{
 		if (header.GetTag() != parse_strings::header) {
 			report::fault::critical("header not found.");
@@ -284,11 +284,11 @@ namespace LEX
 
 		switch (reference)
 		{
-		case Reference::Generic:
+		case Refness::Generic:
 			reference = genericRef;
 			break;
 
-		case Reference::Temp:
+		case Refness::Temp:
 			reference = defaultRef;
 			break;
 		}

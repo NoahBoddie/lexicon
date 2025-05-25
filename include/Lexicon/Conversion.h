@@ -73,6 +73,11 @@ namespace LEX
 			return data <=> e;
 		}
 
+		constexpr auto operator ==(ConversionEnum e) const
+		{
+			return data == e;
+		}
+
 		//Fill the rest of these out.
 		constexpr auto operator !=(ConversionEnum e) const
 		{
@@ -96,6 +101,7 @@ namespace LEX
 		static constexpr ConvertResult Ineligible{ ConversionEnum::None_None, 60 };
 		static constexpr ConvertResult Inaccessible{ ConversionEnum::None_None, 61 };
 		static constexpr ConvertResult IneligibleQuals{ ConversionEnum::None_None, 62 };
+		static constexpr ConvertResult Unassignable{ ConversionEnum::Const_None, 63 };
 	};
 
 	
