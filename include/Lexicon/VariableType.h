@@ -9,6 +9,7 @@
 
 //Use common type instead.
 #include "Lexicon/TypeInfo.h"
+#include "Lexicon/ProxyGuide.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 
@@ -76,13 +77,7 @@ namespace LEX
 			{ T::GetVariableType(decltype(ptr){ptr}) } -> pointer_derived_from<TypeInfo*>;
 		};
 
-
-		template<typename T> concept subject_has_var_type_Pointer = requires(const std::remove_pointer_t<T>*t, pointer_variable pv)
-		{
-			{ T::GetVariableType(t, pv) } -> pointer_derived_from<TypeInfo*>;
-		};
-
-		template<typename T> concept subject_has_var_type_Pointer2 = requires(const std::remove_pointer_t<T>* ptr)
+		template<typename T> concept subject_has_var_type_Pointer = requires(const std::remove_pointer_t<T>* ptr)
 		{
 			{ T::GetVariableType(ptr) } -> pointer_derived_from<TypeInfo*>;
 		} && !subject_has_var_type_Value<T>;
@@ -91,6 +86,17 @@ namespace LEX
 
 		template<typename T> concept subject_has_var_type = subject_has_var_type_Value<T> || subject_has_var_type_Store<T>;
 
+
+
+		template<typename T> concept proxy_has_var_type = !detail::subject_has_var_type<T> && 
+			//requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>*ptr) { { guide.VariableType(decltype(ptr){ptr}) } -> pointer_derived_from<TypeInfo*>; };
+			requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>*ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<TypeInfo*>; };
+		//I'm unsure if variable type will actually need to handle pointer types, given that manual pointer types can exist with proxy guides
+
+
+		//template<typename T> concept proxy_has_var_type_Pointer = !detail::subject_has_var_type<T> &&
+		//	requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>*ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<TypeInfo*>; } &&
+		//!proxy_has_var_type<T>;
 	}
 
 
@@ -168,7 +174,6 @@ namespace LEX
 	};
 
 
-	/*
 	template <detail::subject_has_var_type_Pointer T>
 	struct VariableType<T*>
 	{
@@ -185,14 +190,20 @@ namespace LEX
 
 	};
 
-
-	/*/
-	template <detail::subject_has_var_type_Pointer2 T>
-	struct VariableType<T*>
+	template <detail::proxy_has_var_type T>
+	struct VariableType<T>
 	{
+		//This proxy guide might need handling for specifying pointers
 		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
 		{
-			return T::GetVariableType(arg);
+
+			return ProxyGuide<T>{}.VariableType(arg);
+			//if constexpr (detail::subject_has_var_type_Value<T>) {
+			//	return T::GetVariableType(arg);
+			//}
+			//else {
+			//	return T::GetVariableType();
+			//}
 		}
 
 		//Can likely remove this
@@ -200,9 +211,9 @@ namespace LEX
 		{
 			return this->operator()(nullptr);
 		}
-
 	};
-	//*/
+
+	
 
 	//These are spotty right now. Please redo.
 	namespace detail

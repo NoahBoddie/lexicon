@@ -200,16 +200,6 @@ namespace LEX
 
 	}
 
-	struct Base
-	{
-		virtual int test() { return 1; };
-	};
-
-	struct Derived1 : public Base
-	{
-		virtual int test() { return 2; }
-	};
-
 
 
 
@@ -270,139 +260,6 @@ namespace LEX
 			//The arguments should already be expected to go into variable slots rather than call sites by this point.
 		}
 	}
-
-	//Calling function helper constructs. 
-	//Needs names other than target. It's called a ThisVariable
-
-	namespace detail
-	{
-		//TODO: I want to use this in member formulas very soon.
-		struct ThisHelperImpl
-		{
-			using _Base = ThisHelperImpl;
-
-			//This is the thing that actually does the calling. This is given based on whether the target is a reference
-			// type, or a pointer type.
-
-			//The callable functions will have a few different versions, depending on one's faith in the system/preference.
-			//For now, I'm not going to care about the alternate versions of this. BUT here is the low down on what I want
-			//-A central and somewhat raw function for how I want everything packaged and sent to the Runtime
-			//-A function that has doesn't the given references as variables
-			//-A function that does use the given references as variables.
-			//^ For this, one could just forward instead. Also, const should always be taken by value some how.
-
-
-
-
-			//bool Execute(Variable& out, std::vector<RuntimeVariable> args)
-
-			Variable Call(ICallableUnit* call_unit, std::vector<Variable> args)
-			{
-				args.insert(args.begin(), _this);
-
-
-				return {};
-			}
-
-			template <typename... Ts>
-			Variable Call(ICallableUnit* unit, Ts&&... ts)
-			{
-				std::vector<Variable> args{};
-
-				args.resize(sizeof...(Ts));
-
-				return Call(unit, args);
-			}
-
-
-			//void* _this = nullptr;
-			Variable _this;
-		};
-
-
-
-		//*
-
-	//std::convertible_to<Variable>//I want to use this, but I cannot because it doesn't yet account for pointer
-	// types. Readdress another time.
-		template <typename T, typename = void>
-		struct ThisHelper {};
-
-
-
-		//This is for value and references
-		template <typename T>
-		struct ThisHelper<T, std::enable_if_t<!PointerType<T>>> : public detail::ThisHelperImpl
-		{
-			using _Self = ThisHelper<T>;
-
-			//Should be convertible to a variable?
-
-			//This is only to fulfill what someone would normally use
-
-
-			ThisHelper(const T& t)
-			{
-
-			}
-
-			ThisHelper(const T&& t)
-			{
-
-			}
-		};
-
-		//this is for pointers
-		template <typename T>
-		struct ThisHelper<T, std::enable_if_t<PointerType<T>>> : private ThisHelperImpl
-		{
-			using TypeC = int;
-			using _Self = ThisHelper<T>;
-
-			_Base* operator->()
-			{
-				//This gets the TargetBase, the thing that actually has the run function, to resume the 
-				// syntax that you're accessing a member function (which you kinda are).
-
-				return this;
-			}
-
-
-			ThisHelper(const T& t)
-			{
-
-			}
-
-			ThisHelper(const T&& t)
-			{
-
-			}
-		};
-
-
-		template <typename T>
-		ThisHelper(T) -> ThisHelper<T>;
-
-
-
-		//this helper should be moved to something else.
-	//maybe name METHOD?
-#define METHOD(mc_tar) ThisHelper{ mc_tar }
-
-
-
-		void test_method()
-		{
-			std::string* string_thing;
-			std::vector testname{ string_thing };
-
-			METHOD(string_thing)->Call(nullptr, 1, 3, 4);
-
-		}
-#undef METHOD
-		//*/
-	}
-
 
 
 	namespace NumberNew
@@ -1039,106 +896,6 @@ namespace LEX
 	}
 
 
-	namespace SearchingTest
-	{
-
-		struct Element : public LEX::Element
-		{
-			virtual Environment* FindEnvironment(SyntaxRecord*& record, ITemplateInserter& inserter)
-			{
-				return nullptr;
-			}
-
-
-			Environment* WalkEnvironmentPath(SyntaxRecord*& path, ITemplateInserter& inserter)//bool search_scripts)
-			{
-				Element* a_this = this;
-
-				while (path->IsPath() == true)
-				{
-					//if (path->IsPath() == false) {
-					//	path = nullptr;
-					//	return FetchEnvironment();
-					//}
-					
-					if (!a_this)
-						return nullptr;
-
-
-					auto left = path->FindChild(parse_strings::lhs);
-
-
-
-					if (!left) {
-						path = nullptr;
-
-						return a_this->FindEnvironment(path, inserter);
-					}
-
-					if constexpr (1 == 1)//If not generic.
-					{
-						//Environment* _this = a_this->FindEnvironment(path, inserter);
-						a_this = (Element*)a_this->FindEnvironment(path, inserter);
-
-						path = path->FindChild(parse_strings::rhs);
-
-						a_this = (Element*)a_this->FindEnvironment(path, inserter);
-					}
-
-
-				}
-
-				return a_this->FetchEnvironment();
-
-			}
-		};
-
-
-		namespace A
-		{
-			namespace B
-			{
-				inline int test1 = 0;
-			}
-		}
-
-namespace T
-{
-
-	namespace A
-	{
-		namespace B
-		{
-			inline int test1 = 0;
-		}
-	}
-}
-
-namespace Template
-{
-	//using namespace T;
-
-	namespace A
-	{
-		namespace B
-		{
-			inline int test = 0;
-		}
-	}
-
-	void Test()
-	{
-		//A::B::test1;
-		ITypeInfo* test;
-
-		//test->GetSpecializable()->FetchBase
-	}
-}
-
-		
-	}
-
-
 
 
 	//Nothing highlights after this
@@ -1563,6 +1320,8 @@ namespace Template
 	
 
 	//This is a test, it has more qualifications to fill than this.
+	
+	/*
 	template <typename T> requires (!detail::subject_has_var_type<T>&&
 		requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>* ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<TypeInfo*>; })
 	struct VariableType<T>
@@ -1585,7 +1344,7 @@ namespace Template
 			return this->operator()(nullptr);
 		}
 	};
-
+	
 	template <typename T> requires (requires(ProxyGuide<T> guide, const T& arg) { { guide.ObjectTranslator(arg) } -> has_object_info; })
 	struct ObjectTranslator<T>
 	{
@@ -1594,7 +1353,6 @@ namespace Template
 			return ProxyGuide<T>{}.ObjectTranslator(obj);
 		}
 	};
-
 	template <typename T> requires (requires(ProxyGuide<T> guide, Variable* arg) { { guide.Unvariable(arg) } -> std::convertible_to<T>; })
 	struct Unvariable<T>
 	{
@@ -1608,9 +1366,6 @@ namespace Template
 		}
 	};
 
-	
-	/*
-	 
 
 			
 

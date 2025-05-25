@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Variable.h"
-
+#include "Lexicon/Variable.h"
+#include "Lexicon/ProxyGuide.h"
 namespace LEX
 {
 
@@ -11,6 +11,18 @@ namespace LEX
 
 	};
 
+	template <typename T> requires (requires(ProxyGuide<T> guide, Variable* arg) { { guide.Unvariable(arg) } -> std::convertible_to<T>; })
+	struct Unvariable<T>
+	{
+		decltype(auto) operator()(Variable* var)
+		{
+			ProxyGuide<T> guide{};
+
+			decltype(auto) result = guide.Unvariable(var);
+
+			return result;
+		}
+	};
 
 
 	//Should be named var converter

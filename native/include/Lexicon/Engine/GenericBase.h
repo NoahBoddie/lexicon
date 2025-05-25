@@ -200,6 +200,7 @@ namespace LEX
 		//For when something inherits from one and falls into the other?
 		//std::vector<uint32_t> inheritGroups{};
 
+		//std::vector<TemplateType*> _inheritedTemplates;//This is to be used when it inherits templates. Inherit groups not required.
 		std::vector<TemplateType> _templates;
 		
 		//I'm actually unsure how needed incomplete is. We have to specialize stuff as it's getting used,

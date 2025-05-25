@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Lexicon/ProxyGuide.h"
 #include "Lexicon/ObjectInfo.h"
 #include "Lexicon/ObjectData.h"
 #include "Lexicon/ObjectPolicy.hpp"
 #include "Lexicon/ObjectPolicyHandle.h"
-
 namespace LEX
 {
 	struct TypeInfo;
@@ -61,6 +61,15 @@ namespace LEX
 				return ToObject(val);
 			}
 
+		}
+	};
+
+	template <typename T> requires (requires(ProxyGuide<T> guide, const T& arg) { { guide.ObjectTranslator(arg) } -> has_object_info; })
+		struct ObjectTranslator<T>
+	{
+		decltype(auto) operator()(const T& obj)
+		{
+			return ProxyGuide<T>{}.ObjectTranslator(obj);
 		}
 	};
 	
