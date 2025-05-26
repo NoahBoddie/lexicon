@@ -386,15 +386,13 @@ void LexTesting(std::string formula)
         
         //function->_procedure = TestProcedure;
         //A conversion is supposed to happen here.
-        TEST_REF::PsuedoDispatch();
-        std::system("pause");
+        
         double a_this = 68.0;
         
         Variable result = function->Call(Default{ 5 }, extern_ref(a_this), 1.0, 2.0, 3.0, 4.0, 5.0);
 
-        std::string number = result.AsNumber().string();
 
-        logger::info("result of {} = {} (a_this = {})", formula, number, a_this);
+        logger::info("result of {} = {} (a_this = {})", formula, result.PrintString(), a_this);
         std::system("pause");
     }
     else
@@ -599,36 +597,6 @@ namespace PropertyTest
 }
 #endif
 
-struct Test
-{
-    struct Inner
-    {
-        inline Inner* operator->()
-        {
-            return this;
-        }
-
-        void Call()
-        {
-
-        }
-        void operator()()
-        {
-
-        }
-    };
-
-    
-    void Call()
-    {
-
-    }
-    Inner operator()(int)
-    {
-        return {};
-    }
-};
-
 
 int main(int argc, char** argv) {
     //logger::InitializeLogging(true);
@@ -649,39 +617,8 @@ int main(int argc, char** argv) {
 #endif
    
 
-    if constexpr (0)
-    {
-        Reflection* test = nullptr;
-        constexpr auto const_test = LEX::detail::function_has_var_type<Reflection>;
-        GetVariableType(test);
-        void (Test:: * function)() = &Test::Call;
-        using SillyWater = LEX::detail::expected_var_type_t<Reflection>;
-        using SillyWater2 = LEX::detail::expected_var_type_t<String>;
-        static_assert(std::is_same_v<SillyWater, Reflection*>);
-
-        Test object;
-
-        (object.*function)();
-        object(1)();
-        //If the object isn't a pointer, this is what we use
-        object(1).Call();
-        object(1)->Call();
-        VariableType<Reflection*>{};
-        VariableType<String*>{};
-        String str;
-        Formula<void(String::*)()> form1;
-        form1(str).Call();
-
-        Formula<void(Reflection::*)()> form2;
-        decltype(form2)::TarType;
-        std::nullptr_t null_test{};
-        test = null_test;
-        form2(test)->Call();
-    }
     Initializer::Execute();
 
-
-    LEX::NewOverloadV2::RunGenericTest();
     //GetTest<int64_t>();
     //LEX::Report<LEX::IssueType::Compile>::debug("The numbers {} and {} are {}", 69, 420, "nice");
     //std::system("pause");

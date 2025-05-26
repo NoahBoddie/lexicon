@@ -203,6 +203,15 @@ namespace LEX
 
 
 
+	namespace NEW_PARSING
+	{
+
+	}
+
+
+
+
+
 
 	namespace FunctionalInlining
 	{
@@ -1718,239 +1727,8 @@ namespace LEX
 
 
 
-	void ArrTest()
-	{
-		std::vector<int> t{ 4, 5, 1, 2,3 };
-			
-		std::span<int> s = t;
 
-		std::mutex;
 
-		std::sort(s.begin(), s.end());
-		//auto t = 
-		//auto e = std::remove(s.begin(), s.end(), 1);
-
-		t.erase(t.begin(), t.begin());
-
-		//t.erase(;
-		//The theory goes, that as long as I provide iterators, these iterators will be independent. The spans
-		// will provide a view.
-		for (auto it : t)
-		{
-			logger::info("t: {}", it);
-		}
-
-		//for (auto it : s)
-		//{
-		//	logger::info("s: {}", it);
-		//}
-	}
-
-	
-
-
-
-#define NEW_OVERLOAD
-#ifdef NEW_OVERLOAD
-#undef NEW_OVERLOAD
-	namespace NewOverloadV2
-	{
-
-
-
-
-
-
-		void RunGenericTest()
-		{
-			//Here we are testing
-
-
-			QualifiedType floatSmall = QualifiedType{ IdentityManager::instance->GetTypeByOffset("NUMBER", 42) };
-			QualifiedType floatBig = QualifiedType{ IdentityManager::instance->GetTypeByOffset("NUMBER", 45) };
-			QualifiedType stringB = QualifiedType{ IdentityManager::instance->GetTypeByOffset("STRING", 0) };
-			
-			auto caster = dynamic_cast<TypeBase*>(floatSmall.policy);
-			
-			floatSmall->GetHierarchyData()->FinalizeAndSort();
-			floatBig->GetHierarchyData()->FinalizeAndSort();
-			stringB->GetHierarchyData()->FinalizeAndSort();
-
-			//auto object = IdentityManager::instance->GetTypeByOffset("CORE", 0);
-			
-			//logger::info("convert from {} to {} = {}", floatSmall->GetName(), object->GetName(), floatSmall->CanConvert(object));
-			//std::system("pause");
-			//return;
-
-			GenericFunction func;
-			
-			uint32_t gen = 0;
-			
-			func._templates.push_back(TemplateType{ "T1", gen++ });
-			func._templates.push_back(TemplateType{ "T2", gen++ });
-			//func._templates.push_back(TemplateType{ "T3", gen++ });
-			
-			
-			for (auto& temp : func._templates)
-			{
-				temp.FinalizeAndSort();
-			}
-
-
-			uint32_t temps = 0;
-			uint32_t args = 0;
-
-			//For some reason the parameters seem to only use the the first template type?
-			func.parameters.push_back(ParameterInfo{ QualifiedType{ &func._templates[temps] }, "param1", args++ });
-			
-			func.parameters.push_back(ParameterInfo{ QualifiedType{ &func._templates[temps++] }, "param2", args++ });
-			
-			func.parameters.push_back(ParameterInfo{ QualifiedType{ &func._templates[temps++] }, "param3", args++ });
-			//func.parameters.push_back(ParameterInfo{ stringB, "param3", 2 });
-
-
-			//Optional test
-			func.defaultIndex = args;
-
-			func.parameters.push_back(ParameterInfo{ QualifiedType{ floatSmall }, "param4", args++, ParameterFlag::Default });
-			func.parameters.push_back(ParameterInfo{ QualifiedType{ floatSmall }, "param5", args++, ParameterFlag::Default});
-
-
-			func._returnType = QualifiedType{ IdentityManager::instance->GetInherentType(InherentType::kVoid) };
-
-
-			Solution solution{ {}, OperandType::Index, 0 };
-
-			TargetObject* t = nullptr;
-
-			TargetObject target{ &solution, t, TargetObject::Implicit };
-
-			OverloadInput input;
-			
-			input.specialImplied.push_back(std::make_pair(floatBig.policy, 0));
-			//input.specialImplied.push_back(std::make_pair(floatBig.policy, 0));
-			input.specialImplied.push_back(std::make_pair(stringB.policy, 0));
-
-			//input.object = &target;
-			input.implied.push_back(std::make_pair(Solution{ floatSmall, OperandType::None, 0 }, 0));
-			input.implied.push_back(std::make_pair(Solution{ floatBig, OperandType::None, 0 }, 0));
-			input.implied.push_back(std::make_pair(Solution{ stringB, OperandType::None, 0 }, 0));
-			
-			//opt
-			//input.implied.push_back(std::make_pair(Solution{ floatSmall, OperandType::None, 0 }, 0));
-
-			input.stated["param4"] = Solution{ floatSmall, OperandType::None, 0 };
-
-			Overload out;
-
-			auto bias = input.Match(&func, nullptr, out, nullptr);
-
-			
-
-			logger::info("result -> {}", magic_enum::enum_name(bias));
-			std::system("pause");
-
-			//TODO: Now I would like to revise the way I handle conevrsions
-		}
-		
-	}
-#endif
-
-	INITIALIZE()
-	{
-		//TODO: Read below, to do with ISpecializable
-		//If I could confirm the offsets between types were 0 I would feel completely comfortable getting rid of the interface type
-		// for ISpecializable types
-		//((::size_t) & reinterpret_cast<char const volatile&>((((TestC*)0)->TestA)));
-		//constexpr auto dist = ((::size_t)&reinterpret_cast<char const volatile&>(*(TestB*)((TestC*)0)));
-		//constexpr auto dist2 = ((::size_t)reinterpret_cast<char const volatile*>(static_cast<TestB*>((TestC*)0)));
-
-		ITemplatePart* dead = nullptr;
-
-		//I think what I want is something that would be able to concat 2 ITemplate args. This way I could accumulate 2 different groups.
-
-		//return;
-
-
-		report::info("starting. . . .");
-
-		GenericType to_spec;
-			
-		GenericType specifier1;//Will partially specialize
-		GenericType specifier2;//will completely partually specialize
-		GenericType specifier3;//will completely specialize.
-
-
-		to_spec._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-		specifier1._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-		specifier2._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-		specifier3._templates = { TemplateType{"T1", 0}, TemplateType{"T2", 1}, TemplateType{"T3", 2} };
-
-
-		ITypeInfo* floatSmall = IdentityManager::instance->GetTypeByOffset("NUMBER", 42);
-		ITypeInfo* floatBig = IdentityManager::instance->GetTypeByOffset("NUMBER", 45);
-		ITypeInfo* stringB = IdentityManager::instance->GetTypeByOffset("STRING", 0);
-		
-		floatSmall->IsResolved();
-
-		std::vector<ITypeInfo*> group1{ 3 };
-		std::vector<ITypeInfo*> group2{ 3 };
-		std::vector<ITypeInfo*> group3{ 3 };
-
-
-		group1[0] = floatSmall;
-		group1[1] = stringB;
-		group1[2] = &specifier1._templates[0];
-			
-
-		group2[0] = &specifier2._templates[2];
-		group2[1] = &specifier2._templates[0];
-		group2[2] = &specifier2._templates[1];
-
-		group3[0] = stringB;
-		group3[1] = floatSmall;
-		group3[2] = stringB;
-
-
-
-		//auto 
-			
-		auto part1 = GenericArray(&specifier1, group1);
-		auto part2 = GenericArray(&specifier2, group2);
-		auto part3 = GenericArray(&specifier3, group3);
-
-		//Nothing new was created in any of these, and all of these are the same object.
-
-		auto type1 = to_spec.CheckTypePolicy(part1);
-		auto type2 = to_spec.CheckTypePolicy(part2);
-		auto type3 = to_spec.CheckTypePolicy(part3);
-		//specifier1.GetTypePolicy(part3.TryResolve());
-		//specifier2.GetTypePolicy(part3.TryResolve());
-		report::info("exists? {} {} {}", (uintptr_t)type1, (uintptr_t)type2, (uintptr_t)type3);
-
-		//int test1;
-		//int test2;
-		//2 + test1<test2>(1);
-
-		//This isn't supposed to make 3 new bodies
-
-		//auto a2 = to_spec.GetTypePolicy(part3->TryResolve());
-		//auto a3 = to_spec.GetTypePolicy(part3->TryResolve());
-
-		auto a1 = type1->GetTypePolicy(part3.TryResolve());
-		auto a2 = type2->GetTypePolicy(part3.TryResolve());
-		auto a3 = type3->GetTypePolicy(part3.TryResolve());
-
-		auto a4 = to_spec.GetTypePolicy(part3.TryResolve());
-
-		//ERROR This is no longer functioning.
-		report::info("exists? {} {} {} -> {}?", (uintptr_t)a1, (uintptr_t)a2, (uintptr_t)a3, (uintptr_t)a4);
-
-
-
-
-		report::info("ending. . . .");
-	}
 
 	
 	template <typename... T>
@@ -2144,97 +1922,19 @@ namespace LEX
 
 			//
 		}
-	}
-
-
-
-
-
-
-
-
-
-
-	//The idea of these structs are to present as tags to be used when having a centralized object class.
-	struct use_unvariable {};
-	struct use_variable_type {};
-	struct use_obj_translator {};
-
-
-
-
-	namespace detail
-	{
-		template<typename T, size_t Size>requires(sizeof(size_t) >= Size)
-		struct alignas(bool) compact;
-
-
-		template <typename Prefered, typename Levied>
-		using prefer_t = std::conditional_t<sizeof(Prefered) == sizeof(Levied), Prefered, Levied>;
-
-		//This helps control what type the given stored integral will be. handling change if it's 1/2/4/8 etc etc.
-		//Basically the concept is the choosen storage type will pick an unsigned integer (or signed if they are equal and the prefered is signed) and will use this.
-		// But, in the event it's not one of these straight more clear cut types, it will instead use an array for it's allocation.
-		template<std::integral T , size_t Size, typename Outlier = std::array<uint8_t, Size>>
-		using compact_rep = std::conditional_t<
-			Size == 1, prefer_t<T, uint8_t>, std::conditional_t<
-			Size == 2, prefer_t<T, uint16_t>, std::conditional_t<
-			Size == 4, prefer_t<T, uint32_t>, std::conditional_t<
-			Size == 8, prefer_t<T, uint64_t>, Outlier>
-			>>>;
-		
-		template<size_t Size>
-		using align_size = compact_rep<uint64_t, Size, bool>;
-
-
-		//template<size_t Size>
-		//using align_size = std::conditional_t<
-		//	Size == 2, uint16_t, std::conditional_t<
-		//	Size == 4, uint32_t, std::conditional_t<
-		//	Size == 8, uint64_t, bool>>>;
-
-		//template<typename T>
-		//struct compact<T, sizeof(T)>;
-	}
-
-	
-	namespace Compact
-	{
-
-		template<typename T, size_t Size>requires(sizeof(size_t) >= Size)
-			struct alignas(detail::align_size<Size>) compact
-		{
-			std::array<uint8_t, Size> data;
-		};
-
-		compact<uint64_t, 5> test_compact;
-
-		using UsingType = size_t;
-
-		//To get the bits that shouldn't be accessed, get the maximum value of T, 
-		// and bit shift it by the amount of bytes allowed to be had * 8 and that should do it. If an integer, simply the maximum value.
-
-		//This is how you get the bits that shouldn't be active. If any process produces these, then that's an error.
-		constexpr auto other = (2);
-		constexpr UsingType cant_bits = max_value<UsingType> << (other * 8);
-
-	}
-
-	namespace ObjectWorksheet
-	{
 
 
 		class ClassStruct
 		{
-		
+
 			TypeInfo* type = nullptr;
 
 		private:
 			union
 			{
 				uintptr_t			_raw = 0;
-				Variable*			memberList;
-				RuntimeVariable*	runtimeList;
+				Variable* memberList;
+				RuntimeVariable* runtimeList;
 			};
 			///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
 			size_t size = 0;
@@ -2246,11 +1946,16 @@ namespace LEX
 
 
 
-			
+
 		};
-		
 
 	}
+
+
+
+
+
+
 	
 	template<typename T, typename = void>
 	struct any_value;
@@ -2342,29 +2047,7 @@ namespace LEX
 	static_assert(std::is_same_v<int const, const int>);
 
 	
-	template<typename T>
-	struct failure;
 
-	constexpr bool is_thing = std::is_polymorphic_v < std::function<void()>>;
-	
-	
-	
-
-
-}
-
-
-struct A {};
-struct B : public A {};
-
-void test(B&) {}
-void test(const A) {}
-
-void foo()
-{
-	A a;
-
-	test(a);
 }
 
 
@@ -2390,354 +2073,6 @@ namespace LEX
 
 		
 	}
-
-	int idiot1;
-
-	struct TEST_REF
-	{
-		static local_ref<int> TestTing(scoped_ref<int> do_it)
-		{
-			return do_it;
-		}
-
-
-
-
-		template <typename T>
-		static void* PullAddress(T& value)
-		{
-			if constexpr (std::derived_from<T, detail::wrapper_settings>)
-			{
-				//maybe I can make a function that does this bit manually
-				return value.reference();
-			}
-			else
-			{
-				return std::addressof(value);
-			}
-		}
-
-		template <class TParam, class TResult, typename TArgs, size_t I = 0>
-		static void ValueExport(RuntimeVariable& out, TResult& result, TArgs& tuple, Variable* target, std::vector<Variable*>& args)
-		{
-			/*
-
-			Export proceedings
-			Preparing: We'll need the original parameters of the given function to know what we should really do, so template will be a tuple of the raw types,
-			 he return type or NI for void, and the argument types for the tuple to be loaded. And of course the loading index.
-			The actual parameters are the ReturnType, should be a reference maybe?, the RuntimeVariable for return (so no move has to take place and better for NI too),
-			 the args given, and the VariableArray. Note, maybe that should be using a ref_wrapper instead.
-
-
-			For each step, there's a simple question, is this a referencable type? First we check it to be one of the types plainly (this is genuinely more important),
-			 then we check if it's a reference. If either is true, we dereference the variable and stick it into that. If not no activation is handled here.
-
-			Second application. If the return runvar is empty and if the proposed pointer (this will need a dedicated function too) from the return value (if it has one,
-			 if it doesn't it will be null) is equal to the current step, put the coresponding variable pointer into a closed RuntimeVariable.
-			 This bit too requires the queries in the first actually.
-
-			*Actually I just realized it's also going to care about what the return type is too. I'll be including that in the tuple as well.
-			 Third application, go next.
-
-			When we finally reach the end, what should we do?
-
-			Probably handle raw returns. There are a few situations to account for, but at the very least, we know that it isn't ever going to be one of the parameters,
-			 which means it must have come from the outside.
-
-			So if the param return type is a reference (same rules as before) and is currently holding a reference, it creates an extern ref,
-			 but not before making a check to make sure it follows the rules of engagement.
-
-			Local must not be before this stack, and if Global must not be from any stack that the runtimes hold.
-
-			If either not a pointer type or not holding a reference, we send it back with as a regular filled variable.
-
-			Of course, if the return type is not_implemented, none of this will occur. This being the literal return type rather than the stored one,
-			 but either could work.
-
-			//*/
-
-			using RetElem = detail::simplify_wrapper_t<TResult>;
-
-			constexpr auto k_ret_type = detail::reference_type_v<std::tuple_element_t<0, TParam>, true>;
-
-			constexpr auto k_ignore_ret = std::is_same_v<detail::not_implemented, TResult>;
-
-			constexpr auto _I = I;//For visibility in debugging
-
-
-			if constexpr (I < std::tuple_size_v<TArgs>) {
-				using Elem = std::tuple_element_t<I + 1, TParam>;
-				using ElemArg = std::tuple_element_t<I, TArgs>;
-
-				constexpr auto k_param_type = detail::reference_type_v<Elem, false>;
-
-
-				//For each step, there's a simple question, is this a referencable type? First we check it to be one of the types plainly 
-				// (this is genuinely more important), 
-				// then we check if it's a reference. If either is true, we dereference the variable and stick it into that. If not no activation is handled here.
-
-
-				if constexpr (!std::is_same_v<StaticTargetTag, Elem>)//This should use args
-				{
-					if constexpr (k_param_type != detail::ref_type::kNoRef)
-					{
-						Variable* arg;
-						
-						if constexpr (I)
-							arg = args[I - 1];
-						else
-							arg = target;
-						
-						if (arg)
-						{
-							auto& entry = std::get<I>(tuple);
-
-							//Needs to check for const before doing this.
-							//TODO: Make this another move, I don't need what we got here.
-							arg->Assign(static_cast<detail::simplify_wrapper_t<ElemArg>&>(entry));
-
-							auto* res = PullAddress(result);
-							auto* en = PullAddress(entry);
-
-							if constexpr (!k_ignore_ret && k_ret_type != detail::ref_type::kNoRef)
-							{
-								if (out.IsEmpty() && PullAddress(result) == PullAddress(entry))
-								{
-									out = std::ref(*arg);
-								}
-							}
-						}
-						
-					}
-				}
-
-				ValueExport<TParam, TResult, TArgs, I + 1>(out, result, tuple, target, args);
-			}
-			else if constexpr (!k_ignore_ret && I == std::tuple_size_v<TArgs>)
-			{
-				if (out.IsEmpty() == true)
-				{
-					if constexpr (k_ret_type != detail::ref_type::kNoRef)
-					{
-						bool local_check = 1;
-						bool global_check = 1;
-
-						void* ptr = PullAddress(result);
-
-						//Do checks right here.
-
-						if (ptr) {//This check first accounts for maybe ref btw, important.
-							out = extern_ref(*reinterpret_cast<detail::simplify_wrapper_t<TResult>*>(ptr));
-							return;
-						}
-
-						//This doesn't work like this, I know this. However
-						//
-
-
-						//out = RuntimeVariable::CreateTempRef(*arg);
-					}
-
-					if constexpr (k_ret_type == detail::ref_type::kNoRef || k_ret_type == detail::ref_type::kMaybeRef)
-					{
-						static_assert(k_ret_type != detail::ref_type::kLocalRef);
-						out = Variable{ static_cast<RetElem&>(result), GetVariableType<RetElem>() };
-					}
-				}
-			}
-		}
-
-		//This is probably what I should use here. A laundered reference. The point of this is to inherit the expectations of the thing that came
-		// previous.
-
-		//Largely the idea is that we use this version, and everything else uses the public version.
-		
-		inline static int testThing = 42;
-
-		static local_ref<int> TestRefDispatch(StaticTargetTag, local_ref<int>& a2, int& a3)
-		{
-			
-			//In hindsight, I'm actually unsure how this worked given the way it does it's business.
-			a3 = a2;
-
-			a2 = 47;
-			return a2;
-			return testThing;
-		}
-
-		template<typename T, typename R, typename... Args>
-		static decltype(auto) HandleDispatch(R(*func)(Args...), T& tuple)
-		{
-			if constexpr (std::is_same_v<R, void>) {
-				std::apply(func, tuple);
-				return detail::not_implemented{};
-			}
-			else {
-				return std::apply(func, tuple);
-			}
-		}
-
-		template<typename T, typename R, typename... Args>
-		static decltype(auto) LaunderDispatch(R(*func)(Args...), T& tuple)
-		{
-			return HandleDispatch(func, tuple);
-		}
-
-		static void PrintArgs(std::vector<RuntimeVariable>& args)
-		{
-			logger::info("Parameters of Dispatch");
-			for (int i = 0; i < args.size(); i++)
-			{
-				logger::info("|    a{} => {}", i + 2, args[i]->PrintString());
-			}
-		}
-
-		static void PsuedoDispatch()
-		{
-			//*
-			constexpr auto is_const = std::is_const_v<const int*>;
-
-			RuntimeVariable ref_var = 2;
-
-			RuntimeVariable out;
-			std::vector<RuntimeVariable> back_args;//This would actually be 
-			back_args.emplace_back(ref_var.AsRef());
-			back_args.emplace_back(3);
-			PrintArgs(back_args);
-			std::vector<Variable*> front_args;
-
-			front_args.push_back(back_args[0].Ptr());
-			front_args.push_back(back_args[1].Ptr());
-
-			using Type = detail::try_wrap_param_t<const local_ref<int>&>;
-			using TheLook = std::tuple<local_ref<int>, StaticTargetTag, local_ref<int>&, int&>;
-			using TheCook = std::tuple<StaticTargetTag, detail::try_wrap_param_t<const local_ref<int>&>, int>;
-			
-			detail::try_wrap_param_t<const local_ref<int>&> start = Unvariable<int>{}(front_args[0]);
-			
-			TheCook tuple{ StaticTargetTag{}, Unvariable<int>{}(front_args[0]), Unvariable<int>{}(front_args[1]) };
-			decltype(auto) result = LaunderDispatch(TestRefDispatch, tuple);
-			ValueExport<TheLook>(out, result, tuple, nullptr, front_args);
-			
-			//This is a resolving function, it should be done whenever a procedure is completed, to make sure that the return type is proper.
-			//if (out.IsRefNegated())
-			if (false)
-			{
-				logger::debug("triggered");
-				void* ptr = out.Ptr();
-
-				for (auto& rvar : back_args)
-				{
-					if (rvar.Ptr() == ptr)
-					{
-						if (rvar.IsReference() == false) {
-							report::fault::critical("Non-reference argument referenced in return.");
-						}
-
-						out = rvar.AsRef();
-
-						break;
-					}
-				}
-
-			}
-
-			//Here, we attempt to update
-			for (auto &rvar : back_args){
-				rvar.TryUpdateRef();
-			}
-
-			PrintArgs(back_args);
-
-			if (!out.IsEmpty())
-				logger::info("Result => {} (ptr: {:X})(tar: {})", out->PrintString(), (uintptr_t)out.Ptr(), testThing);
-
-			out->Assign(69);
-			//out.TryUpdate(true);
-
-			if (!out.IsEmpty())
-				logger::info("Result => {} (ptr: {:X})(tar: {})", out->PrintString(), (uintptr_t)out.Ptr(), testThing);
-
-			testThing = 420;
-
-			if (!out.IsEmpty())
-				logger::info("Result => {} (ptr: {:X})(tar: {})", out->PrintString(), (uintptr_t)out.Ptr(), testThing);
-			//*/
-		}
-
-
-		
-		//So, function calls will actually forward everything it can, and then use that in order to return something
-		//I think the soft calls will be unable to return references (due to the function signature not being the same as the native types,
-		// regular invoke (the fancy one?) doesn't know what the rules of the function are.
-
-		//However formulas are able to handle it properly
-
-
-
-	};
-	
-
-
-	//Need a copy of this called value export.
-	template <class T1, size_t I = 1>
-	static inline void ValueImport(T1& tuple, std::vector<Variable*>& args)
-	{
-		if constexpr (I < std::tuple_size_v<T1>) {
-			using _Elem = std::tuple_element_t<I, T1>;
-
-			std::get<I>(tuple) = Unvariable<_Elem>{}(args[I - 1]);
-
-			//if constexpr (std::is_same_v<EntryType>) {
-			//The actual version will test for the parameters.
-			//}
-
-			ValueImport<T1, I + 1>(tuple, args);
-		}
-	}
-	
-	/*
-	void Dispatch(RuntimeVariable& result, Variable* target, std::vector<Variable*>& args, ProcedureData& data)
-	{
-		//Unload that shit.
-		//using Arg1 = std::tuple_element_t<0, std::tuple<Args...>>;
-
-		constexpr size_t arg_size = std::tuple_size_v<std::tuple<Args...>>;
-
-		if (auto list_size = args.size(); list_size != arg_size) {
-			//Shit isn't the same fucking size I'm losing my mind.
-			report::apply::error("Dispatch args and expected args do not match.");
-		}
-
-		//typename function_traits<std::remove_pointer_t<decltype(T)>>::arguments args;
-
-		//I'll want to remove the references due to being unable to load them like this.
-		std::tuple<T, std::remove_reference_t<Args>...> tuple;
-		//static_assert(std::is_same_v<std::tuple<Target, int, int, int>,
-		//	function_traits<std::remove_pointer_t<decltype(T)>>::arguments>, "GN  NE NIP");
-
-		if constexpr (!std::is_same_v<T, StaticTargetTag>)
-		{
-			std::get<0>(tuple) = Unvariable<T>{}(target);
-		}
-
-		ValueImport(tuple, args);
-		//Here we get the return type and switch up on it.
-
-		//Confirm if the types are correct.
-
-		if constexpr (std::is_same_v<R, void>) {
-			std::apply(_callback, tuple);
-		}
-		else {
-			R to_result = std::apply(_callback, tuple);
-
-			//under more normal situations, vary this by whether it's a ref or not.
-
-			result = Variable{ to_result, GetVariableType<R>() };
-		}
-	}
-	//*/
 
 
 	void TestRun()
