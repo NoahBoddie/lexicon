@@ -818,18 +818,75 @@ namespace LEX
 			//Query to Try,
 			// and try to Expect or smth
 
-			static Record _ExecuteModule(ParseModule* mdl, Parser* parser, Record* target);
+			static Record ExecuteModule(ParseModule* mdl, Parser* parser, Record* target)
+			{
+				if (!mdl) {
+					parser->GetInput()->croak("something about static handle token.");
+				}
+
+				Record result{};
+
+				//Doing it like this deals with process chains.
+				parser->ExecuteModule(result, target, mdl);
+
+				return result;
+
+				//Might have something about process chains right here.
+				//Use a different version plz.
+				//return mdl->HandleToken(parser, target);
+			}
 
 
-			static bool _QuestionModule(ParseModule* mdl, Parser* parser, Record* target, ParseFlag flag);
+			static bool QueryModule(ParseModule* mdl, Parser* parser, Record* target, ParseFlag flag)
+			{
+				if (!mdl) {
+					parser->GetInput()->croak("something about static handle token.");
+				}
 
-			static bool _QueryModule(ParseModule* mdl, Parser* parser, Record& out, Record* target);
+				return parser->QueryModule(target, mdl, flag);
+			}
+
+			//Need to snuff out the wrong try being used rq
+			static bool Try_Module(ParseModule* mdl, Parser* parser, Record& out, Record* target)
+			{
+				if (!mdl) {
+					parser->GetInput()->croak("something about static handle token.");
+				}
+
+				return parser->_TryModule(out, target, mdl, ParseFlag::Direct);
+			}
+
+			static Record UseModule(ParseModule* mdl, Parser* parser, Record* target)
+			{
+
+				if (!mdl) {
+					parser->GetInput()->croak("something about static handle token.");
+				}
 
 
-			static Record _TryModule(ParseModule* mdl, Parser* parser, Record* target);
+				Record result{};
+
+				//Try module will try to use use try module, and if it's unsuccessful, it will croak.
+				// Basically a checked ParseAtomic for specific modules.
+				if (Try_Module(mdl, parser, result, target) == false)
+					parser->GetInput()->croak(mdl->FailureMessage());
+
+				return result;
+			}
 
 			//Doing this here because templates have to be inline and I can't provide that.
-			static ParseModule* _GetBuiltModule(Parser* parser, const std::type_info& info);
+			static ParseModule* _GetBuiltModule(Parser* parser, const std::type_info& info)
+			{
+				return parser->GetBuiltModule(info);
+			}
+
+
+
+
+
+
+
+
 		public:
 
 
@@ -989,72 +1046,6 @@ namespace LEX
 		};
 
 
-
-
-
-		Record ParseModule::_ExecuteModule(ParseModule* mdl, Parser* parser, Record* target)
-		{
-			if (!mdl) {
-				parser->GetInput()->croak("something about static handle token.");
-			}
-
-			Record result{};
-
-			//Doing it like this deals with process chains.
-			parser->_ExecuteModule(result, target, mdl);
-
-			return result;
-
-			//Might have something about process chains right here.
-			//Use a different version plz.
-			//return mdl->HandleToken(parser, target);
-		}
-
-
-
-		bool ParseModule::_QuestionModule(ParseModule* mdl, Parser* parser, Record* target, ParseFlag flag)
-		{
-			if (!mdl) {
-				parser->GetInput()->croak("something about static handle token.");
-			}
-
-			return parser->_QueryModule(target, mdl, flag);
-		}
-
-		bool ParseModule::_QueryModule(ParseModule* mdl, Parser* parser, Record& out, Record* target)
-		{
-			if (!mdl) {
-				parser->GetInput()->croak("something about static handle token.");
-			}
-
-			return parser->_TryModule(out, target, mdl, ParseFlag::Direct);
-		}
-
-
-
-
-		Record ParseModule::_TryModule(ParseModule* mdl, Parser* parser, Record* target)
-		{
-
-			if (!mdl) {
-				parser->GetInput()->croak("something about static handle token.");
-			}
-
-
-			Record result{};
-
-			//Try module will try to use use try module, and if it's unsuccessful, it will croak.
-			// Basically a checked ParseAtomic for specific modules.
-			if (_QueryModule(mdl, parser, result, target) == false)
-				parser->GetInput()->croak(mdl->FailureMessage());
-
-			return result;
-		}
-
-		ParseModule* ParseModule::_GetBuiltModule(Parser* parser, const std::type_info& info)
-		{
-			return parser->GetBuiltModule(info);
-		}
 
 
 
