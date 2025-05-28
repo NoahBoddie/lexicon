@@ -44,7 +44,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PARENT_NAME)
     set(LEXICON_SOURCE ON)
 endif()
 
-
+set(BOOST_REGEX_STANDALONE ON CACHE BOOL "" FORCE)
 # ---- Dependencies ----
 
 find_package(fmt REQUIRED CONFIG)
