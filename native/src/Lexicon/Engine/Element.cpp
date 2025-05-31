@@ -221,7 +221,7 @@ namespace LEX
 		//I feel like searching for a general element should be reusing this.
 		SyntaxRecord path_record;
 		
-		if (auto result = LEX::Impl::Parser__::CreateSyntax<Impl::IdentifierParser>(path_record, path); !result){
+		if (auto result = LEX::Parser__::CreateSyntax<IdentifierParser>(path_record, path); !result){
 			//Error here.
 			return nullptr;
 		}

@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/InputStream.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 
 	class InputStream;

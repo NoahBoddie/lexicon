@@ -1,6 +1,6 @@
 #include "Lexicon/Engine/ParseHandler.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 	void ParseHandler::AddBuilder(ModuleBuilder build)
 	{

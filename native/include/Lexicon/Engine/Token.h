@@ -3,7 +3,7 @@
 #include "Lexicon/TypeAliases.h"
 #include "TokenType.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 	struct Token
 	{

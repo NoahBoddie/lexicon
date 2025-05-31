@@ -1,7 +1,7 @@
 #include "Lexicon/Engine/InputStream.h"
-#include "Lexicon/Engine/TokenHandler.h"
 
-namespace LEX::Impl
+
+namespace LEX
 {
 	using Iterator = std::string::const_iterator;
 
@@ -134,7 +134,7 @@ namespace LEX::Impl
 
 	
 
-	InputStream::InputStream(std::string_view n, std::string_view s, ParseMode mode, Line l, Column c)
+	InputStream::InputStream(std::string_view n, std::string_view s, Line l, Column c)
 	{
 		auto _1 = c;
 		auto _2 = l;
@@ -142,7 +142,7 @@ namespace LEX::Impl
 		//Will croak without outputting line and column at this point.
 
 	
-		std::string kinda_basic = TokenHandler::GetRegex(mode == ParseMode::kPreprocess);
+		std::string kinda_basic = "";
 		
 		_regex = boost::regex{ kinda_basic };
 

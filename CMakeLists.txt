@@ -120,7 +120,7 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/Target.h
 		native/include/Lexicon/Engine/TargetObject.h
 		native/include/Lexicon/Engine/Token.h
-		native/include/Lexicon/Engine/TokenHandler.h
+		native/include/Lexicon/Engine/Tokenizer.h
 		native/include/Lexicon/Engine/TokenStream.h
 		native/include/Lexicon/Engine/TokenType.h
 		native/include/Lexicon/Engine/VariableInfo.h
@@ -187,7 +187,7 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/RoutineCompiler.cpp
 		native/src/Lexicon/Engine/Scope.cpp
 		native/src/Lexicon/Engine/TempConstruct.cpp
-		native/src/Lexicon/Engine/TokenHandler.cpp
+		native/src/Lexicon/Engine/Tokenizer.cpp
 		native/src/Lexicon/Engine/TokenStream.cpp
 		native/src/Lexicon/Engine/VariableInfo.cpp
 		native/src/Lexicon/Engine/VoidPolicy.cpp
@@ -308,7 +308,7 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h" "native/include/Lexicon/Engine/ModuleChain.h")
 
 
 set(sources

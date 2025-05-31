@@ -373,9 +373,20 @@ struct Initializer
 //Function was extern
 
 //Initializes something on the spot.
-#define INITIALIZE__COUNTED(mc_counter,...) inline static void CONCAT(__init_func_,mc_counter)();\
-inline static Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
-inline static void CONCAT(__init_func_,mc_counter)()
+#define INITIALIZE__COUNTED(mc_counter,...) inline void CONCAT(__init_func_,mc_counter)();\
+inline Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
+inline void CONCAT(__init_func_,mc_counter)()
+
+//An alternate version
+//#define INITIALIZE__COUNTED(mc_counter,...) struct CONCAT(_event_class_,mc_counter)  \
+{\
+    inline static void CONCAT(_event_func_,mc_counter)();\
+    inline static Initializer CONCAT(__event_var_,mc_counter) = {CONCAT(_event_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__}; \
+};\
+void CONCAT(_event_class_,mc_counter)::CONCAT(_event_func_,mc_counter)()
+
+
+
 
 #define INITIALIZE(...) INITIALIZE__COUNTED(__COUNTER__,__VA_ARGS__)
 

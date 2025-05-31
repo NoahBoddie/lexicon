@@ -23,14 +23,9 @@ namespace LEX
 	//struct SyntaxBody;
 	//using SyntaxRecord = BasicRecord<Syntax, SyntaxBody>;
 
-	namespace Impl
-	{
-		class Parser;
+	class ParsingStream;
 
-		typedef Record(ParseFunc)(Parser*, Record*);
-		//using ParseFunc = Record(Parser*, Record*);
+	typedef Record(ParseFunc)(ParsingStream*, Record*);
 
-
-	}
 	
 }

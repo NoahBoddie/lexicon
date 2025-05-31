@@ -1,6 +1,6 @@
 #pragma once
 
-namespace LEX::Impl
+namespace LEX
 {
 	//enum TokenType : __int8
 	ENUM(TokenType, uint8_t)

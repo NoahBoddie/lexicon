@@ -1,9 +1,8 @@
 #include "Lexicon/Engine/InputStream.h"
 #include "Lexicon/Engine/TokenStream.h"
-#include "Lexicon/Engine/TokenHandler.h"
 #include "Lexicon/Engine/parse_strings.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 
 	RecordData TokenStream::next()
@@ -104,18 +103,18 @@ namespace LEX::Impl
 		case TokenType::Keyword:
 			//Keywords have to be submitted to a thingy, I'm not about that right now.
 			//return _Search(token, "KEY", "KEY");
-			return _Search(token, TokenHandler::GetKeywords());
+			////return _Search(token, TokenHandler::GetKeywords());
 
 		case TokenType::Punctuation:
 			//Checks for characters(, will handle :: later.
 			//return _Search(token, "[", "]", "{", "}", "(", ")", ",", ";", ":", "::");
-			return _Search(token, TokenHandler::GetPuncutation());
+			////return _Search(token, TokenHandler::GetPuncutation());
 			
 
 		case TokenType::Operator:
 			//Checks for strings.
 			//return _Search(token, "*", "/", "-", "+", "=");
-			return _Search(token, TokenHandler::GetOperators());
+			////return _Search(token, TokenHandler::GetOperators());
 
 		case TokenType::Format:
 			//If the last token was a format

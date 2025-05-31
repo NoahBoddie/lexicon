@@ -67,7 +67,7 @@ namespace LEX
 
 		SyntaxRecord ast;
 		
-		if (Impl::Parser__::CreateSyntax<Impl::LineParser>(ast, routine) == false)
+		if (Parser__::CreateSyntax<LineParser>(ast, routine) == false)
 		{
 			
 			return 1;

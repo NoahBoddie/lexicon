@@ -360,7 +360,7 @@ namespace LEX
 		//Options is ignored for now. Basically does nothing. No compile time stuff either. No system for it.
 		SyntaxRecord ast;
 
-		if (Impl::Parser__::CreateSyntaxTree(ast, content, "") == false) {
+		if (Parser__::CreateSyntaxTree(ast, content, "") == false) {
 			return false;
 		}
 

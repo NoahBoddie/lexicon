@@ -6,7 +6,7 @@
 //*tmp
 #include "Lexicon/Engine/ProcessContext.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 	//submit the streams to the next one.
 
@@ -24,7 +24,7 @@ namespace LEX::Impl
 		//*
 		using Iterator = std::string::const_iterator;
 	public:
-		InputStream(std::string_view n, std::string_view s, ParseMode mode, Line l = 1, Column c = 1);
+		InputStream(std::string_view n, std::string_view s, Line l = 1, Column c = 1);
 
 
 		[[deprecated("deprecated due to better version")]]

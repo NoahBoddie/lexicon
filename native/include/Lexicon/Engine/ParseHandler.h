@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/ParseModule.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 
 	using ModuleBuilder = std::unique_ptr<ParseModule>(*)();

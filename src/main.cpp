@@ -25,7 +25,7 @@
 
 using namespace RGL;
 using namespace LEX;
-using namespace LEX::Impl;
+using namespace LEX;
 
 namespace logger
 {
@@ -616,6 +616,7 @@ int main(int argc, char** argv) {
 #endif
    
 
+    Initializer::Execute("main_init");
     Initializer::Execute();
 
     //GetTest<int64_t>();
@@ -654,405 +655,20 @@ namespace LEX
 		using namespace Impl;
 	
 
-	
+		class ModuleChain;
+		struct ParsingStream;
+
+		//TODO:Consider using the parsing context for compiling too.
 
 
-		struct Tokenizer
-		{
-			constexpr static std::string_view remains = R"((?:\w|\S))";//Used to consume any other unidentified token
-			
-			
-			std::set<std::string_view> keywords;	//Keywords and conditionals aren't compiled into this due to them already needing to be identifiers
-			std::set<std::string_view> conditionals;
-			std::set<std::string_view> operators;
-			std::set<std::string_view> punctuation;
-			std::string mainPattern;
-			mutable std::string compiledPattern;
-
-			void AddKeyword(const std::string_view& pattern) {
-				keywords.emplace(pattern);
-			}
-
-			void AddConditional(const std::string_view& pattern) {
-				conditionals.emplace(pattern);
-			}
-
-			void AddOperator(const std::string_view& pattern) {
-				compiledPattern.clear();
-				operators.emplace(pattern);
-			}
-			
-			void AddPunctuation(const std::string_view& pattern) {
-				compiledPattern.clear();
-				punctuation.emplace(pattern);
-			}
-
-			bool IsOperator(const std::string_view& token) {
-				return operators.contains(token);
-			}
 
 
-			bool IsKeyword(const std::string_view& token) {
-				return keywords.contains(token);
-			}
-
-
-			bool IsConditional(const std::string_view& token) {
-				return conditionals.contains(token);
-			}
-
-			bool IsPunctuation(const std::string_view& token) {
-				return punctuation.contains(token);
-			}
-
-
-			std::string CompilePattern() const
-			{
-				if (compiledPattern.empty())
-				{
-
-					auto sort_code = [](auto& a, auto& b) { return a.size() > b.size(); };
-
-					std::vector<std::string_view> ordered;
-
-					ordered.reserve(operators.size() + punctuation.size());
-
-					ordered.insert_range(ordered.end(), operators);
-					ordered.insert_range(ordered.end(), punctuation);
-
-					std::sort(ordered.begin(), ordered.end(), sort_code);
-
-					std::string result = mainPattern + "|";
-
-					for (auto& code : ordered) {
-
-						if (code.size() == 0)
-							continue;
-
-						std::string submit;
-
-						if (std::isalpha(code[0]) != 0) {
-							submit = code;
-						}
-						else {
-							submit = std::format(R"(\Q{}\E)", code);
-						}
-
-
-						result += std::format(R"((?:{})|)", submit);
-					}
-
-					result += remains;//Should end with "|"
-
-					compiledPattern = result;
-				}
-
-				return compiledPattern;
-			}
-
-		};
 
 		struct ParseModule;
 
-		using ModuleBuilder = std::unique_ptr<ParseModule>(*)();
 
 
 
-		ENUM(ModulePriority, uint32_t)
-		{
-			None = 0x00000000,
-				Minimal = 0x00000001,
-				Low = 0x000000FF,
-				Medium = 0x0000FFFF,
-				High = 0x00FFFFFF,
-				Max = 0xFFFFFFFF
-		};
-
-
-		ENUM(ParseKeyword, uint8_t)
-		{
-			None = 0,
-				Statement = 1 << 0,
-
-		};
-
-
-		ENUM(ModuleFlag, uint32_t)//This is just passed around so it can be as big as it wants to be.
-		{
-			None = 0,
-				Atomic = 1 << 0,
-				Eof = 1 << 1,//Parser can be used at EOF
-		};
-
-		ENUM(ParseFlag, uint32_t)//This is just passed around so it can be as big as it wants to be.
-		{
-			None = 0,
-				Atomic = 1 << 0,
-				Direct = 1 << 1,//This parser is being used from another parser, different rules might apply
-		};
-
-
-		struct ParseModule : public ProcessContext
-		{
-		protected:
-			struct SetBuilder
-			{
-				SetBuilder(ModuleBuilder ctor, const std::string_view& name)
-				{
-					//move ctor to some place where it can be used.
-					ParseModule::AddBuilder(ctor, name);
-				}
-			};
-
-
-		private:
-			inline static std::vector<std::pair<std::string_view, ModuleBuilder>> buildList;
-		
-
-
-
-		public:
-
-
-			//Change Question to Query, 
-			//Query to Try,
-			// and try to Expect or smth
-
-			static Record ExecuteModule(ParseModule* mdl, Parser* parser, Record* target)
-			{
-				if (!mdl) {
-					parser->GetInput()->croak("something about static handle token.");
-				}
-
-				Record result{};
-
-				//Doing it like this deals with process chains.
-				parser->ExecuteModule(result, target, mdl);
-
-				return result;
-
-				//Might have something about process chains right here.
-				//Use a different version plz.
-				//return mdl->HandleToken(parser, target);
-			}
-
-
-			static bool QueryModule(ParseModule* mdl, Parser* parser, Record* target, ParseFlag flag)
-			{
-				if (!mdl) {
-					parser->GetInput()->croak("something about static handle token.");
-				}
-
-				return parser->QueryModule(target, mdl, flag);
-			}
-
-			//Need to snuff out the wrong try being used rq
-			static bool Try_Module(ParseModule* mdl, Parser* parser, Record& out, Record* target)
-			{
-				if (!mdl) {
-					parser->GetInput()->croak("something about static handle token.");
-				}
-
-				return parser->_TryModule(out, target, mdl, ParseFlag::Direct);
-			}
-
-			static Record UseModule(ParseModule* mdl, Parser* parser, Record* target)
-			{
-
-				if (!mdl) {
-					parser->GetInput()->croak("something about static handle token.");
-				}
-
-
-				Record result{};
-
-				//Try module will try to use use try module, and if it's unsuccessful, it will croak.
-				// Basically a checked ParseAtomic for specific modules.
-				if (Try_Module(mdl, parser, result, target) == false)
-					parser->GetInput()->croak(mdl->FailureMessage());
-
-				return result;
-			}
-
-			//Doing this here because templates have to be inline and I can't provide that.
-			static ParseModule* _GetBuiltModule(Parser* parser, const std::type_info& info)
-			{
-				return parser->GetBuiltModule(info);
-			}
-
-
-
-
-
-
-
-
-		public:
-
-
-			//TODO:Make ParseModule::GetPriority a constexpr function, this way I don't have to worry about anyone changing the values at runtime.
-			virtual uint32_t GetPriority() const;
-
-
-			virtual bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const = 0;
-
-			virtual Record HandleToken(Parser* a_this, Record* target) = 0;
-
-
-			//Here I'll place a line of common context keywords that will be enabled by using one of these.
-			virtual ParseKeyword GetKeywords();
-
-			std::optional<bool> GetKeywordState(std::string_view str) override;
-
-
-			//Controls what can be percieved as being part of a single statement when just trying to encapsulate the next valid statement
-
-
-			//This is what should be used if one wishes to access another parse module
-			// also instead of requiring it derives from this, require that it derive from a singleton class for parse modules.
-			template <std::derived_from<ParseModule> Module>
-			static Record ExecuteModule(Parser* parser, Record* target)
-			{
-				//Static HandleToken (to be ExecuteModule) will not accept constraint of being from "PivotSingleton<ParseModule>". Needs investigation.
-				// note, it will if it derives from ParseModule
-
-				ParseModule* mdl = _GetBuiltModule(parser, typeid(Module));
-
-				std::unique_ptr<ParseModule> new_mod;
-
-				if (!mdl) {
-					new_mod = std::make_unique<Module>();
-					mdl = new_mod.get();
-				}
-
-				return _ExecuteModule(mdl, parser, target);
-
-				//Doing it like this deals with process chains.
-				//parser->_ExecuteModule(result, target, mdl);
-				//return result;
-
-				//Might have something about process chains right here.
-				//Use a different version plz.
-				//return mdl->HandleToken(parser, target);
-			}
-
-			template <std::derived_from<ParseModule> Module>
-			static bool QueryModule(Parser* parser, Record& out, Record* target)
-			{
-				//Does what TryModule does, but will return in the case that it fails instead of croaking..
-				//Try module will try to use use try module, and if it's unsuccessful, it will croak.
-				// Basically a checked ParseAtomic
-
-				ParseModule* mdl = _GetBuiltModule(parser, typeid(Module));
-
-				std::unique_ptr<ParseModule> new_mod;
-
-				if (!mdl) {
-					new_mod = std::make_unique<Module>();
-					mdl = new_mod.get();
-				}
-
-				return _QueryModule(mdl, parser, out, target);
-				//return parser->_TryModule(out, target, mdl);
-			}
-
-			template <std::derived_from<ParseModule> Module>
-			static Record TryModule(Parser* parser, Record* target)
-			{
-				ParseModule* mdl = _GetBuiltModule(parser, typeid(Module));
-
-				std::unique_ptr<ParseModule> new_mod;
-
-				if (!mdl) {
-					new_mod = std::make_unique<Module>();
-					mdl = new_mod.get();
-				}
-
-				return _TryModule(mdl, parser, target);
-			}
-			template <std::derived_from<ParseModule> Module>
-			static bool QuestionModule(Parser* parser, Record* target, ParseFlag flag)
-			{
-				ParseModule* mdl = _GetBuiltModule(parser, typeid(Module));
-
-				std::unique_ptr<ParseModule> new_mod;
-
-				if (!mdl) {
-					new_mod = std::make_unique<Module>();
-					mdl = new_mod.get();
-				}
-
-				return _QuestionModule(mdl, parser, target, flag);
-			}
-
-			virtual std::string FailureMessage() const
-			{
-				return "Module failed to parse";
-			}
-
-			//Should actually be pure but it's defined for ease of use right now.
-			std::string_view GetContext() override
-			{
-				return "";
-			}
-
-			virtual std::string_view GetModuleName() = 0;
-
-			virtual ParseMode GetParseMode() const
-			{
-				return ParseMode::kBasic;
-			}
-
-
-
-			virtual bool IsAtomic() const { return false; }
-
-			virtual bool CanParseEOF() const { return false; }
-
-			//New stuff
-
-
-
-			static void AddBuilder(ModuleBuilder build, const std::string_view& category)
-			{
-				auto pair = std::make_pair(category, build);
-				buildList.insert(std::upper_bound(buildList.begin(), buildList.end(), pair, [](auto& lhs, auto& rhs)
-					{return lhs.second()->GetPriority() > rhs.second()->GetPriority(); }),
-					pair);
-			}
-
-			static std::vector<std::unique_ptr<ParseModule>> BuildModules(const std::string_view& name)
-			{
-				std::vector<std::unique_ptr<ParseModule>> result{};
-				result.reserve(buildList.size());
-
-				for (auto& [category, builder] : buildList)
-				{
-					if (category.empty() || category.starts_with(name) == true) {
-						result.push_back(builder());
-					}
-				}
-
-				return result;
-			}
-
-
-			virtual bool HasConditional(const std::string_view& name) const
-			{
-				return false;
-			}
-
-
-		};
-
-
-
-
-
-		uint32_t ParseModule::GetPriority() const
-		{
-			return ModulePriority::Minimal;
-		}
 
 		/*
 		std::optional<bool> ParseModule::GetKeywordState(std::string_view str)
@@ -1069,16 +685,6 @@ namespace LEX
 
 
 
-		template <typename T, StringLiteral Cat = "">
-		struct AutoParser : public ParseModule//The idea behind the auto parser is that there are some par
-		{
-		private:
-			static std::unique_ptr<ParseModule> GetParseModule() { return std::make_unique<T1>(); }
-
-			inline static SetBuilder _initBuild{ GetParseModule, Cat };
-
-		public:
-		};
 
 
 
@@ -1090,542 +696,26 @@ namespace LEX
 
 
 
-
-
-
-
-		using Iterator = std::string_view::const_iterator;
 
 		class ParsingStream;
 
 		//Returns the parsing the beginning of the new token with it becoming the end of that token.
-		using TokenParser = Iterator(ParsingStream*, Iterator& it, Iterator);
+		//using TokenParser = Iterator(ParsingStream*, Iterator& it, Iterator);
+		
 
 
 
-		//I'd like a macro system as a part of a preprocessor system that couples with handling the preprocessor inputs and where they occur
-
-		class ParsingStream : public IProcess
-		{
-		public:
-
-			//Friends with just the parse module
-			friend class Parser__;
-			friend class ParseModule;
-
-
-			struct Memory
-			{
-
-				Column column = 0;
-				Line line = 0;
-				Iterator current;
-				RecordData peek;
-				RecordData prev;
-
-			};
-
-			
-			
-			
-			ParsingStream(const std::string_view& str, Line l = 1, Column c = 1) : _stream{ str }
-			{
-				_memory.column = endColumn = c;
-				_memory.line = endLine = l;
-
-				//Will croak without outputting line and column at this point.
-
-				//TODO: Change this to have a single object that handles this
-				//std::string kinda_basic = TokenHandler::GetRegex(false);
-
-				//_regex = boost::regex{ kinda_basic };
-
-				_memory.current = _stream.cbegin();
-				_end = _stream.cend();
-				CalcColumnLine(_end, endColumn, endLine);
-			}
-
-
-			ParsingStream(const std::string_view& str, Tokenizer* tokenizer, std::function<TokenParser> func, Line l = 1, Column c = 1) {}
-
-
-			void CalcColumnLine(Iterator from, Iterator until, Column& a_column, Line& a_line)
-			{
-				//The lines and columns calculated are off. Need to fix it somehow.
-
-				//Better to just use a while actually.
-				auto test = std::count_if(from, until, [&](auto it)
-					{//will count the number of line breaks and when one is detected it will reset the column
-						bool res = it == '\n' || it == '\r';
-						if (res) {
-							a_column = 1;
-
-							if (max_value<Line> == a_line)
-								croak(std::format("Max number of line reached, more than {} lines.", max_value<Line>));
-
-							a_line += 1;
-						}
-						else {
-							if (max_value<Column> == a_column)
-								croak(std::format("Column at line {} exceeds max character limit of {}.", a_column, max_value<Column>));
-
-							a_column += 1;
-						}
-						return res;
-					});
-			}
-
-			void CalcColumnLine(Iterator until, Column& a_column, Line& a_line)
-			{
-				return CalcColumnLine(current(), until, a_column, a_line);
-			}
-
-			void croak(std::string msg, Token* token = nullptr){}
-
-
-			//Proper name would be nexttoken or producetoken
-			RecordData ReadNextImpl(const std::function<TokenParser>& func)
-			{
-				//This should be an impl function, the outer will keep calling this until it returns a "Valid" record.
-				// Validity is in the eye of the beholder due to it throwing away what it finds. 
-				//if (eof() == true)
-				//	return {};
-
-				auto curr = current();
-
-				if (curr == _end)
-					return {};
-
-
-				auto res = func(this, curr, _end);
-
-
-				if (curr == res) {
-					report::parse::error("nothing moved, issue");
-				}
-
-				CalcColumnLine(res, _memory.column, _memory.line);
-
-				auto data = RecordData{ std::string(res, curr), Token { column(), line() } };
-
-				if (!data)
-					croak("Empty string requested for use");
-
-				current() = res;
-
-				CalcColumnLine(curr, _memory.column, _memory.line);
-
-				current() = curr;
-				
-
-				//If the creater was not a default, this will use whatever it's given as custom.
-				if (&func != &defaultParser)
-					data.TOKEN().type = TokenType::Custom;
-				else {
-					SetTokenType(data);
-				}
-
-
-				if (tokenizer && tokenizer->IsConditional(data.GetView()) == true) {
-					data.TOKEN().isConditional = true;
-				}
-
-
-				return data;
-			}
-
-			RecordData ReadNext(const std::function<TokenParser>& func)
-			{	
-				do
-				{
-					RecordData result = ReadNextImpl(func);
-
-					if (result.TOKEN().type != TokenType::Comment)
-						return result;
-				} while (true);
-			}
-
-
-
-
-			constexpr Line line() const noexcept { return _memory.line; }
-			constexpr Column column() const noexcept { return _memory.column; }
-
-			RecordData CheckConditional(RecordData data)
-			{
-				//This will should check the currently queried parse module if it has a conditional with this name.
-				if (data.TOKEN().isConditional && false)
-					data.TOKEN().type = TokenType::Keyword;
-
-				return data;
-			}
-
-
-			RecordData next()
-			{
-				//Using this while eof should likely result in a parsing error.
-
-				RecordData token = _memory.peek;
-
-				_memory.peek = {};//Should make a clear func for this.
-
-				if (!token) {
-					token = ReadNext(defaultParser);
-				}
-
-				_memory.prev = token;
-
-				return CheckConditional(token);
-			}
-
-			RecordData peek() {
-				//So it's something 
-				if (!_memory.peek) {
-					//auto it = _current;
-					//_peek = _ReadNext(it);
-					_memory.peek = ReadNext(defaultParser);
-				}
-
-				return CheckConditional(_memory.peek);
-			}
-
-
-			RecordData prev()
-			{
-				return _memory.prev;
-			}
-
-
-			bool eof() {
-				return  current() == _end || !peek();
-			}
-
-			
-
-
-
-			bool Search(const std::string& token, const std::vector<std::string_view>& strings)
-			{
-				//move to source.
-				for (int i = 0; i < strings.size(); i++)
-				{
-					if (token == strings[i])
-						return true;
-				}
-
-				return false;
-			}
-
-
-			void SetTokenType(RecordData& data)
-			{
-
-				constexpr char quote_char = '\"';
-				constexpr char apost_char = '\'';
-
-				std::string& token = data.GetTag();
-				TokenType& type = data.TOKEN().type;
-				//FOR ALL THINGS THAT SEARCH FRONT AND BACK, only the front should be exampled, however, the back should be a question for failure. Make that a different function
-				// that should croak if need be. Such a thing should always return true.
-
-				
-				if (std::isdigit(token.front()) || token.front() == '.' && token.size() > 1 && std::isdigit(token[1])) {
-					type = TokenType::Number;
-				}
-				else if (token.front() == quote_char || token.front() == apost_char) {
-					type = TokenType::String;
-				}
-				else if (token.find(":{") == 0 && token.rfind("}") == token.size() - 1) {
-					type = TokenType::Object;
-				}
-				else if (token == "true" || token == "false" || token == "maybe") {
-					type = TokenType::Boolean;
-				}
-				else if (std::isalpha(token.front()) || token.front() == '_') {
-					type = TokenType::Identifier;
-				}
-				else if (Search(token, TokenHandler::GetKeywords())) {
-					type = TokenType::Keyword;
-				}
-				else if (Search(token, TokenHandler::GetPuncutation())) {
-					type = TokenType::Punctuation;
-				}
-				else if (Search(token, TokenHandler::GetOperators())) {
-					type = TokenType::Operator;
-				}
-				else if (token == "\n") {
-					type = TokenType::Whitespace;
-				}
-				//else if (true) {
-				//  return token.starts_with(parse_strings::format_start);
-				//	type = TokenType::Format;
-				//}
-				else {
-					report::parse::error("Tokenizing: Unidentified token '{}' detected", data.GetTag());
-				}
-
-
-
-#ifdef DISABLE_COMMENT
-				case TokenType::Comment:
-					if (auto size = token.size(); size >= 2) {
-						int res = std::strncmp(token.c_str(), "//", 2) == 0 ?
-							1 : std::strncmp(token.c_str(), "/*", 2) == 0 ?
-							2 : 0;
-						//IE the second comment type
-						const char& end = *(token.end() - 2);
-
-						if (res == 2 && std::strncmp(&end, "*/", 2) != 0) {
-							//Later, this is to be a generic function, able to print a generic name.
-							croak("COMMENT unclosed at end of file.", &data.TOKEN());
-						}
-
-						return res;
-					}
-					else
-						return false;
-#endif	
-
-			}
-
-
-
-			Record Parse(bool atomic) {
-				bool success;
-
-				int i = 0;
-
-				Record result{};
-				Record* nested = nullptr;
-				do
-				{
-					success = _SearchModule(result, nested, atomic);
-
-					//should only crash if atomic modules fails
-					if (!success && !nested)
-						unexpected();
-
-					nested = &result;
-
-					i++;
-				} while (success && (!eof() || nested));//eof to prevent searches once past the point.
-
-				return result;
-			}
-
-
-			Record ParseAtomic() {
-				Record result = Parse(true);
-				return result;
-			}
-
-			Record ParseExpression() {
-				Record result = Parse(false);
-				return result;
-			}
-
-			void LinkContext(ProcessChain& chain)
-			{
-				//I want to give more power to these functions, so much that they manage the process of construction too
-				contextChain = &chain;
-			}
-
-			void ExecuteModule(Record& record, Record* rec_nest, ParseModule* mdl)
-			{
-				//This version of the function should have no checks, it's expected that it should work, then any error fatal to the process.
-				//logger::info("C {}", peek().GetTag());
-				//ProcessChain link = contextChain->InheritChain(mdl, contextChain);//(mdl, contextChain, this);
-				ProcessChain link{ mdl, contextChain };
-
-				//I think I want to bake the reset into it's blood
-				//_LinkContext(link);
-				//logger::info("C {}", peek().GetTag());
-				record = mdl->HandleToken(this, rec_nest);
-
-
-
-				//_UnlinkContext();
-			}
-
-			bool QueryModule(Record* rec_nest, ParseModule* mdl, ParseFlag flag)
-			{
-				//This is where the above module checks should go. Uses execute module
-				// also note, try should probably not check the current context, as it's likely the one who fired it.
-				// this allows more control where there are situations where the only ways a thing happens is if the parser is in control.
-
-				//Mesures first if the module can handle the current situation, but then measures if the currently loaded context will allow such a thing.
-
-
-				if (eof() && mdl->CanParseEOF() == false) {
-					return false;
-				}
-
-				bool module_check = mdl->CanHandle(this, rec_nest, flag);
-				bool context_check = module_check ? contextChain->current->ContextAllowed(mdl, contextChain) : false;
-
-				return module_check && context_check;
-
-			}
-
-			bool TryModule(Record& out, Record* rec_nest, ParseModule* mdl, ParseFlag flag)
-			{
-				//This is where the above module checks should go. Uses execute module
-				// also note, try should probably not check the current context, as it's likely the one who fired it. 
-				// this allows more control where there are situations where the only ways a thing happens is if the parser is in control.
-
-				//Mesures first if the module can handle the current situation, but then measures if the currently loaded context will allow such a thing.
-
-				bool handle = QueryModule(rec_nest, mdl, flag);
-
-
-				if (handle) {
-					ExecuteModule(out, rec_nest, mdl);
-				}
-
-				return handle;
-
-			}
-
-
-			bool SearchModule(Record& out, Record* rec_nest, bool atomic)
-			{
-				//In truth, should access the ParseHandler
-
-
-				for (std::unique_ptr<ParseModule>& mod : _modules)
-				{
-					if (!mod)
-						continue;
-					//The first doesn't count, if not nested atomic will not be considered.
-					if (rec_nest && atomic && mod->IsAtomic() == false)
-						continue;
-
-					//If not atomic, and the parseModule isn't atomic
-					bool success = TryModule(out, rec_nest, mod.get(), atomic ? ParseFlag::Atomic : ParseFlag::None);
-
-					if (success)
-						return true;
-				}
-
-				return false;
-
-			}
-
-
-
-			Record ParseTopLevel()
-			{
-				//I think this function could actually be allowed to be free.
-				if (std::addressof(_init) != contextChain)
-					croak("Cannot parse top level while parsing.");
-
-				if (!contextChain)//Should be warning?
-					croak("ParseStream is expired, cannot parse top level.");
-
-
-				if (!contextChain->current)
-					croak("No top level ParseModule detected.");
-
-				ParseModule* mdl = dynamic_cast<ParseModule*>(contextChain->current);
-
-				//If this can't work, that's one weird occurance. Probably not going to account for that, I'd rather a crash.
-
-				Record result = mdl->HandleToken(this, nullptr);
-
-				if (!eof())
-					croak("Top level file finished not EOF");
-
-				//Severing the chain means that this string has been parsed to it's full ability, and (likely) parsed properly.
-				// make this a function btw.
-				contextChain = nullptr;
-
-				return result;
-			}
-
-
-
-
-		protected:
-			const Iterator& current() const
-			{
-				return _memory.current;
-			}
-			
-			Iterator& current()
-			{
-				return _memory.current;
-			}
-
-			Tokenizer* tokenizer = nullptr;
-			std::function<TokenParser> defaultParser;
-
-
-
-			std::string_view _stream;
-
-			Memory _memory;
-
-			Iterator _end;
-
-			Column endColumn;
-			Line endLine;
-
-			ProcessChain _init = CreateChain();//{ nullptr, nullptr, this };
-			std::vector<std::unique_ptr<ParseModule>> _modules;
-
-
-		};
-
-
-
-
-
-		auto lambda_for_parser(Tokenizer* tokenizer)
-		{
-			boost::regex regex{ tokenizer->CompilePattern()};
-
-			return [regex, tokenizer](ParsingStream* stream, Iterator& it, Iterator end) -> Iterator
-				{
-					if (it == end)
-						return {};
-
-
-					boost::match_results<Iterator> what;
-
-					if (boost::regex_search(it, end, what, regex) == true) {
-
-						auto& subject = what[0];
-
-
-						if (subject.length() == 0)
-							stream->croak(std::format("empty string found in parse results {}", std::string(it, end)));
-
-						it = subject.second;
-
-						return subject.first;
-					}
-
-					it = end;
-
-					return {};
-				};
-
-		}
-
-
-
-
-#ifndef NOT_SHOWING
+#ifdef NOT_SHOWING
 		class Parser : public IProcess
 		{
 			//Friends with just the parse module
 			friend class Parser__;
 			friend class ParseModule;
 
-			Parser(TokenStream& t, ParseModule* mdl);
+			ParsingStream(TokenStream& t, ParseModule* mdl);
 
 			//parser should come with a context, this shit aint 
-			Parser(TokenStream&& t, ParseModule* mdl);
+			ParsingStream(TokenStream&& t, ParseModule* mdl);
 
 
 
@@ -1650,141 +740,6 @@ namespace LEX
 
 
 		public:
-
-
-
-			bool IsType(TokenType type, std::string_view str = "");
-
-			RecordData ConsumeType(TokenType type, std::string_view str = "");
-
-			void SkipType(TokenType type, std::string_view str);
-
-			bool SkipIfType(TokenType type, std::string_view str);
-
-			//Would like something called required type which fulfills the role of next and istype
-
-			bool WasType(TokenType type, std::string_view str = "");
-
-
-
-			std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<ParseFunc> func);
-
-
-			std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::function<void()> separator, std::function<ParseFunc> func);
-
-
-			//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
-			std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<Record()> func)
-			{
-				//std::function<ParseFunc> _b = nullptr;
-
-				//_b = begin ? [=](auto, auto) { return begin(); } : _b;
-
-				return Delimited(start, stop, separator, [=](auto, auto) { return func(); });
-			}
-
-			//template <typename TClass>
-			std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<Record(Parser*)> func)
-			{
-				return Delimited(start, stop, separator, [=](Parser* a1, auto) { return func(a1); });
-			}
-
-
-
-			//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
-			std::vector<Record> Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<Record()> func)
-			{
-				//std::function<ParseFunc> _b = nullptr;
-
-				//_b = begin ? [=](auto, auto) { return begin(); } : _b;
-
-				return Delimited(start, stop, separator, [=](auto, auto) { return func(); });
-			}
-
-
-
-			//template <typename TClass>
-			std::vector<Record> Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<Record(Parser*)> func)
-			{
-				return Delimited(start, stop, separator, [=](Parser* a1, Record*) { return func(a1); });
-			}
-
-
-			//std::vector<Record>
-
-			void unexpected();
-
-
-			ProcessChain GetChain();
-
-
-			//I think the above works like this. 
-			// Search looks for a module.
-			// Try will try to use that module
-			// execute will execute, regardless of conditions so the last thing needs to check itself.
-
-
-
-
-
-
-			//This is the only function that's actually required now.
-			Record ParseExpression();
-
-			Record ParseAtomic();
-
-
-			Record EndExpression(Record& rec);
-			Record EndExpression(Record&& rec);
-
-
-
-			TokenStream* GetTokenizer();
-
-			InputStream* GetInput();
-
-
-			std::string name();
-
-			//Would like to seperate these from parser(steam) and move it to Parser__ (to be named Parser)
-			//Would also like to remove the expression from this, there's no reason for it to be.
-			static Record CreateExpression(std::string str, Syntax expr = SyntaxType::None, std::vector<Record> children = {});
-
-			//This has no reason to be in here specifically.
-			static Record CreateExpression(RecordData data, Syntax expr, std::vector<Record> children = {});
-
-
-
-			template<std::same_as<Record>... Rs>requires (sizeof...(Rs) != 0)
-				static Record CreateExpression(RecordData data, Syntax expr, Rs... records)
-			{
-				return CreateExpression(data, expr, { records... });
-			}
-
-			ParseModule* GetBuiltModule(const std::type_info& ref) const
-			{
-				const std::type_info* other = &ref;
-
-				for (auto& mod : _modules)
-				{
-					auto ptr = mod.get();
-
-					auto info = &typeid(*ptr);
-
-					if (info == other)
-					{
-						return ptr;
-					}
-				}
-
-				return nullptr;
-			}
-			template <std::derived_from<ParseModule> Module>
-			ParseModule* GetBuiltModule() const
-			{
-				return GetBuiltModule(typeid(Module));
-			}
-
 
 
 
@@ -1821,37 +776,37 @@ namespace LEX
 
 
 
-			//TODO:An init function for Parser will need to take a parsemodule instead, which sets the base for init, as 
+			//TODO:An init function for ParsingStream will need to take a parsemodule instead, which sets the base for init, as 
 			// well as the entry parse module, who's carried out without consideration.
 		};
 
 
-		Parser::Parser(TokenStream& t, ParseModule* mdl) : tokenizer{ t }, _modules{ ParseHandler::BuildModules() }
+		ParsingStream::ParsingStream(TokenStream& t, ParseModule* mdl) : tokenizer{ t }, _modules{ ParseHandler::BuildModules() }
 		{
 			_init.current = mdl;
 		}
 
 		//parser should come with a context, this shit aint 
-		Parser::Parser(TokenStream&& t, ParseModule* mdl) : tokenizer{ t }
+		ParsingStream::ParsingStream(TokenStream&& t, ParseModule* mdl) : tokenizer{ t }
 		{
 			_init.current = mdl;
 		}
 
 
 
-		void Parser::_LinkContext(ProcessChain& chain)
+		void ParsingStream::_LinkContext(ProcessChain& chain)
 		{
 			//I want to give more power to these functions, so much that they manage the process of construction too
 			contextChain = &chain;
 		}
 
-		void Parser::_UnlinkContext()
+		void ParsingStream::_UnlinkContext()
 		{
 			//Add checks please
 			contextChain = contextChain->previous;
 		}
 
-		void Parser::_ExecuteModule(Record& record, Record* rec_nest, ParseModule* mdl)
+		void ParsingStream::_ExecuteModule(Record& record, Record* rec_nest, ParseModule* mdl)
 		{
 			//This version of the function should have no checks, it's expected that it should work, then any error fatal to the process.
 			//logger::info("C {}", peek().GetTag());
@@ -1868,7 +823,7 @@ namespace LEX
 			//_UnlinkContext();
 		}
 
-		bool Parser::_QueryModule(Record* rec_nest, ParseModule* mdl, ParseFlag flag)
+		bool ParsingStream::_QueryModule(Record* rec_nest, ParseModule* mdl, ParseFlag flag)
 		{
 			//This is where the above module checks should go. Uses execute module
 			// also note, try should probably not check the current context, as it's likely the one who fired it.
@@ -1888,7 +843,7 @@ namespace LEX
 
 		}
 
-		bool Parser::_TryModule(Record& out, Record* rec_nest, ParseModule* mdl, ParseFlag flag)
+		bool ParsingStream::_TryModule(Record& out, Record* rec_nest, ParseModule* mdl, ParseFlag flag)
 		{
 			//This is where the above module checks should go. Uses execute module
 			// also note, try should probably not check the current context, as it's likely the one who fired it. 
@@ -1908,7 +863,7 @@ namespace LEX
 		}
 
 
-		bool Parser::_SearchModule(Record& out, Record* rec_nest, bool atomic)
+		bool ParsingStream::_SearchModule(Record& out, Record* rec_nest, bool atomic)
 		{
 			//In truth, should access the ParseHandler
 
@@ -1934,7 +889,7 @@ namespace LEX
 
 
 
-		Record Parser::_ParseTopLevel()
+		Record ParsingStream::_ParseTopLevel()
 		{
 			//I think this function could actually be allowed to be free.
 			if (std::addressof(_init) != contextChain)
@@ -1965,32 +920,32 @@ namespace LEX
 
 
 
-		RecordData Parser::next()
+		RecordData ParsingStream::next()
 		{
 			return tokenizer.next();
 		}
-		RecordData Parser::peek()
+		RecordData ParsingStream::peek()
 		{
 			return tokenizer.peek();
 		}
 
-		RecordData Parser::prev()
+		RecordData ParsingStream::prev()
 		{
 			return tokenizer.prev();
 		}
 
-		bool Parser::eof()
+		bool ParsingStream::eof()
 		{
 			return tokenizer.eof();
 		}
-		void Parser::croak(std::string msg, Token* token)
+		void ParsingStream::croak(std::string msg, Token* token)
 		{
 			return GetInput()->croak(msg, token);
 		}
 
 
 
-		bool Parser::IsType(TokenType type, std::string_view str) {
+		bool ParsingStream::IsType(TokenType type, std::string_view str) {
 			RecordData tok = tokenizer.peek();
 
 			if (!tok)
@@ -1999,13 +954,13 @@ namespace LEX
 			return (type == TokenType::Invalid || tok.GetEnum<Token>().type == type) && (str == "" || tok.GetTag() == str);
 		}
 
-		bool Parser::WasType(TokenType type, std::string_view str) {
+		bool ParsingStream::WasType(TokenType type, std::string_view str) {
 			RecordData tok = tokenizer.prev();
 			return tok && tok.GetEnum<Token>().type == type && (str == "" || tok.GetTag() == str);
 		}
 
 
-		RecordData Parser::ConsumeType(TokenType type, std::string_view str)
+		RecordData ParsingStream::ConsumeType(TokenType type, std::string_view str)
 		{
 			//TODO:Fix Format #1
 			//TokenToString
@@ -2017,12 +972,12 @@ namespace LEX
 			return tokenizer.next();
 		}
 
-		void Parser::SkipType(TokenType type, std::string_view str)
+		void ParsingStream::SkipType(TokenType type, std::string_view str)
 		{
 			ConsumeType(type, str);
 		}
 
-		bool Parser::SkipIfType(TokenType type, std::string_view str)
+		bool ParsingStream::SkipIfType(TokenType type, std::string_view str)
 		{
 			bool result = IsType(type, str);
 
@@ -2032,7 +987,7 @@ namespace LEX
 			return result;
 		}
 
-		std::vector<Record> Parser::Delimited(std::string_view start, std::string_view stop, std::function<void()> separator, std::function<ParseFunc> func) {
+		std::vector<Record> ParsingStream::Delimited(std::string_view start, std::string_view stop, std::function<void()> separator, std::function<ParseFunc> func) {
 			//I would like a delimit that expects the seperator to be the second to last, and another that prevents it from being second to last.
 			//Having a version of this with no parameters or just parser would be ideal, that way I can use member functions.
 
@@ -2079,25 +1034,25 @@ namespace LEX
 
 
 		//Make a version of this that can take a parser and record, and a version that can take nothing at all.
-		std::vector<Record> Parser::Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<ParseFunc> func) {
-			return Parser::Delimited(start, stop, [&]() { SkipType(TokenType::Punctuation, separator); }, func);
+		std::vector<Record> ParsingStream::Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<ParseFunc> func) {
+			return ParsingStream::Delimited(start, stop, [&]() { SkipType(TokenType::Punctuation, separator); }, func);
 		}
 
 
 
-		void Parser::unexpected() {
+		void ParsingStream::unexpected() {
 			//want this to look prettier at some point.
 			//TODO:Fix Format #2
 			tokenizer.croak(std::format("Unexpected token: {} ({})", tokenizer.peek().GetTag(), magic_enum::enum_name(tokenizer.peek().TOKEN().type)));//"Unexpected token");//
 		}
 
 
-		ProcessChain Parser::GetChain()
+		ProcessChain ParsingStream::GetChain()
 		{
 			return *contextChain;
 		}
 
-		Record Parser::_Parse(bool atomic) {
+		Record ParsingStream::_Parse(bool atomic) {
 			bool success;
 
 			int i = 0;
@@ -2121,54 +1076,39 @@ namespace LEX
 		}
 
 
-		Record Parser::ParseAtomic() {
+		Record ParsingStream::ParseAtomic() {
 			Record result = _Parse(true);
 			return result;
 		}
 
-		Record Parser::ParseExpression() {
+		Record ParsingStream::ParseExpression() {
 			Record result = _Parse(false);
 			return result;
 		}
 
-		Record Parser::EndExpression(Record& rec)
+		Record ParsingStream::EndExpression(Record& rec)
 		{
 			ParseModule::ExecuteModule<EndParser>(this, nullptr);
 			return std::move(rec);
 		}
 
 
-		Record Parser::EndExpression(Record&& rec)
+		Record ParsingStream::EndExpression(Record&& rec)
 		{
 			ParseModule::ExecuteModule<EndParser>(this, nullptr);
 			return std::move(rec);
 		}
 
-		TokenStream* Parser::GetTokenizer()
-		{
-			return &tokenizer;
-		}
-
-		InputStream* Parser::GetInput()
-		{
-			return GetTokenizer()->GetInput();
-		}
-
-
-		std::string Parser::name()// const
-		{
-			return GetInput()->name();
-		}
 
 		//Would like to seperate these from parser
 		// Would also like to make "create header" for this.
-		Record Parser::CreateExpression(std::string str, Syntax expr, std::vector<Record> children)
+		Record ParsingStream::CreateExpression(std::string str, Syntax expr, std::vector<Record> children)
 		{
 			return Record{ str, expr, children };
 		}
 
 		//This has no reason to be in here specifically.
-		Record Parser::CreateExpression(RecordData data, Syntax expr, std::vector<Record> children)
+		Record ParsingStream::CreateExpression(RecordData data, Syntax expr, std::vector<Record> children)
 		{
 			auto tok = data.GetEnum<Token>();
 

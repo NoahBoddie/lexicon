@@ -50,7 +50,7 @@
 #include "Lexicon/Engine/Target.h"
 #include "Lexicon/Engine/TargetObject.h"
 #include "Lexicon/Engine/Token.h"
-#include "Lexicon/Engine/TokenHandler.h"
+#include "Lexicon/Engine/Tokenizer.h"
 #include "Lexicon/Engine/TokenStream.h"
 #include "Lexicon/Engine/TokenType.h"
 #include "Lexicon/Engine/VariableInfo.h"
