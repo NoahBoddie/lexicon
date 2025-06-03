@@ -112,15 +112,27 @@ namespace LEX
 	public:
 
 		//rename to get keyword state so HasKeyword can be free again.
-		virtual std::optional<bool> GetKeywordState(const std::string_view& type)
+		virtual std::optional<bool> GetKeywordState(const std::string_view& word) { return false; }
+
+		//An optional area seperate from keyword state that declare keywords as a set of non-blocking identifying traits
+		virtual bool HasTrait(const std::string_view& word) const { return false; }
+
+		std::optional<bool> HasKeywordState(const std::string_view& word)
 		{
-			return false;
+			if (HasTrait(word) == true) {
+				return true;
+			}
+
+			return GetKeywordState(word);
 		}
 
-		bool HasKeyword(const std::string_view& type)
+		bool HasKeyword(const std::string_view& word)
 		{
-			return GetKeywordState(type).value_or(false);
+			return HasKeywordState(word).value_or(false);
 		}
+
+		//Designates that the token returned isn't valid on it's own and requires another parser to intepret it's value
+		virtual bool RequiresNested() const { return false; }
 
 		//Idea here is I can have a context respond to if it wants to be able to have a certain thing handle it. if it's damning enough,
 		// I can send an error.

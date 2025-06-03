@@ -192,6 +192,7 @@ namespace LEX
 				return "Expected ; punctuation.";
 			}
 
+			bool HasTrait(const std::string_view&) const override { return true; }
 		};
 		
 
@@ -232,8 +233,8 @@ namespace LEX
 					result.SYNTAX().type = SyntaxType::ExpressBlock;
 					//result.GetTag() = parse_strings::expression_block;
 
-					result.EmplaceChild(stream->ParseExpression());
-					//result = stream->ParseExpression();
+					result.EmplaceChild(stream->ParseSyntax());
+					//result = stream->ParseSyntax();
 
 					stream->SkipType(TokenType::Punctuation, ")");
 				}
@@ -241,8 +242,8 @@ namespace LEX
 					result.SYNTAX().type = SyntaxType::StateBlock;
 					//result.GetTag() = parse_strings::statement_block;
 
-					//std::vector<Record> children = stream->Delimited("{", "}", ";", &ParsingStream::ParseExpression);
-					std::vector<Record> children = stream->Delimited(target ? "" : "{", "}", [&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); }, &ParsingStream::ParseExpression);
+					//std::vector<Record> children = stream->Delimited("{", "}", ";", &ParsingStream::ParseSyntax);
+					std::vector<Record> children = stream->Delimited(target ? "" : "{", "}", [&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); }, &ParsingStream::ParseSyntax);
 					if (auto size = children.size(); !size)
 						return {};
 					else if (size == 1)
@@ -259,7 +260,7 @@ namespace LEX
 			bool IsAtomic() const override { return true; }
 		};
 
-
+		
 		struct ErrorParser : public ParseModule
 		{
 			//This only really works if something is there to recover from it. Otherwise, it will toss whole variables, functions, etc.
@@ -354,9 +355,11 @@ namespace LEX
 		};
 
 
-
+		
 		struct ScriptParser : ParseModule//public ParseSingleton<ScriptParser, false>
 		{
+			//TODO: Merge script and LineParser, instead make different modes dictate their function.
+
 			//Script stream n
 			std::optional<bool> GetKeywordState(const std::string_view& type) override
 			{
@@ -377,7 +380,7 @@ namespace LEX
 				try
 				{
 					//Make this a recursive function
-					Record result = stream->ParseExpression();
+					Record result = stream->ParseSyntax();
 
 					if (result)
 						script.EmplaceChild(result);
@@ -404,7 +407,7 @@ namespace LEX
 					try
 					{
 						//Make this a recursive function
-						Record result = stream->ParseExpression();
+						Record result = stream->ParseSyntax();
 
 						if (result)
 							script.EmplaceChild(result);
@@ -444,7 +447,7 @@ namespace LEX
 			{
 				try
 				{
-					auto result = stream->ParseExpression();
+					auto result = stream->ParseSyntax();
 
 
 					if (stream->eof() == false)
@@ -537,7 +540,8 @@ namespace LEX
 
 		};
 
-
+		int;
+		
 
 		struct IdentifierParser : public AutoParser<IdentifierParser>, public IdenDeclBoilerPlate
 		{
@@ -590,7 +594,7 @@ namespace LEX
 				
 			}
 
-
+			bool RequiresNested() const override { return true; }
 
 		};
 
@@ -777,7 +781,6 @@ namespace LEX
 
 				stream->SkipType(TokenType::Punctuation, ")");
 
-
 				return result;
 			}
 
@@ -880,7 +883,7 @@ namespace LEX
 				if (stream->SkipIfType(TokenType::Operator, "=") == true) {
 					//This should remove assignment from being a valid statement, and also allow assignment to happen
 					// with the same expression.
-					target->EmplaceChild(Record{ parse_strings::def_expression, SyntaxType::None, stream->ParseExpression() });
+					target->EmplaceChild(Record{ parse_strings::def_expression, SyntaxType::None, stream->ParseSyntax() });
 				}
 
 				return stream->EndExpression(std::move(*target));
@@ -987,7 +990,7 @@ namespace LEX
 
 					//Same as the bit for variable. if I can merge it, I would.
 					if (stream->SkipIfType(TokenType::Operator, "=") == true) {
-						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::extends, SyntaxType::None, { stream->ParseExpression() }));
+						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::extends, SyntaxType::None, { stream->ParseSyntax() }));
 					}
 
 					return result;
@@ -1015,7 +1018,7 @@ namespace LEX
 				if (stream->SkipIfType(TokenType::Punctuation, ";") == false) {
 					target->EmplaceChildren(Record{ parse_strings::code, SyntaxType::None, stream->Delimited("{", "}",
 						[&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); },
-						&ParsingStream::ParseExpression) });
+						&ParsingStream::ParseSyntax) });
 
 				}
 
@@ -1066,7 +1069,7 @@ namespace LEX
 
 						Record a_lhs = ParsingStream::CreateExpression(parse_strings::lhs, SyntaxType::None, { left });
 
-						//Record a_rhs = ParsingStream::CreateExpression("right", ExpressionType::Header, { _HandleBinary(stream, stream->ParseExpression(), his_prec) });
+						//Record a_rhs = ParsingStream::CreateExpression("right", ExpressionType::Header, { _HandleBinary(stream, stream->ParseSyntax(), his_prec) });
 						//Return to form with parse atomic.
 						Record a_rhs = ParsingStream::CreateExpression(parse_strings::rhs, SyntaxType::None, { _HandleBinary(stream, stream->ParseAtomic(), his_prec) });
 
@@ -1272,8 +1275,8 @@ namespace LEX
 				target->SYNTAX().type = SyntaxType::Call;
 
 				//I believe this makes header the contained object, rather than creating an expresion. Also changed to use the version that takes functions with just 1 member.
-				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseExpression(); }) });
-				auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("(", ")", ",", &ParsingStream::ParseExpression));
+				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseSyntax(); }) });
+				auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("(", ")", ",", &ParsingStream::ParseSyntax));
 
 				target->EmplaceChildren(args);
 
@@ -1306,7 +1309,7 @@ namespace LEX
 				//whatever is cycling this will get the ; statement, but we're getting the expression inside.
 				if (stream->IsType(TokenType::Punctuation, ";") == false)
 					//ret.EmplaceChildren(ParseModule::UseModule<BinaryParser>(stream, target));
-					ret.EmplaceChildren(stream->ParseExpression());
+					ret.EmplaceChildren(stream->ParseSyntax());
 
 				return ret;
 			}
@@ -1379,7 +1382,7 @@ namespace LEX
 
 					//Not a strong name to make this a header, because it's handled pretty straight forward.
 					// Also, more likely this seeks to parse atomic
-					//Record body = stream->ParseExpression();
+					//Record body = stream->ParseSyntax();
 					Record body = stream->ParseAtomic();
 
 					unary = stream->CreateExpression(op, SyntaxType::Unary, body);
@@ -1574,7 +1577,7 @@ namespace LEX
 					};
 
 					while (end_of_this() == false) {
-						body.EmplaceChild(stream->ParseExpression());
+						body.EmplaceChild(stream->ParseSyntax());
 					}
 
 					result.EmplaceChild(body);
@@ -1722,7 +1725,7 @@ namespace LEX
 				if (auto is_if = stream->IsType(TokenType::Keyword, "if"); is_if || stream->SkipIfType(TokenType::Punctuation, ":") == true)
 				{
 					//This really shouldn't allow encasulate stream to go in. But for now this will handle.
-					Record body = stream->ParseExpression();
+					Record body = stream->ParseSyntax();
 					
 
 					if (body.SYNTAX().type == SyntaxType::StateBlock)
@@ -1776,7 +1779,7 @@ namespace LEX
 
 				Record& express_block = result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::expression_block, SyntaxType::None));
 
-				express_block.EmplaceChild(stream->ParseExpression());
+				express_block.EmplaceChild(stream->ParseSyntax());
 
 				stream->SkipType(TokenType::Punctuation, ")");
 
@@ -1872,7 +1875,7 @@ namespace LEX
 
 				generic.EmplaceChildren(std::move(hits));
 
-				auto target = stream->ParseExpression();
+				auto target = stream->ParseSyntax();
 
 				//check if it can use generic or not
 				switch (target.SYNTAX().type)
@@ -1940,7 +1943,7 @@ namespace LEX
 						continue;
 					}
 					
-					auto result = stream->ParseExpression();
+					auto result = stream->ParseSyntax();
 
 					stream->SkipType(TokenType::Whitespace, "\n");
 

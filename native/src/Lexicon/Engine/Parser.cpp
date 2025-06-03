@@ -112,10 +112,13 @@ namespace LEX
 
 	
 
-	void ParsingStream::unexpected() {
+	void ParsingStream::unexpected(const std::string_view& expect) {
 		//want this to look prettier at some point.
 		//TODO:Fix Format #2
-		croak(std::format("Unexpected token: {} ({})", peek().GetTag(), magic_enum::enum_name(peek().TOKEN().type)));//"Unexpected token");//
+		if (expect.empty() != false)
+			croak(std::format("Expected a {}, recieved '{}' ({}).", peek().GetTag(), expect, magic_enum::enum_name(peek().TOKEN().type)));
+		else
+			croak(std::format("Unexpected token: {} ({})", peek().GetTag(), magic_enum::enum_name(peek().TOKEN().type)));
 	}
 
 

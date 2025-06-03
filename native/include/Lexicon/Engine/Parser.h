@@ -344,39 +344,75 @@ namespace LEX
 
 
 
-		Record Parse(bool atomic) {
+		Record Parse(bool atomic, const std::string_view& keyword = "") {
 			bool success;
 
 			int i = 0;
 
 			Record result{};
-			Record* nested = nullptr;
+			
+			Record* nested_record = nullptr;
+		
+			bool requires_nested = false;
+			
 			do
 			{
-				success = SearchModule(result, nested, atomic);
+				success = SearchModule(result, requires_nested, nested_record, atomic, keyword);
 
 				//should only crash if atomic modules fails
-				if (!success && !nested)
-					unexpected();
+				//if (!success && (!nested_record || requires_nested))
+				if (!success && !nested_record)
+					unexpected(keyword);
 
-				nested = &result;
+				nested_record = &result;
 
 				i++;
-			} while (success && (!eof() || nested));//eof to prevent searches once past the point.
+			} while (success && (!eof() || nested_record));//eof to prevent searches once past the point.
 
 			return result;
 		}
 
 
 		Record ParseAtomic() {
+			//I'd like to change parsing atomic to being a keyword related thing.
 			Record result = Parse(true);
 			return result;
 		}
 
-		Record ParseExpression() {
-			Record result = Parse(false);
+
+		Record ParseTrait(const std::string_view& keyword) {
+			Record result = Parse(false, keyword);
 			return result;
 		}
+
+
+		Record ParseSyntax() {
+			return ParseTrait("");
+		}
+
+		Record ParseExpression()
+		{
+			Record result = Parse(false, "expression");
+			return result;
+		}
+
+
+		Record ParseDeclaration()
+		{
+			Record result = Parse(false, "declaration");
+			return result;
+		}
+
+
+		Record ParseStatement()
+		{
+			Record result = Parse(false, "statement");
+			return result;
+		}
+
+
+
+
 
 		void LinkContext(ModuleChain& chain)
 		{
@@ -441,24 +477,34 @@ namespace LEX
 		}
 
 
-		bool SearchModule(Record& out, Record* rec_nest, bool atomic)
+		bool SearchModule(Record& out, bool& req_nest, Record* rec_nest, bool atomic, const std::string_view& keyword)
 		{
 			//In truth, should access the ParseHandler
 
 
-			for (std::unique_ptr<ParseModule>& mod : _modules)
+			for (std::unique_ptr<ParseModule>& um : _modules)
 			{
-				if (!mod)
+
+				if (!um)
 					continue;
+				
+				ParseModule* mod = um.get();
+
+				if (!keyword.empty() && mod->HasKeyword(keyword) == false) {
+					continue;
+				}
+
 				//The first doesn't count, if not nested atomic will not be considered.
 				if (rec_nest && atomic && mod->IsAtomic() == false)
 					continue;
 
 				//If not atomic, and the parseModule isn't atomic
-				bool success = TryModule(out, rec_nest, mod.get(), atomic ? ParseFlag::Atomic : ParseFlag::None);
+				bool success = TryModule(out, rec_nest, mod, atomic ? ParseFlag::Atomic : ParseFlag::None);
 
-				if (success)
+				if (success) {
+					req_nest = mod->RequiresNested();
 					return true;
+				}
 			}
 
 			return false;
@@ -558,7 +604,7 @@ namespace LEX
 
 		//std::vector<Record>
 
-		void unexpected();
+		void unexpected(const std::string_view& expect = "");
 
 
 		ModuleChain GetChain();

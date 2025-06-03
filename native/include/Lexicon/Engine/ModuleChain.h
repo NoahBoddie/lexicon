@@ -42,7 +42,7 @@ namespace LEX
 			{
 				if (link->current)
 				{
-					auto res = link->current->GetKeywordState(type);
+					auto res = link->current->HasKeywordState(type);
 
 					if (res == std::nullopt)
 						return false;
