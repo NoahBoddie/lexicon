@@ -1286,6 +1286,41 @@ namespace LEX
 			bool IsAtomic() const override { return true; }
 		};
 
+		struct CtorParser : public AutoParser<CtorParser>
+		{
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
+			{
+				//VarUsage basically means no type allowed.
+				return target && target->SYNTAX().type == SyntaxType::Identifier && stream->IsType(TokenType::Punctuation, "{"); 
+				// && stream->contextChain->HasKeyword("code_block");
+			}
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				target->SYNTAX().type = SyntaxType::Ctor;
+
+				//I believe this makes header the contained object, rather than creating an expresion. Also changed to use the version that takes functions with just 1 member.
+				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseSyntax(); }) });
+				
+				//CURRENTLY, Ctors don't except args.
+				if  constexpr (0) {
+					auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("{", "}", ",", &ParsingStream::ParseSyntax));
+
+					target->EmplaceChildren(args);
+				}
+				else {
+					stream->SkipType(TokenType::Punctuation, "{");
+					stream->SkipType(TokenType::Punctuation, "}");
+				}
+
+				return std::move(*target);
+			}
+
+			bool IsAtomic() const override { return true; }
+		};
+
+
+
 			
 		struct ReturnParser : public AutoParser<ReturnParser>
 		{

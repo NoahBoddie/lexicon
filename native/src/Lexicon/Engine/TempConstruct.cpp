@@ -1261,7 +1261,10 @@ namespace LEX
 		
 
 
-		Solution HandleCall(ExpressionCompiler* compiler, SyntaxRecord& target)
+
+
+
+		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 
 			//The argument check has to happen first.
@@ -1332,7 +1335,7 @@ namespace LEX
 
 			Overload instructions;
 
-			
+
 
 			//Around here, you'd use the args.
 			FunctionNode node = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
@@ -1432,54 +1435,32 @@ namespace LEX
 			compiler->ModArgCount(-alloc_size, -sub_alloc, false);
 
 			//TODO: The return of call should probably handled by whatever generic element it has, the proposed plan that could handle members
-			return Solution{ func->GetReturnType(generic->GetTemplatePart()), OperandType::Register, compiler->GetPrefered()};
+			return Solution{ func->GetReturnType(generic->GetTemplatePart()), OperandType::Register, compiler->GetPrefered() };
 		}
 
 
 
-
-		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, SyntaxRecord& target)
+		Solution CtorProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
-
 			//OverloadInput input;
 			//input.object = self;
 			//input.paramInput = args;
 
 			//TODO: Should be in error if has an explicit target.
 
+			//TODO: Future: constructors will need to be able to handle headers as well, address that when you can.
 			ITypeInfo* type = compiler->GetScope()->SearchTypePath(target);
 
-			if (type)
-			{
-				//TODO: Give this a compiler utility function, in case it has a manually defined constructor.
-				compiler->GetOperationList().emplace_back(InstructType::Construct, compiler->GetPrefered(),
-					Operand{ type, OperandType::Type });
+			if (!type)
+				//TODO: Please make this say the full name
+				report::error("Couldn't find type '{}'.", target.GetView());
 
-				result = Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
-			}
+			//TODO: Future: Give this a compiler utility function, in case it has a manually defined constructor.
+			compiler->GetOperationList().emplace_back(InstructType::Construct, compiler->GetPrefered(), Operand{ type, OperandType::Type });
 
-
-			return type;
+			return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
+		
 		}
-
-
-
-
-
-		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
-		{
-			//I seek to merge the functionality of these 2 functions into this one, seeing as they need to tread the same ground.
-
-			Solution result;
-
-			if (HandleCtor(result, compiler, target) == false) {
-				result = HandleCall(compiler, target);
-			}
-
-
-			return result;
-		}
-
 
 
 
@@ -2009,6 +1990,7 @@ namespace LEX
 			generatorList[SyntaxType::Variable] = VariableProcess;
 			generatorList[SyntaxType::Field] = FieldProcess;
 			generatorList[SyntaxType::Call] = CallProcess;
+			generatorList[SyntaxType::Ctor] = CtorProcess;
 			generatorList[SyntaxType::Conditional] = ConditionalProcess;
 
 

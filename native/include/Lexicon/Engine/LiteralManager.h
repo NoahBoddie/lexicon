@@ -129,16 +129,6 @@ namespace LEX
 
 		static Variable* GetLiteral(size_t index);
 	
-
-		static void FinalizeLiteral();
-
-		
-		static std::vector<Variable>& _LiteralList();
-
-		inline static size_t size{ 5 };
-		//The idea is to keep track of variables and a ref count. Just in case
-		//inline static std::vector<Variable> _list{};
-
 	};
 
 }

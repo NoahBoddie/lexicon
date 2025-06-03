@@ -4,17 +4,25 @@
 namespace LEX
 {
 	//*
+	std::vector<std::pair<Variable, TypeInfo*>> literalList{};
+
 
 	//TODO: Ideally obtain literal, this returns const, will want to experiment with that later.
 	Literal LiteralManager::ObtainLiteral(SyntaxRecord& ast)
 	{
 		//I have a concept within this of making hashes from the strings of records, and mutating the hash with it's children
 		Variable entry = CreateVariable(ast);
+		TypeInfo* info = entry.GetTypeInfo();
 
-		auto begin = _LiteralList().begin();
-		auto end = _LiteralList().end();
+		assert(info);
 
-		auto it = std::find_if(begin, end, [&](auto& arg) { return arg == entry; });
+
+		auto pair = std::make_pair(entry, info);
+
+		auto begin = literalList.begin();
+		auto end = literalList.end();
+
+		auto it = std::find_if(begin, end, [&](auto& arg) { return arg == pair; });
 
 		size_t result = max_value<size_t>;
 
@@ -22,11 +30,9 @@ namespace LEX
 			result = std::distance(begin, it);
 		}
 		else {
-			result = _LiteralList().size();
+			result = literalList.size();
 
-			_LiteralList().emplace_back(entry);
-			
-			size = result;
+			literalList.emplace_back(std::move(entry), info);
 		}
 	
 		return Literal{ result };
@@ -34,22 +40,10 @@ namespace LEX
 
 	Variable* LiteralManager::GetLiteral(size_t index)
 	{
-		auto var = &_LiteralList()[index];
+		auto var = std::addressof(literalList[index].first);
 
 		return var;
 	}
 
-
-	void LiteralManager::FinalizeLiteral()
-	{
-		//Because this goes off, things will need to use a literal key
-		_LiteralList().shrink_to_fit();
-	}
-
-	std::vector<Variable>& LiteralManager::_LiteralList()
-	{
-		static std::vector<Variable> _list{};
-		return _list;
-	}
 	//*/
 }
