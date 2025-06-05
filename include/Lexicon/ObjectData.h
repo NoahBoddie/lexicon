@@ -67,9 +67,9 @@ namespace LEX
 	union ObjectData
 	{
 		constexpr ObjectData() noexcept = default;
-
+	private:
 		template <typename T>
-		explicit ObjectData(T* load)
+		void LoadData(T* load)
 		{
 			using _Type = std::remove_cvref_t<T>;
 
@@ -116,14 +116,17 @@ namespace LEX
 			}
 		}
 
+	public:
 		template <typename T>
-		explicit ObjectData(T& load) : ObjectData{ std::addressof(load) }
+		explicit ObjectData(T& load)// : ObjectData{ std::addressof(load) }
 		{
+			LoadData(std::addressof(load));
 		}
 
 		template <typename T>
-		explicit ObjectData(T&& load) : ObjectData{ std::addressof(load) }
+		explicit ObjectData(T&& load)// : ObjectData{ std::addressof(load) }
 		{
+			LoadData(std::addressof(load));
 		}
 
 

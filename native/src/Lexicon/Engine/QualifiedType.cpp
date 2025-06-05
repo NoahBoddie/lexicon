@@ -117,11 +117,11 @@ namespace LEX
 
 		//*/
 
-		report::message::info("left: {}, right: {}", policy->GetName(), to_left->GetName());
 		//Refness section
 		bool init = flags & ConversionFlag::Initialize;
 		bool param = flags & ConversionFlag::Parameter;
 		bool ret = flags & ConversionFlag::Return;
+		bool expl = flags & ConversionFlag::Explicit;
 		
 		if (init || param || ret)
 		{
@@ -187,7 +187,7 @@ namespace LEX
 
 			//Auto cannot be accepted by anything at all
 		}
-		else if (to_left.IsAssignable() == false) {
+		else if (!expl && to_left.IsAssignable() == false) {
 			//If this isn't the initialization of something, and isn't assignable,that's a problem
 			return ConversionResult::Unassignable;
 		}

@@ -65,7 +65,7 @@ namespace LEX
 	};
 
 	template <typename T> requires (requires(ProxyGuide<T> guide, const T& arg) { { guide.ObjectTranslator(arg) } -> has_object_info; })
-		struct ObjectTranslator<T>
+	struct ObjectTranslator<T>
 	{
 		decltype(auto) operator()(const T& obj)
 		{
@@ -77,27 +77,120 @@ namespace LEX
 	//TODO: Use a different constraint for this, it may not need to actually take a reference, for pointer
 	// types that'd be a bit silly.
 	//Also, ToObject and the object translator need to switch types.
+	
+	//TODO: use a required for this, it can fail disasterously
 	template<typename T>
-	using obj_trans_type = std::invoke_result_t<ObjectTranslator<std::remove_cvref_t<T>>, const T&>;
+	using obj_trans_type = std::invoke_result_t<ObjectTranslator<std::remove_cvref_t<T>>, add_ref_to_non_ptr_t<qualify_extracted_type_t<T, std::add_const_t>>>;
 
 	template<typename T>
 	concept object_type = has_object_info<obj_trans_type<T>> && !std::is_same_v<obj_trans_type<T>, detail::not_implemented>;
 
 
 	
-	template <object_type Ty>
-	Object MakeObject(Ty&& var);
-
-	template <object_type T>
-	Object MakeObject(const T& var)
-	{
-		return MakeObject<const T>(std::move(var));
-	}
-
 
 
 	struct Object
 	{
+		template <object_type Ty>
+		static Object MakeObject(Ty&& var)
+		{
+			//Name this ToObject, and the other MakeObject. This one creates the object, the other makes an argument into a thing convertible to an object.
+
+			using T = std::remove_cvref_t<Ty>;
+
+			using Res = obj_trans_type<T>;
+
+			//Unsure if I wanna use cvref just yet
+			//using _Type = std::remove_cvref_t<obj_trans_type<T>>;
+			using ObType = std::remove_cvref_t<Res>;
+
+
+			Object result{};
+
+			//This is no extra trouble, given the values for ID are cached.
+			ObjectPolicy* policy = GetObjectPolicy<ObType>();
+
+			result.policy = GetObjectPolicyID<ObType>();
+
+
+
+			if (!result.policy) {
+				report::runtime::critical("no policies");
+			}
+
+			ObjectVTable* vtable = GetObjectInfo<ObType>();
+
+			if (policy->IsCompatible(vtable) == false) {
+				report::runtime::critical("incompatible policies");
+			}
+
+			//This should get handled in compatibility testing.
+			if (result.policy)
+			{
+				//TODO: confirm this against what goes in the policy. This is when we can tell that something is far too old for the placement.
+				auto* vtable = GetObjectInfo<ObType>();
+				auto* test = result.policy.get();
+				//assert(result.policy->base);
+
+				if (result.policy->base != vtable) {
+					//Non-inhouse checks (should only happen once.
+					report::fault::critical("issue");
+				}
+			}
+
+
+
+			//Around here, I'd actually like there to be some sort of type trait that will be able to parse if it's a reference or not, as to not copy
+			// if it doesn't have to.
+			//auto data = ToObject<T>(var);
+			Res data = ObjectTranslator<T>{}(var);
+
+			//This should be the raw type, no const, no pointer. See to it this is made pure.
+			using _Pure = decltype(data);//NOTE, find out the return type before hand, that way if it's a reference we can handle that properly.
+
+
+			//TODO: HANDLE POOLED DATA HERE.
+			constexpr bool stor = object_storage_v<ObType>;
+
+
+
+			//ObjectData to = FillObjectData<ObType>(data);
+			ObjectData to{ data };
+
+
+
+
+			if (policy->IsPooled(to) == true) {
+				result._data = policy->InitializePool(to, stor);
+				result.type = ObjectDataType::kRef;
+			}
+			else {
+				result._data = to;
+				if constexpr (stor) {
+					result.type = ObjectDataType::kVal;
+				}
+				else {
+					result.type = ObjectDataType::kPtr;
+
+				}
+			}
+
+			policy->Initialize(result.data());
+
+			//I would rather construct object on the spot here so we don't trigger any assignments
+			return result;
+		}
+
+
+		//template <object_type T>
+		//Object MakeObject(const T& var)
+		//{
+		//	return MakeObject<qualify_extracted_type_t<T, std::add_const_t>>(std::move(var));
+		//}
+
+
+
+
 
 		Object() = default;
 
@@ -129,13 +222,12 @@ namespace LEX
 		{
 			//Do you actually want to unhandle here?
 			Unhandle(&other);
-
 			Transfer(other, true);
 		}
 
 		//TODO: For the same of this, MakeObject needs to be a little more const.
 		template <object_type T>
-		Object(const T& other)
+		Object(const T& other) //: Object{ MakeObject(other) } 
 		{
 			*this = MakeObject(other);
 		}
@@ -333,8 +425,11 @@ namespace LEX
 				return _AdvancedTransfer(other, move);
 
 			default:
-				//invalid.
-				throw temp_objectExcept;
+			{
+				auto& new_other = other;
+				report::critical("ObjectDataType is '{}'({}) and cannot be read. {}", magic_enum::enum_name(new_other.type), (int)new_other.type, new_other.always_zero);
+
+			}
 			}
 			
 		}
@@ -345,7 +440,7 @@ namespace LEX
 
 		Object& Transfer(const Object& other, bool move)
 		{
-			return Transfer(const_cast<Object&>(other), move);
+			return Transfer(unconst(other), move);
 		}
 
 		void _ClearCheck() const
@@ -544,6 +639,7 @@ namespace LEX
 		ObjectData _data{};
 
 		ObjectPolicyHandle policy{};
+		int16_t always_zero = 0;
 
 		ObjectDataType type = ObjectDataType::kNone;
 
@@ -557,95 +653,17 @@ namespace LEX
 
 	
 	//This likely can be relocated within object as create, with MakeObject being an external function.
+
 	template <object_type Ty>
 	Object MakeObject(Ty&& var)
 	{
-		//Name this ToObject, and the other MakeObject. This one creates the object, the other makes an argument into a thing convertible to an object.
-
-		using T = std::remove_cvref_t<Ty>;
-
-		using Res = obj_trans_type<T>;
-
-		//Unsure if I wanna use cvref just yet
-		//using _Type = std::remove_cvref_t<obj_trans_type<T>>;
-		using ObType = std::remove_cvref_t<Res>;
-
-
-		Object result{};
-
-		//This is no extra trouble, given the values for ID are cached.
-		ObjectPolicy* policy = GetObjectPolicy<ObType>();
-
-		result.policy = GetObjectPolicyID<ObType>();
-
-
-
-		if (!result.policy) {
-			report::runtime::critical("no policies");
-		}
-
-		ObjectVTable* vtable = GetObjectInfo<ObType>();
-
-		if (policy->IsCompatible(vtable) == false) {
-			report::runtime::critical("incompatible policies");
-		}
-
-		//This should get handled in compatibility testing.
-		if (result.policy)
-		{
-			//TODO: confirm this against what goes in the policy. This is when we can tell that something is far too old for the placement.
-			auto* vtable = GetObjectInfo<ObType>();
-			auto* test = result.policy.get();
-			//assert(result.policy->base);
-
-			if (result.policy->base != vtable) {
-				//Non-inhouse checks (should only happen once.
-				report::fault::critical("issue");
-			}
-		}
-
-
-
-		//Around here, I'd actually like there to be some sort of type trait that will be able to parse if it's a reference or not, as to not copy
-		// if it doesn't have to.
-		//auto data = ToObject<T>(var);
-		Res data = ObjectTranslator<T>{}(var);
-
-		//This should be the raw type, no const, no pointer. See to it this is made pure.
-		using _Pure = decltype(data);//NOTE, find out the return type before hand, that way if it's a reference we can handle that properly.
-
-
-		//TODO: HANDLE POOLED DATA HERE.
-		constexpr bool stor = object_storage_v<ObType>;
-
-
-
-		//ObjectData to = FillObjectData<ObType>(data);
-		ObjectData to{ data };
-
-
-
-
-		if (policy->IsPooled(to) == true) {
-			result._data = policy->InitializePool(to, stor);
-			result.type = ObjectDataType::kRef;
-		}
-		else {
-			result._data = to;
-			if constexpr (stor) {
-				result.type = ObjectDataType::kVal;
-			}
-			else {
-				result.type = ObjectDataType::kPtr;
-
-			}
-		}
-
-		policy->Initialize(result.data());
-
-		//I would rather construct object on the spot here so we don't trigger any assignments
-		return result;
+		return Object::MakeObject(std::forward<Ty>(var));
 	}
 
+	//template <object_type T>
+	//Object MakeObject(const T& var)
+	//{
+	//	return MakeObject<qualify_extracted_type_t<T, std::add_const_t>>(std::move(var));
+	//}
 
 }

@@ -65,7 +65,6 @@ namespace LEX
 		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags) override
 		{
 			if (target) {
-				logger::info("Names {} vs {}", target->GetName(), _returnType->GetName());
 
 				if (target != _returnType)
 					return false;

@@ -540,6 +540,65 @@ namespace RGL
         constexpr accepts_all(T&&) {}
     };
 
+
+
+
+    template<typename T, template <typename> typename... Quals>
+    struct qualify_extracted_type { using type = T; };
+
+    template<typename T, template <typename> typename Qualify, template <typename> typename... Quals> requires(!std::is_pointer_v<T> && !std::is_reference_v<T>)
+    struct qualify_extracted_type<T, Qualify, Quals...> { using type = qualify_extracted_type<Qualify<T>, Quals...>::type; };
+
+    template<typename T, template <typename> typename... Quals>
+    struct qualify_extracted_type<T*, Quals...> { using type = qualify_extracted_type<T, Quals...>::type*; };
+
+    template<typename T, template <typename> typename... Quals>
+    struct qualify_extracted_type<T&, Quals...> { using type = qualify_extracted_type<T, Quals...>::type&; };
+
+    template<typename T, template <typename> typename... Quals>
+    struct qualify_extracted_type<T&&, Quals...> { using type = qualify_extracted_type<T, Quals...>::type&&; };
+
+
+    template<typename T, template <typename> typename... Quals>
+    using qualify_extracted_type_t = qualify_extracted_type<T, Quals...>::type;
+
+
+    template<typename T>
+    struct add_ref_to_non_ptr : std::add_lvalue_reference <T> {};
+    
+    template<typename T>
+    struct add_ref_to_non_ptr<T*> { using type = T*; };
+
+    template<typename T>
+    using add_ref_to_non_ptr_t = add_ref_to_non_ptr<T>::type;
+
+
+
+
+
+    template <template <typename> typename Qualifier, typename T>
+    constexpr decltype(auto) add_quality_to_extracted(T&& val) noexcept
+    {
+        if constexpr (!std::is_pointer_v<T> && !std::is_reference_v<T>) {
+            return static_cast<Qualifier<T>>(val);
+        }
+        else {
+            return const_cast<qualify_extracted_type_t<T, Qualifier>>(val);
+        }
+    }
+
+    template <typename T>
+    constexpr decltype(auto) unconst(T&& val) noexcept
+    {
+        return add_quality_to_extracted<std::remove_const_t>(val);
+    }
+
+    template <typename T>
+    constexpr decltype(auto) make_const(T&& val) noexcept
+    {
+        return add_quality_to_extracted<std::add_const_t>(val);
+    }
+
 }
 
 namespace LEX::detail
