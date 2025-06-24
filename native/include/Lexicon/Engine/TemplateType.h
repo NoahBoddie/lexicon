@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/HierarchyData.h"
 
 //*src
 #include "Lexicon/Interfaces/IdentityManager.h"
+#include "Lexicon/Qualifier.h"
 namespace LEX
 {
 	constexpr TypeID Trival = 0xDEADBEEF;
@@ -13,9 +14,9 @@ namespace LEX
 
 	struct TemplateTuple;
 
-	struct TemplateType : public ITypePolicy, public HierarchyData
+	struct TemplateType : public ITypeInfo, public HierarchyData
 	{
-		//GenericType is an ITypePolicy that largely should not exist with any HierarchyData. It's from this fact
+		//GenericType is an ITypeInfo that largely should not exist with any HierarchyData. It's from this fact
 		// plus the fact HierarchyData is a lot that I think I should split the function between 2 parts.
 		//This type will use a seperate HierarchyData having type in order to answer questions it's questions about it.
 
@@ -25,7 +26,7 @@ namespace LEX
 			IdentityManager::instance->GetIDFromName("TRIVAL");
 
 
-			ITypePolicy* test = nullptr;
+			ITypeInfo* test = nullptr;
 
 			HierarchyData* other = dynamic_cast<HierarchyData*>(test);
 		}
@@ -33,15 +34,19 @@ namespace LEX
 		std::string name;
 		size_t index = -1;
 		TemplateTuple* _tupleData = nullptr;
-		TemplateType(std::string n, size_t i) : name{ n }, index{ i } {};
+		TemplateType(const std::string_view& n, size_t i) : name{ n }, index{ i } {};
+
+		//TODO: TemplateType needs it's fucking specializable I'm fucking off
+		ISpecializable* GetSpecializable() override { return nullptr; }
 
 
+		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override;
 
-		virtual ITypePolicy* CheckTypePolicy(GenericBase* ask, ITemplatePart* args) override;
-
-		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
+		TypeInfo* GetTypePolicy(ITemplateBody* args) override;
 
 
+		TemplateType* AsTemplate() override { return this; }
+		std::vector<TemplateType*> GetTemplateInputs() override { return { this }; }
 
 		virtual bool IsResolved() const { return false; }
 
@@ -54,16 +59,50 @@ namespace LEX
 		virtual std::string_view GetName() const { return name; }
 
 
+		//static_assert(false, "I need a IsConvertibleFrom, which means I need a conversion function that isn't virtual.");
+		ConvertResult GetConvertFrom(const ITypeInfo* other, const ITypeInfo* scope, Conversion* = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+		{
+			auto result = __super::GetConvertFrom(other, scope, nullptr, flags);
+
+			if (flags & ConversionFlag::Template && result.data <= ConversionEnum::Failure)
+			{
+				//If this inherits nothing it literally cannot be used for anything
+				for (auto& inherit : inheritance)
+				{
+					if (other->IsConvertibleTo(inherit.type, scope) != ConversionEnum::TypeDefined) {
+						return ConversionResult::Ineligible;
+					}
+				}
+
+				result = ConversionEnum::TempConvert;
+			}
+
+			return result;
+
+		}
+	
+		//I want one able to handle possible tuple typing which doesn't currently exist.
+		//bool CanSpecializeTo(TemplateType* other) const;
+		
+
+
 		HierarchyData* GetHierarchyData() const override
 		{
 			const HierarchyData* out = this;
 			return const_cast<HierarchyData*>(out);
 		}
 
-		ITypePolicy* GetHierarchyType() override
+		ITypeInfo* GetHierarchyType() override
 		{
 			return this;
 		}
+
+
+		void SetSelfQualifiers(Qualifier& qualifiers) const override
+		{
+			qualifiers.MakeReadonly(true);
+		}
+
 
 	};
 

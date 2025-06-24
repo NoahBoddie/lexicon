@@ -2,11 +2,14 @@
 
 //Change name to aliasTypes
 
+
+
+
 namespace LEX
 {
 	using Column = uint16_t;
 	using Line = uint32_t;
-
+	
 	//Temporary
 	//using Object = int;
 	//using Variable = int;
@@ -19,16 +22,10 @@ namespace LEX
 	//struct Syntax;
 	//struct SyntaxBody;
 	//using SyntaxRecord = BasicRecord<Syntax, SyntaxBody>;
-	
 
-	namespace Impl
-	{
-		class Parser;
+	class ParsingStream;
 
-		typedef Record(ParseFunc)(Parser*, Record*);
-		//using ParseFunc = Record(Parser*, Record*);
+	typedef Record(ParseFunc)(ParsingStream*, Record*);
 
-
-	}
 	
 }

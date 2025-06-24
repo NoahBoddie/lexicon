@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/InfoBase.h"
 #include "Lexicon/Engine/GlobalBase.h"
-#include "Lexicon/AbstractGlobal.h"
+#include "Lexicon/Global.h"
 
 
 //*src
@@ -11,20 +11,35 @@
 
 namespace LEX
 {
-	class ConcreteGlobal : public GlobalBase, public AbstractGlobal
+	class ConcreteGlobal : public ConcreteGlobalBase
 	{
+		RuntimeVariable value{ std::in_place_type_t<Variable>{} };
+
+		ISpecializable* GetSpecializable() override { return nullptr; }
+
+		bool IsResolved() const override final { return true; }
+
+		Global* GetGlobal(ITemplateBody* args) override { return this; }
+
+		IGlobal* CheckGlobal(ITemplatePart* args) override { return this; }
+
+		RuntimeVariable GetValue() override { return value.Ref(); }
+		RuntimeVariable GetReference() override { return value.AsRef(); }
+
+		
+		bool Set(const RuntimeVariable& value) override
+		{
+			//currently won't be doing anything with this
+			return false;
+		}
+
 		bool Revert(bool just_default) override
 		{
-			//*this = _declared.policy.
 			if (just_default) {
-				Variable& a_this = *this;
+				Variable& a_this = value.Ref();//this shouldn't work
 				
-				auto type = Policy();
-
-				if (Policy() == nullptr) {
-					type = _declared.policy->GetTypePolicy((ITemplateBody*)nullptr);
-					a_this.SetPolicy(type);
-				}
+				//auto type = a_this.Policy();
+				auto type = _declared->GetTypePolicy(nullptr);
 
 				a_this = type->GetDefault();
 			}
@@ -36,7 +51,7 @@ namespace LEX
 
 				//Variable& a_this = *this;
 
-				Assign(runtime.Run());
+				value->Assign(runtime.Run());
 
 			}
 
@@ -50,8 +65,8 @@ namespace LEX
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<AbstractGlobal>::value):
-				return (AbstractGlobal*)this;
+			case Hash(TypeName<Global>::value):
+				return static_cast<Global*>(this);
 
 			case Hash(TypeName<ConcreteGlobal>::value):
 				return this;

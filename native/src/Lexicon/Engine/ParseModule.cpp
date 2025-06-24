@@ -1,18 +1,19 @@
 #include "Lexicon/Engine/ParseModule.h"
 #include "Lexicon/Engine/Parser.h"
 
-namespace LEX::Impl
+namespace LEX
 {
-	Record ParseModule::_ExecuteModule(ParseModule* mdl, Parser* parser, Record* target)
+
+	Record ParseModule::ExecuteModule(ParseModule* mdl, ParsingStream* parser, Record* target)
 	{
 		if (!mdl) {
-			parser->GetInput()->croak("something about static handle token.");
+			parser->croak("something about static handle token.");
 		}
 
 		Record result{};
 
 		//Doing it like this deals with process chains.
-		parser->_ExecuteModule(result, target, mdl);
+		parser->ExecuteModule(result, target, mdl);
 
 		return result;
 
@@ -22,33 +23,30 @@ namespace LEX::Impl
 	}
 
 
-	
-	bool ParseModule::_QuestionModule(ParseModule* mdl, Parser* parser, Record* target, ParseFlag flag)
+	bool ParseModule::QueryModule(ParseModule* mdl, ParsingStream* parser, Record* target, ParseFlag flag)
 	{
 		if (!mdl) {
-			parser->GetInput()->croak("something about static handle token.");
+			parser->croak("something about static handle token.");
 		}
 
-		return parser->_QueryModule(target, mdl, flag);
+		return parser->QueryModule(target, mdl, flag);
 	}
 
-	bool ParseModule::_QueryModule(ParseModule* mdl, Parser* parser, Record& out, Record* target)
+	//Need to snuff out the wrong try being used rq
+	bool ParseModule::TryModule(ParseModule* mdl, ParsingStream* parser, Record& out, Record* target)
 	{
 		if (!mdl) {
-			parser->GetInput()->croak("something about static handle token.");
+			parser->croak("something about static handle token.");
 		}
 
-		return parser->_TryModule(out, target, mdl, ParseFlag::Direct);
+		return parser->TryModule(out, target, mdl, ParseFlag::Direct);
 	}
 
-
-
-
-	Record ParseModule::_TryModule(ParseModule* mdl, Parser* parser, Record* target)
+	Record ParseModule::UseModule(ParseModule* mdl, ParsingStream* parser, Record* target)
 	{
 
 		if (!mdl) {
-			parser->GetInput()->croak("something about static handle token.");
+			parser->croak("something about static handle token.");
 		}
 
 
@@ -56,39 +54,15 @@ namespace LEX::Impl
 
 		//Try module will try to use use try module, and if it's unsuccessful, it will croak.
 		// Basically a checked ParseAtomic for specific modules.
-		if (_QueryModule(mdl, parser, result, target) == false)
-			parser->GetInput()->croak(mdl->FailureMessage());
+		if (TryModule(mdl, parser, result, target) == false)
+			parser->croak("Cant.");
 
 		return result;
 	}
 
-	ParseModule* ParseModule::_GetBuiltModule(Parser* parser, const std::type_info& info)
+	//Doing this here because templates have to be inline and I can't provide that.
+	ParseModule* ParseModule::GetBuiltModule(ParsingStream* parser, const std::type_info& info)
 	{
 		return parser->GetBuiltModule(info);
-	}
-
-
-
-	uint32_t ParseModule::GetPriority() const 
-	{ 
-		return ModulePriority::Minimal; 
-	}
-
-
-	//Here I'll place a line of common context keywords that will be enabled by using one of these.
-	ParseKeyword ParseModule::GetKeywords() 
-	{ 
-		return ParseKeyword::None; 
-	}
-
-	std::optional<bool> ParseModule::GetKeywordState(std::string_view str)
-	{
-		switch (Hash(str))
-		{
-		case "Statement"_ih:
-			return GetKeywords() & ParseKeyword::Statement;
-		}
-
-		return false;
 	}
 }

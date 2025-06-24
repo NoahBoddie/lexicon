@@ -42,18 +42,24 @@ namespace LEX
 		Exponent,
 		Access,
 
-		Assign, 
-		Then, 
+		Then,
+		Promote,
+
 		//Directives (Instructions created don't match 1 to 1 the operator used)	
-		Push,
-		Move, 
-		Forward,
+
+		Copy,
+		Move,		
+		Reference,	//Attempts to reference the value in the rhs and move that reference to the lhs
+		Forward,	//If the given operand is loaded with a variable, send variable. if any kind of reference, push the reference. This is just assign ref.
+		ForwardMove,//Similar to forward but makes it a move operation
+		
+
 		PushVariable,//Pushes something from the left to a variable spot in the right. Perhaps in the future I could make registers spot just do this.
 
 
 
-		IncrementArgStack,//PrepArgs
-		IncrementVarStack,
+		ModArgStack,//PrepArgs
+		ModVarStack,
 		DefineVariable,		//Defines a variable as it's default. May not fully define. TODO: Remove DefineVarPolicy, it is basically a move instruction.
 		DefineParameter,	//Defines a parameter merely by assigning it's storage type.
 		// For these I could make them the same function, but make an index what makes them differ. In that I could send it it's index, similar to how
@@ -74,8 +80,9 @@ namespace LEX
 		Return,
 		//ReturnScoped,//DEPRECATED//exactly the same as return, but helps specify that it's scoped and may be skipped.
 		Total,
-		IncArgStack = InstructionType::IncrementArgStack,
-		IncVarStack = InstructionType::IncrementVarStack,
+
+		//Inert Instructions- Instructions that don't link to a function, just used to serve as a slot of some kind.
+		Assign = InstructionType::Copy,		//Used to tell when the equals sign is used
 
 		Invalid = InstructionType::Total,
 	};

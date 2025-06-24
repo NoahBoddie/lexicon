@@ -12,7 +12,7 @@ namespace LEX
 
 		bool IsStatic() const
 		{
-			return specifiers & Specifier::Static;
+			return specifiers.IsStatic();
 		}
 	};
 

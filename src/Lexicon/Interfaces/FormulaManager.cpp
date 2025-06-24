@@ -41,7 +41,7 @@ namespace LEX
 
 
 
-	[[nodiscard]] uint64_t FormulaManager::RequestFormula(const ISignature& base, api::vector<std::string_view> params, std::string_view routine, FormulaHandler& out, std::optional<IScript*> from)
+	[[nodiscard]] uint64_t FormulaManager::RequestFormula(const ISignature& base, std::span<std::string_view> params, std::string_view routine, FormulaHandler& out, std::optional<IScript*> from)
 	{
 		//TODO FormulaManager needs to return the APIResult not a random ass integer.
 		std::optional<IScript*> test;
@@ -52,11 +52,8 @@ namespace LEX
 
 		auto parameters = base.parameters();
 
-		if (auto target = base.target(); target)
-		{
-			formula->_targetType = target;
-			formula->parameters.emplace_back(target, parse_strings::this_word, 0);
-			formula->__thisInfo = std::make_unique<ParameterInfo>(target, parse_strings::this_word, 0);
+		if (auto target = base.target(); target){
+			formula->_thisInfo = std::make_unique<ParameterInfo>(target, parse_strings::this_word, 0);
 		}
 
 		if (params.empty() == false)
@@ -64,13 +61,13 @@ namespace LEX
 			auto& f_params = formula->parameters;
 			for (int i = 0; i < parameters.size(); i++)
 			{
-				f_params.push_back(ParameterInfo(parameters[i], std::string(params[i]), f_params.size()));
+				f_params.push_back(ParameterInfo(parameters[i], std::string(params[i]), formula->GetParamCount()));
 			}
 		}
 
 		SyntaxRecord ast;
 		
-		if (Impl::Parser__::CreateSyntax<Impl::LineParser>(ast, routine) == false)
+		if (Parser__::CreateSyntax<LineParser>(ast, routine) == false)
 		{
 			
 			return 1;
@@ -92,9 +89,20 @@ namespace LEX
 			report::apply::failure("Launch Script is null.");
 			return 2;
 		}
+
+		if (false) {
+			//Some way to stringize a Signature locally would be really cool for visuals.
+			std::string name;
+			name += base.result()->GetName();
+			name += " (";
+			
+			name += ")";
+
+		}
+
 		
 		//This needs to confirm it's proper
-		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, parse_strings::no_name, formula->GetTargetType()) == false) {
+		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, nullptr, parse_strings::no_name) == false) {
 			return 3;
 		}
 

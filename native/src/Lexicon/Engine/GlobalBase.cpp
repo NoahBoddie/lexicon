@@ -47,17 +47,33 @@ namespace LEX
                 report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, environment };
-            
-            
-            //This lies, there is no error.
-            constexpr auto qual = Qualifier::Constness_;
-            constexpr auto spec = ~(Specifier::External | Specifier::Virtual) & Specifier::All;
             
 
-            if (header.Matches(qual, spec) == false) {
-                report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
+            //Declaration header{ *head_rec, environment, Refness::Global, Refness::Static };
+            //No reference stuff right now
+            Declaration header = Declaration::CreateOnly(*head_rec, environment, Refness::Global, Refness::Static, 
+                HeaderFlag::TypeSpecifiers | HeaderFlag::Constness | HeaderFlag::Access);
+            
+            switch (header.reference)
+            {
+            case Refness::Auto:
+            case Refness::Temp:
+                //These 2 are supposed to be genuinely impossible btw.
+            case Refness::Local:
+            case Refness::Maybe:
+            case Refness::Scoped:
+                //TODO: This is supposed to fire from the declaration specifiers
+                report::compile::failure("Global variable '{}' cannot have be a '{}' reference type.", GetName(), magic_enum::enum_name(header.reference));
+                return LinkResult::Failure;
+                
             }
+            
+            constexpr auto spec = ~(SpecifierFlag::External | SpecifierFlag::Virtual) & SpecifierFlag::All;
+            
+
+            //if (header.Matches(DeclareMatches::Constness, spec) == false) {
+            //    report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
+            //}
 
             //if (auto filter = header.Filter(qual, spec); filter) {
             //    report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
@@ -87,7 +103,7 @@ namespace LEX
                 _init = std::make_unique<RoutineBase>();
 
 
-                if (RoutineCompiler::Compile(*_init, def->GetFront(), &tempData, GetEnvironment()) == false)
+                if (RoutineCompiler::Compile(*_init, def->GetFront(), &tempData, this, AsGenericElement()) == false)
                 {
                     FlagAsInvalid();
                 }

@@ -5,7 +5,7 @@
 #include "Lexicon/Engine/Expression.h"
 #include "Lexicon/Engine/ExpressionType.h"
 #include "Lexicon/Engine/Solution.h"
-#include "Lexicon/Engine/Operation.h"
+#include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/RoutineBase.h"
 
 //*src
@@ -18,21 +18,21 @@
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
-	std::vector<Operation>* CompilerBase::GetOperationListPtr()
+	std::vector<Instruction>* CompilerBase::GetInstructionListPtr()
 	{
 		if (_current)
 			return _current;
 
 		if (auto scope = GetScope())
-			return &scope->GetOperationList();
+			return &scope->GetInstructionList();
 
 		return nullptr;
 	}
 
 
-	std::vector<Operation>& CompilerBase::GetOperationList()
+	std::vector<Instruction>& CompilerBase::GetInstructionList()
 	{
-		return *GetOperationListPtr();
+		return *GetInstructionListPtr();
 	}
 
 
@@ -78,7 +78,7 @@ namespace LEX
 		
 		try
 		{
-			std::vector<Operation> operations;
+			std::vector<Instruction> operations;
 
 			{
 				//<KILL> _current = &operations;
@@ -89,7 +89,7 @@ namespace LEX
 				//Kinda feel like this should be used but it isn't. This could cause some variables to go without value.
 				std::vector<ParameterInfo> params = _callData->GetParameters();
 
-				std::vector<ITypePolicy*> types;
+				std::vector<ITypeInfo*> types;
 
 				std::transform(params.begin(), params.end(), std::back_inserter(types), [&](ParameterInfo& it) {return it.GetType(); });
 
@@ -105,10 +105,9 @@ namespace LEX
 
 				//Assign const here.
 
-				TargetObject target{ solution };
+				TargetObject target{ &solution, _object, TargetObject::Implicit };
 
 				if (solution.policy) {
-					PushTargetObject(target);
 					method = true;
 				}
 
@@ -149,7 +148,7 @@ namespace LEX
 
 					implicitReturn = true;
 					//operations.insert_range(end, CompileLine(funcRecord, Register::Result, result));
-					result = PushExpression(funcRecord, Register::Result);
+					result = PushExpression(funcRecord, Register::Result, GetReturnType().IsReference());
 
 
 
@@ -176,9 +175,9 @@ namespace LEX
 
 							Conversion out;
 
-							auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out);
+							auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out, ConversionFlag::Return);
 
-							if (convert_result <= convertFailure)
+							if (!convert_result)
 							{
 								report::compile::error("Expression not convertible to return type.");
 							}
@@ -201,11 +200,9 @@ namespace LEX
 
 					//<KILL> _current = &operations;//Doing this is stupid and I hate it but fuck it whatever.
 					CompUtil::PrepareReturn(this, return_policy, result);
-					GetOperationList().emplace_back(InstructionType::Return);
+					GetInstructionList().emplace_back(InstructionType::Return);
 				}
 
-
-				PopTargetObject();
 
 				if (a_scope.IsHeaderSatisfied() == false)
 					report::compile::error("Explicit return expected. {}", name());
@@ -215,7 +212,7 @@ namespace LEX
 
 			operations.shrink_to_fit();
 
-			routine = RoutineBase{ std::move(operations), varCount[1], argCount[1] };
+			routine = RoutineBase{ std::move(operations), std::move(_instructRecords), varCount[1], argCount[1]};
 			return _success;
 		}
 		catch (CompileError& error)
@@ -260,9 +257,9 @@ namespace LEX
 		}
 		else {
 
-			auto& op_list = GetOperationList();
+			auto& op_list = GetInstructionList();
 
-			op_list.emplace_back(InstructionType::IncrementVarStack, Operand{ inc , OperandType::Differ });
+			op_list.emplace_back(InstructionType::ModVarStack, Operand{ inc , OperandType::Differ });
 
 		}
 

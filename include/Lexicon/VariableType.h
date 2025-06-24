@@ -8,14 +8,18 @@
 //Revision. I want to change the name (again). Maybe TypeInterface, idk
 
 //Use common type instead.
+#include "Lexicon/TypeInfo.h"
+#include "Lexicon/ProxyGuide.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
-#include "Lexicon/ITypePolicy.h"
+
 
 namespace LEX
 {
-	class ITypePolicy;
-	class AbstractTypePolicy;
+	struct TypeInfo;
 	
+	//TODO: I would like rename ths to something like TypeOf, with the usage names being GetTypeOf
+	struct pointer_variable {};
+
 
 	namespace detail
 	{
@@ -23,8 +27,8 @@ namespace LEX
 		struct example
 		{
 			//The storage type function can be defined like this.
-			// Function must be static, have no parameters, and return ITypePolicy.
-			static AbstractTypePolicy* GetStorageType()
+			// Function must be static, have no parameters, and return ITypeInfo.
+			static TypeInfo* GetStorageType()
 			{
 				return {};
 			}
@@ -32,22 +36,22 @@ namespace LEX
 
 
 			//As the value type function can be defined like this,
-			// Requiring the function to be const and membered (virtual allowed), no parameters, and return AbstractTypePolicy.
-			AbstractTypePolicy* GetValueType() const
+			// Requiring the function to be const and membered (virtual allowed), no parameters, and return TypeInfo.
+			TypeInfo* GetValueType() const
 			{
 				return {};
 			}
 
 			//Additionally, both storage and value can be defined like this. This denotes that the value type does not change based on runtime 
 			// value. This will take precedence over other declared variables.
-			// It's required the function must be static and return AbstractTypePolicy.
-			static AbstractTypePolicy* GetVariableType()
+			// It's required the function must be static and return Type.
+			static TypeInfo* GetVariableType()
 			{
 				return {};
 			}
 
 			//This is also a viable declaration for variable types that have differences between static and not static
-			static AbstractTypePolicy* GetVariableType(const example*)
+			static TypeInfo* GetVariableType(const example*)
 			{
 				return {};
 			}
@@ -65,16 +69,34 @@ namespace LEX
 		//These will need supplemental version
 		template<typename T> concept subject_has_var_type_Store = requires()
 		{
-			{ T::GetVariableType() } -> pointer_derived_from<AbstractTypePolicy*>;
+			{ T::GetVariableType() } -> pointer_derived_from<TypeInfo*>;
 		};
 
-		template<typename T> concept subject_has_var_type_Value = requires(const std::remove_pointer_t<T>* t)
+		template<typename T> concept subject_has_var_type_Value = requires(const std::remove_pointer_t<T>* ptr)
 		{
-			{ T::GetVariableType(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+			{ T::GetVariableType(decltype(ptr){ptr}) } -> pointer_derived_from<TypeInfo*>;
 		};
+
+		template<typename T> concept subject_has_var_type_Pointer = requires(const std::remove_pointer_t<T>* ptr)
+		{
+			{ T::GetVariableType(ptr) } -> pointer_derived_from<TypeInfo*>;
+		} && !subject_has_var_type_Value<T>;
+
+
 
 		template<typename T> concept subject_has_var_type = subject_has_var_type_Value<T> || subject_has_var_type_Store<T>;
 
+
+
+		template<typename T> concept proxy_has_var_type = !detail::subject_has_var_type<T> && 
+			//requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>*ptr) { { guide.VariableType(decltype(ptr){ptr}) } -> pointer_derived_from<TypeInfo*>; };
+			requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>*ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<TypeInfo*>; };
+		//I'm unsure if variable type will actually need to handle pointer types, given that manual pointer types can exist with proxy guides
+
+
+		//template<typename T> concept proxy_has_var_type_Pointer = !detail::subject_has_var_type<T> &&
+		//	requires(ProxyGuide<T> guide, const std::remove_pointer_t<T>*ptr) { { guide.VariableType(ptr) } -> pointer_derived_from<TypeInfo*>; } &&
+		//!proxy_has_var_type<T>;
 	}
 
 
@@ -90,13 +112,13 @@ namespace LEX
 		// a compiler error.
 
 		/*
-		AbstractTypePolicy* operator()()
+		TypeInfo* operator()()
 		{
 			//static_assert
 			return nullptr;
 		}
 
-		AbstractTypePolicy* operator()(const T*)
+		TypeInfo* operator()(const T*)
 		{
 			//static_assert
 			return nullptr;
@@ -111,12 +133,12 @@ namespace LEX
 	struct VariableType<TBDL>
 	{
 
-		AbstractTypePolicy* operator()()
+		TypeInfo* operator()()
 		{
 
 		}
 
-		AbstractTypePolicy* operator()(const TBDL*)
+		TypeInfo* operator()(const TBDL*)
 		{
 
 		}
@@ -132,10 +154,11 @@ namespace LEX
 	template <detail::subject_has_var_type T>
 	struct VariableType<T>
 	{
-		AbstractTypePolicy* operator()(const std::remove_pointer_t<T>* arg)
+		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
 		{
 			if constexpr (detail::subject_has_var_type_Value<T>) {
-				return T::GetVariableType(arg);
+				//return T::GetVariableType(arg);
+				return T::GetVariableType(static_cast<const std::remove_pointer_t<T>*&&>(arg));
 			}
 			else {
 				return T::GetVariableType();
@@ -143,7 +166,7 @@ namespace LEX
 		}
 
 		//Can likely remove this
-		AbstractTypePolicy* operator()()
+		TypeInfo* operator()()
 		{
 			return this->operator()(nullptr);
 		}
@@ -151,7 +174,46 @@ namespace LEX
 	};
 
 
+	template <detail::subject_has_var_type_Pointer T>
+	struct VariableType<T*>
+	{
+		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
+		{
+			return T::GetVariableType(arg);
+		}
 
+		//Can likely remove this
+		TypeInfo* operator()()
+		{
+			return this->operator()(nullptr);
+		}
+
+	};
+
+	template <detail::proxy_has_var_type T>
+	struct VariableType<T>
+	{
+		//This proxy guide might need handling for specifying pointers
+		TypeInfo* operator()(const std::remove_pointer_t<T>* arg)
+		{
+
+			return ProxyGuide<T>{}.VariableType(arg);
+			//if constexpr (detail::subject_has_var_type_Value<T>) {
+			//	return T::GetVariableType(arg);
+			//}
+			//else {
+			//	return T::GetVariableType();
+			//}
+		}
+
+		//Can likely remove this
+		TypeInfo* operator()()
+		{
+			return this->operator()(nullptr);
+		}
+	};
+
+	
 
 	//These are spotty right now. Please redo.
 	namespace detail
@@ -177,14 +239,14 @@ namespace LEX
 			//!std::is_same_v<StorageType<example>, StorageType<T>> && 
 			requires()
 		{
-			{ ObtainVariableType<T>()() } -> pointer_derived_from<AbstractTypePolicy*>;
+			{ ObtainVariableType<T>()() } -> pointer_derived_from<TypeInfo*>;
 		};
 
 		template<typename T> concept call_class_has_var_type_Value = !std::is_base_of_v<not_implemented, VariableType<T>>&&
 			//!std::is_same_v<ValueType<example>, ValueType<T>> && 
 			requires(const std::remove_pointer_t<T>* t)
 		{
-			{ ObtainVariableType<T>()(t) } -> pointer_derived_from<AbstractTypePolicy*>;
+			{ ObtainVariableType<T>()(t) } -> pointer_derived_from<TypeInfo*>;
 		};
 
 
@@ -222,7 +284,7 @@ namespace LEX
 
 	//This should be in detail too.
 	template<detail::call_class_has_var_type T>
-	AbstractTypePolicy* FetchVariableType(const std::remove_pointer_t<T>* arg = nullptr)
+	TypeInfo* FetchVariableType(const std::remove_pointer_t<T>* arg = nullptr)
 	{
 		//Do not do this, it cannot handle references
 		decltype(auto) type_getter = detail::ObtainVariableType<T>();
@@ -242,11 +304,11 @@ namespace LEX
 	{
 		template<typename T> concept function_has_var_type_Value = requires(const remove_all_t<T>* t)
 		{
-			{ FetchVariableType<remove_qual_t<T>>(t) } -> std::same_as<AbstractTypePolicy*>;
+			{ FetchVariableType<remove_qual_t<T>>(t) } -> std::same_as<TypeInfo*>;
 		};
 		template<typename T> concept function_has_var_type_Store = requires()
 		{
-			{ FetchVariableType<remove_qual_t<T>>() } -> std::same_as<AbstractTypePolicy*>;
+			{ FetchVariableType<remove_qual_t<T>>() } -> std::same_as<TypeInfo*>;
 		};
 
 		template<typename T> concept function_has_var_type = function_has_var_type_Value<T> || function_has_var_type_Store<T>;
@@ -267,7 +329,7 @@ namespace LEX
 
 
 	template <detail::function_has_var_type T>
-	AbstractTypePolicy* GetVariableType()
+	TypeInfo* GetVariableType()
 	{
 		using Ty = detail::remove_qual_t<T>;
 
@@ -283,12 +345,12 @@ namespace LEX
 	}
 
 	template <detail::function_has_var_type T>
-	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>* arg)
+	TypeInfo* GetVariableType(const detail::custom_decay<T>* arg)
 	{
 		using Ty = detail::remove_qual_t<T>;
 
 
-		AbstractTypePolicy* type = nullptr;
+		TypeInfo* type = nullptr;
 
 		//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
 
@@ -310,7 +372,7 @@ namespace LEX
 
 
 	template <detail::function_has_var_type T>
-	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>& arg)
+	TypeInfo* GetVariableType(const detail::custom_decay<T>& arg)
 	{
 		//using Ty = detail::remove_qual_t<T>;
 
@@ -318,23 +380,25 @@ namespace LEX
 		return GetVariableType<T>(&arg);
 	}
 
-
+	/*
+	//Not required anymore
 	template <detail::function_has_var_type T> requires (!std::is_pointer_v<T>)
-		AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
+		TypeInfo* GetVariableType(detail::custom_decay<T>&& arg)
 	{
 		//using _T = detail::custom_decay<T>;
 
 
 		return GetVariableType<T>(&arg);
 	}
+	//*/
 
 	template <detail::function_has_var_type T> requires (std::is_pointer_v<T>)
-	AbstractTypePolicy* GetVariableType(detail::custom_decay<T>&& arg)
+	TypeInfo* GetVariableType(const detail::custom_decay<T>& arg)
 	{
 		using Ty = detail::remove_qual_t<T>;
 
 
-		AbstractTypePolicy* type = nullptr;
+		TypeInfo* type = nullptr;
 
 		//I actually think this might be a little off, cause it's double dipping or some shit. But fuck it we ball I guess.
 
@@ -376,7 +440,7 @@ namespace LEX
 	template <>
 	struct VariableType<Void>
 	{
-		AbstractTypePolicy* operator()(const Void*)
+		TypeInfo* operator()(const Void*)
 		{
 			return IdentityManager::instance->GetInherentType(InherentType::kVoid)->FetchTypePolicy(nullptr);
 		}
@@ -385,18 +449,19 @@ namespace LEX
 	template <>
 	struct VariableType<void>
 	{
-		AbstractTypePolicy* operator()(const void*)
+		TypeInfo* operator()(const void*)
 		{
 			return IdentityManager::instance->GetInherentType(InherentType::kVoid)->FetchTypePolicy(nullptr);
 		}
 	};
 
+	//TODO:I'd like to make whatever this is seen as variable, definable via macro or something like that. Perhaps through settings.
 	struct StaticTargetTag {};
 
 	template <>
 	struct VariableType<StaticTargetTag>
 	{
-		AbstractTypePolicy* operator()(const StaticTargetTag*)
+		TypeInfo* operator()(const StaticTargetTag*)
 		{
 			return nullptr;
 		}
@@ -406,7 +471,7 @@ namespace LEX
 	//template <>
 	//struct VariableType<double>
 	//{
-	//	AbstractTypePolicy* operator()();
+	//	TypeInfo* operator()();
 	//};
 
 	//This is how I'll prefer to get variable types.
@@ -418,13 +483,13 @@ namespace LEX
 	struct VariableType<T>
 	{
 
-		AbstractTypePolicy* operator()() { return nullptr; }
+		TypeInfo* operator()() { return nullptr; }
 	};
 	//*/
 	
 	//template class VariableType<Number>;
 	
-	//template AbstractTypePolicy* VariableType<Number>::operator()(const Number*);
+	//template TypeInfo* VariableType<Number>::operator()(const Number*);
 	
 	/*
 	 
@@ -432,28 +497,28 @@ namespace LEX
 	template <>
 	struct VariableType<Number>
 	{
-		inline AbstractTypePolicy* operator()(const Number* it);
+		inline TypeInfo* operator()(const Number* it);
 	};
 	
 	//x
 	template <>
 	struct VariableType<String>
 	{
-		AbstractTypePolicy* operator()(const String*);
+		TypeInfo* operator()(const String*);
 	};
 
 	//no
 	template <>
 	struct VariableType<Delegate>
 	{
-		AbstractTypePolicy* operator()(const Delegate*);
+		TypeInfo* operator()(const Delegate*);
 	};
 
 	//x
 	template <>
 	struct VariableType<Object>
 	{
-		AbstractTypePolicy* operator()(const Object*);
+		TypeInfo* operator()(const Object*);
 	};
 
 
@@ -461,19 +526,19 @@ namespace LEX
 	template <>
 	struct VariableType<FunctionHandle>
 	{
-		AbstractTypePolicy* operator()(const FunctionHandle*);
+		TypeInfo* operator()(const FunctionHandle*);
 	};
 	//x
 	template <>
 	struct VariableType<Array>
 	{
-		AbstractTypePolicy* operator()(const Array*);
+		TypeInfo* operator()(const Array*);
 	};
 	//x
 	template <>
 	struct VariableType<Variable>
 	{
-		AbstractTypePolicy* operator()(const Variable*);
+		TypeInfo* operator()(const Variable*);
 	};
 
 

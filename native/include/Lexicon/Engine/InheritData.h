@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Lexicon/AccessModifier.h"
+#include "Lexicon/Specifier.h"
 
 namespace LEX
 {
 
-	struct ITypePolicy;
+	struct ITypeInfo;
 
 	struct InheritData
 	{
@@ -16,7 +16,7 @@ namespace LEX
 		//Distance is -1 if virtually inherited
 		uint32_t distance = 0;
 		uint32_t _id = 0;
-		ITypePolicy* type = nullptr;
+		ITypeInfo* type = nullptr;
 
 
 		//This can possibly be unionized, with the sign bit being able to tell if one or the other.

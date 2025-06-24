@@ -275,7 +275,6 @@ namespace logger
 
 #include "RoguesGallery.hpp"
 
-
 #include "boost/regex.hpp"
 
 
@@ -371,10 +370,23 @@ struct Initializer
 
 //Im thinking of adding keywords to initialize, allowing it to have keywords.
 
+//Function was extern
+
 //Initializes something on the spot.
-#define INITIALIZE__COUNTED(mc_counter,...) inline extern void CONCAT(__init_func_,mc_counter)();\
-volatile inline extern Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
-inline extern void CONCAT(__init_func_,mc_counter)()
+#define INITIALIZE__COUNTED(mc_counter,...) inline void CONCAT(__init_func_,mc_counter)();\
+inline Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
+inline void CONCAT(__init_func_,mc_counter)()
+
+//An alternate version
+//#define INITIALIZE__COUNTED(mc_counter,...) struct CONCAT(_event_class_,mc_counter)  \
+{\
+    inline static void CONCAT(_event_func_,mc_counter)();\
+    inline static Initializer CONCAT(__event_var_,mc_counter) = {CONCAT(_event_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__}; \
+};\
+void CONCAT(_event_class_,mc_counter)::CONCAT(_event_func_,mc_counter)()
+
+
+
 
 #define INITIALIZE(...) INITIALIZE__COUNTED(__COUNTER__,__VA_ARGS__)
 
@@ -415,121 +427,7 @@ struct class_t< R(T::*)() > { using type = T; };
 void self_f(); using Self = typename class_t<decltype(&self_f)>::type;
 //*/
 
-namespace RGL
-{
-    
-    template<typename Test, template<typename...> class Ref>
-    struct is_specialization : std::false_type {};
 
-    template<template<typename...> class Ref, typename... Args>
-    struct is_specialization<Ref<Args...>, Ref> : std::true_type {};//I'd like to make a different one of these where it accepts derived types too.
-
-    template<typename Test, template<typename...> class Ref>
-    concept specialization_of = is_specialization<Test, Ref>::value;
-
-
-
-    template <typename T>
-    using remove_ref_const = std::remove_reference_t<std::remove_const_t<T>>;
-
-
-    
-	template <typename Test, typename T, typename... More>
-	struct is_any_convertible : public std::conditional_t<std::convertible_to<T, Test>, std::true_type, std::conditional_t<!!sizeof...(More), is_any_convertible<Test, More...>, std::false_type>>
-	{
-		is_any_convertible() = delete;
-	};
-
-	template <typename Test, typename T, typename... More>
-	constexpr bool is_any_convertible_v = is_any_convertible<Test, T, More...>::value;
-
-
-
-	template <typename Test, typename T, size_t I = 0>
-	struct convertible_variant_index : public
-		std::conditional_t<
-			specialization_of<Test, std::variant>,                              //Condition
-			std::conditional_t<
-				std::convertible_to<T, std::variant_alternative_t<I, Test>>,    //Condition
-				std::integral_constant<size_t, I>,         //Result A
-				std::conditional_t<     //Result B
-					I + 1 < std::variant_size_v<Test>,                         //Condition
-					convertible_variant_index<Test, T, I + 1>, //Result A
-					std::integral_constant<size_t, -1>                         //Result B
-				>
-			>,
-			std::integral_constant<size_t, -1>
-		>
-	{
-        static constexpr size_t no_pos = -1;
-
-        convertible_variant_index() = delete;
-	};
-
-
-    template <typename Test, typename T, size_t I = 0>
-    constexpr size_t convertible_variant_index_v = convertible_variant_index<Test, T, I>::value;
-
-    
-    /*
-	template <typename Test, typename T, size_t I = 0>
-	struct is_variant_convertible : public 
-		std::conditional_t<
-			specialization_of<Test, std::variant>,                              //Condition
-			std::conditional_t<
-				std::convertible_to<T, std::variant_alternative_t<I, Test>>,    //Condition
-				std::true_type,         //Result A
-				std::conditional_t<     //Result B
-					I + 1 < std::variant_size_v<Test>,                         //Condition
-					is_variant_convertible<Test, T, I + 1>, //Result A
-					std::false_type                         //Result B
-				>
-			>,
-			std::false_type
-		>
-	{
-		is_variant_convertible() = delete;
-	};
-    /*/
-
-    template <typename Test, typename T, size_t I = 0>
-    struct is_variant_convertible : public std::bool_constant<convertible_variant_index_v<Test, T, I> != -1> 
-    {
-        is_variant_convertible() = delete;
-    };
-    //*/
-	template <typename Test, typename T>
-	constexpr bool is_variant_convertible_v = is_variant_convertible<Test, T>::value;
-
-	template <typename _From, typename _To>
-	concept variant_convertible_to = is_variant_convertible<_From, _To>::value;
-	
-    template <typename _To, typename _From>
-    concept variant_convertible_from = variant_convertible_to<_From, _To>;
-
-
-
-    template <class Derived, class Base>
-    concept pointer_derived_from = std::derived_from<std::remove_pointer_t<Derived>, std::remove_pointer_t<Base>>;
-
-
-    struct accepts_all
-    {
-        //This type helps resolve some ambiguity between 2 like functions by making the invalid one convert while the actual on takes a reference.
-        constexpr accepts_all() = default;
-
-        template <typename T>
-        constexpr accepts_all(T) {}
-
-
-        template <typename T>
-        constexpr accepts_all(const T&) {}
-
-        template <typename T>
-        constexpr accepts_all(T&&) {}
-    };
-
-}
 
 namespace LEX::detail
 {
@@ -670,16 +568,6 @@ namespace LEX
 
 
 
-#ifdef LEX_SOURCE
-#define OBJECT_POLICY ObjectPolicyImpl
-#define FRWD_DECL_OBJECT_POLICY class OBJECT_POLICY
-#else
-#define OBJECT_POLICY ObjectPolicy
-#define FRWD_DECL_OBJECT_POLICY struct OBJECT_POLICY
-#endif // LEX_SOURCE
-
-
-
 //Internal macro
 #ifdef LEX_SOURCE
 #define INTERNAL public
@@ -736,14 +624,29 @@ namespace LEX
 #pragma endregion
 
 //Move me please.
-#include "Lexicon/Versioning.h"
+
+namespace LEX
+{
+    #include "Lexicon/Versioning.h"
+
+    namespace Hidden
+    {
+        #include "Lexicon/Versioning.h"    
+    }
+}
+
+
 
 #include "Lexicon/Impl/CustomTraits.h"
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
 //*/
 
+
+
 #endif
+
+#include "Lexicon/TypeAliases.h"
 
 #define NULLCHECK(mc_condition) if (!mc_condition) report::critical("Condition '{}' is invalid, throwing fatal exception.", STRINGIZE(mc_condition))
 

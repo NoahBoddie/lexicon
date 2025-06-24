@@ -82,18 +82,18 @@ namespace LEX
 
 	public:
 
-		virtual IRuntime* GetPreviousRuntime() const
+		IRuntime* GetParent() const override
 		{
 			return _caller;
 		}
 
 
-		virtual const AbstractFunction* GetFunction() const
+		const Function* GetFunction() const override
 		{
 			return _function;
 		}
 
-		virtual RuntimeVariable* GetDefault() const
+		RuntimeVariable* GetDefault() const override
 		{
 			return nullptr;
 		}
@@ -113,24 +113,55 @@ namespace LEX
 			return "<No file found>";
 		}
 
+		ITemplateBody* AsBody() override
+		{
+			return this;
+		}
+
 		Runtime* AsRuntime() const override
 		{
 			return const_cast<Runtime*>(this);
 		}
 
-
-		virtual size_t GetSize() const
+		void Log(const std::string_view& message, IssueLevel level = IssueLevel::Trace, std::source_location loc = std::source_location::current()) override
 		{
-			return 0;
+			auto record = GetCurrentRecord();
+
+			if (!record) {
+				report::warn("no record for logging or something");
+			}
+
+			record->Log(std::string{ message }, loc, level);
+
+		}
+		
+
+
+		virtual size_t GetSize() const override
+		{
+			return _tempBody ? _tempBody->GetSize() : 0;
 		}
 
 
-		virtual AbstractTypePolicy* GetBodyArgument(size_t i) const
+		
+		ITypeInfo* GetPartArgument(size_t i) const override
 		{
-			return nullptr;
+			return _tempBody ? _tempBody->GetPartArgument(i) : nullptr;
+		}
+
+		TypeInfo* GetBodyArgument(size_t i) const override
+		{
+			return _tempBody ? _tempBody->GetBodyArgument(i) : nullptr;
 		}
 
 	public:
+
+		~Runtime()
+		{
+			//
+			AdjustStackPointer(StackPointer::Variable, -_vsp);
+		}
+
 
 		//The idea is that the callable unit is given it's parameters
 		/*
@@ -156,14 +187,17 @@ namespace LEX
 		}
 		//*/
 		//Very temporary, delete me
-		Runtime(RoutineBase& base, container<RuntimeVariable> args) :
-			_data{ base }
+		Runtime(RoutineBase& base, Function* function = nullptr, std::span<RuntimeVariable> args = {}, Runtime* caller = nullptr, ITemplateBody* body = nullptr) :
+			_function{ function }
+			, _data{ base }
+			, _records { &base.records }
 			//These accidently create numbers.
 			//, _varStack{ _data.GetVarCapacity() }
 			//, _argStack{ _data.GetArgCapacity() }
 			//, _psp{ 0 }
 			//, _vsp{ 0 }//The size should actually be based on the callable unit
-			, _caller{ nullptr }
+			, _tempBody { body }
+			, _caller{ caller }
 		{
 			//because this is temp, no resolution is fired.
 
@@ -173,28 +207,35 @@ namespace LEX
 			_varStack.shrink_to_fit();
 			_argStack.shrink_to_fit();
 			
+			
+
 			if (args.size() != 0)
 			{
+				if (_varStack.size() < args.size())
+					report::fault::critical("the size of the var stack is less tha the size of the arguments given.");
+
+
 				//std::copy(_varStack.begin(), _varStack.begin(), args.begin());
 				for (int i = 0; i < args.size(); i++)
 				{
+					//TODO:This aspect should probably be handled by the scripts, copying anything that should be copied instead of just referencing.s
 					_varStack[i] = args[i];
 				}
 			}
 
 			_psp = _vsp = args.size();
-
-			return;
 		}
-		Runtime(RoutineBase& base, container<Variable> args = {}) : Runtime{ base,  container<RuntimeVariable>{args.begin(), args.end()} }
-		{}
+	
+
 
 		//
-		AbstractFunction* _function = nullptr;
+		Function* _function = nullptr;
 
 		RoutineBase& _data;
 
-		std::array<RuntimeVariable, Impl::Register::Total> _registers;
+		RecordList* _records = nullptr;
+
+		std::array<RuntimeVariable, Register::Total> _registers;
 
 		RuntimeFlag _flags{};
 		//Free 7 bytes. or more flags who knows. I could make a set of user defined flags, but I wouldn't know what to use them for that a variable wouldn't suffice
@@ -205,7 +246,7 @@ namespace LEX
 
 
 		//I'm not actually sure this goes here if I'm being honest.
-		//AbstractTypePolicy* specialization;
+		//TypeInfo* specialization;
 
 		//Constant
 
@@ -214,19 +255,28 @@ namespace LEX
 		container<RuntimeVariable> _argStack;
 		
 		//This already contains a generic argument array, I need to figure out how it's used.
-		//container<ITypePolicy*> _genStack;
+		//container<ITypeInfo*> _genStack;
 
-		size_t _psp{ 0 };		//Param Stack Pointer, denotes the last position of a parameter within the variable stack. Entries after containing ref should crash. Constant?
+		int64_t _psp{ 0 };		//Param Stack Pointer, denotes the last position of a parameter within the variable stack. Entries after containing ref should crash. Constant?
 		//I don't want to do this in release. UNLESS, one of the variables has changed. Maybe I can avoid this by controlling HOW something gets a reference
 		// to runtime variables?
 
-		size_t _vsp{ 0 };		//Variable stack pointer, denotes the current size of the variable. Being smaller than PSP should crash.
-		size_t _asp{ 0 };		//Argument StackPointer, denotes the current size of the argument stack. A function exiting with it !0 should crash.
-		size_t _rsp{ 0 };		//Runtime Stack Pointer, denotes the index at which the runtime is currently. If exceeds the operation count it should crash
+		int64_t _vsp{ 0 };		//Variable stack pointer, denotes the current size of the variable. Being smaller than PSP should crash.
+		int64_t _asp{ 0 };		//Argument StackPointer, denotes the current size of the argument stack. A function exiting with it !0 should crash.
+		int64_t _rsp{ 0 };		//Runtime Stack Pointer, denotes the index at which the runtime is currently. If exceeds the operation count it should crash
 
+		
+
+		//This will help check if something was stack allocated, and if that stack allocated 
+		// object is being passed by reference some place it shouldn't be.
+		// Expand on when references become more important, as well as give it a fancy type to aide its struggles
+		void* _cxxStackIndex = nullptr;
+
+		ITemplateBody* _tempBody = nullptr;
 
 		size_t AdjustStackPointer(StackPointer type, int64_t step)
 		{
+
 			//Clear never fires on this worth a worry.
 
 			//These might all need validation, just to make sure an issue doesn't occur.
@@ -242,7 +292,7 @@ namespace LEX
 				//}
 				//return _vsp += step;
 				
-				for (auto i = _vsp; i >= _vsp + step; i--) {
+				for (auto i = _vsp - 1; i >= _vsp + step; i--) {
 					if (auto& var = _varStack[i]; var.IsVoid() == false) {
 						//var->Clear();
 						var.Clear();//Clears the runtime var instead of the value it targets
@@ -329,7 +379,7 @@ namespace LEX
 		RuntimeVariable& GetArgument(size_t i)
 		{
 			if (i >= _asp) {
-				report::runtime::critical("Argument stack index larger than current stack size. ({}/{})", i, _vsp);
+				report::runtime::critical("Argument stack index larger than current stack size. ({}/{})", i, _asp);
 			}
 
 			//I'm thinking this should be input only, with a different function that gets a vector of the given arguments.
@@ -338,6 +388,17 @@ namespace LEX
 
 		}
 
+		RuntimeVariable& GetArgumentFromBack(size_t i)
+		{
+			int64_t index = _asp - i;
+			
+			if (index < 0) {
+				report::runtime::critical("Argument stack back index larger than current stack size(make more unique). ({}/{})", i, _asp);
+			}
+			
+			return GetArgument(index);
+
+		}
 
 		std::vector<RuntimeVariable> GetArgsInRange(size_t i)
 		{
@@ -363,7 +424,7 @@ namespace LEX
 		}
 
 		//May be replaced in the coming times.
-		RuntimeVariable& GetRegister(Impl::Register reg)
+		RuntimeVariable& GetRegister(Register reg)
 		{
 			return _registers[reg];
 		}
@@ -373,28 +434,74 @@ namespace LEX
 			return _flags;
 		}
 
-
-		void Operate(Operation& operation)
+		SyntaxRecord* GetCurrentRecord()
 		{
-			//GetTarget- use this instead.
+			if (_records)
+			{
+				if (uint32_t index = _data[_rsp].index; index != -1 && _records->size() > index){
+					return _records->operator[](index);
+				}
+			}
 
-			/*
-			Variable result;//Unsure if this is advized.
-
-			instructList[operation._instruct].Operate(result, this, operation._lhs, operation._rhs);//It's possible that this should possibly return.
-			//If not void and complete (or just complete because void isn't a complete type
-			//If it's void, that's fine
-			if (operation._out != Register::Invalid && result.IsVoid() == false)
-				GetVariable(operation._out);
-			//*/
+			return nullptr;
 		}
 
-		//TODO:Make a static function do Run and construct, no need to wait right? Doing so means I can also make a function called "Test"
-		RuntimeVariable Run()
+
+		Runtime* GetCaller() const noexcept
 		{
+			return _caller;
+		}
+
+		bool ContainsVariable(const RuntimeVariable& var) const
+		{
+			//This needs to actually test if it's made on the stack
+			if (var.IsRuntimeRef() == false) {
+				return false;
+			}
+
+			const void* ptr = var.Ptr();
+
+			//unsure if I should do it here
+			//for (auto& reg : _registers)
+			//{
+			//	if (reg.Ptr() == )
+			//}
+			
+			//for now I'm just doing var checks
+
+			for (auto& obj : _varStack)
+			{
+				if (obj.IsValue() && obj.Ptr() == ptr)
+					return true;
+			}
+			
+			return false;
+		}
+
+		bool OwnsVariable(const RuntimeVariable& var) const
+		{
+			const Runtime* runtime = this;
+			bool result = false;
+
+			while (runtime && !result)
+			{
+				result = runtime->ContainsVariable(var);
+				runtime = runtime->GetCaller();
+			}
+			
+			return result;
+		}
+
+
+		//TODO:Make a static function do Run and construct, no need to wait right? Doing so means I can also make a function called "Test"
+		RuntimeVariable Run(bool temp = false)
+		{
+			//TODO: An object to manage this would be great
+			_cxxStackIndex = &temp;
+
 			report _{ IssueType::Runtime };
 
-			size_t _limit = _data.GetOperativeCapacity();
+			size_t _limit = _data.GetInstructCapacity();
 			
 			if (_limit == 0)
 				return {};
@@ -439,6 +546,9 @@ namespace LEX
 
 				_rsp = max_value<size_t>;
 			}
+			
+			//Handle garbage stack protection shit right here please.
+			_cxxStackIndex = nullptr;
 
 			//TODO: As is, this can possibly return garbage. This is a behaviour that needs to be curbed.
 
@@ -462,6 +572,9 @@ namespace LEX
 			return _registers[Register::Reg0];
 			//*/
 		}
+
+
+
 
 		//THIS is the gist of what I'd like.
 		static RuntimeVariable Run(ICallableUnit* unit, container<RuntimeVariable> args, Runtime* from = nullptr)

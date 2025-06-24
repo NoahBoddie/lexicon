@@ -1,46 +1,35 @@
 #pragma once
 
-#include "Lexicon/IGlobal.h"
+#include "Lexicon/Global.h"
+#include "Lexicon/Engine/Field.h"
 #include "Lexicon/Engine/Element.h"
-#include "Lexicon/Engine/RoutineBase.h"
-#include "Lexicon/Engine/Declaration.h"
+#include "Lexicon/Engine/GlobalData.h"
 
 namespace LEX
 {
 	struct ICallableUnit;
-	struct RoutineBase;
 
-	struct GlobalData_
-	{
-		std::string _name;
-
-		//Variable stores this sure, but each special global will have a different variable, so I might as well use this
-		// for interface
-		Declaration _declared;
-
-		//This is the default for a given global. Call to reset value. But, do note, this should be a formula, not a callable unit.
-		//For this I may need something that can be specialized.
-		
-		
-		//This is the initialization for the function. Should be tied to a function called reset that can be used on
-		// globals.
-		std::unique_ptr<RoutineBase> _init;
-
-	};
 
 	
-
-	struct GlobalBase : public virtual IGlobal, public SecondaryElement, public GlobalData_
+	struct GlobalBase : public SecondaryElement, public GlobalData, public Field
 	{
 	public:
+
+
+		virtual IGlobal* AsGlobal() = 0;
+		virtual const IGlobal* AsGlobal() const = 0;
+
+		virtual std::string_view GetName() const = 0;
+
+		//Attempts to revert value. If the global is const or a special part, it will fail to revert.
+		// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
+		// information. Will not throw.
+		virtual bool Revert(bool just_default) = 0;
 
 		void* Cast(std::string_view name) override
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<IGlobal>::value):
-				return (IFunction*)this;
-
 			case Hash(TypeName<GlobalBase>::value):
 				return this;
 			}
@@ -64,11 +53,6 @@ namespace LEX
 
 
 
-		std::string_view GetName() const override
-		{
-			return _name;
-		}
-
 		virtual std::string GetFieldName() const override
 		{
 			return _name;
@@ -76,7 +60,7 @@ namespace LEX
 
 		virtual FieldType GetFieldType() const override
 		{
-			return FieldType::Variable;
+			return FieldType::Global;
 		}
 
 		virtual uint32_t GetFieldIndex() const override
@@ -87,15 +71,15 @@ namespace LEX
 
 		virtual Qualifier GetQualifiers() const override
 		{
-			return _declared.flags;
+			return _declared;
 		}
 
 		virtual Specifier GetSpecifiers() const override
 		{
-			return _declared.declare | Specifier::Static;
+			return _declared.CopyWithFlags(SpecifierFlag::Static);
 		}
 
-		virtual ITypePolicy* GetType() const
+		virtual ITypeInfo* GetType() const
 		{
 			return _declared.policy;
 		}
@@ -105,5 +89,39 @@ namespace LEX
 
 		
 	};
+
+
+
+	//For what it's worth, I really fucking loathe this system all together.
+	template <typename T>
+	struct PivotGlobalBase : public GlobalBase, public T
+	{
+		using GlobalBase::GlobalBase;
+
+		IGlobal* AsGlobal() override { return this; }
+		const IGlobal* AsGlobal() const override { return this; }
+
+
+
+		std::string_view GetName() const override
+		{
+			return _name;
+		}
+
+
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IGlobal>::value):
+				return static_cast<IGlobal*>(this);
+			}
+
+			return __super::Cast(name);
+		}
+	};
+
+	using GenericGlobalBase = PivotGlobalBase<IGlobal>;
+	using ConcreteGlobalBase = PivotGlobalBase<Global>;
 
 }

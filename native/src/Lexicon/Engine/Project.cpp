@@ -23,7 +23,7 @@ namespace LEX
 	}
 
 
-	Script* Project::FindScript(std::string_view name)
+	Script* Project::FindScript(const std::string_view& name)
 	{
 		if (name == "Commons") {
 			return _commons;
@@ -71,4 +71,10 @@ namespace LEX
 	{
 		return _commons;
 	}
+
+	Environment* Project::FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter)
+	{
+		return FindScript(record.GetView());
+	}
+
 }

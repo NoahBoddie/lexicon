@@ -9,8 +9,8 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/IScriptImpl.h"
 //
-#include "Lexicon/AbstractTypePolicy.h"
-#include "Lexicon/AbstractFunction.h"
+#include "Lexicon/TypeInfo.h"
+#include "Lexicon/Function.h"
 
 
 
@@ -18,8 +18,8 @@
 namespace LEX
 {
 	struct Variable_;
-	struct ConcretePolicy;
-	struct PolicyBase;
+	struct ConcreteType;
+	struct TypeBase;
 
 
 	class Script : public Environment, public IScriptImpl
@@ -73,7 +73,7 @@ namespace LEX
 		{
 			return Environment::GetEnvironment();
 		}
-		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
 		{
 			return Environment::GetElementFromPath(path, elem, sign);
 		}
@@ -83,7 +83,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<IScript>::value):
-				return (IScript*)this;
+				return static_cast<IScript*>(this);
 			case Hash(TypeName<Script>::value):
 				return this;
 			}
@@ -104,7 +104,7 @@ namespace LEX
 				(uint32_t&)GetFlags() &= ~Flag::Incremental;
 		}
 
-		bool AppendContent(std::string_view content, api::vector<std::string_view> options = {}) override;
+		bool AppendContent(const std::string_view& content, std::span<std::string_view> options = {}) override;
 
 		bool AppendContent(SyntaxRecord& content);
 
@@ -133,9 +133,11 @@ namespace LEX
 		LinkFlag GetLinkFlags();
 
 
+		Environment* FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter) override;
 
 
-		PolicyBase* tempObtainPolicy(SyntaxRecord& ast);
+
+		TypeBase* tempObtainPolicy(SyntaxRecord& ast, Element* parent = nullptr);
 
 
 
@@ -218,7 +220,7 @@ namespace LEX
 			//Also, maybe some core pivot with script, since they share so much
 			std::vector<Function*> _functions;
 			std::vector<Variable_*> _globals;
-			std::map<ConcretePolicy*, std::vector<Function*>> _methods;
+			std::map<ConcreteType*, std::vector<Function*>> _methods;
 
 			//When using, it's very important to treat this like an imported script.
 

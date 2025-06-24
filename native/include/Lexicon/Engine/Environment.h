@@ -21,7 +21,7 @@
 //#include "OverloadClause.h"
 
 //#include "FunctionBase.h"
-//#include "AbstractFunction.h"
+//#include "Function.h"
 
 
 //#include "GlobalVariable.h"
@@ -36,21 +36,20 @@ namespace LEX
 	struct Global;
 	struct GlobalBase;
 
-	struct PolicyBase;
+	struct TypeBase;
 	class FunctionBase;
 
-	struct ConcretePolicy;
-	struct AbstractTypePolicy;
+	struct ConcreteType;
 
 	struct Overload;
-	struct OverloadKey;
+	struct OverloadArgument;
 
 	//For now, this is just a fucking dummy class, as nothing uses it, but it's here to remind myself of it. For now.
 	class CompilerMemory;
 	
 
 	struct QualifiedField;
-	struct ITypePolicy;
+	struct ITypeInfo;
 	struct IFunction;
 
 
@@ -79,26 +78,21 @@ namespace LEX
 	{
 		std::string					name{};
 		Environment*				scope = nullptr;
-		ITypePolicy*				target = nullptr;		//Useless for type searches but literally, why make another type.
-		std::vector<ITypePolicy*>	tempArgs{};
-		std::vector<ITypePolicy*>	funcArgs{};	//For type search this is what's in the constructor. You can only have one or the other ideally though.
+		ITypeInfo*				target = nullptr;		//Useless for type searches but literally, why make another type.
+		std::vector<ITypeInfo*>	tempArgs{};
+		std::vector<ITypeInfo*>	funcArgs{};	//For type search this is what's in the constructor. You can only have one or the other ideally though.
 
 		
 	};
 
 	
-	//TODO: TypeContainer needs to be be PolicyBase, not ITypePolicy. Excludes specializations that way.
-	//For now only one per name. I'm not dealing with function and type signatures.
-	//using FunctionContainer = std::vector<FunctionInfo>;
-	//using TypeContainer = std::vector<ITypePolicy*>;
+
 
 	struct FunctionInfo;
 	struct VariableInfo;
 
 	//change to unique pointer please
-	using FunctionContainer = std::vector<FunctionInfo*>;
-	using TypeContainer = PolicyBase*;
-
+	
 
 
 	//I may not need to use IFunction for these because generic functions will carry around members, as they cannot 
@@ -120,7 +114,7 @@ namespace LEX
 			//>-------------------------
 			//This is for environment
 
-			std::map<std::string, FunctionContainer> functionMap;
+			std::map<std::string, std::vector<FunctionInfo*>> functionMap;
 
 			//>------------------------
 			//This is for classes.
@@ -137,7 +131,7 @@ namespace LEX
 		{
 			//>-------------------------
 			//This is for environment
-			std::map<std::string, TypeContainer> typeMap;
+			std::map<std::string, TypeBase*> typeMap;
 			std::vector<GlobalBase*> variables;//should be global variables
 
 
@@ -169,7 +163,7 @@ namespace LEX
 		//TODO: Change name to find field, and use a variableInfo for this.
 		virtual VariableInfo* FindVariable(std::string_view name) = 0;
 
-		virtual std::vector<PolicyBase*> FindTypes(std::string_view name) = 0;
+		virtual std::vector<TypeBase*> FindTypes(std::string_view name) = 0;
 
 
 	};
@@ -191,7 +185,7 @@ namespace LEX
 		//TODO:Add Get AccessModifier function. Operational by default, set to public. Likely, should derive from some pivot that can be shared with global and other components.
 
 	public:
-		ITypePolicy* FindTypePath(std::string_view path) override
+		ITypeInfo* FindTypePath(std::string_view path) override
 		{
 			
 			return nullptr;
@@ -206,7 +200,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<IEnvironment>::value):
-				return (IEnvironment*)this;
+				return static_cast<IEnvironment*>(this);
 			case Hash(TypeName<Environment>::value):
 				return this;
 			}
@@ -228,7 +222,7 @@ namespace LEX
 		//Finding functions, no need for sorting, just front load the requirements. That is what search is for, finding is for local (and it's includes and such).
 		//FindFunctions -> FunctionInfo*[]
 		//FindVariables -> Global*[]
-		//FindTypes -> ITypePolicy*[] (2 versions, one for string, other for records, which will sift through classes and scripts both).
+		//FindTypes -> ITypeInfo*[] (2 versions, one for string, other for records, which will sift through classes and scripts both).
 		//>Not doing yet
 		//FindMembers ->VariableInfo?*[]
 
@@ -238,11 +232,11 @@ namespace LEX
 		virtual void AddVariable(GlobalBase* tar);
 
 		
-		void AddType(PolicyBase* policy);
+		void AddType(TypeBase* policy);
 		
 		//TODO: Issue with members on FindFunction and FindVariable. See below.
 		// (I think that should catch members too) should both take an 
-		// ITypePolicy. Main reason why is because of member and method requires being higher priority
+		// ITypeInfo. Main reason why is because of member and method requires being higher priority
 		// and the exclusive place to check from when there's a parenthesis. Actually, this is a search thing,
 		// not a find issue.
 		virtual std::vector<FunctionInfo*> FindFunctions(std::string_view name);
@@ -252,7 +246,7 @@ namespace LEX
 		//TODO: Change name to find field, and use a variableInfo for this.
 		virtual GlobalBase* FindVariable(std::string_view name);
 
-		virtual std::vector<PolicyBase*> FindTypes(std::string_view name);
+		virtual std::vector<TypeBase*> FindTypes(std::string_view name);
 
 
 
@@ -263,9 +257,6 @@ namespace LEX
 		// nested getting.
 
 
-		//This is in Environment.cpp, needs to be moved out.
-		bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
-
 
 
 
@@ -275,6 +266,9 @@ namespace LEX
 		Element* GetParent() override;
 
 		void SetParent(Element* par) override;
+
+		void CreateFunction(SyntaxRecord& node);
+
 
 	protected:
 		//Actually not going to use this.
@@ -289,13 +283,13 @@ namespace LEX
 		//>-------------------------
 		//This is for environment
 
-		std::map<std::string_view, FunctionContainer> functionMap;
+		std::map<std::string_view, std::vector<FunctionInfo*>> functionMap;
 
 
 		//>-------------------------
 		//This is for environment
-		std::map<std::string_view, TypeContainer> typeMap;
-		//TODO: I need a class called policy base that will handle PolicyBases. Basically it'd be something like what IType is to AbstractType.
+		std::map<std::string_view, TypeBase*> typeMap;
+		//TODO: I need a class called policy base that will handle TypeBases. Basically it'd be something like what ITypeInfo is to ITypeInfo.
 		// largely, it'd serve as a good wrapper for type aliases or other types such as generic arguments.
 
 		

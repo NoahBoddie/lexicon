@@ -57,6 +57,11 @@ namespace LEX
 			return _formula;
 		}
 
+		void Clear()
+		{
+			Unhandle();
+			_formula = nullptr;
+		}
 	private:
 		void Transfer(const FormulaHandler& other, bool copy);
 

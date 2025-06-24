@@ -178,7 +178,7 @@ namespace LEX
 				//message = std::vformat(message, std::make_format_args(args...));
 				message = fmt_lib::vformat(message, fmt_lib::make_format_args(args...));
 			} 
-			catch (std::format_error& f_error) {
+			catch (fmt::format_error& f_error) {
 				constexpr auto size = sizeof...(Ts);
 
 				message = "INVALID_FORMAT({})"s;

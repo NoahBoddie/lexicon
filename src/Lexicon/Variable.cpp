@@ -4,37 +4,24 @@
 
 namespace LEX
 {
-    RuntimeVariable Variable::Convert(AbstractTypePolicy* to)
+    RuntimeVariable Variable::Convert(TypeInfo* to)
     {
-        Conversion convert;
-
-        AbstractTypePolicy* from = Policy();
-
-        bool success = from && from->IsConvertibleTo(to, to, convert, ConversionType::Explicit) > convertFailure;
-        
-        if (success)
+        //TODO: Needs cleaning.
+        TypeInfo* from = GetTypeInfo();
+        Variable result{};
+        if (from)
         {
-            return *this;
-
-            //TODO:I want IFunction to have a convert function here, where I can call upon convert for this.
-            /*
-            if (convert) {
-                return convert(*this);
-            }
-            else {
-                return *this;
-            }
-            //*/
+            from->Convert(*this, result, to);
         }
 
-        return {};
+        return result;
     }
     
-    AbstractTypePolicy* Variable::CheckVariableType() const
+    TypeInfo* Variable::GetTypeInfo() const
     {
-        AbstractTypePolicy* result = std::visit([](auto&& lhs) -> AbstractTypePolicy* {
+        TypeInfo* result = std::visit([](auto&& lhs) -> TypeInfo* {
             return LEX::GetVariableType(lhs);
-            }, _value);
+            }, value());
 
         return result;
     }

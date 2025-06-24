@@ -49,6 +49,8 @@ namespace LEX
 
 		bool _initialized = false;
 
+		//Would like to use this for the break functions. Would need to cofirm it actually works first though.
+		bool systemPauseOnBreak = false;
 
 
 		static SettingManager* GetSingleton()

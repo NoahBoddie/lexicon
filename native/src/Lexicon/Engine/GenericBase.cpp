@@ -2,7 +2,7 @@
 
 namespace LEX
 {
-	SpecialPart* GenericBase::FindPart(GenericBase* tar, ITemplatePart* args)
+	SpecialBase* GenericBase::FindPart(GenericBase* tar, ITemplatePart* args)
 	{
 		for (auto& spec : incomplete)
 		{
@@ -15,7 +15,7 @@ namespace LEX
 		return nullptr;
 	}
 
-	SpecialBody* GenericBase::FindBody(ITemplateBody* args)
+	SpecialBase* GenericBase::FindBody(ITemplateBody* args)
 	{
 		for (auto& spec : complete)
 		{
@@ -30,20 +30,24 @@ namespace LEX
 	{
 		for (auto& part : incomplete) {
 			report::info("thing {}", (uintptr_t)part.get());
-			part->ObtainBody(args);
+			part->ObtainSpecial(args);
 		}
 	}
 
-	SpecialBase* GenericBase::ObtainSpecial(GenericBase* client, ITemplatePart* args)
+	SpecialBase* GenericBase::ObtainSpecial(ITemplatePart* args)
 	{
-		if (TemplateMatches(args) == false)
-		{
+		//TODO: Currently, the problem is we can't send something like a 3 templated part for a 5 templated function.
+		// Currently
+
+		if (TemplateMatches(args) == false) {
 			report::fault::error("cant handle args");
 		}
 
-		if (auto temp = args->TryPromoteTemplate(); temp)
+		//TODO: Merge ObtainBody/ObtainPart into this, there's no specialization for it, so no need.
+
+		if (auto temp = args->TryResolve(); temp)
 			return ObtainBody(temp);
 		else
-			return ObtainPart(client, args);
+			return ObtainPart(args);
 	}
 }

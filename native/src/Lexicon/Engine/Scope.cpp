@@ -5,38 +5,41 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/OverloadInput.h"
 #include "Lexicon/Engine/Declaration.h"
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
 
 namespace LEX
 {
-	std::vector<Operation>& Scope::GetOperationList()
+	std::vector<Instruction>& Scope::GetInstructionList()
 	{
-		return operationList;
+		return instructionList;
 	}
 
 
-	PolicyBase* Scope::SearchTypePath(SyntaxRecord& _path)
+	ITypeInfo* Scope::SearchTypePath(SyntaxRecord& _path)
 	{
 		SyntaxRecord dummy{ "dummy", Syntax{ SyntaxType::None}, _path };
 
 		//I'm too fucking lazy to make it work normally, so this is what we're gonna deal with til I do.
-		//PolicyBase* result = GetPolicyFromSpecifiers(_path, process->GetEnvironment());
-		PolicyBase* result = GetPolicyFromSpecifiers(dummy, process->GetEnvironment());
+		//TypeBase* result = GetPolicyFromSpecifiers(_path, process->GetEnvironment());
+		ITypeInfo* result = GetPolicyFromSpecifiers(dummy, process->GetElement());
 
-		return result;
+		if (result)
+			return result;
+
+		return nullptr;
 
 	}
 	
 
 	//This actually probably will want to return the function info, because of something like generic functions.
-	FunctionInfo* Scope::SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out)
+	FunctionNode Scope::SearchFunctionPath(SyntaxRecord& path, OverloadArgument& input, Overload& out)
 	{
-		return process->GetEnvironment()->SearchFunctionPath(path, input, out);
+		return process->GetElement()->SearchFunctionPath(path, input, out);
 
 	}
 
-	QualifiedField Scope::SearchFieldPath(SyntaxRecord& _path, OverloadKey* key)
+	QualifiedField Scope::SearchFieldPath(SyntaxRecord& _path, OverloadArgument* key)
 	{
 
 
@@ -61,7 +64,7 @@ namespace LEX
 		}
 
 
-		if (auto field = process->GetEnvironment()->SearchFieldPath(_path); field) {
+		if (auto field = process->GetElement()->SearchFieldPath(_path); field) {
 			return field;
 		}
 

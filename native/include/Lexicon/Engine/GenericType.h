@@ -1,26 +1,58 @@
 #pragma once
 
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/GenericBase.h"
 
 namespace LEX
 {
-	struct SpecialPart;
-	struct SpecialBody;
+	struct SpecialBase;
 
-	struct GenericType : public PolicyBase, public GenericBase
+	struct GenericType : public GenericTypeBase, public GenericBase
 	{
-		//ITypePolicy* GetTypePolicy()
+
+		GenericType() : GenericTypeBase{} {}
+
+		GenericType(uint32_t i) : GenericTypeBase{ i } {}
+
+		GenericType(std::string_view name, TypeOffset offset) : GenericTypeBase{ name, offset } {}
 
 
-		ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override;
+		GenericBase* AsGenericElement() override { return this; }
 
-		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args) override;
+		ISpecializable* GetSpecializable() override { return this; }
 
-		std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) override;
+		bool IsResolved() const override { return false; }
 
-		std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) override;
+		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override;
 
+		TypeInfo* GetTypePolicy(ITemplateBody* args) override;
+
+		std::vector<TemplateType*> GetTemplateInputs() override
+		{
+			std::vector<TemplateType*> result{ _templates.size() };
+
+			std::transform(_templates.begin(), _templates.end(), result.begin(), [](TemplateType& it) { return std::addressof(it); });
+
+			return result;
+		}
+
+		SpecialBase* ObtainPart(ITemplatePart* args) override
+		{
+			if (args->GetClient() == this) {
+				//TODO: I would like for GenericType::ObtainPart to
+				//If this is the client, I'd like to check if each type is something this houses, and if so
+				// I'd like to just use the generic base as the object in question.
+			}
+
+			return __super::ObtainPart(args);
+		}
+
+		ITemplatePart* GetTemplatePart() override
+		{
+			return this;
+		}
+
+		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
 	};
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Engine/Target.h"
-#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/OperandType.h"
 #include "Lexicon/Engine/Operand.h"
 
@@ -11,12 +11,14 @@
 #include "Lexicon/Qualifier.h"
 
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 
 namespace LEX
 {
 	struct Solution : public Operand, public QualifiedType
 	{
+
+		using QualifiedType::operator=;
 
 
 		//Solution needs some qualifiers, but to that it needs 3 types
@@ -34,26 +36,25 @@ namespace LEX
 
 		bool IsReadOnly() const
 		{
-			return type == OperandType::Literal || 
-				FilterEquals<Qualifier::Constness_>(flags, Qualifier::Const) || 
-				FilterEquals<Qualifier::Constness_>(flags, Qualifier::Readonly);
+			//TODO: Literals should be qualified as const. If they are not please address this.
+			return type == OperandType::Literal || !IsAssignable();
 		}
 
-		bool IsReference() const
-		{
-			return false;
-		}
+		
 
+
+
+		
 		Solution() = default;
 
 
-		Solution(ITypePolicy* a_policy, OperandType a_type, Target a_target) :  Operand{ a_target, a_type }
+		constexpr Solution(const QualifiedType& a_type, OperandType a_opType, Target a_target) noexcept :  Operand{ a_target, a_opType }, QualifiedType { a_type }
 		{
-			policy = a_policy;
 		}
 
-
-		constexpr Solution& operator= (Operand& rhs) noexcept
+		using Operand::operator=;
+		/*
+		constexpr Solution& operator= (const Operand& rhs) noexcept
 		{
 			Operand::operator=(rhs);
 			return *this;
@@ -63,7 +64,7 @@ namespace LEX
 		{
 			return Solution::operator=(rhs);
 		}
-
+		//*/
 		
 	};
 }

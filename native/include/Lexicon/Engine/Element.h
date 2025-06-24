@@ -21,7 +21,7 @@
 #include "Lexicon/Engine/QualifiedField.h"
 #include "Lexicon/Interfaces/ProjectManager.h"
 #include "Lexicon/RelateType.h"
-
+#include "Lexicon/Engine/FunctionNode.h"
 
 
 namespace LEX
@@ -33,14 +33,26 @@ namespace LEX
 	
 	struct FunctionInfo;
 
+	struct GenericBase;
 
+	struct ITemplateInserter;
 
-	using ElementSearch = bool(std::vector<Environment*>&);
+	struct QualifiedName;
+	struct QualifiedElement;
+
+	struct TypeNode;
+
 
 	
-
 	struct Element : public Component, public IElementImpl
 	{
+
+		using ElementSearch = bool(std::vector<QualifiedElement>&);
+
+		using EnvironSearch = bool(std::vector<QualifiedName>&);
+
+		using SearchFunction = std::variant<std::function<EnvironSearch>, std::function<ElementSearch>>;
+
 		enum Flag
 		{
 			None		= 0 << 0,
@@ -49,6 +61,8 @@ namespace LEX
 			_next		= 1 << 1
 		};
 
+		//TODO: I'd like to devise a situation where Element wasn't derived from IElement, just so the inheritance wouldn't have
+		// to be virtual
 
 
 	public:
@@ -57,7 +71,13 @@ namespace LEX
 
 		virtual SyntaxRecord* GetSyntaxTree() = 0;
 
-	
+		virtual GenericBase* AsGenericElement() { return nullptr; }
+
+		GenericBase* FetchGenericElement() { return this ? AsGenericElement() : nullptr; }
+
+		bool IsGenericElement() const override final { return const_cast<Element*>(this)->AsGenericElement(); }
+
+
 		Script* GetScript() override;
 
 		Project* GetProject() override;
@@ -68,9 +88,11 @@ namespace LEX
 
 	public:
 
-		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadKey* sign = nullptr);
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) override
+
+		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadArgument* sign = nullptr);
+
+		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
 		{ 
 			return GetElementFromPath(this, path, elem, sign);
 		}
@@ -93,57 +115,48 @@ namespace LEX
 		}
 
 
+		virtual Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) { return nullptr; }
+
 
 		static Environment* GetEnvironmentTMP(Environment* a_this, SyntaxRecord* path, bool& search_scripts);
 
-		static Environment* WalkEnvironmentPath(Environment* a_this, SyntaxRecord*& path, bool search_scripts = true);
+		Environment* WalkEnvironmentPath(SyntaxRecord* path, ITemplateInserter& inserter);
 
-		static Environment* SpecializeEnvironments(std::vector<Environment*>& generics);
-
-		static std::vector<Environment*> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
-
-
-		static bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
+		std::vector<QualifiedName> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
 
 
 
+		bool HandlePath(Element* focus, SyntaxRecord* rec, const SearchFunction& func, std::set<Element*>& searched, bool need_associate);
 
+
+		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, const SearchFunction& func);
 		
 
-		//I think the reutnr of this function should probably be why it failed if anything.
-		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func);
+		static TypeNode SearchTypePath(Element* a_this, SyntaxRecord& _path);
 
 
 
-
-		static PolicyBase* SearchTypePath(Element* a_this, SyntaxRecord& _path);
-
-
-
-		PolicyBase* SearchTypePath(SyntaxRecord& _path)
-		{
-			return SearchTypePath(this, _path);
-		}
+		TypeNode SearchTypePath(SyntaxRecord& _path);
 
 
 
-		static bool CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret);
+		static size_t CheckOverload(OverloadArgument& input, std::vector<FunctionInfo*> clauses, Overload& ret);
 
 
 		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 
 		// to handle multiple different functions.
-		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key, Overload& out);
+		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key, Overload& out);
 
-		static FunctionInfo* SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadKey& key)
+		static FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key)
 		{
 			Overload out{};
 			auto result = SearchFunctionPath(a_this, path, key, out);
 			return result;
 		}
 
-		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key, Overload& out) { return SearchFunctionPath(this, path, key, out); }
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadArgument& key, Overload& out) { return SearchFunctionPath(this, path, key, out); }
 
-		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& key) { return SearchFunctionPath(this, path, key); }
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadArgument& key) { return SearchFunctionPath(this, path, key); }
 
 
 
@@ -313,6 +326,8 @@ namespace LEX
 			if (!_syntax)
 				_syntax = &rec.Transform<SyntaxRecord>();
 		}
+
+		
 
 	protected:
 

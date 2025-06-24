@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/OverloadEntry.h"
 
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
 namespace LEX
 {

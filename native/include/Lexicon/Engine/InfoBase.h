@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/Field.h"
+#include "Lexicon/Engine/Field.h"
 
 namespace LEX
 {
@@ -14,15 +14,15 @@ namespace LEX
 
 		
 
-		constexpr InfoBase(Qualifier q = Qualifier::None, Specifier s = Specifier::None, uint32_t i = -1) noexcept : 
+		constexpr InfoBase(Qualifier q = {}, Specifier s = {}, uint32_t i = -1) noexcept :
 			qualifiers{ q },
 			specifiers{ s },
 			_index{ i }
 		{}
 
-		Qualifier qualifiers;
+		Qualifier qualifiers{};
 
-		DeclareSpecifier specifiers;
+		Specifier specifiers{};
 
 		//Access modifiers and 
 

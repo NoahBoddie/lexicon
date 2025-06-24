@@ -23,7 +23,21 @@ namespace LEX
 
 	bool SyntaxBody::IsPath()
 	{
-		return GetSyntax().type == SyntaxType::Path;
+		switch (GetSyntax().type)
+		{
+		case SyntaxType::Path:
+		case SyntaxType::SpecifyShared:
+		case SyntaxType::SpecifyCommons:
+		case SyntaxType::SpecifyScript:
+		case SyntaxType::SpecifyProject:
+		case SyntaxType::SpecifyGlobal:
+		case SyntaxType::SpecifyType:
+
+			return true;
+
+		default:
+			return false;
+		}
 	}
 
 
@@ -45,19 +59,22 @@ namespace LEX
 		//return [this](LogParams& params, LogState state, LogResult&) -> void { if (state == LogState::Prep) params.suffix << GetAffix(); };
 		return [this](LogParams& params, LogState state, LogResult&) -> void
 			{
-				if (state == LogState::Prep)
+				if (this)
 				{
-					Script* script = GetParent()->FetchScript();
-					Project* project = GetParent()->FetchProject();
+					if (state == LogState::Prep)
+					{
+						Script* script = GetParent()->FetchScript();
+						Project* project = GetParent()->FetchProject();
 
-					auto& syntax = GetSyntax();
-					
-					if (script) {
-						params.loc.filename = script->GetName().data();
-						params.loc.line = syntax.line;
+						auto& syntax = GetSyntax();
+
+						if (script) {
+							params.loc.filename = script->GetName().data();
+							params.loc.line = syntax.line;
+						}
+
+						//params.suffix << GetAffix();
 					}
-
-					//params.suffix << GetAffix();
 				}
 			};
 	}

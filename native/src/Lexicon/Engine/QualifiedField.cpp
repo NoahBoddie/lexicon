@@ -5,24 +5,30 @@ namespace LEX
 {
 	Solution QualifiedField::AsSolution()
 	{
-		if (GetFieldType() == FieldType::Variable)
+		switch (GetFieldType())
 		{
-			ConcreteGlobal* varOld = dynamic_cast<ConcreteGlobal*>(_target);
+		case FieldType::Parameter:
+		case FieldType::Local:
+			return Solution{ QualifiedType{ GetType(), GetQualifiers() }, OperandType::Index, (size_t)GetFieldIndex()};
 
-			Variable* var = dynamic_cast<Variable*>(_target);
 
-			Solution result{ GetType(), OperandType::Variable, var };
+		case FieldType::Global: {
+			IGlobal* glob = static_cast<GlobalBase*>(_target)->AsGlobal();
+			
 
-			result.flags = GetQualifiers();
+			Solution result{ QualifiedType{ GetType(), GetQualifiers() }, OperandType::Global, glob };
 
 			return result;
 		}
+		
+		case FieldType::Member:
+		case FieldType::Function:
+		
+		default:
+			report::compile::error("cannot handle this type at this time");
+			return {};
+		}
 
-		Solution result{ GetType(), OperandType::Index, (size_t)GetFieldIndex() };
 
-		result.flags = GetQualifiers();
-
-
-		return result;
 	}
 }

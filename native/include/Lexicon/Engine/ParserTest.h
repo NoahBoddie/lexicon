@@ -6,7 +6,7 @@
 
 #include "Lexicon/Engine/OperatorSetting.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 	//ENCHAIN::ABACCCAA
 
@@ -130,45 +130,22 @@ namespace LEX::Impl
 		};
 	}
 
-	template <typename T1, std::derived_from<ParseModule> T2 = ParseModule>
-	struct AutoParser : public T2
+
+
+	template <typename T1, StringLiteral Cat = "", std::derived_from<ParseModule> Module = ParseModule>
+	class AutoParser : public Module//The idea behind the auto stream is that there are some par
 	{
-
-	public:
-		static std::unique_ptr<ParseModule> GetParseModule()
-		{
-			return std::make_unique<T1>();
-		}
-
 	private:
+		static std::unique_ptr<ParseModule> GetParseModule() { return std::make_unique<T1>(); }
 
+		inline static Module::SetBuilder _initBuild{ GetParseModule, Cat };
 
-
-		inline static detail::_module_factory_init _init = GetParseModule;
-	public:
-	
-
-
-		virtual std::string_view GetModuleName()
+		std::string_view GetCategory() const
 		{
-			return typeid(T1).name();
+			return Cat;
 		}
-
-
-		static std::string_view GetName()
-		{
-			return {};//return ClassSingleton<T1, ParseModule>::GetSingleton()->GetModuleName();
-			//return TypeName<T>::value;
-		}
-
-		//Move this to another class, because not all parsers will be a singleton likely, but I'll still want
-		// this as a simple way to get their names and purpose.
-		std::string_view GetContext() override
-		{
-			return {};//GetName();
-		}
-
 	};
+
 
 	
 
@@ -194,17 +171,17 @@ namespace LEX::Impl
 
 		struct EndParser : public AutoParser<EndParser>
 		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
-				return !target && parser->IsType(TokenType::Punctuation, ";");
+				return !target && stream->IsType(TokenType::Punctuation, ";");
 			}
 
-			Record HandleToken(Parser* parser, Record*) override
+			Record HandleToken(ParsingStream* stream, Record*) override
 			{
 				//At least one is required.
-				parser->SkipType(TokenType::Punctuation, ";");
+				stream->SkipType(TokenType::Punctuation, ";");
 
-				while (parser->SkipIfType(TokenType::Punctuation, ";") == true);
+				while (stream->SkipIfType(TokenType::Punctuation, ";") == true);
 
 				return {};
 			}
@@ -215,57 +192,58 @@ namespace LEX::Impl
 				return "Expected ; punctuation.";
 			}
 
+			bool HasTrait(const std::string_view&) const override { return true; }
 		};
 		
 
 
 		struct EncapsulateParser : public AutoParser<EncapsulateParser>
 		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 				//{} can only go in code blocks, while () can only go in expression blocks.
 				//For this, I need better keywords, and the instantiables.
-				if (target)// || parser->contextChain->HasKeyword("code_block") == false)
+				if (target)// || stream->contextChain->HasKeyword("code_block") == false)
 					return false;
 
 
-				if (parser->IsType(TokenType::Punctuation, "{") == true) {
+				if (stream->IsType(TokenType::Punctuation, "{") == true) {
 					return !(flag & ParseFlag::Atomic);
 				}
 				else {
-					return parser->IsType(TokenType::Punctuation, "(");
+					return stream->IsType(TokenType::Punctuation, "(");
 				}
 			}
 
-			bool SkipIfOrTarget(Parser* parser, TokenType type, std::string_view view, Record* target)
+			bool SkipIfOrTarget(ParsingStream* stream, TokenType type, std::string_view view, Record* target)
 			{
 				if (!target)
-					return parser->SkipIfType(type, view);
+					return stream->SkipIfType(type, view);
 				else
 					return target->GetView() == view;
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				Record result;
 
 
 
-				if (SkipIfOrTarget(parser, TokenType::Punctuation, "(", target) == true) {
+				if (SkipIfOrTarget(stream, TokenType::Punctuation, "(", target) == true) {
 					result.SYNTAX().type = SyntaxType::ExpressBlock;
 					//result.GetTag() = parse_strings::expression_block;
 
-					result.EmplaceChild(parser->ParseExpression());
-					//result = parser->ParseExpression();
+					result.EmplaceChild(stream->ParseSyntax());
+					//result = stream->ParseSyntax();
 
-					parser->SkipType(TokenType::Punctuation, ")");
+					stream->SkipType(TokenType::Punctuation, ")");
 				}
 				else {
 					result.SYNTAX().type = SyntaxType::StateBlock;
 					//result.GetTag() = parse_strings::statement_block;
 
-					//std::vector<Record> children = parser->Delimited("{", "}", ";", &Parser::ParseExpression);
-					std::vector<Record> children = parser->Delimited(target ? "" : "{", "}", [&]() { Record out; ParseModule::QueryModule<EndParser>(parser, out, nullptr); }, &Parser::ParseExpression);
+					//std::vector<Record> children = stream->Delimited("{", "}", ";", &ParsingStream::ParseSyntax);
+					std::vector<Record> children = stream->Delimited(target ? "" : "{", "}", [&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); }, &ParsingStream::ParseSyntax);
 					if (auto size = children.size(); !size)
 						return {};
 					else if (size == 1)
@@ -278,25 +256,18 @@ namespace LEX::Impl
 			}
 
 
-			bool ContextAllowed_(ProcessContext* context, ProcessChain*)//from parenthesis parser.
-			{
-				//parenthesis will not process statements, so no if's no switches, no functions, etc. Probably want to do something to prevent it from handling types as well.
-				// But I'm kinda lazy ngl
-				return !context->IsContextType("Statement");
-			}
-
 
 			bool IsAtomic() const override { return true; }
 		};
 
-
-		struct ErrorParser : ParseModule
+		
+		struct ErrorParser : public ParseModule
 		{
 			//This only really works if something is there to recover from it. Otherwise, it will toss whole variables, functions, etc.
 
-			bool CanHandle(Parser*, Record*, ParseFlag) const override { return true; }
+			bool CanHandle(ParsingStream*, Record*, ParseFlag) const override { return true; }
 
-
+			std::string_view GetCategory() const override { return ""; }
 
 			struct EncapsuleData
 			{
@@ -330,7 +301,7 @@ namespace LEX::Impl
 			}
 
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				//I have a theory that when expecting a thing it will throw out input until it either encounters
 				// said desired input, or will take any input at all
@@ -346,53 +317,51 @@ namespace LEX::Impl
 				//Here's one problem though, these things have to encapsulate, so I think it needs to consume () {} <>
 
 				//I think to safely do this I need to some how jump into the middle of the encapsulateParser.
-				// Which to safely do that I need to be able to have the script/line parser to be nested.
+				// Which to safely do that I need to be able to have the script/line stream to be nested.
 
 				//		dhd
-				//	parser->next ( heheh (jrjrjr)hheh 
+				//	stream->next ( heheh (jrjrjr)hheh 
 				//auto query = parserknk-> job next  g jn35uobh35uog  %();
 
-				parser->FlagFailure();
+				stream->FlagFailure();
 
 				EncapsuleData data;
 
-				while (!parser->eof() && IsSynchronizingToken(parser->peek(), target, data) == false) {
+				while (!stream->eof() && IsSynchronizingToken(stream->peek(), target, data) == false) {
 					//Do a possible check here for unrecognized tokens
 
 
-					parser->next();
+					stream->next();
 				}
 
-				if (parser->eof() == false)
+				if (stream->eof() == false)
 				{
 					if (data.braces) {
 						try
 						{
-							Record brace = Parser::CreateExpression("{");
-							return ParseModule::ExecuteModule<EncapsulateParser>(parser, &brace);
+							Record brace = ParsingStream::CreateExpression("{");
+							return ParseModule::ExecuteModule<EncapsulateParser>(stream, &brace);
 						}
 						catch (ParseError error)
 						{
 							
-							return HandleToken(parser, target);
+							return HandleToken(stream, target);
 						}
 					}
 				}
 				return {};
 			}
 
-			std::string_view GetModuleName() override
-			{
-				return typeid(ErrorParser).name();
-			}
 		};
 
 
-
+		
 		struct ScriptParser : ParseModule//public ParseSingleton<ScriptParser, false>
 		{
-			//Script parser n
-			std::optional<bool> GetKeywordState(std::string_view type) override
+			//TODO: Merge script and LineParser, instead make different modes dictate their function.
+
+			//Script stream n
+			std::optional<bool> GetKeywordState(const std::string_view& type) override
 			{
 				switch (Hash(type)) {
 				case "decl_block"_h:
@@ -402,16 +371,16 @@ namespace LEX::Impl
 				return false;
 			}
 
-			bool CanHandle(Parser*, Record*, ParseFlag) const override { return false; }
+			bool CanHandle(ParsingStream*, Record*, ParseFlag) const override { return false; }
 
 
-			void HandleParse(Parser* parser, Record& script)
+			void HandleParse(ParsingStream* stream, Record& script)
 			{
 				//Make this easier to use, make it a function called "Recoverable"
 				try
 				{
 					//Make this a recursive function
-					Record result = parser->ParseExpression();
+					Record result = stream->ParseSyntax();
 
 					if (result)
 						script.EmplaceChild(result);
@@ -420,25 +389,25 @@ namespace LEX::Impl
 				}
 				catch (ParseError error)
 				{
-					ParseModule::ExecuteModule<ErrorParser>(parser, nullptr);
+					ParseModule::ExecuteModule<ErrorParser>(stream, nullptr);
 					
 				}
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				Record script = Parser::CreateExpression(parser->name(), SyntaxType::Script);
+				Record script = ParsingStream::CreateExpression(stream->name(), SyntaxType::Script);
 
-				//script.EmplaceChild(Parser::CreateExpression(parser->project(), SyntaxType::Project));
+				//script.EmplaceChild(ParsingStream::CreateExpression(stream->project(), SyntaxType::Project));
 				
-				while (parser->eof() == false) {
+				while (stream->eof() == false) {
 
 					//Please put get line and column so I can store the line and column of this shit. Thanks.
 
 					try
 					{
 						//Make this a recursive function
-						Record result = parser->ParseExpression();
+						Record result = stream->ParseSyntax();
 
 						if (result)
 							script.EmplaceChild(result);
@@ -447,7 +416,7 @@ namespace LEX::Impl
 					}
 					catch (ParseError error)
 					{
-						ParseModule::ExecuteModule<ErrorParser>(parser, nullptr);
+						ParseModule::ExecuteModule<ErrorParser>(stream, nullptr);
 
 					}
 
@@ -455,39 +424,33 @@ namespace LEX::Impl
 					//I would regardless like to end this off with ";" if possible
 					//Also, this needs a function called Clear instead, where it will continuously loop until it no longer needs to skip.
 
-					//if (parser->eof() == false) parser->SkipType(TokenType::Punctuation, ";");
+					//if (stream->eof() == false) stream->SkipType(TokenType::Punctuation, ";");
 				}
 				//Column column() { return _column; }
 				//Line line() { return _line; }
 				
-				script.SYNTAX().column = parser->GetInput()->column();
-				script.SYNTAX().line = parser->GetInput()->line();
+				script.SYNTAX().column = stream->column();
+				script.SYNTAX().line = stream->line();
 
 				return script;
 			}
 
-
-			//Need some boilerplate resolver.
-			std::string_view GetModuleName() override
-			{
-				return typeid(ScriptParser).name();
-			}
 
 		};
 
 		struct LineParser : ParseModule
 		{
 
-			bool CanHandle(Parser*, Record*, ParseFlag) const override { return false; }
+			bool CanHandle(ParsingStream*, Record*, ParseFlag) const override { return false; }
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				try
 				{
-					auto result = parser->ParseExpression();
+					auto result = stream->ParseSyntax();
 
 
-					if (parser->eof() == false)
+					if (stream->eof() == false)
 						//This is a fault
 						report::parse::error("End of line not met after line finished parsing. line and column later");
 
@@ -497,33 +460,28 @@ namespace LEX::Impl
 				catch (ParseError& error)
 				{
 					//Now, it can actually submit a message, but I'll not care right now.
-					ParseModule::ExecuteModule<ErrorParser>(parser, nullptr);
+					ParseModule::ExecuteModule<ErrorParser>(stream, nullptr);
 					return {};
 				}
 			}
 
 
-			//Need some boilerplate resolver.
-			std::string_view GetModuleName() override
-			{
-				return typeid(LineParser).name();
-			}
 
 		};
 
 
 		struct IdenDeclBoilerPlate
 		{
-			Record _HandlePath(Parser* parser, SyntaxType enforced_type)
+			Record _HandlePath(ParsingStream* stream, SyntaxType enforced_type)
 			{
 
-				RecordData left = parser->ConsumeType(TokenType::Identifier);
+				RecordData left = stream->ConsumeType(TokenType::Identifier);
 				
-				if (parser->SkipIfType(TokenType::Punctuation, "::") == false)
-					return Parser::CreateExpression(left, SyntaxType::Identifier);
+				if (stream->SkipIfType(TokenType::Punctuation, "::") == false)
+					return ParsingStream::CreateExpression(left, SyntaxType::Identifier);
 
 				//Scope name works for this sort of situation.
-				Record path = Parser::CreateExpression(parse_strings::path, SyntaxType::Path);
+				Record path = ParsingStream::CreateExpression(parse_strings::path, SyntaxType::Path);
 
 				Record left_or_center;
 
@@ -531,15 +489,15 @@ namespace LEX::Impl
 
 				do {
 					if (current) {
-						current->EmplaceChild(Parser::CreateExpression(parse_strings::lhs, SyntaxType::Path, { left_or_center }));
-						current = &current->EmplaceChild(Parser::CreateExpression(parse_strings::rhs, SyntaxType::Path));
+						current->EmplaceChild(ParsingStream::CreateExpression(parse_strings::lhs, SyntaxType::Path, { left_or_center }));
+						current = &current->EmplaceChild(ParsingStream::CreateExpression(parse_strings::rhs, SyntaxType::Path));
 					}
 
-					left_or_center = Parser::CreateExpression(left, enforced_type);
+					left_or_center = ParsingStream::CreateExpression(left, enforced_type);
 
-					//parser->SkipType(TokenType::Punctuation, "::");
+					//stream->SkipType(TokenType::Punctuation, "::");
 
-					left = parser->ConsumeType(TokenType::Identifier);
+					left = stream->ConsumeType(TokenType::Identifier);
 
 					if (!current) {
 						current = &path;
@@ -569,11 +527,11 @@ namespace LEX::Impl
 						break;
 					}
 
-				} while (parser->SkipIfType(TokenType::Punctuation, "::") == true);
+				} while (stream->SkipIfType(TokenType::Punctuation, "::") == true);
 
 				current->EmplaceChild(left_or_center);
 
-				return Parser::CreateExpression(left, SyntaxType::Identifier, { path });
+				return ParsingStream::CreateExpression(left, SyntaxType::Identifier, { path });
 
 				//Whatever is right ends up being what ends up at the head field.
 			}
@@ -582,17 +540,18 @@ namespace LEX::Impl
 
 		};
 
-
+		int;
+		
 
 		struct IdentifierParser : public AutoParser<IdentifierParser>, public IdenDeclBoilerPlate
 		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 				if (target)
 					return false;
 
 
-				return parser->IsType(TokenType::Punctuation, "::") || parser->IsType(TokenType::Identifier) || parser->IsType(TokenType::Keyword, "this"); 
+				return stream->IsType(TokenType::Punctuation, "::") || stream->IsType(TokenType::Identifier) || stream->IsType(TokenType::Keyword, "this"); 
 
 			}
 
@@ -602,40 +561,40 @@ namespace LEX::Impl
 			}
 
 
-			Record _HandleThis(Parser* parser)
+			Record _HandleThis(ParsingStream* stream)
 			{
-				RecordData next = parser->next();
+				RecordData next = stream->next();
 				next.GetTag() = parse_strings::this_word;
-				return Parser::CreateExpression(next, SyntaxType::Field);
+				return ParsingStream::CreateExpression(next, SyntaxType::Field);
 			}
 
 
-			Record HandleToken(Parser* parser, Record*) override
+			Record HandleToken(ParsingStream* stream, Record*) override
 			{
 
 				//if the presented field is an unscoped, it should attempt to put it in a box, to ensure that it's known that it's an outside field.
 
 
-				if (parser->IsType(TokenType::Keyword, "this") == true) {
-					return _HandleThis(parser);
+				if (stream->IsType(TokenType::Keyword, "this") == true) {
+					return _HandleThis(stream);
 				}
 				else {
 					SyntaxType enforced_type = SyntaxType::Scopename;
 
-					if (parser->SkipIfType(TokenType::Punctuation, "::") == true) {
-						if (parser->SkipIfType(TokenType::Punctuation, "::") == true)
+					if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
+						if (stream->SkipIfType(TokenType::Punctuation, "::") == true)
 							enforced_type = SyntaxType::ProjectName;
 						else
 							enforced_type = SyntaxType::Scriptname;
 					}
 					
-					return _HandlePath(parser, enforced_type);
+					return _HandlePath(stream, enforced_type);
 				}
 				
 				
 			}
 
-
+			bool RequiresNested() const override { return true; }
 
 		};
 
@@ -643,7 +602,7 @@ namespace LEX::Impl
 		
 		struct HeaderParser : public AutoParser<HeaderParser>
 		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 				bool direct = !!(flag & ParseFlag::Direct);
 
@@ -657,6 +616,10 @@ namespace LEX::Impl
 							return false;
 						[[fallthrough]];
 
+					//case SyntaxType::Boolean:
+					//	if (target->GetView() != "maybe")
+					//		return false;
+
 					case SyntaxType::Identifier:
 					
 						break;
@@ -666,7 +629,7 @@ namespace LEX::Impl
 					}
 					
 				}
-				auto peek = parser->peek();
+				auto peek = stream->peek();
 
 				bool post = target && target->SYNTAX().type == SyntaxType::Declaration;
 
@@ -675,7 +638,7 @@ namespace LEX::Impl
 				else
 					return peek.TOKEN().type == TokenType::Keyword && IsKeyword(peek.GetTag(), post);
 			}
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				bool post = target && target->SYNTAX().type == SyntaxType::Declaration;
 
@@ -688,12 +651,17 @@ namespace LEX::Impl
 
 				if (!post) 
 				{
-					_make = Parser::CreateExpression(parse_strings::header, SyntaxType::Header, std::vector<Record>{ 3 });
+					_make = ParsingStream::CreateExpression(parse_strings::header, SyntaxType::Header, std::vector<Record>{ 3 });
 
 					//Doing it like this ensures the order will not change.
-					_make.GetChild(KeywordType::TypeQual) = Parser::CreateExpression(parse_strings::type_qualifier, SyntaxType::Header);
-					_make.GetChild(KeywordType::DeclSpec) = Parser::CreateExpression(parse_strings::declare_specifier, SyntaxType::Header);
-					_make.GetChild(KeywordType::TypeSpec) = Parser::CreateExpression(parse_strings::type_specifier, SyntaxType::Header);
+					_make.GetChild(KeywordType::TypeQual) = ParsingStream::CreateExpression(parse_strings::type_qualifier, SyntaxType::Header);
+					_make.GetChild(KeywordType::DeclSpec) = ParsingStream::CreateExpression(parse_strings::declare_specifier, SyntaxType::Header);
+					_make.GetChild(KeywordType::TypeSpec) = ParsingStream::CreateExpression(parse_strings::type_specifier, SyntaxType::Header);
+
+					//TODO: I want to make a function called ConsumeTarget. It's goal should be to eat the targets data and return a reference to the header.
+					//if (target && target->GetView() == "maybe") {
+					//	_make.GetChild(KeywordType::TypeQual).EmplaceChild(ParsingStream::CreateExpression(target->data(), SyntaxType::None));
+					//}
 
 					//auto& type_qual = 
 					//auto& decl_spec = 
@@ -702,7 +670,7 @@ namespace LEX::Impl
 				} 
 				else if (!prev_header) 
 				{
-					parser->croak("declaration has no header.");
+					stream->croak("declaration has no header.");
 				}
 
 
@@ -719,7 +687,7 @@ namespace LEX::Impl
 				do {
 					bool next = true;
 
-					RecordData peek = parser->peek();
+					RecordData peek = stream->peek();
 				
 					
 					auto type = peek.TOKEN().type;
@@ -729,20 +697,20 @@ namespace LEX::Impl
 						{
 						case KeywordType::DeclSpec:
 							//I feel I could free a slot by doing something here.
-							header.GetChild(KeywordType::DeclSpec).EmplaceChild(Parser::CreateExpression(peek, post ? SyntaxType::None : SyntaxType::Declare));
+							header.GetChild(KeywordType::DeclSpec).EmplaceChild(ParsingStream::CreateExpression(peek, post ? SyntaxType::None : SyntaxType::Declare));
 							break;
 
 						case KeywordType::TypeQual:
-							header.GetChild(KeywordType::TypeQual).EmplaceChild(Parser::CreateExpression(peek, SyntaxType::None));
+							header.GetChild(KeywordType::TypeQual).EmplaceChild(ParsingStream::CreateExpression(peek, SyntaxType::None));
 							break;
 						case KeywordType::TypeSpec:
-							header.GetChild(KeywordType::TypeSpec).EmplaceChild(Parser::CreateExpression(peek, SyntaxType::None));
+							header.GetChild(KeywordType::TypeSpec).EmplaceChild(ParsingStream::CreateExpression(peek, SyntaxType::None));
 							if (IsTypename(peek.GetTag()) == true)
 								name_taken = true;
 							break;
 
 						default:
-							parser->croak("Not a proper keyword");
+							stream->croak("Not a proper keyword");
 						}
 					} 
 					else// if (type == TokenType::Identifier || peek.GetTag() == "::")
@@ -755,7 +723,7 @@ namespace LEX::Impl
 							break;
 						}
 
-						Record identifier = ParseModule::ExecuteModule<IdentifierParser>(parser, nullptr);
+						Record identifier = ParseModule::ExecuteModule<IdentifierParser>(stream, nullptr);
 						identifier.SYNTAX().type = SyntaxType::Typename;
 						header.GetChild(KeywordType::TypeSpec).EmplaceChild(identifier);
 
@@ -764,17 +732,17 @@ namespace LEX::Impl
 						next = false;
 					} 
 					//else {
-					//	parser->croak("Not keyword or identifier");
+					//	stream->croak("Not keyword or identifier");
 					//}
 
 					if (next) {
-						auto _nxt = parser->next();
+						auto _nxt = stream->next();
 						//logger::debug(">!!!{}", _nxt.GetTag());
 					}
 
-				} while (parser->IsType(TokenType::Identifier) || CanHandle(parser, target, ParseFlag::Atomic) == true);  //This doesn't need to be "do-while"
+				} while (stream->IsType(TokenType::Identifier) || CanHandle(stream, target, ParseFlag::Atomic) == true);  //This doesn't need to be "do-while"
 
-				//logger::info("end {}", parser->peek().GetTag());
+				//logger::info("end {}", stream->peek().GetTag());
 
 				//If we are in post, no way we're going to want to copy the entirety of  the created records. So just send an empty one and we'll toss it
 				return post ? Record{} : header;
@@ -783,9 +751,48 @@ namespace LEX::Impl
 		};
 
 
+		struct TypeofParser : public AutoParser<TypeofParser>
+		{
+			bool IsAtomic() const override
+			{
+				return true;
+			}
+
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				if (target)
+					return false;
+
+				return stream->IsType(TokenType::Keyword, "typeof");
+			}
+
+
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				Record result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Typeof);//Turn into the main record
+
+				result.GetTag().clear();//There's no need for the string atm, so just clean it out to save some space.
+
+				stream->SkipType(TokenType::Punctuation, "(");
+
+				result.EmplaceChild(ParseModule::UseModule<HeaderParser>(stream, nullptr));
+
+				stream->SkipType(TokenType::Punctuation, ")");
+
+				return result;
+			}
+
+		};
+
+
+
+
 		struct DeclarationParser : public AutoParser<DeclarationParser>, IdenDeclBoilerPlate
 		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 				if (!target)
 					return false;
@@ -795,17 +802,17 @@ namespace LEX::Impl
 				}
 
 
-				return parser->IsType(TokenType::Punctuation, "::") || parser->IsType(TokenType::Identifier);
+				return stream->IsType(TokenType::Punctuation, "::") || stream->IsType(TokenType::Identifier);
 			}
 
 
 			
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				Record header;
 
 				if (target->SYNTAX().type == SyntaxType::Identifier) {
-					header = ParseModule::TryModule<HeaderParser>(parser, target);
+					header = ParseModule::UseModule<HeaderParser>(stream, target);
 					target = &header;
 
 					
@@ -813,17 +820,17 @@ namespace LEX::Impl
 			
 				
 
-				//You'll notice this is just the Identifier parser. That it is.
+				//You'll notice this is just the Identifier stream. That it is.
 				// This is ACTUALLY supposed to derive from it. However, since that's kinda hard to set up, 
 				// boilerplate. At least until that gets resolved.
 				SyntaxType enforced_type = SyntaxType::Scopename;
 				
 
-				if (parser->SkipIfType(TokenType::Punctuation, "::") == true) {
+				if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
 						enforced_type = SyntaxType::ProjectName;
 				}
 				
-				auto result = _HandlePath(parser, enforced_type);
+				auto result = _HandlePath(stream, enforced_type);
 				
 				result.SYNTAX().type = SyntaxType::Declaration;
 				
@@ -846,7 +853,7 @@ namespace LEX::Impl
 
 
 
-			std::optional<bool> GetKeywordState(std::string_view type) override
+			std::optional<bool> GetKeywordState(const std::string_view& type) override
 			{
 				switch (Hash(type)) {
 				case "statement"_h:
@@ -857,29 +864,29 @@ namespace LEX::Impl
 				return false;
 			}
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
-				if (parser->contextChain->HasKeyword("temp_variable") == true)
+				if (stream->chain()->HasKeyword("temp_variable") == true)
 					return false;
 
 				if (target && target->SYNTAX().type == SyntaxType::Declare) {
-					return parser->IsType(TokenType::Punctuation, ";") || parser->IsType(TokenType::Operator, "=");
+					return stream->IsType(TokenType::Punctuation, ";") || stream->IsType(TokenType::Operator, "=");
 				}
 
 				return false;
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				target->SYNTAX().type = SyntaxType::Variable;
 
-				if (parser->SkipIfType(TokenType::Operator, "=") == true) {
+				if (stream->SkipIfType(TokenType::Operator, "=") == true) {
 					//This should remove assignment from being a valid statement, and also allow assignment to happen
 					// with the same expression.
-					target->EmplaceChild(Record{ parse_strings::def_expression, SyntaxType::None, parser->ParseExpression() });
+					target->EmplaceChild(Record{ parse_strings::def_expression, SyntaxType::None, stream->ParseSyntax() });
 				}
 
-				return parser->EndExpression(std::move(*target));
+				return stream->EndExpression(std::move(*target));
 			}
 		};
 
@@ -888,17 +895,17 @@ namespace LEX::Impl
 		{
 			//This is also a top level function. Use context to restrict placement.
 
-			virtual ParseKeyword GetKeywords() override
-			{
-				return ParseKeyword::Statement;
-			}
+			//virtual ParseKeyword GetKeywords() override
+			//{
+			//	return ParseKeyword::Statement;
+			//}
 
-			std::string_view GetContext() override
-			{
-				return "FunctionStatement";
-			}
+			//std::string_view GetContext() override
+			//{
+			//	return "FunctionStatement";
+			//}
 
-			std::optional<bool> GetKeywordState(std::string_view type) override
+			std::optional<bool> GetKeywordState(const std::string_view& type) override
 			{
 				switch (Hash(type)) {
 				case "code_block"_h:
@@ -914,46 +921,46 @@ namespace LEX::Impl
 				return ModulePriority::High - 50;
 			}
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 				//Invalid if target is not present.
 				// maybe enforce VarDeclare
 
-				return target && target->SYNTAX().type == SyntaxType::Declaration && parser->IsType(TokenType::Punctuation, "(");
+				return target && target->SYNTAX().type == SyntaxType::Declaration && stream->IsType(TokenType::Punctuation, "(");
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				//Need to figure out how to parse a var name right here, that's a part of the function of a function parser.
-				//To do it, perhaps it can call the things it needs in order. Variable parser, scriptname parser, variable parser, variable parser,
+				//Need to figure out how to parse a var name right here, that's a part of the function of a function stream.
+				//To do it, perhaps it can call the things it needs in order. Variable stream, scriptname stream, variable stream, variable stream,
 				// assignment
 
 				//The target needs to exist, else croak.
 				if (!target) {  //This bit is pretty much not possible. But still gonna keep.
-					parser->croak("Expected identifier before scriptname punctuation (may be dev error)");
+					stream->croak("Expected identifier before scriptname punctuation (may be dev error)");
 				} else if (target->SYNTAX().type != SyntaxType::Declare) {
-					parser->croak("PLACEHOLDER, expected declaration.");
+					stream->croak("PLACEHOLDER, expected declaration.");
 				}
 				//The target type needs to be changed to function here.
 
 				size_t post = 0;
-				auto peek1 = parser->peek();
+				auto peek1 = stream->peek();
 
-				auto _delegate = [&](Parser* parser, Record*) -> Record {
+				auto _delegate = [&](ParsingStream* stream, Record*) -> Record {
 					//THIS version checks for the extension function syntax which changes what a static function extends. But it's rough, because I actually want
 					// the internal syntax to exist without having to do "first_arg" all over the place.
-					// I think instead what I need is another parser, one that only comes out to play when the current context is parsing Parameter.
-					//The extension parser. It has to be branching, has to be a param type, and it has to have
+					// I think instead what I need is another stream, one that only comes out to play when the current context is parsing Parameter.
+					//The extension stream. It has to be branching, has to be a param type, and it has to have
 
-					if (post++ == 0 && parser->SkipIfType(TokenType::Keyword, "this") == true) {
+					if (post++ == 0 && stream->SkipIfType(TokenType::Keyword, "this") == true) {
 						
 						Record result { parse_strings::extends, SyntaxType::None };
 						
 						//inspect if there's stuff in any of the other spaces and tell someone off for having them.
-						auto peek = parser->peek();
-						//header.GetChild(KeywordType::TypeSpec).EmplaceChild(Parser::CreateExpression(peek, SyntaxType::None));
-						//result.EmplaceChild(ParseModule::TryModule<IdentifierParser>(parser, nullptr)).SYNTAX().type = SyntaxType::Typename;
-						Record pull = ParseModule::TryModule<HeaderParser>(parser, nullptr);
+						auto peek = stream->peek();
+						//header.GetChild(KeywordType::TypeSpec).EmplaceChild(ParsingStream::CreateExpression(peek, SyntaxType::None));
+						//result.EmplaceChild(ParseModule::UseModule<IdentifierParser>(stream, nullptr)).SYNTAX().type = SyntaxType::Typename;
+						Record pull = ParseModule::UseModule<HeaderParser>(stream, nullptr);
 						result.EmplaceChildren(std::move(pull.GetChild(KeywordType::TypeSpec).children()));
 
 						target->EmplaceChildren(result);
@@ -962,28 +969,28 @@ namespace LEX::Impl
 						return {};
 					}
 
-					//ParseModule::QueryModule<Identifier
+					//ParseModule::TryModule<Identifier
 
-					Record result = ParseModule::TryModule<HeaderParser>(parser, nullptr);
+					Record result = ParseModule::UseModule<HeaderParser>(stream, nullptr);
 					
 					//For this next part identifiers aren't needed
 					
 					//We don't query identifier because we don't want that, we just want 1, not a path.
-					if (parser->IsType(TokenType::Identifier) == true) {
-						result = Parser::CreateExpression(parser->next(), SyntaxType::Variable, { result });
+					if (stream->IsType(TokenType::Identifier) == true) {
+						result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Variable, { result });
 					}
 					else {
 						Syntax syntax = result.SYNTAX();
 						syntax.type = SyntaxType::Variable;//type don't matter much if it's outside of a function. But that may change.
 
-						result = Parser::CreateExpression(parse_strings::untitled, syntax, { result });
+						result = ParsingStream::CreateExpression(parse_strings::untitled, syntax, { result });
 					}
 					
 
 
 					//Same as the bit for variable. if I can merge it, I would.
-					if (parser->SkipIfType(TokenType::Operator, "=") == true) {
-						result.EmplaceChild(Parser::CreateExpression(parse_strings::extends, SyntaxType::None, { parser->ParseExpression() }));
+					if (stream->SkipIfType(TokenType::Operator, "=") == true) {
+						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::extends, SyntaxType::None, { stream->ParseSyntax() }));
 					}
 
 					return result;
@@ -991,27 +998,27 @@ namespace LEX::Impl
 
 				//I realize all this ain't super needed. To account for extension, all I need to do is remove the first entry if it's named this, HERE,
 				// and copy type, change it's name to extends, place it on the target. and Pop it out. Before that, maybe check for other thingy mabobs.
-				// I also note that the parser module is VERY hands on, so I should use that to sort out which is using this or not.
+				// I also note that the stream module is VERY hands on, so I should use that to sort out which is using this or not.
 				// I can just have the lambda check for each thing named this after the first entry, and then cull it.
-				//target->EmplaceChildren(Record{ "params", SyntaxType::Total, parser->Delimited("(", ")", ",", ParseModule::TryModule<ParameterParser>) });
-				target->EmplaceChildren(Record{ parse_strings::parameters, SyntaxType::None, parser->Delimited("(", ")", ",", _delegate) });
+				//target->EmplaceChildren(Record{ "params", SyntaxType::Total, stream->Delimited("(", ")", ",", ParseModule::UseModule<ParameterParser>) });
+				target->EmplaceChildren(Record{ parse_strings::parameters, SyntaxType::None, stream->Delimited("(", ")", ",", _delegate) });
 
 				{
 					//Doesn't matter if it's successful or not, just needs to append if there is one. 
 					// The result of header called like this is a waste value that we discard.
 					Record waste;
 					
-					ParseModule::QueryModule<HeaderParser>(parser, waste, target);
+					ParseModule::TryModule<HeaderParser>(stream, waste, target);
 				}
 
 				
 				
 				target->SYNTAX().type = SyntaxType::Function;
 
-				if (parser->SkipIfType(TokenType::Punctuation, ";") == false) {
-					target->EmplaceChildren(Record{ parse_strings::code, SyntaxType::None, parser->Delimited("{", "}",
-						[&]() { Record out; ParseModule::QueryModule<EndParser>(parser, out, nullptr); },
-						&Parser::ParseExpression) });
+				if (stream->SkipIfType(TokenType::Punctuation, ";") == false) {
+					target->EmplaceChildren(Record{ parse_strings::code, SyntaxType::None, stream->Delimited("{", "}",
+						[&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); },
+						&ParsingStream::ParseSyntax) });
 
 				}
 
@@ -1021,36 +1028,34 @@ namespace LEX::Impl
 			//Context as a concept hits a snag here, because this would need 2.
 		};
 
-
-		
 		struct BinaryParser : public AutoParser<BinaryParser>
 		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 				bool atomic = flag & ParseFlag::Atomic;
 
-				//RecordData token = parser->peek();
+				//RecordData token = stream->peek();
 
 				//If atomic, the only thing that can be accepted would be if next is an access operator.
-				if (atomic && parser->IsType(TokenType::Operator, ".") == false)
+				if (atomic && stream->IsType(TokenType::Operator, ".") == false)
 					return false;
 
-				bool is_binary = GetPrecedence(parser->peek().GetView(), OperatorType::Binary);//I don't know how to evaluate this part.
+				bool is_binary = GetPrecedence(stream->peek().GetView(), OperatorType::Binary);//I don't know how to evaluate this part.
 
 				//Target must not be binary either, because it's not possible to have 2 binary next to each other.
 				return target && target->SYNTAX().type != SyntaxType::Declaration && 
-					target->SYNTAX().type != SyntaxType::Identifier && parser->IsType(TokenType::Operator) && is_binary;
+					target->SYNTAX().type != SyntaxType::Identifier && stream->IsType(TokenType::Operator) && is_binary;
 			}
 
-			//TODO:Binary parser needs to be able to know be atomic, but also needs to know if the next operator is "." to be considered atomic.
-			Record _HandleBinary(Parser* parser, Record left, int my_prec)
+			//TODO:Binary stream needs to be able to know be atomic, but also needs to know if the next operator is "." to be considered atomic.
+			Record _HandleBinary(ParsingStream* stream, Record left, int my_prec)
 			{
 				//Just making pretend right now.
 				
 				
-				RecordData tar = parser->peek();
+				RecordData tar = stream->peek();
 
-				//TODO:Binary parser will need to work with unary later on, please be advised.
+				//TODO:Binary stream will need to work with unary later on, please be advised.
 				//
 
 				int his_prec = GetPrecedence(tar.GetView(), OperatorType::Binary);
@@ -1058,43 +1063,37 @@ namespace LEX::Impl
 					
 
 					if (his_prec > my_prec) {
-						parser->next();
+						stream->next();
 
 						//Used to use parse atom, be advised
 
-						Record a_lhs = Parser::CreateExpression(parse_strings::lhs, SyntaxType::None, { left });
+						Record a_lhs = ParsingStream::CreateExpression(parse_strings::lhs, SyntaxType::None, { left });
 
-						//Record a_rhs = Parser::CreateExpression("right", ExpressionType::Header, { _HandleBinary(parser, parser->ParseExpression(), his_prec) });
+						//Record a_rhs = ParsingStream::CreateExpression("right", ExpressionType::Header, { _HandleBinary(stream, stream->ParseSyntax(), his_prec) });
 						//Return to form with parse atomic.
-						Record a_rhs = Parser::CreateExpression(parse_strings::rhs, SyntaxType::None, { _HandleBinary(parser, parser->ParseAtomic(), his_prec) });
+						Record a_rhs = ParsingStream::CreateExpression(parse_strings::rhs, SyntaxType::None, { _HandleBinary(stream, stream->ParseAtomic(), his_prec) });
 
-						Record pivot = parser->CreateExpression(tar, SyntaxType::Binary, a_lhs, a_rhs);
+						Record pivot = stream->CreateExpression(tar, SyntaxType::Binary, a_lhs, a_rhs);
 
-						return _HandleBinary(parser, pivot, my_prec);
+						return _HandleBinary(stream, pivot, my_prec);
 					}
 				} 
 				else if (tar.TOKEN().type == TokenType::Operator) {
-					parser->croak("Target did not have precedence despite being an operator");
+					stream->croak("Target did not have precedence despite being an operator");
 				}
 
 				return left;
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				//TODO:Make BinaryParser work without a target for the equals use. (Or make that the rule of assign?)
-				return _HandleBinary(parser, *target, -1);
+				return _HandleBinary(stream, *target, -1);
 			}
-			bool ContextAllowed(ProcessContext* context, ProcessChain*) override
+			bool ContextAllowed(ParseModule* module, ModuleChain*) override
 			{
 				
-				return &typeid(context) != &typeid(this) && !context->HasKeyword("statement");
-
-
-				//It cant be in the middle of switches was something, but not accurate
-				//TODO: Needs addressing, during what statement type should one not expect binary again?
-				// Note, it only cares about the last one so it can do stuff in a parenthesis statement.
-				return GetContext() != context->GetContext() && !context->IsContextType("Statement");
+				return module !=  this && !module->HasKeyword("statement");
 			}
 
 
@@ -1114,9 +1113,9 @@ namespace LEX::Impl
 				return ModulePriority::High;
 			}
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
-				auto peek = parser->peek();
+				auto peek = stream->peek();
 
 				//Require some of these be keywords
 				switch (peek.TOKEN().type) {
@@ -1127,16 +1126,16 @@ namespace LEX::Impl
 
 				case TokenType::Object:
 					return false;
-					//return target && (target->SYNTAX().type == SyntaxType::Identifier || target->SYNTAX().type == SyntaxType::Scopename) && parser->IsType(TokenType::Object);
+					//return target && (target->SYNTAX().type == SyntaxType::Identifier || target->SYNTAX().type == SyntaxType::Scopename) && stream->IsType(TokenType::Object);
 
 				default:
 					return false;
 				}
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				auto next = parser->next();
+				auto next = stream->next();
 
 				auto& tag = next.GetTag();
 
@@ -1154,10 +1153,10 @@ namespace LEX::Impl
 						}
 						else {
 							//TODO:Fix Format #5
-							parser->croak("Invalid boolean");  //std::format("invalid boolean '{}' detected.", tag));
+							stream->croak("Invalid boolean");  //std::format("invalid boolean '{}' detected.", tag));
 						}
 						
-						return parser->CreateExpression(next, SyntaxType::Boolean);
+						return stream->CreateExpression(next, SyntaxType::Boolean);
 					}
 
 				case TokenType::Number:
@@ -1192,7 +1191,7 @@ namespace LEX::Impl
 									if (remains == 1 && tag[processed] == 'f' || !remains) {}
 									else throw std::invalid_argument{ "Nothing to say" };
 
-									return parser->CreateExpression(next, SyntaxType::Number);
+									return stream->CreateExpression(next, SyntaxType::Number);
 								};
 
 							try
@@ -1211,7 +1210,7 @@ namespace LEX::Impl
 										return func();
 								}
 								
-								return parser->CreateExpression(next, SyntaxType::Integer);
+								return stream->CreateExpression(next, SyntaxType::Integer);
 							}
 							catch (std::invalid_argument in_arg) {
 								return func();
@@ -1219,7 +1218,7 @@ namespace LEX::Impl
 							
 						} catch (std::invalid_argument in_arg) {
 							//TODO:Fix Format #3
-							parser->croak("invalid string detected");  //std::format("invalid string {} detected. ({})", next.GetTag(), in_arg.what()));
+							stream->croak("invalid string detected");  //std::format("invalid string {} detected. ({})", next.GetTag(), in_arg.what()));
 							break;                                     //Throw happens above s
 						}
 					}
@@ -1230,26 +1229,26 @@ namespace LEX::Impl
 
 						target->SYNTAX().type = SyntaxType::Scopename;
 
-						auto next = parser->next();
+						auto next = stream->next();
 
 						auto& tag = next.GetTag();
 
 						//Clears the ":{" and "}" items.
 						ClipString(tag, 2, 1);
 
-						return parser->CreateExpression(next, SyntaxType::Object, *target);
+						return stream->CreateExpression(next, SyntaxType::Object, *target);
 					}
 
 				case TokenType::String:
 					{
 						//Clears the quotations.
 						ClipString(tag, 1, 1);
-						return parser->CreateExpression(next, SyntaxType::String);
+						return stream->CreateExpression(next, SyntaxType::String);
 					}
 
 				default:
 					//TODO:Fix Format #4
-					parser->croak("Invalid token as literal");  //std::format("invalid token '{}' detected as a literal.", tag));
+					stream->croak("Invalid token as literal");  //std::format("invalid token '{}' detected as a literal.", tag));
 					break;
 				}
 
@@ -1257,7 +1256,7 @@ namespace LEX::Impl
 				throw nullptr;
 			}
 
-			//Atomic due to object literal parser
+			//Atomic due to object literal stream
 			bool IsAtomic() const override { return true; }
 		};
 
@@ -1265,19 +1264,19 @@ namespace LEX::Impl
 		
 		struct CallParser : public AutoParser<CallParser>
 		{
-			bool CanHandle(Parser* parser, Record* target, ParseFlag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
 				//VarUsage basically means no type allowed.
-				return target && target->SYNTAX().type == SyntaxType::Identifier && parser->IsType(TokenType::Punctuation, "("); // && parser->contextChain->HasKeyword("code_block");
+				return target && target->SYNTAX().type == SyntaxType::Identifier && stream->IsType(TokenType::Punctuation, "("); // && stream->contextChain->HasKeyword("code_block");
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				target->SYNTAX().type = SyntaxType::Call;
 
 				//I believe this makes header the contained object, rather than creating an expresion. Also changed to use the version that takes functions with just 1 member.
-				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, parser->Delimited("(", ")", ",", [=](auto, auto) { return parser->ParseExpression(); }) });
-				auto args = Parser::CreateExpression(parse_strings::args, SyntaxType::None, parser->Delimited("(", ")", ",", &Parser::ParseExpression));
+				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseSyntax(); }) });
+				auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("(", ")", ",", &ParsingStream::ParseSyntax));
 
 				target->EmplaceChildren(args);
 
@@ -1286,6 +1285,41 @@ namespace LEX::Impl
 
 			bool IsAtomic() const override { return true; }
 		};
+
+		struct CtorParser : public AutoParser<CtorParser>
+		{
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
+			{
+				//VarUsage basically means no type allowed.
+				return target && target->SYNTAX().type == SyntaxType::Identifier && stream->IsType(TokenType::Punctuation, "{"); 
+				// && stream->contextChain->HasKeyword("code_block");
+			}
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				target->SYNTAX().type = SyntaxType::Ctor;
+
+				//I believe this makes header the contained object, rather than creating an expresion. Also changed to use the version that takes functions with just 1 member.
+				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseSyntax(); }) });
+				
+				//CURRENTLY, Ctors don't except args.
+				if  constexpr (0) {
+					auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("{", "}", ",", &ParsingStream::ParseSyntax));
+
+					target->EmplaceChildren(args);
+				}
+				else {
+					stream->SkipType(TokenType::Punctuation, "{");
+					stream->SkipType(TokenType::Punctuation, "}");
+				}
+
+				return std::move(*target);
+			}
+
+			bool IsAtomic() const override { return true; }
+		};
+
+
 
 			
 		struct ReturnParser : public AutoParser<ReturnParser>
@@ -1297,20 +1331,20 @@ namespace LEX::Impl
 				return ModulePriority::High;
 			}
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
-				return !target && parser->IsType(TokenType::Keyword, "return");
+				return !target && stream->IsType(TokenType::Keyword, "return");
 			}
 
-			Record HandleToken(Parser* parser, Record*) override
+			Record HandleToken(ParsingStream* stream, Record*) override
 			{
 				//If we are not currently in a function parsing issue.
-				Record ret = parser->CreateExpression(parser->next(), SyntaxType::Return);
+				Record ret = stream->CreateExpression(stream->next(), SyntaxType::Return);
 
 				//whatever is cycling this will get the ; statement, but we're getting the expression inside.
-				if (parser->IsType(TokenType::Punctuation, ";") == false)
-					//ret.EmplaceChildren(ParseModule::TryModule<BinaryParser>(parser, target));
-					ret.EmplaceChildren(parser->ParseExpression());
+				if (stream->IsType(TokenType::Punctuation, ";") == false)
+					//ret.EmplaceChildren(ParseModule::UseModule<BinaryParser>(stream, target));
+					ret.EmplaceChildren(stream->ParseSyntax());
 
 				return ret;
 			}
@@ -1327,46 +1361,46 @@ namespace LEX::Impl
 			// precedence can handle this I think, instead of just raw numbers what I can do is use
 			//
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
 				//I can saw with a fair bit of certainty that this is not going to work well when encountering errors.
 				// The unary CanHandle needs to be far more discriminating.
 
 				
 				//unary is a bit tricker, some things actually have shared symbols (like the minus) so I'll have to be specific
-				if (parser->IsType(TokenType::Operator) == false)
+				if (stream->IsType(TokenType::Operator) == false)
 					return false;
 
-				if (GetPrecedence(parser->peek().GetView(), OperatorType::Unary) == 0) {
+				if (GetPrecedence(stream->peek().GetView(), OperatorType::Unary) == 0) {
 					return false;
 				}
 
 				//If previous cannot have been an operator.
 
-				if (auto prev = parser->prev(); prev.TOKEN().type == TokenType::Operator && prev.GetTag() == ".")
+				if (auto prev = stream->prev(); prev.TOKEN().type == TokenType::Operator && prev.GetTag() == ".")
 					return false;
 				
 				return !target;
 			}
 
-			bool ContextAllowed(ProcessContext* context, ProcessChain* chain) override
+			bool ContextAllowed(ParseModule* context, ModuleChain* chain) override
 			{
-				Parser* parser = chain->process->As<Parser>();
+				ParsingStream* stream = chain->process;
 
 				//If last isn't .
 
-				//if (NULL_OP(parser)->prev().GetTag() == ".")
+				//if (NULL_OP(stream)->prev().GetTag() == ".")
 				//	return false;
-				//RGL_LOG(info, "TEST {} {}", BinaryParser::GetSingleton()->GetContext() != context->GetContext(), NULL_OP(parser)->);
-				//And if the parser isn't binary OR is a member access. (This is done to get all member accesses out of the way before it shoves it in it's body.
+				//RGL_LOG(info, "TEST {} {}", BinaryParser::GetSingleton()->GetContext() != context->GetContext(), NULL_OP(stream)->);
+				//And if the stream isn't binary OR is a member access. (This is done to get all member accesses out of the way before it shoves it in it's body.
 				
 				//This is the problem quite simply it's used an outdated system.
-				return parser->GetBuiltModule<BinaryParser>() != context || parser->IsType(TokenType::Operator, ".");
+				return stream->GetBuiltModule<BinaryParser>() != context || stream->IsType(TokenType::Operator, ".");
 			}
 
 			//Precedence mostly follows the thing that's closest to the body, with subscript being the highest of them,
 			// and '.' being before all other types. Let's see how that goes down.
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				//Currently there are 2 types. Left unary, right unary. They can be seperated by them having a target or not.
 				// right ones will always have targets, left will never.
@@ -1379,17 +1413,17 @@ namespace LEX::Impl
 				//Note, it cannot process a dual right after, so it needs to confirm the next thing isn't a dual operator
 
 				if (!target) {
-					RecordData op = parser->next();
+					RecordData op = stream->next();
 
 					//Not a strong name to make this a header, because it's handled pretty straight forward.
 					// Also, more likely this seeks to parse atomic
-					//Record body = parser->ParseExpression();
-					Record body = parser->ParseAtomic();
+					//Record body = stream->ParseSyntax();
+					Record body = stream->ParseAtomic();
 
-					unary = parser->CreateExpression(op, SyntaxType::Unary, body);
+					unary = stream->CreateExpression(op, SyntaxType::Unary, body);
 				} 
 				else {
-					parser->croak("Fuck you");
+					stream->croak("Fuck you");
 				}
 
 				return unary;
@@ -1404,13 +1438,13 @@ namespace LEX::Impl
 		{
 			//I may use this at some other point though.
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
 				//Doesn't allow a previous target yet, but later attributes will be of consideration.
 				if (target)
 					return false;
 
-				auto peek = parser->peek();
+				auto peek = stream->peek();
 
 				if (peek.TOKEN().type != TokenType::Keyword)
 					return false;
@@ -1428,53 +1462,53 @@ namespace LEX::Impl
 				}
 
 				
-				return !target && (parser->IsType(TokenType::Keyword, "struct") || parser->IsType(TokenType::Keyword, "class"));
+				return !target && (stream->IsType(TokenType::Keyword, "struct") || stream->IsType(TokenType::Keyword, "class"));
 			}
 
-			static Record HandleInterfaceIndex(Parser* parser)
+			static Record HandleInterfaceIndex(ParsingStream* stream)
 			{
-				Record index = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::None);
+				Record index = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::None);
 
-				if (parser->SkipIfType(TokenType::Punctuation, "::") == true) {
-					if (parser->IsType(TokenType::Punctuation, "{") == true)
+				if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
+					if (stream->IsType(TokenType::Punctuation, "{") == true)
 					{
-						auto& parent = index.EmplaceChild(Parser::CreateExpression("args", SyntaxType::None));
+						auto& parent = index.EmplaceChild(ParsingStream::CreateExpression("args", SyntaxType::None));
 					
 						//if it wants to use brackets to define it easier basically.
-						auto children = parser->Delimited("{", "}", ",", [](Parser* parser) { return Parser::CreateExpression(parser->next(), SyntaxType::None); });
+						auto children = stream->Delimited("{", "}", ",", [](ParsingStream* stream) { return ParsingStream::CreateExpression(stream->next(), SyntaxType::None); });
 						parent.EmplaceChildren(std::move(children));
 					}
 					else {
-						index.EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Number), SyntaxType::Number));
+						index.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Number), SyntaxType::Number));
 					}
 				} else {
-					index.EmplaceChild(Parser::CreateExpression("0", SyntaxType::Number));
+					index.EmplaceChild(ParsingStream::CreateExpression("0", SyntaxType::Number));
 				}
 
 				return index;
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				RecordData data_type = parser->next();
+				RecordData data_type = stream->next();
 
-				Record result = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::Type);
+				Record result = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::Type);
 
 
-				Record& settings = result.EmplaceChild(Parser::CreateExpression(parse_strings::settings, SyntaxType::None));
+				Record& settings = result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::settings, SyntaxType::None));
 
 				{
 					//First setting is struct or class
 				
 					//ugly but it does what I want. Clean up later please.
-					settings.EmplaceChild(Parser::CreateExpression(parse_strings::data_type, SyntaxType::None, { Parser::CreateExpression(data_type, SyntaxType::None) }));
-					//settings.PushBackChild(Parser::CreateExpression(data_type, SyntaxType::Header));
+					settings.EmplaceChild(ParsingStream::CreateExpression(parse_strings::data_type, SyntaxType::None, { ParsingStream::CreateExpression(data_type, SyntaxType::None) }));
+					//settings.PushBackChild(ParsingStream::CreateExpression(data_type, SyntaxType::Header));
 				}
 
 				if constexpr (1!=1)//when pigs fly, or in other words when I implement generics
 				{
 					//This is the section for generics at a later point. As it is not generic, it is empty.
-					settings.EmplaceChild(Parser::CreateExpression(parse_strings::generic, SyntaxType::None));
+					settings.EmplaceChild(ParsingStream::CreateExpression(parse_strings::generic, SyntaxType::None));
 				}
 
 
@@ -1485,63 +1519,63 @@ namespace LEX::Impl
 
 				bool requires_body = true;
 
-				if (RecordData peek = parser->peek(); peek.TOKEN().type == TokenType::Keyword) {
+				if (RecordData peek = stream->peek(); peek.TOKEN().type == TokenType::Keyword) {
 					
 					
 					//Ugly as shit I know.
-					Record& attach = settings.EmplaceChild(Parser::CreateExpression(parse_strings::attach, SyntaxType::None)).
-						EmplaceChild(Parser::CreateExpression(parser->next(), SyntaxType::None));
+					Record& attach = settings.EmplaceChild(ParsingStream::CreateExpression(parse_strings::attach, SyntaxType::None)).
+						EmplaceChild(ParsingStream::CreateExpression(stream->next(), SyntaxType::None));
 
 					switch (Hash(peek.GetTag())) {
 					case "bind"_h:  //Bind needs to push back a type name
-						attach.EmplaceChild(ParseModule::TryModule<IdentifierParser>(parser, nullptr)).SYNTAX().type = SyntaxType::Scopename;
+						attach.EmplaceChild(ParseModule::UseModule<IdentifierParser>(stream, nullptr)).SYNTAX().type = SyntaxType::Scopename;
 						break;
 
 					case "intrinsic"_h:  //Intrinsic needs to push back a category name, and index.
 					case "external"_h:   //external needs to push back category name and index.
 						requires_body = false;
-						attach.EmplaceChild(HandleInterfaceIndex(parser));
+						attach.EmplaceChild(HandleInterfaceIndex(stream));
 						break;
 
 					default:
-						parser->croak("Unexpected keyword used after class/struct type name.");
+						stream->croak("Unexpected keyword used after class/struct type name.");
 						break;
 					}
 				}
 
 				//This is actually completely optional
-				if (parser->SkipIfType(TokenType::Punctuation, ":") == true) {
-					Record& derives = settings.EmplaceChild(Parser::CreateExpression(parse_strings::derives, SyntaxType::None));
+				if (stream->SkipIfType(TokenType::Punctuation, ":") == true) {
+					Record& derives = settings.EmplaceChild(ParsingStream::CreateExpression(parse_strings::derives, SyntaxType::None));
 					
 					size_t after = 0;
 
-					while (!parser->IsType(TokenType::Punctuation, "{") && !parser->IsType(TokenType::Punctuation, ";"))
+					while (!stream->IsType(TokenType::Punctuation, "{") && !stream->IsType(TokenType::Punctuation, ";"))
 					{
 						//Should only check after the first loop.
 						if (after++)
 						{
-							parser->SkipType(TokenType::Punctuation, ",");
+							stream->SkipType(TokenType::Punctuation, ",");
 						}
 
 						Record decl_spec;
 						Record* specifiers = nullptr;
 
-						if (parser->IsType(TokenType::Keyword) == true) 
+						if (stream->IsType(TokenType::Keyword) == true) 
 						{
 							specifiers = &decl_spec;
 
-							decl_spec = Parser::CreateExpression(parse_strings::declare_specifier, SyntaxType::Header);
+							decl_spec = ParsingStream::CreateExpression(parse_strings::declare_specifier, SyntaxType::Header);
 
 							do 
 							{
-								auto next = parser->next();
+								auto next = stream->next();
 
 								switch (Hash(next.GetTag())) {
 								case "public"_h:
 								case "private"_h:
 								case "protected"_h:
 								case "internal"_h:
-									decl_spec.EmplaceChild(Parser::CreateExpression(next, SyntaxType::None));
+									decl_spec.EmplaceChild(ParsingStream::CreateExpression(next, SyntaxType::None));
 									break;
 
 								default:
@@ -1551,11 +1585,11 @@ namespace LEX::Impl
 
 								
 
-							} while (parser->IsType(TokenType::Keyword) == true);
+							} while (stream->IsType(TokenType::Keyword) == true);
 						}
 
-						Record& inherit = derives.EmplaceChild(ParseModule::TryModule<IdentifierParser>(parser, nullptr));
-
+						Record& inherit = derives.EmplaceChild(ParseModule::UseModule<IdentifierParser>(stream, nullptr));
+						inherit.SYNTAX().type = SyntaxType::Typename;
 						if (specifiers)
 							inherit.EmplaceChild(std::move(*specifiers));
 
@@ -1568,32 +1602,29 @@ namespace LEX::Impl
 				//If no body, this shit requires an end.
 				bool has_body = false;
 
-				if (parser->SkipIfType(TokenType::Punctuation, "{") == true) {
+				if (stream->SkipIfType(TokenType::Punctuation, "{") == true) {
 					has_body = true;
 					
-					Record body = Parser::CreateExpression(parse_strings::body, SyntaxType::None);
+					Record body = ParsingStream::CreateExpression(parse_strings::body, SyntaxType::None);
 
 					auto end_of_this = [&]() -> bool {
-						return parser->SkipIfType(TokenType::Punctuation, "}");
+						return stream->SkipIfType(TokenType::Punctuation, "}");
 					};
 
 					while (end_of_this() == false) {
-						body.EmplaceChild(parser->ParseExpression());
-
-						//I would regardless like to end this off with ";" if possible
-						//Also, this needs a function called Clear instead, where it will continuously loop until it no longer needs to skip.
-						if (end_of_this() == false)
-							parser->SkipType(TokenType::Punctuation, ";");
+						body.EmplaceChild(stream->ParseSyntax());
 					}
 
 					result.EmplaceChild(body);
-				} else if (requires_body) {
-					parser->croak("type requires a body.");
+				} 
+				else if (requires_body) {
+					stream->croak("type requires a body.");
 				}
+
 				if (has_body)
 					return result;
 				else
-					return parser->EndExpression(result);
+					return stream->EndExpression(result);
 
 			}
 		};
@@ -1608,34 +1639,34 @@ namespace LEX::Impl
 
 
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 				//Must have a target, the target must be an identifier, and mustn't have a path.
 				if (!target)
 					return false;
 
-				return parser->IsType(TokenType::Format);
+				return stream->IsType(TokenType::Format);
 				//The rules are slightly more lax because Format really really always needs to happen here, bar no other.
-				// so incorrect use is grounds for parser failure rather than anything else.
+				// so incorrect use is grounds for stream failure rather than anything else.
 
 
-				return target && target->SYNTAX().type == SyntaxType::Identifier && parser->IsType(TokenType::Format);
+				return target && target->SYNTAX().type == SyntaxType::Identifier && stream->IsType(TokenType::Format);
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				if (target->SYNTAX().type != SyntaxType::Identifier) {
-					parser->croak("expected identifier");
+					stream->croak("expected identifier");
 				}
 
 				if (target->FindChild(parse_strings::path) != nullptr) {
-					parser->croak("expected identifier without path");
+					stream->croak("expected identifier without path");
 				}
 
 				
 
 
-				RecordData format = parser->next();
+				RecordData format = stream->next();
 
 
 				
@@ -1643,7 +1674,7 @@ namespace LEX::Impl
 				auto& tag = format.GetTag();
 				
 				if (tag.ends_with(parse_strings::format_end) == false) {
-					parser->croak("format token must end with 'end_format'");
+					stream->croak("format token must end with 'end_format'");
 				}
 
 
@@ -1661,7 +1692,7 @@ namespace LEX::Impl
 				
 				target->SYNTAX().type = SyntaxType::None;
 				
-				return parser->CreateExpression(format, SyntaxType::Format, std::move(*target));
+				return stream->CreateExpression(format, SyntaxType::Format, std::move(*target));
 			}
 
 			bool IsAtomic() const override
@@ -1681,13 +1712,13 @@ namespace LEX::Impl
 				return ModulePriority::None;
 			}
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
 
 				return target && target->SYNTAX().type == SyntaxType::Identifier;
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				target->SYNTAX().type = SyntaxType::Field;
 
@@ -1715,21 +1746,21 @@ namespace LEX::Impl
 			//	return ModulePriority::None;
 			//}
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
-				return !target && parser->IsType(TokenType::Keyword, "if");
+				return !target && stream->IsType(TokenType::Keyword, "if");
 			}
 
 
 
-			void HandleBlock(Record& block, Parser* parser)
+			void HandleBlock(Record& block, ParsingStream* stream)
 			{
 
 
-				if (auto is_if = parser->IsType(TokenType::Keyword, "if"); is_if || parser->SkipIfType(TokenType::Punctuation, ":") == true)
+				if (auto is_if = stream->IsType(TokenType::Keyword, "if"); is_if || stream->SkipIfType(TokenType::Punctuation, ":") == true)
 				{
-					//This really shouldn't allow encasulate parser to go in. But for now this will handle.
-					Record body = parser->ParseExpression();
+					//This really shouldn't allow encasulate stream to go in. But for now this will handle.
+					Record body = stream->ParseSyntax();
 					
 
 					if (body.SYNTAX().type == SyntaxType::StateBlock)
@@ -1738,11 +1769,11 @@ namespace LEX::Impl
 						block.EmplaceChildren(std::move(body));
 
 					if (!is_if)
-						ParseModule::TryModule<EndParser>(parser, nullptr);
+						ParseModule::UseModule<EndParser>(stream, nullptr);
 				}
-				else if (parser->IsType(TokenType::Punctuation, "{") == true)
+				else if (stream->IsType(TokenType::Punctuation, "{") == true)
 				{
-					Record body = ParseModule::TryModule<EncapsulateParser>(parser, nullptr);
+					Record body = ParseModule::UseModule<EncapsulateParser>(stream, nullptr);
 
 					auto& children = body.children();
 
@@ -1757,14 +1788,14 @@ namespace LEX::Impl
 				else
 				{
 					//croak
-					parser->croak("invalid token found proceeding if statement.");
+					stream->croak("invalid token found proceeding if statement.");
 				}
 
 			}
 
 
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				//if:conditional
 				//<express>
@@ -1774,28 +1805,28 @@ namespace LEX::Impl
 				//<else>
 				//statement here
 
-				Record result = Parser::CreateExpression(parser->next(), SyntaxType::If);
+				Record result = ParsingStream::CreateExpression(stream->next(), SyntaxType::If);
 				
 
 				
 
-				parser->SkipType(TokenType::Punctuation, "(");
+				stream->SkipType(TokenType::Punctuation, "(");
 
-				Record& express_block = result.EmplaceChild(Parser::CreateExpression(parse_strings::expression_block, SyntaxType::None));
+				Record& express_block = result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::expression_block, SyntaxType::None));
 
-				express_block.EmplaceChild(parser->ParseExpression());
+				express_block.EmplaceChild(stream->ParseSyntax());
 
-				parser->SkipType(TokenType::Punctuation, ")");
+				stream->SkipType(TokenType::Punctuation, ")");
 
-				Record& statement_block = result.EmplaceChild(Parser::CreateExpression(parse_strings::statement_block, SyntaxType::None));
+				Record& statement_block = result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::statement_block, SyntaxType::None));
 
 			
-				HandleBlock(statement_block, parser);
+				HandleBlock(statement_block, stream);
 
-				if (parser->SkipIfType(TokenType::Keyword, "else") == true)
+				if (stream->SkipIfType(TokenType::Keyword, "else") == true)
 				{
-					Record& else_block = result.EmplaceChild(Parser::CreateExpression(parse_strings::alternate_block, SyntaxType::None));
-					HandleBlock(else_block, parser);
+					Record& else_block = result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::alternate_block, SyntaxType::None));
+					HandleBlock(else_block, stream);
 				}
 
 				return result;
@@ -1816,28 +1847,28 @@ namespace LEX::Impl
 			//	return ModulePriority::None;
 			//}
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
-				return target && parser->IsType(TokenType::Keyword, "as");
+				return target && stream->IsType(TokenType::Keyword, "as");
 			}
 
 
 
 
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				auto next = parser->next();
+				auto next = stream->next();
 				
-				if (parser->peek().GetView() == "maybe")
+				if (stream->peek().GetView() == "maybe")
 				{
-					next = parser->next();
+					next = stream->next();
 				}
 
-				Record cast = Parser::CreateExpression(next, SyntaxType::Cast);
+				Record cast = ParsingStream::CreateExpression(next, SyntaxType::Cast);
 
-				cast.EmplaceChild(Parser::CreateExpression(parse_strings::lhs, SyntaxType::None, { std::move(*target) }));
-				cast.EmplaceChild(Parser::CreateExpression(parse_strings::rhs, SyntaxType::None, { ParseModule::TryModule<HeaderParser>(parser, nullptr) }));
+				cast.EmplaceChild(ParsingStream::CreateExpression(parse_strings::lhs, SyntaxType::None, { std::move(*target) }));
+				cast.EmplaceChild(ParsingStream::CreateExpression(parse_strings::rhs, SyntaxType::None, { ParseModule::UseModule<HeaderParser>(stream, nullptr) }));
 
 				return cast;
 			}
@@ -1848,6 +1879,60 @@ namespace LEX::Impl
 		};
 
 
+
+		struct GenericParser : public AutoParser<GenericParser>
+		{
+			//The idea of this should be the lowest priority possible. It expects an identifier and if nothing else claims it then it's a field.
+
+
+			//uint32_t GetPriority() const override
+			//{
+			//	return ModulePriority::None;
+			//}
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				return !target && stream->IsType(TokenType::Keyword, "generic");
+			}
+
+
+
+
+
+			Record HandleToken(ParsingStream* stream, Record*) override
+			{
+				auto generic = ParsingStream::CreateExpression(stream->next(), SyntaxType::Header);
+
+				generic.GetTag() = parse_strings::generic;
+
+
+				auto hits = stream->Delimited("<", ">", ",", [](ParsingStream* stream) { return ParsingStream::CreateExpression(stream->next(), SyntaxType::Identifier); });
+
+				generic.EmplaceChildren(std::move(hits));
+
+				auto target = stream->ParseSyntax();
+
+				//check if it can use generic or not
+				switch (target.SYNTAX().type)
+				{
+				case SyntaxType::Function:
+				case SyntaxType::Variable:
+				case SyntaxType::Type:
+					break;
+
+				default:
+					report::parse::info("cannot make expression generic");
+				}
+
+				target.EmplaceChild(std::move(generic));
+
+				return target;
+			}
+
+			bool IsAtomic() const override { return true; }
+
+
+		};
 
 
 
@@ -1866,7 +1951,7 @@ namespace LEX::Impl
 
 		struct PreprocessorParser : public ParseModule
 		{
-			std::optional<bool> GetKeywordState(std::string_view type) override
+			std::optional<bool> GetKeywordState(const std::string_view& type) override
 			{
 				switch (Hash(type)) {
 				case "preprocessor"_h:
@@ -1876,30 +1961,26 @@ namespace LEX::Impl
 				return false;
 			}
 
-			bool CanHandle(Parser*, Record*, ParseFlag) const override { return false; }
-
-			std::string_view GetModuleName() override
-			{
-				return typeid(PreprocessorParser).name();
-			}
+			bool CanHandle(ParsingStream*, Record*, ParseFlag) const override { return false; }
 
 
 
-			Record HandleToken(Parser* parser, Record* target) override
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				
-				Record prep = Parser::CreateExpression(parse_strings::preprocessor, SyntaxType::Directive);
+				Record prep = ParsingStream::CreateExpression(parse_strings::preprocessor, SyntaxType::Directive);
 
-				while (parser->eof() == false) {
-					auto next = parser->next();
+				while (stream->eof() == false) {
+					auto next = stream->next();
 
 					if (next.GetView() != "#") {
 						continue;
 					}
 					
-					auto result = parser->ParseExpression();
+					auto result = stream->ParseSyntax();
 
-					parser->SkipType(TokenType::Whitespace, "\n");
+					stream->SkipType(TokenType::Whitespace, "\n");
 
 					if (result)
 						prep.EmplaceChild(result);
@@ -1910,18 +1991,19 @@ namespace LEX::Impl
 				return prep;
 			}
 
-
-
-			bool ContextAllowed(ProcessContext* context, ProcessChain* link) override
+			virtual Tokenizer* GetTokenizer() const
 			{
-				return context->HasKeyword("preprocessor");
+				return std::addressof(prepTokens);
 			}
 
-
-
-			ParseMode GetParseMode() const override
+			std::string_view GetCategory() const
 			{
-				return ParseMode::kPreprocess;
+				return "preprocessor";
+			}
+
+			bool ContextAllowed(ParseModule* context, ModuleChain* link) override
+			{
+				return context->HasKeyword("preprocessor");
 			}
 		};
 
@@ -1929,7 +2011,7 @@ namespace LEX::Impl
 
 		struct PreprocessorModule : public ParseModule
 		{
-			std::optional<bool> GetKeywordState(std::string_view type) override
+			std::optional<bool> GetKeywordState(const std::string_view& type) override
 			{
 				switch (Hash(type)) {
 				case "preprocessor"_h:
@@ -1945,25 +2027,33 @@ namespace LEX::Impl
 				return ModulePriority::Max;
 			}
 
-			virtual bool CanProcess(Parser* parser, Record*, ParseFlag) const = 0;
+			virtual bool CanProcess(ParsingStream* stream, Record*, ParseFlag) const = 0;
 
-			bool CanHandle(Parser* parser, Record* target, ParseFlag flag) const override final
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override final
 			{
-				return parser->contextChain->HasKeyword("preprocessor") && CanProcess(parser, target, flag);
+				return stream->chain()->HasKeyword("preprocessor") && CanProcess(stream, target, flag);
 			}
 
 		};
 
 		template <typename T>
-		struct AutoProcessor : public AutoParser<T, PreprocessorModule>{};
+		struct AutoProcessor : public AutoParser<T, "preprocessor", PreprocessorModule> 		
+		{
+
+			Tokenizer* GetTokenizer() const override
+			{
+				return std::addressof(prepTokens);
+			}
+		
+		};
 
 		/*The Old version.
 		struct RequiresParser : public AutoProcessor<RequiresParser>
 		{
-			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override 
+			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override 
 			{ 
 				
-				return !target && parser->IsType(TokenType::Keyword, "requires");
+				return !target && stream->IsType(TokenType::Identifier, "requires");
 			}
 
 
@@ -1977,7 +2067,7 @@ namespace LEX::Impl
 			};
 
 
-			Record MakeRequirement(Parser* parser, Mode mode)
+			Record MakeRequirement(ParsingStream* stream, Mode mode)
 			{
 				std::string_view name;
 				
@@ -1989,12 +2079,12 @@ namespace LEX::Impl
 					{
 						name = parse_strings::script_req;
 
-						auto next = parser->next();
+						auto next = stream->next();
 
 						if (next.TOKEN().type == TokenType::String)
 							ClipString(next.GetTag(), 1, 1);
 
-						out = Parser::CreateExpression(next, SyntaxType::None);
+						out = ParsingStream::CreateExpression(next, SyntaxType::None);
 
 
 
@@ -2004,63 +2094,63 @@ namespace LEX::Impl
 					{
 						name = parse_strings::project_req;
 						
-						parser->next();
-						out = Parser::CreateExpression(parser->next(), SyntaxType::None);
-						parser->next();
+						stream->next();
+						out = ParsingStream::CreateExpression(stream->next(), SyntaxType::None);
+						stream->next();
 						break;
 					}
 					case kOption:
 					{
 						name = parse_strings::option_req;
 						
-						parser->next();
+						stream->next();
 
-						out = Parser::CreateExpression(parser->next(), SyntaxType::None);
+						out = ParsingStream::CreateExpression(stream->next(), SyntaxType::None);
 						break;
 					}
 					case kDirectory:
 					{
 						name = parse_strings::directory_req;
-						parser->next();
+						stream->next();
 
-						out = Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::None);
+						out = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::None);
 						
 						Record* to = &out;
 
-						while (parser->SkipIfType(TokenType::Operator, "/") == true)
+						while (stream->SkipIfType(TokenType::Operator, "/") == true)
 						{
-							to = &to->EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier), SyntaxType::None));
+							to = &to->EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::None));
 						}
 
 
 						break;
 					}
 				}
-				return Parser::CreateExpression(name, SyntaxType::Requirement, { out });
+				return ParsingStream::CreateExpression(name, SyntaxType::Requirement, { out });
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				auto loc = parser->next();
+				auto loc = stream->next();
 				
 				Mode mode;
 
-				if (parser->IsType(TokenType::String) == true)
+				if (stream->IsType(TokenType::String) == true)
 				{
 					mode = kScript;
 				}
-				else if (parser->IsType(TokenType::Punctuation, "...") == true)
+				else if (stream->IsType(TokenType::Punctuation, "...") == true)
 					mode = kDirectory;
-				else if (parser->IsType(TokenType::Punctuation, "/:") == true)
+				else if (stream->IsType(TokenType::Punctuation, "/:") == true)
 					mode = kOption;
-				else if (parser->IsType(TokenType::Operator, "<") == true)
+				else if (stream->IsType(TokenType::Operator, "<") == true)
 					mode = kProject;
 				else {
-					parser->croak("unknown requirement");
+					stream->croak("unknown requirement");
 					mode = kScript;
 				}
 
-				auto result = MakeRequirement(parser, mode);
+				auto result = MakeRequirement(stream, mode);
 
 				result.SYNTAX().line = loc.TOKEN().line;
 				result.SYNTAX().column = loc.TOKEN().column;
@@ -2073,21 +2163,21 @@ namespace LEX::Impl
 
 		struct RelationParser : public AutoProcessor<RelationParser>
 		{
-			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override
+			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
 
-				return !target && ( parser->IsType(TokenType::Keyword, "import") || parser->IsType(TokenType::Keyword, "include") );
+				return !target && ( stream->IsType(TokenType::Identifier, "import") || stream->IsType(TokenType::Identifier, "include") );
 			}
 
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				auto relation = Parser::CreateExpression(parser->next(), SyntaxType::Relationship);
+				auto relation = ParsingStream::CreateExpression(stream->next(), SyntaxType::Relationship);
 
-				auto next = parser->ConsumeType(TokenType::Identifier);
+				auto next = stream->ConsumeType(TokenType::Identifier);
 
 
-				relation.EmplaceChild(Parser::CreateExpression(next, SyntaxType::None));
+				relation.EmplaceChild(ParsingStream::CreateExpression(next, SyntaxType::None));
 
 				return relation;
 			}
@@ -2096,25 +2186,25 @@ namespace LEX::Impl
 
 		struct RequiresParser : public AutoProcessor<RequiresParser>
 		{
-			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override
+			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
 
-				return !target && parser->IsType(TokenType::Keyword, "requires");
+				return !target && stream->IsType(TokenType::Identifier, "requires");
 			}
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 
-				auto result = Parser::CreateExpression(parser->next(), SyntaxType::Requirement);
+				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Requirement);
 
 
-				auto& child = result.EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
+				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
 
-				parser->SkipType(TokenType::Punctuation, "(");
+				stream->SkipType(TokenType::Punctuation, "(");
 
-				child.EmplaceChild(Parser::CreateExpression(parser->next(), SyntaxType::Identifier));
+				child.EmplaceChild(ParsingStream::CreateExpression(stream->next(), SyntaxType::Identifier));
 
-				parser->SkipType(TokenType::Punctuation, ")");
+				stream->SkipType(TokenType::Punctuation, ")");
 
 
 
@@ -2125,14 +2215,14 @@ namespace LEX::Impl
 
 		struct PreIfParser : public AutoProcessor<PreIfParser>
 		{
-			bool CanProcess(Parser* parser, Record* target, ParseFlag) const override
+			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
-				return !target && (parser->IsType(TokenType::Keyword, "if") || parser->IsType(TokenType::Identifier, "endif"));
+				return !target && (stream->IsType(TokenType::Identifier, "if") || stream->IsType(TokenType::Identifier, "endif"));
 			}
 
-			Record HandleConditional(Parser* parser)
+			Record HandleConditional(ParsingStream* stream)
 			{
-				auto result = Parser::CreateExpression(parser->next(), SyntaxType::Conditional);
+				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Conditional);
 
 				//This should allow for the /: punctuator instead.
 				;
@@ -2140,45 +2230,44 @@ namespace LEX::Impl
 
 
 
-				auto& child = result.EmplaceChild(Parser::CreateExpression(parser->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
+				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
 				
-				parser->SkipType(TokenType::Punctuation, "(");
+				stream->SkipType(TokenType::Punctuation, "(");
 
-				child.EmplaceChild(Parser::CreateExpression(parser->next(), SyntaxType::Identifier));
+				child.EmplaceChild(ParsingStream::CreateExpression(stream->next(), SyntaxType::Identifier));
 
-				parser->SkipType(TokenType::Punctuation, ")");
+				stream->SkipType(TokenType::Punctuation, ")");
 
 
 
 				return result;
 			}
 
-			Record HandleEnd(Parser* parser)
+			Record HandleEnd(ParsingStream* stream)
 			{
-				auto result = Parser::CreateExpression(parser->next(), SyntaxType::Conditional);
+				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Conditional);
 
 		
 				return result;
 			}
 
 
-			Record HandleToken(Parser* parser, Record* target) override
+			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				auto peek = parser->peek();
+				auto peek = stream->peek();
 
 				if (peek.GetView() == "if")
 				{
-					return HandleConditional(parser);
+					return HandleConditional(stream);
 				}
 				else if (peek.GetView() == "endif")
 				{
-					return HandleEnd(parser);
+					return HandleEnd(stream);
 				}
 
-				parser->croak("shouldn't happen");
+				stream->croak("shouldn't happen");
 				return{};
 			}
 
 		};
-
 }

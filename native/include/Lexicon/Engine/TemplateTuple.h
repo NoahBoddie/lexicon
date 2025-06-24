@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Engine/ITypeInfo.h"
 #include "Lexicon/Engine/TemplateType.h"
 #include "Lexicon/Engine/GenericBase.h"
 #include "Lexicon/Engine/DynamicTupleElement.h"
@@ -8,7 +8,7 @@
 namespace LEX
 {
 
-	struct TemplateTuple : public ITypePolicy, public GenericBase
+	struct TemplateTuple : public ITypeInfo, public GenericBase
 	{
 		TemplateTuple(TemplateType* par, GenericBase* own)
 		{
@@ -25,7 +25,7 @@ namespace LEX
 
 
 
-		void UnpackImpl2(ITemplateInsertPart* out, ITypePolicy* tar)
+		void UnpackImpl2(ITemplateInsertPart* out, ITypeInfo* tar)
 		{
 			if (tar->GetTypeID() == Tuple)//This means it's a tuple, we can use it for our aims.
 			{
@@ -55,7 +55,7 @@ namespace LEX
 
 			for (int i = 0; i < size; i++)
 			{
-				ITypePolicy* type = args->GetPartArgument(i);
+				ITypeInfo* type = args->GetPartArgument(i);
 
 				UnpackImpl2(out, type);
 			}
@@ -81,7 +81,7 @@ namespace LEX
 		}
 
 
-		SpecialPart* ObtainPart(GenericBase* client, ITemplatePart* args) override
+		SpecialBase* ObtainPart(GenericBase* client, ITemplatePart* args) override
 		{
 			//Unpack here
 
@@ -90,7 +90,7 @@ namespace LEX
 			return __super::ObtainPart(client, &pack);
 		}
 
-		SpecialBody* ObtainBody(ITemplateBody* args) override
+		SpecialBase* ObtainBody(ITemplateBody* args) override
 		{
 			//Unpack here
 
@@ -102,24 +102,24 @@ namespace LEX
 
 
 
-		ITypePolicy* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override
+		ITypeInfo* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override
 		{
-			return dynamic_cast<ITypePolicy*>(ObtainSpecial(base, args));
+			return dynamic_cast<ITypeInfo*>(ObtainSpecial(args));
 		}
 
-		AbstractTypePolicy* GetTypePolicy(ITemplateBody* args)// override
+		TypeInfo* GetTypePolicy(ITemplateBody* args)// override
 		{
-			return dynamic_cast<AbstractTypePolicy*>(ObtainBody(args));
+			return dynamic_cast<TypeInfo*>(ObtainBody(args));
 		}
 
 
-		std::unique_ptr<SpecialPart> CreatePart(ITemplatePart* args) override
+		std::unique_ptr<SpecialBase> CreatePart(ITemplatePart* args) override
 		{
 
 			return std::make_unique<SpecialTypePart>(this, this, args);
 		}
 
-		std::unique_ptr<SpecialBody> CreateBody(ITemplateBody* args) override
+		std::unique_ptr<SpecialBase> CreateBody(ITemplateBody* args) override
 		{
 			return std::make_unique<SpecialTypeBody>(this, this, args);
 		}

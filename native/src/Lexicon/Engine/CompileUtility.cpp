@@ -24,16 +24,16 @@ namespace LEX
 
 			}
 
-			switch (res)
+			switch (res.data)
 			{
-			case ConvertResult::ImplDefined:
-				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
+			case ConversionEnum::ImplDefined:
+				compiler->GetInstructionList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
 				break;
 
-			case ConvertResult::UserDefined:
+			case ConversionEnum::UserDefined:
 			resume:
 
-				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
+				compiler->GetInstructionList().emplace_back(InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
 
 
 				if (!fall)
@@ -41,13 +41,13 @@ namespace LEX
 
 				[[fallthrough]];
 
-			case ConvertResult::UserToImplDefined:
+			case ConversionEnum::UserToImplDefined:
 				if (!fall) {
 					fall = true;
 					goto resume;
 				}
 
-				compiler->GetOperationList().emplace_back(
+				compiler->GetInstructionList().emplace_back(
 					InstructionType::Convert,
 					reg,
 					Operand{ out.userToImpl, OperandType::Callable },
@@ -61,24 +61,24 @@ namespace LEX
 
 
 			//This shouldn't really be using the previous policy, but I kinda don't care for now.
-			value = Solution{ to.policy, OperandType::Register, reg };
+			value = Solution{ to, OperandType::Register, reg };
 			return true;
 		}
 
 		return false;
 	}
 
-	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Solution& from, const QualifiedType& to, SyntaxRecord& target, Register reg)
+	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Solution& from, const QualifiedType& to, SyntaxRecord& target, Register reg, ConversionFlag flags)
 	{
 		Conversion out;
 
-		auto convert = from.IsConvertToQualified(to, nullptr, &out);
-
-		if (convert <= ConvertResult::Failure) {
-			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
+		auto convert = from.IsConvertToQualified(to, nullptr, &out, flags);
+		
+		if (!convert) {
+			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert.data));
 		}
 
-		return CompUtil::HandleConversion(compiler, out, from, to, convert);
+		return CompUtil::HandleConversion(compiler, out, from, to, convert, reg);
 
 	}
 
@@ -91,14 +91,14 @@ namespace LEX
 			
 			//Actually, if it's void you'll want to clear it even more
 			
-			compiler->GetOperationList().emplace_back(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
+			compiler->GetInstructionList().emplace_back(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
 		}
 	}
 
 	int64_t CompUtil::SkipScope(RoutineCompiler* compiler, const Operand& condition, bool negate, uint64_t offset)
 	{
 		auto scope = compiler->GetScope();
-		auto& list = compiler->GetOperationList();
+		auto& list = compiler->GetInstructionList();
 
 		if (scope->IsHeader() == true) {
 			report::fault::critical("Header scope cannot be skipped (Also, I need a record pls).");
@@ -106,7 +106,7 @@ namespace LEX
 
 		int64_t size = (int64_t)list.size();
 
-		scope->Release([&](std::vector<Operation>* out)
+		scope->Release([&](std::vector<Instruction>* out)
 			{
 				auto size = (int64_t)list.size();
 

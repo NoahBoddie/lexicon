@@ -1,64 +1,63 @@
 #pragma once
 
+#include "Lexicon/ITemplateBodyPart.h"
 
 namespace LEX
 {
 	struct Solution;
 
 
-	struct TargetObject
+	struct TargetObject : public ITemplateBodyPart
 	{
+		//TODO: Award TargetObject the ability to get RoutineCompiler's target object.
+
 		enum Flag : uint8_t
 		{
-			None		= 0 << 0,
-			Explicit	= 1 << 0,
-			Assign		= 1 << 1,//When the target object is instead the expected assigning type.
+			None = 0 << 0,
+			Implicit = 1 << 0,
 		};
 
+		//This should be the ITemplatePart/Body that is used in the MergeTemplate. The array it uses should come from the target
+		// solution, being empty if there is no solution. The Solution should use the ITypeInfo to get the templates used on it.
 
-		//Size isn't used to its fullest
+		Solution* target = nullptr;
+		TargetObject* const prev = nullptr;
+		TargetObject*& slot;
+		Flag			flag = Flag::None;
+		
+		//The compiler would have it's hand on who stores incompletes. So, use that instead of the target
+		//RoutineCompiler* compiler = nullptr;
+		
+		//Might store the span here just to make it less ass to pull.
 
-		//So issue, this actually used to use a solution, and rightfully so. Target object
-		// as itself 
+
+		size_t GetSize() const override;
+
+		ITypeInfo* GetPartArgument(size_t i) const override;
+
+		TypeInfo* GetBodyArgument(size_t i) const override;
+
+
+		GenericBase* GetClient() const override;
 
 
 
+		bool IsValid() const;
 
-
-		Solution*		target = nullptr;
-		TargetObject*	prev = nullptr;
-		Flag			flag = Flag::Explicit;
-
-		//Purges the use of assigning TargetObjects. This is used when returning or when assigning for implicit
-		// constuction knowledge.
-		TargetObject* GetCallTarget()
-		{
-			if (this){
-				return flag & Flag::Assign ? prev->GetCallTarget() : this;
-			}
-			
-			return nullptr;
-		}
-
-		//Reverse of call target, this gets the target of an assignment or return. Useful for ternary statements
-		TargetObject* GetAssignTarget()
-		{
-			if (this) {
-				return flag & Flag::Assign ? this : prev->GetAssignTarget();
-			}
-
-			return nullptr;
-		}
+		bool IsResolved() const override;
 
 
 		bool IsExplicit() const
 		{
-			return flag & Flag::Explicit;
+			return !IsImplicit();
 		}
 
 		bool IsImplicit() const
 		{
-			return !IsExplicit();
+			if (!this)
+				return true;
+
+			return flag & Flag::Implicit;
 		}
 
 		Solution* GetSolution()
@@ -66,14 +65,14 @@ namespace LEX
 			return this ? target : nullptr;
 		}
 
-		TargetObject(Solution& t, TargetObject* p, Flag f) : target{ &t }, prev{ p }, flag{ f }
+		TargetObject(Solution* t, TargetObject*& p, Flag f = Flag::None) : target{ t }, slot {p}, prev{p}, flag{f}
 		{
-
+			slot = this;
 		}
 
-		TargetObject(Solution& t, TargetObject* p = nullptr, bool b = false) : target{ &t }, prev{ p }, flag{ b ? Explicit : None }
+		~TargetObject()
 		{
-
+			slot = prev;
 		}
 	};
 }

@@ -9,7 +9,6 @@
 
 namespace LEX
 {
-	class RoutineArgument;
 	class Component;
 	
 	ENUM(ComponentFlag, uint8_t)
@@ -223,6 +222,9 @@ namespace LEX
 
 			auto end = _linkerContainer.end();
 
+			//std::vector <Component*> linkAfter{};
+			std::vector <Component*> finished{};
+
 			for (auto it = _linkerContainer.begin(); it != _linkerContainer.end();)
 			{
 				LinkFlag& tasks = it->second;
@@ -233,21 +235,30 @@ namespace LEX
 
 				bool invalid = false;
 
-				if (!flag)
-					goto _continue;
+				if (flag)
+				{
+					LinkResult result = LinkResult::Failure;
 
 
-				//Its also possible the impl version of the call can do this for me.
-				if (target->OnLink(flag) == LinkResult::Success) {
-					target->FlagAsValid();
+					try
+					{
+						result = target->OnLink(flag);
+					}
+					catch (LEX::Error& error){}//Nothing special, just an error.
+
+					//Its also possible the impl version of the call can do this for me.
+					if (result == LinkResult::Success) {
+						target->FlagAsValid();
+						//linkAfter.push_back(target);
+					}
+					else {
+						target->FlagAsInvalid();
+					}
+
+
+					//If the validation has failed, it will cease to attempt to validate it.
+					invalid = target->InvalidFlag();
 				}
-				else {
-					target->FlagAsInvalid();
-				}
-
-
-				//If the validation has failed, it will cease to attempt to validate it.
-				invalid = target->InvalidFlag();
 
 				if ((tasks &= ~flag) && !invalid)
 				{
@@ -258,7 +269,7 @@ namespace LEX
 				{
 					auto del = it;
 					it++;
-
+					finished.push_back(target);
 					//if (can_validate)
 						target->TryValidate();
 					//_linkerContainer.erase(del);
@@ -272,6 +283,15 @@ namespace LEX
 			_linkCheckFlags |= flags;
 
 			LinkMessenger::instance->Dispatch(message_flags);
+
+			//for (auto& target : linkAfter) {
+			//	auto link_flag = target->OnLink();
+			//}
+
+
+			for (auto& target : finished) {
+				target->OnLinkComplete();
+			}
 
 
 			logger::trace("Finalized linkage: {}", magic_enum::enum_name(flags));
@@ -334,9 +354,13 @@ namespace LEX
 		//more protected. By default, this is a question about the options of the derived class.
 		virtual bool GetValid() const { return true; }
 		
+		bool IsFlaggedSuccess() const
+		{
+			return (_flags & ComponentFlag::Validation) == ComponentFlag::Success;
+		}
 		bool IsValid() const
 		{
-			return (_flags & ComponentFlag::Validation) == ComponentFlag::Success && GetValid();
+			return IsFlaggedSuccess() && GetValid();
 		}
 
 		//Checks flag and also the linker cache

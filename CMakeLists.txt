@@ -2,10 +2,19 @@ cmake_minimum_required(VERSION 3.21)
 
 # ---- Project ----
 
+set(PARENT_NAME "${PROJECT_NAME}")
+
 project(
 	Lexicon
 	LANGUAGES CXX
 )
+
+if (NOT PARENT_NAME)
+	set(PARENT_NAME "${PROJECT_NAME}")
+endif()
+
+
+
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,6 +29,22 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
 )
 endif()
 
+
+#TODO: use this and a build setting to determine if this is trying to make a source plugin or if it's an interface
+#message("Options:")
+#option(LEXICON_SOURCE "Marks project as source binary for Lexicon." ON)
+#option(TEST_BUILD "Tries to use test build for lexicon." ON)#if project is self, allow test builds.
+
+if (PARENT_NAME STREQUAL PROJECT_NAME)
+	set(TEST_BUILD ON)
+endif()
+
+if (CMAKE_PROJECT_NAME STREQUAL PARENT_NAME)
+	message("* LEXICON_SOURCE = ON")
+    set(LEXICON_SOURCE ON)
+endif()
+
+set(BOOST_REGEX_STANDALONE ON CACHE BOOL "" FORCE)
 # ---- Dependencies ----
 
 find_package(fmt REQUIRED CONFIG)
@@ -29,99 +54,299 @@ find_package(spdlog REQUIRED CONFIG)
 
 # ---- Add source files ----
 
-set(headers 
 
-include/Lexicon.h
-#include/Lexicon/Impl/LexComponent.h
-#include/Lexicon/Impl/TOMLHandler.h
-#include/Lexicon/Impl/Exception.h
-include/Lexicon/Impl/Parser.h
-include/Lexicon/Impl/ParseModule.h
- "include/Lexicon/Impl/Field.h" "include/Lexicon/Impl/Instruction.h" "include/Lexicon/Impl/RuntimeVariable.h" "include/Lexicon/Impl/Target.h"  "include/Lexicon/Impl/InstructionType.h" "include/Lexicon/Impl/RoutineBase.h" "include/Lexicon/Impl/Solution.h" "include/Lexicon/Impl/RoutineCompiler.h" "include/Lexicon/Impl/Scope.h" "include/Lexicon/Impl/LiteralManager.h" "include/Lexicon/Impl/IVariable.h" "include/Lexicon/Impl/GlobalVariable.h" "include/Lexicon/Impl/Runtime.h" "include/Lexicon/Impl/MemberPointer.h" "include/Lexicon/Impl/OperatorType.h" "include/Lexicon/Impl/ICallableUnit.h" "include/Lexicon/Impl/Number.h"
- "include/Lexicon/Impl/Literal.h" 
- "include/Lexicon/Impl/FunctionHandle.h" 
- "include/Lexicon/Impl/Delegate.h" 
- "include/Lexicon/Impl/Array.h" 
- "include/Lexicon/Impl/IdentityManager.h" 
- "include/Lexicon/Impl/Origin.h" 
- "include/Lexicon/Impl/Report.h" 
- "include/Lexicon/Impl/BasicQualifier.h" 
- "include/Lexicon/Impl/RuntimeQualifier.h" 
- "include/Lexicon/Impl/InfoBase.h" 
- "include/Lexicon/Impl/TemporaryInfo.h" 
- "include/Lexicon/Impl/MemberInfo.h" 
- "include/Lexicon/Impl/AccessModifier.h" 
- "include/Lexicon/Impl/LocalInfo.h" 
- "include/Lexicon/Impl/ParameterInfo.h" 
- "include/Lexicon/Impl/VariableInfo.h" 
- "include/Lexicon/Impl/FunctionInfo.h" 
- "include/Lexicon/Impl/FunctionData.h" 
- "include/Lexicon/Impl/FunctionBase.h" 
- "include/Lexicon/Impl/ConcreteFunction.h" 
- "include/Lexicon/Impl/PolicyData.h" 
- "include/Lexicon/Impl/PolicyBase.h" 
- "include/Lexicon/Impl/ConcretePolicy.h" 
- "include/Lexicon/Impl/External.h" 
- "include/Lexicon/Impl/ExternalHandle.h"
- "include/Lexicon/Impl/ExternalManager.h"
- "include/Lexicon/Impl/ExternalInterface.h"
- "include/Lexicon/Impl/VariableType.h" 
- "include/Lexicon/Impl/Default.h" 
- "include/Lexicon/Impl/TargetObject.h" 
- "include/Lexicon/Impl/Overload.h" 
- "include/Lexicon/Impl/ParamInput.h" 
- "include/Lexicon/Impl/GenericInput.h"
- "include/Lexicon/Impl/OverloadKey.h" 
- "include/Lexicon/Impl/OverloadClause.h"
- "include/Lexicon/Impl/OverloadInput.h" 
- "include/Lexicon/Impl/SearchPredicate.h"  
- "include/Lexicon/Impl/DeclareSpecifier.h" 
- "include/Lexicon/Impl/VoidPolicy.h" 
- "include/Lexicon/Impl/QualifiedType.h" 
- "include/Lexicon/Impl/Qualifier.h" 
- "include/Lexicon/Impl/Object.h" 
- "include/Lexicon/Impl/ObjectPolicyHandle.h"
- "include/Lexicon/Impl/ObjectPolicy.h" 
- "include/Lexicon/Impl/ObjectPolicyManager.h" 
- "include/Lexicon/Impl/ObjectInfo.h" 
- "include/Lexicon/Impl/ObjectPoolData.h" 
- "include/Lexicon/Impl/Declaration.h" 
- "include/Lexicon/Impl/HeaderSettings.h" 
- "include/Lexicon/Impl/Interface.h" 
- "include/Lexicon/Impl/InterfaceManager.h" 
- "include/Lexicon/Impl/InterfaceSingleton.h"
- "include/Lexicon/Impl/HierarchyData.h"
- "include/Lexicon/Impl/Versioning.h"  "include/Lexicon/Impl/VersionDeclareSpace.h" "include/Lexicon/Impl/DataType.h" "include/Lexicon/Impl/QualifiedField.h" "include/Lexicon/Impl/GlobalData.h" "include/Lexicon/Impl/Conversion.h" "include/Lexicon/Impl/OverloadEntry.h" "include/Lexicon/Impl/OverloadSection.h" "include/Lexicon/Impl/OverloadFlag.h" "include/Lexicon/Impl/InheritData.h" "include/Lexicon/Impl/CompileUtility.h" "include/Lexicon/Impl/parse_strings.h" "include/Lexicon/Impl/ProcedureHandler.h" "include/Lexicon/Impl/Dispatcher.h" "include/Lexicon/Impl/Unvariable.h" "include/Lexicon/Impl/String.h")
+
+
+if(LEXICON_SOURCE)
+	set(master_headers
+		
+
+		native/include/Lexicon/Engine.h
+		native/include/Lexicon/Engine/Impl/EngineEnum.h
+		
+		native/include/Lexicon/Engine/TempConstruct.h
+		"native/include/Lexicon/Engine/TestField.h"
+		"native/include/Lexicon/Engine/TestFieldB.h"
+		"native/include/Lexicon/Engine/QualifiedField.h"
+		native/include/Lexicon/Engine/CompileUtility.h
+		native/include/Lexicon/Engine/ConcreteGlobal.h
+		native/include/Lexicon/Engine/ConcreteFunction.h
+		native/include/Lexicon/Engine/ConcreteType.h
+		native/include/Lexicon/Engine/Declaration.h
+		native/include/Lexicon/Engine/Expression.h
+		native/include/Lexicon/Engine/ExpressionType.h
+		native/include/Lexicon/Engine/FunctionBase.h
+		native/include/Lexicon/Engine/GlobalBase.h
+		native/include/Lexicon/Engine/FunctionData.h
+		native/include/Lexicon/Engine/FunctionInfo.h
+		native/include/Lexicon/Engine/GlobalData.h
+		native/include/Lexicon/Engine/GlobalVariable.h
+		native/include/Lexicon/Engine/HeaderSettings.h
+		native/include/Lexicon/Engine/HierarchyData.h
+		native/include/Lexicon/Engine/InfoBase.h
+		native/include/Lexicon/Engine/InheritData.h
+		native/include/Lexicon/Engine/InputStream.h
+		native/include/Lexicon/Engine/Instruction.h
+		native/include/Lexicon/Engine/InstructionType.h
+		native/include/Lexicon/Engine/Literal.h
+		native/include/Lexicon/Engine/LiteralManager.h
+		native/include/Lexicon/Engine/LocalInfo.h
+		native/include/Lexicon/Engine/MemberInfo.h
+		native/include/Lexicon/Engine/Operand.h
+		native/include/Lexicon/Engine/OperandType.h
+		native/include/Lexicon/Engine/Operation.h
+		native/include/Lexicon/Engine/OperatorType.h
+		native/include/Lexicon/Engine/Overload.h
+		native/include/Lexicon/Engine/OverloadClause.h
+		native/include/Lexicon/Engine/OverloadEntry.h
+		native/include/Lexicon/Engine/OverloadFlag.h
+		native/include/Lexicon/Engine/OverloadInput.h
+		native/include/Lexicon/Engine/OverloadKey.h
+		native/include/Lexicon/Engine/ParameterInfo.h
+		native/include/Lexicon/Engine/parse_strings.h
+		native/include/Lexicon/Engine/ParseHandler.h
+		native/include/Lexicon/Engine/ParseModule.h
+		native/include/Lexicon/Engine/Parser.h
+		native/include/Lexicon/Engine/ParserTest.h
+		native/include/Lexicon/Engine/TypeBase.h
+		native/include/Lexicon/Engine/PolicyData.h
+		native/include/Lexicon/Engine/ProcessContext.h
+		native/include/Lexicon/Engine/Register.h
+		native/include/Lexicon/Engine/RoutineBase.h
+		native/include/Lexicon/Engine/RoutineCompiler.h
+		native/include/Lexicon/Engine/Scope.h
+		native/include/Lexicon/Engine/Signature.h
+		native/include/Lexicon/Engine/Solution.h
+		native/include/Lexicon/Engine/Target.h
+		native/include/Lexicon/Engine/TargetObject.h
+		native/include/Lexicon/Engine/Token.h
+		native/include/Lexicon/Engine/Tokenizer.h
+		native/include/Lexicon/Engine/TokenStream.h
+		native/include/Lexicon/Engine/TokenType.h
+		native/include/Lexicon/Engine/VariableInfo.h
+		native/include/Lexicon/Engine/VoidPolicy.h
+		native/include/Lexicon/Engine/GlobalInfo.h
+		"native/include/Lexicon/Engine/Element.h"
+		"native/include/Lexicon/Engine/Environment.h"
+		"native/include/Lexicon/Engine/Project.h"
+		"native/include/Lexicon/Engine/Script.h"
+		"native/include/Lexicon/Engine/SpecialBase.h"
+		"native/include/Lexicon/Engine/GenericType.h" 
+		"native/include/Lexicon/Engine/DynamicTupleElement.h" 
+		"native/include/Lexicon/Engine/TemplateTuple.h" 
+		"native/include/Lexicon/Engine/Component.h"
+		"native/include/Lexicon/Engine/SettingManager.h"
+		"native/include/Lexicon/Engine/DefaultClient.h" 
+		"native/include/Lexicon/Engine/SyntaxRecord.h" 
+		"native/include/Lexicon/Engine/BasicFormula.h"
+		"native/include/Lexicon/Engine/Runtime.h"
+		native/include/Lexicon/Engine/OperatorSetting.h
+		native/include/Lexicon/Engine/Impl/FunctionRegister.h
+		native/include/Lexicon/Engine/IElementImpl.h
+		native/include/Lexicon/Engine/Impl/IElementHeader.h
+		native/include/Lexicon/Engine/Impl/IElementSource.h
+		"native/include/Lexicon/Engine/IssueTable.h"
+		"native/include/Lexicon/Engine/SpecialType.h"
+		"native/include/Lexicon/Engine/ITypeInfoImpl.h"
+		native/include/Lexicon/Engine/QualifiedType.h
+		"native/include/Lexicon/Engine/Field.h"
+		"native/include/Lexicon/Engine/IFunctionImpl.h"
+		"native/include/Lexicon/Engine/IGlobalImpl.h"
+		"native/include/Lexicon/Engine/ObjectPolicyImpl.h"
+		"native/include/Lexicon/Engine/ParseUtility.h"
+		"native/include/Lexicon/Engine/QualifiedName.h"
+		"native/include/Lexicon/Engine/FunctionNode.h"
+		"native/include/Lexicon/Engine/GenericFunction.h"
+		"native/include/Lexicon/Engine/SpecialFunction.h"
+		"native/include/Lexicon/Engine/ModuleChain.h"
+		"native/include/Lexicon/Engine/RuntimeUtility.h"
+		"native/include/Lexicon/Engine/Conversion.h"
+
+	)
+		
+
+	set(master_sources
+	
+		"native/src/Lexicon/Engine/QualifiedField.cpp"
+		native/src/Lexicon/Engine/CompileUtility.cpp
+		native/src/Lexicon/Engine/GenericBase.cpp
+		native/src/Lexicon/Engine/ConcreteFunction.cpp
+		native/src/Lexicon/Engine/ConcreteType.cpp
+		native/src/Lexicon/Engine/Declaration.cpp
+		native/src/Lexicon/Engine/FunctionBase.cpp
+		native/src/Lexicon/Engine/HierarchyData.cpp
+		native/src/Lexicon/Engine/InputStream.cpp
+		native/src/Lexicon/Engine/Literal.cpp
+		native/src/Lexicon/Engine/LiteralManager.cpp
+		native/src/Lexicon/Engine/Operand.cpp
+		native/src/Lexicon/Engine/Instruction.cpp
+		native/src/Lexicon/Engine/OverloadEntry.cpp
+		native/src/Lexicon/Engine/OverloadInput.cpp
+		native/src/Lexicon/Engine/OverloadKey.cpp
+		native/src/Lexicon/Engine/ParseHandler.cpp
+		native/src/Lexicon/Engine/ParseModule.cpp
+		native/src/Lexicon/Engine/Parser.cpp
+		native/src/Lexicon/Engine/TypeBase.cpp
+		native/src/Lexicon/Engine/ProcessContext.cpp
+		native/src/Lexicon/Engine/RoutineCompiler.cpp
+		native/src/Lexicon/Engine/Scope.cpp
+		native/src/Lexicon/Engine/TempConstruct.cpp
+		native/src/Lexicon/Engine/Tokenizer.cpp
+		native/src/Lexicon/Engine/TokenStream.cpp
+		native/src/Lexicon/Engine/VariableInfo.cpp
+		native/src/Lexicon/Engine/VoidPolicy.cpp
+		native/src/Lexicon/Engine/InfoBase.cpp
+		native/src/Lexicon/Engine/GlobalBase.cpp
+		native/src/Lexicon/Engine/Script.cpp
+		native/src/Lexicon/Engine/Element.cpp
+		native/src/Lexicon/Engine/Environment.cpp	
+		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
+		"native/src/Lexicon/Engine/Component.cpp"
+		native/src/Lexicon/Engine/Project.cpp
+		src/Lexicon/Interfaces/IdentityManager.cpp
+		src/Lexicon/Interfaces/InterfaceManager.cpp
+		src/Lexicon/Interfaces/ProcedureHandler.cpp
+		src/Lexicon/Interfaces/ProjectManager.cpp
+		src/Lexicon/Interfaces/LinkMessenger.cpp
+		"native/src/Lexicon/Engine/GenericType.cpp"
+		"native/src/Lexicon/Engine/TemplateType.cpp" 
+		src/Lexicon/Interfaces/FormulaManager.cpp
+		"src/Lexicon/Interfaces/ReportManager.cpp"
+		"native/src/Lexicon/Engine/SettingManager.cpp"
+		"native/src/Lexicon/Engine/FunctionData.cpp" 
+		"native/src/Lexicon/Engine/SyntaxRecord.cpp"
+		"native/src/Lexicon/Engine/IElementImpl.cpp"
+		"native/src/Lexicon/Engine/IProjectImpl.cpp" 
+		"native/src/Lexicon/Engine/IScriptImpl.cpp"
+		"native/src/Lexicon/Engine/TargetObject.cpp"
+		"native/src/Lexicon/Engine/SpecialBase.cpp"
+		native/src/Lexicon/Engine/QualifiedType.cpp
+		"native/src/Lexicon/Engine/Field.cpp"
+		"native/src/Lexicon/Engine/ITypeInfoImpl.cpp"
+		"native/src/Lexicon/Engine/Conversion.cpp"
+		"native/src/Lexicon/Engine/GenericFunction.cpp"
+		)
+else()
+	set (master_headers )
+	set (master_sources )
+endif()
+
+set(headers
+	include/Lexicon.h
+	"include/Lexicon/Global.h"
+	include/Lexicon/Formula.h
+	"include/Lexicon/Function.h"
+	include/Lexicon/TypeInfo.h
+	
+	include/Lexicon/Array.h
+	include/Lexicon/DataType.h
+	"include/Lexicon/Specifier.h"
+	include/Lexicon/Default.h
+	include/Lexicon/Dispatcher.h
+	include/Lexicon/Exception.h
+	
+	include/Lexicon/ICallableUnit.h
+	"include/Lexicon/IFunction.h"
+	
+	
+	include/Lexicon/ISpecial.h
+	"include/Lexicon/ITypeInfo.h"
+	"include/Lexicon/IGlobal.h"
+	
+	include/Lexicon/MemberPointer.h
+	include/Lexicon/Number.h
+	include/Lexicon/Object.h
+	include/Lexicon/ObjectData.h
+	include/Lexicon/ObjectInfo.h
+	include/Lexicon/ObjectPolicy.h
+	include/Lexicon/ObjectPolicyHandle.h
+	"include/Lexicon/Interfaces/ObjectPolicyManager.h"
+	include/Lexicon/ObjectPoolData.h
+	include/Lexicon/Qualifier.h
+	include/Lexicon/Report.h
+	include/Lexicon/RuntimeVariable.h
+	include/Lexicon/String.h
+	include/Lexicon/TypeAliases.h
+	include/Lexicon/TypeID.h
+	include/Lexicon/Unvariable.h
+	include/Lexicon/Variable.h
+	include/Lexicon/VariableType.h
+	
+	include/Lexicon/Versioning.h
+	include/Lexicon/Impl/PCH.h
+	include/Lexicon/Impl/ref_wrapper.h
+	include/Lexicon/Interfaces/IdentityManager.h
+	include/Lexicon/Interfaces/Interface.h
+	"include/Lexicon/Interfaces/InterfaceManager.h"
+	include/Lexicon/Interfaces/InterfaceSingleton.h
+	include/Lexicon/Interfaces/ProcedureHandler.h
+	include/Lexicon/Interfaces/ProjectManager.h
+	"include/Lexicon/Interfaces/IElement.h" 
+	"include/Lexicon/Interfaces/IEnvironment.h"
+	"include/Lexicon/Interfaces/IScript.h" 
+	"include/Lexicon/Interfaces/IProject.h"
+	"include/Lexicon/Interfaces/ProjectClient.h"
+	"include/Lexicon/SignatureBase.h" 
+	"include/Lexicon/IRuntime.h"
+	"include/Lexicon/ProcedureData.h" 
+	"include/Lexicon/InherentType.h"
+	"include/Lexicon/ElementType.h" 
+	"include/Lexicon/RelateType.h"
+	"include/Lexicon/IFormula.h"
+	"include/Lexicon/Interfaces/FormulaManager.h"
+	"include/Lexicon/FormulaHandler.h"
+	"include/Lexicon/Interfaces/ReportManager.h" 
+	"include/Lexicon/Impl/common_type.h" 
+	include/Lexicon/ITypeInfo.hpp
+	include/Lexicon/TypeInfo.hpp
+	include/Lexicon/IFunction.hpp
+	include/Lexicon/Function.hpp
+	include/Lexicon/IGlobal.hpp
+	include/Lexicon/Global.hpp
+	include/Lexicon/ObjectPolicy.hpp
+	 
+	
+	"include/Lexicon/IElementProxy.h"
+	"include/Lexicon/IElementProxy.h"
+	"include/Lexicon/Issue.h"
+	"include/Lexicon/Interfaces/LinkMessenger.h"
+	${master_headers}
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h" )
+
 
 set(sources
-#src/main.cpp
-"include/Lexicon/Impl/TempConstruct.h" 
-src/Lexicon/Impl/Parser.cpp
-src/Lexicon/Impl/ParseModule.cpp
-src/Lexicon/Impl/ParseHandler.cpp
-src/Lexicon/Impl/ProcessContext.cpp
-src/Lexicon/Impl/InputStream.cpp
-src/Lexicon/Impl/TokenStream.cpp
-src/Lexicon/Impl/TokenHandler.cpp
-src/Lexicon/Component.cpp
-"include/Lexicon/Impl/Literal.cpp"
-include/Lexicon/Impl/LiteralManager.cpp
- "src/Lexicon/Impl/Element.cpp" "src/Lexicon/Impl/Script.cpp" "src/Lexicon/Impl/ProjectManager.cpp" "src/Lexicon/Impl/Project.cpp" "include/Lexicon/Impl/Operand.cpp" "include/Lexicon/Impl/Operation.cpp"
- "include/Lexicon/Impl/Declaration.cpp"
- "include/Lexicon/Impl/TempConstruct.cpp" "include/Lexicon/Impl/TypeID.cpp" "include/Lexicon/Impl/RoutineCompiler.cpp" "include/Lexicon/Impl/ITypePolicy.cpp" "include/Lexicon/Impl/AbstractTypePolicy.cpp" "include/Lexicon/Impl/IdentityManager.cpp" "include/Lexicon/Impl/Environment.cpp" "include/Lexicon/Impl/PolicyBase.cpp" "include/Lexicon/Impl/ExternalInterface.cpp" "include/Lexicon/Impl/FunctionBase.cpp" "include/Lexicon/Impl/ConcreteFunction.cpp" "include/Lexicon/Impl/ICallableUnit.cpp" "include/Lexicon/Impl/Scope.cpp" "include/Lexicon/Impl/OverloadInput.cpp" "include/Lexicon/Impl/ParamInput.cpp" "include/Lexicon/Impl/Variable.cpp" "include/Lexicon/Impl/VariableType.cpp" "include/Lexicon/Impl/Field.cpp" "include/Lexicon/Impl/VariableInfo.cpp" "include/Lexicon/Impl/ObjectPolicyHandle.cpp" "include/Lexicon/Impl/ConcretePolicy.cpp" "include/Lexicon/Impl/InterfaceManager.cpp" "include/Lexicon/Impl/ObjectPolicy.cpp"  "include/Lexicon/Impl/ObjectPolicyManager.cpp" "include/Lexicon/Impl/QualifiedType.cpp" "include/Lexicon/Impl/OverloadKey.cpp"  "include/Lexicon/Impl/VoidPolicy.cpp" "include/Lexicon/Impl/ProcedureHandler.cpp" "include/Lexicon/Impl/Dispatcher.cpp" "include/Lexicon/Impl/Signature.h" "include/Lexicon/Impl/OverloadEntry.cpp" "include/Lexicon/Impl/HierarchyData.cpp")
- 
+	src/Lexicon/TypeInfo.cpp
+	src/Lexicon/Dispatcher.cpp
+
+	
+	src/Lexicon/ICallableUnit.cpp
+	"src/Lexicon/ITypeInfo.cpp"
+	src/Lexicon/ObjectPolicy.cpp
+	src/Lexicon/ObjectPolicyHandle.cpp
+	
+	src/Lexicon/TypeID.cpp
+	src/Lexicon/Variable.cpp
+	src/Lexicon/VariableType.cpp
+	src/Lexicon/ITemplatePart.cpp
+
+	"src/Lexicon/ObjectInfo.cpp"
+	"include/Lexicon/Report.cpp"#this is in the wrong place.
+
+	"src/Lexicon/FormulaHandler.cpp"
+	"src/Lexicon/Object.cpp"
+	"src/Lexicon/Impl/PCH.cpp"
+	${master_sources}
+	  "src/Lexicon/Reflection.cpp")
+
+
+
+
 source_group(
 	TREE
 		${CMAKE_CURRENT_SOURCE_DIR}
 	FILES
 		${headers}
 		${sources}
-)
-
-source_group(
-	TREE
-		${CMAKE_CURRENT_SOURCE_DIR}/bignato
-	FILES
 )
 
 # ---- Create library ----
@@ -158,7 +383,10 @@ endif()
 
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-target_sources( Lexicon PRIVATE "include/Lexicon/Impl/Default.h" )
+
+
+
+
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_compile_features(
@@ -167,36 +395,78 @@ target_compile_features(
 		cxx_std_23
 )
 
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/bignato/include") 
+if(LEXICON_SOURCE)
+
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include" 
+					"${CMAKE_CURRENT_SOURCE_DIR}/native/include" 
+#					"${CMAKE_CURRENT_SOURCE_DIR}/include/Lexicon"
+#					"${CMAKE_CURRENT_SOURCE_DIR}/include/Lexicon/Interfaces"
+) 
+
+
 
 
 
 #I moved this in myself
 target_include_directories(${PROJECT_NAME}
         ${PRIVATE_ACCESS}
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/native/src>
         $<INSTALL_INTERFACE:src>)
 
 #interface
+
 
 #was explicitly public, should be private??
 target_include_directories(${PROJECT_NAME}
         ${PUBLIC_ACCESS}
 		${fmt_INCLUDE_DIRS}
 		${spdlog_INCLUDE_DIRS}
-        #$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/bignato/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/native/include>
 )
+
+else()
+	
+	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include"
+	) 
+
+
+
+
+
+	#I moved this in myself
+	target_include_directories(${PROJECT_NAME}
+			${PRIVATE_ACCESS}
+			$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
+			$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+			$<INSTALL_INTERFACE:src>)
+
+	#interface
+
+
+	#was explicitly public, should be private??
+	target_include_directories(${PROJECT_NAME}
+			${PUBLIC_ACCESS}
+			${fmt_INCLUDE_DIRS}
+			${spdlog_INCLUDE_DIRS}
+			$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	)
+endif()
 
 
 #was explicit
 target_precompile_headers(${PROJECT_NAME}
         ${PRIVATE_ACCESS}
-        src/Lexicon/PCH.h)
+        include/Lexicon/Impl/PCH.h)
 
-#rogues gallery stuff
-set(RoguePath "C:/Users/Noah/Desktop/Modding/[Lab]/{Lab Tools}/RoguesGallery")
+
+
+if (NOT RoguePath)
+	cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH CMAKE_REPO_DIR)
+	set(RoguePath "${CMAKE_REPO_DIR}/RoguesGallery")
+endif()
 
 
 add_subdirectory(${RoguePath} RoguesGallery)
@@ -287,16 +557,17 @@ install(
 	EXPORT ${PROJECT_NAME}-targets
 )
 
-
 install(
 	DIRECTORY include/
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
+if(LEXICON_SOURCE)
 
-install(
-	DIRECTORY bignato/include/
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+	install(
+		DIRECTORY native/include/
+		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	)
+endif()
 
 configure_file(
 	cmake/config.cmake.in
@@ -320,12 +591,58 @@ install(
 
 
 
+get_target_property(BINARY_TYPE ${PARENT_NAME} TYPE)
+message(${BINARY_TYPE})
+if (${BINARY_TYPE} STREQUAL EXECUTABLE)
+	set(BINARY_TYPE exe)
+elseif (${BINARY_TYPE} STREQUAL SHARED_LIBRARY)
+	set(BINARY_TYPE dll)
+else()
+	#This is an error option, lib should never find its way into this.
+	# IE, if there's no test build version, this shit has to find its way out of here.
+	set(BINARY_TYPE lib)
+endif()
+
+if (CMAKE_PROJECT_NAME STREQUAL PARENT_NAME)
+    target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_SOURCE=1
+	)
+
+    #when this gets ported out, please use it to also determine what the primary source is as well
+endif()
+
+target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_BINARY_MODULE=\"${PARENT_NAME}.${BINARY_TYPE}\"
+	)
+
+
+if (SETTING_PATH)
+
+	target_compile_definitions(
+		"${PROJECT_NAME}"
+		PUBLIC
+			SETTING_PATH="${SETTING_PATH}"
+		)
+
+	target_compile_definitions(
+		"${PARENT_NAME}"
+		PUBLIC
+			SETTING_PATH="${SETTING_PATH}"
+	)
+endif()
+
 #///Executable Test
 #add_executable (${PROJECT_NAME}_Test ${sources})
+if(LEXICON_SOURCE AND TEST_BUILD)
 	add_executable (${PROJECT_NAME}_Test 
-	"include/Lexicon/Impl/TempConstruct.cpp"
+	native/src/Lexicon/Engine/TempConstruct.cpp
 	"src/main.cpp")
 
+	
 	#for the includes of this project? For when #include is being used?
 	target_include_directories(
 		"${PROJECT_NAME}_Test"
@@ -343,7 +660,7 @@ install(
 			${spdlog_INCLUDE_DIRS}
 			#${RAPIDCSV_INCLUDE_DIRS}
 	)
-
+	
 	#Unsure what does, will not use.
 	#target_compile_definitions(
 	#	"${PROJECT_NAME}Tests"
@@ -366,6 +683,30 @@ install(
 	target_precompile_headers(
 		"${PROJECT_NAME}_Test"
 		PRIVATE
-			src/Lexicon/PCH.h
+			include/Lexicon/Impl/PCH.h
 	)
-#//#
+
+	#This should be specifically for test builds I guess.
+	target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_BINARY_MODULE=\"${PARENT_NAME}_Test.exe\"
+	)
+
+	
+
+	target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_TEST_SOURCE=1
+	)
+endif()
+
+
+
+#get_target_property(CHECK_TYPE ${PARENT_NAME} TYPE)
+#message(${CHECK_TYPE})
+#if (${CHECK_TYPE} STREQUAL MODULE_LIBRARY)
+#message("TestThing")
+#endif()
+

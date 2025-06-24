@@ -1,5 +1,5 @@
 #pragma once
-#include "Lexicon/Field.h"
+#include "Lexicon/Engine/Field.h"
 
 #include "Lexicon/Qualifier.h"
 
@@ -7,8 +7,8 @@
 //*src
 
 #include "Lexicon/Engine/InfoBase.h"
-#include "Lexicon/QualifiedType.h"
-#include "Lexicon/DeclareSpecifier.h"
+#include "Lexicon/Engine/QualifiedType.h"
+#include "Lexicon/Specifier.h"
 
 
 namespace LEX
@@ -17,19 +17,7 @@ namespace LEX
 
 	struct QualifiedField : public Field
 	{
-		enum struct Constness : uint8_t
-		{
-			kNone,
-			kConst,
-			kReadonly,
-		};
 
-		enum struct RefrType : uint8_t
-		{
-			kNone,
-			kLeft,
-			kRight,
-		};
 
 		//The qualified type could be anything qualifiable, but type seems to be the most likely to pull (well solution, but solutions are type qualified).
 		QualifiedField(Field* field, QualifiedType type = nullptr) : _target{ field }
@@ -39,30 +27,9 @@ namespace LEX
 			if (type)
 			{
 				auto qualifiers = field->GetQualifiers();
+				_constState = qualifiers.constness;
+				_refState = qualifiers.reference;
 
-				switch (type.flags & Qualifier::Constness_)
-				{
-				case Qualifier::Const:
-					//If the field is mutable or readonly, it cannot be made into const.
-					if (FilterEquals<Qualifier::Constness_>(qualifiers, Qualifier::Modable) == false)
-						_constLevel = Constness::kConst; break;
-
-				case Qualifier::Readonly:
-					_constLevel = Constness::kReadonly; break;
-				}
-
-				//If the field has a reference type, that is uses instead.
-				if (!!(qualifiers & Qualifier::Reference_))
-				{
-					switch (type.flags & Qualifier::Reference_)
-					{
-					case Qualifier::RefL:
-						_refLevel = RefrType::kLeft; break;
-
-					case Qualifier::RefR:
-						_refLevel = RefrType::kRight; break;
-					}
-				}
 			}
 		}
 
@@ -75,10 +42,10 @@ namespace LEX
 
 		Field* _target = nullptr;
 
-		Constness _constLevel = Constness::kNone;
+		Constness _constState = Constness::Modable;
 
 		//Thi
-		RefrType _refLevel = RefrType::kNone;
+		Refness _refState = Refness::Temp;
 
 
 
@@ -92,7 +59,7 @@ namespace LEX
 			return _target->GetFieldType();
 		}
 
-		ITypePolicy* GetType() const override
+		ITypeInfo* GetType() const override
 		{
 			return _target->GetType();
 		}
@@ -107,35 +74,15 @@ namespace LEX
 			auto result = GetRawQualifiers();
 
 
-			if (_constLevel != Constness::kNone)
+			if (result.constness < _constState)
 			{
-				result &= ~Qualifier::Constness_;
-
-				switch (_constLevel)
-				{
-				case Constness::kConst:
-					result |= Qualifier::Const; break;
-
-				case Constness::kReadonly:
-					result |= Qualifier::Readonly; break;
-				}
-
+				result.constness = _constState;
 			}
 
 
-			if (_refLevel != RefrType::kNone)
+			if (_refState != Refness::Temp)
 			{
-				result &= ~Qualifier::Reference_;
-
-				switch (_refLevel)
-				{
-				case RefrType::kLeft:
-					result |= Qualifier::RefL; break;
-
-				case RefrType::kRight:
-					result |= Qualifier::RefR; break;
-				}
-
+				result.reference = _refState;
 			}
 
 

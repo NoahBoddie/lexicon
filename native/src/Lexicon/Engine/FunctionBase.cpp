@@ -4,7 +4,11 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/Declaration.h"
 #include "Lexicon/Engine/RoutineCompiler.h"
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
+
+#include "Lexicon/ProcedureData.h"
+
+#include "Lexicon/Engine/Runtime.h"
 
 #include "Lexicon/Engine/parse_strings.h"
 
@@ -38,114 +42,27 @@ namespace LEX
             report::compile::critical("Not a function, cannot load.");
         }
 
-        _name = target.GetTag();
-	}
-
-    void FunctionBase::OnAttach()
-    {
-		return;
-        SyntaxRecord& target = *GetSyntaxTree();
-
-
-        Environment* environment = GetEnvironment();
-
-        if (!environment) {
-            report::link::error("environ issues cont.");
-        }
-        
+        /*
+        //This makes it search twice, but EH, I don't think I care much. I might seperate declarations from specifiers or make an option
+        // to ignore later. Ain't interface so it's ripe to burn
         SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
         if (!head_rec)
-			report::compile::critical("No record named header.");
-        //LINK_AFTER
+            report::compile::critical("No record named header.");
 
-        Declaration header{ *head_rec, environment };
-
-        if (header.Matches(true, Qualifier::Const) == false) {
-			report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-        }
-
-        //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
-
-        QualifiedType type = QualifiedType{ header };
-
-        //GENERIC_SPACE
-
-        SetReturnType(type);
-
-
-        //STATIC_CHECK
-
-        bool method = false;
-
-        if (auto extend = target.FindChild(parse_strings::extends); extend)
+        
+        SyntaxRecord& decl_spec = *head_rec->FindChild(parse_strings::declare_specifier);
+        auto spec = GetSpecifiersFromStrings(decl_spec);
+        if (spec & SpecifierFlag::External)
         {
-            method = true;
-            
-            auto& tag = extend->GetFront().GetTag();
-
-            _targetType = GetPolicyFromSpecifiers(*extend, environment);
-            //_targetType = environment->TEMPSearchType(tag);
-
-            if (!_targetType) {
-                report::link::error("No type found with the name '{}' (tag not accurate anymore)", tag);
-            }
-            else {
-                logger::debug("I, {}, have type {}", _name, (uint64_t)_targetType);
-            }
-
-            //Is this shit right???? It's using the return type I'm like 100% sure
-
-
-            //Qualifiers like const are put here depending on if the function is const. 
-            // We don't have those post declarations yet.
-            auto& param = parameters.emplace_back(QualifiedType{ type }, parse_strings::this_word, 0);
-
-
-            //Include things like whether this is
-            __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ type }, parse_strings::this_word, 0);
+            _procedure = nullptr;
+            procedureData = -1;
         }
 
+        //*/
 
-        for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->children())
-        {
-            SyntaxRecord* node_head = node.FindChild(parse_strings::header);
-
-            if (!node_head)
-				report::compile::critical("No record named header.");
-
-            Declaration header{ *node_head, environment };
-
-            //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
-            if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
-				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-            }
-
-            QualifiedType type = QualifiedType{ header };
-
-            //auto& tag = node.FindChild("type")->GetFront().GetTag();
-
-            //ITypePolicy* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
-
-            //if (!policy) {
-            //    report::link::error("Parameter type '{}' couldn't be found", tag);
-            //}
-
-            //GENERIC_SPACE
-            
-            //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
-            auto& param = parameters.emplace_back(type, node.GetTag(), static_cast<uint32_t>(parameters.size()));
-
-            
-
-            assert(param.GetType());
-        }
-       
-        if (RoutineCompiler::Compile(_routine, target, this, GetEnvironment()) == false)
-        {
-            FlagAsInvalid();
-        }
-    }
+        _name = target.GetTag();
+	}
 
     void FunctionBase::SetReturnType(QualifiedType type)
     {
@@ -156,7 +73,7 @@ namespace LEX
 
     LinkResult FunctionBase::OnLink(LinkFlag flags)
     {
-        
+
         SyntaxRecord& target = *GetSyntaxTree();
 
         //I would cycle_switch but seems a bit shit.
@@ -164,11 +81,7 @@ namespace LEX
         {
         case LinkFlag::Declaration:
         {
-            Environment* environment = GetEnvironment();
-
-            if (!environment) {
-                report::link::error("environ issues cont.");
-            }
+            //Environment* environment = GetEnvironment();
 
             SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
@@ -176,18 +89,23 @@ namespace LEX
 				report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, environment };
+            //If function is seen as being static, it should not allow for 
 
-            if (header.Matches(true, Qualifier::Const) == false) {
-				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-            }
+            Declaration header = Declaration::Create(*head_rec, this, Refness::Local, HeaderFlag::Mutable);
 
-            if (header.declare & Specifier::External)
+
+            //Declaration header{ *head_rec, this, Refness::Local };
+            //if (header.Matches(DeclareMatches::Constness) == false) {
+			//	report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
+            //}
+
+            if (header.SpecifierFlags() & SpecifierFlag::External)
             {
+                _procedure = nullptr;
                 procedureData = -1;
             }
 
-            //ITypePolicy* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
+            //ITypeInfo* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 
             QualifiedType type = QualifiedType{ header };
 
@@ -206,21 +124,26 @@ namespace LEX
 
                 auto& tag = extend->GetFront().GetTag();
 
-                _targetType = GetPolicyFromSpecifiers(*extend, environment);
-                //_targetType = environment->TEMPSearchType(tag);
+                auto target_type = GetPolicyFromSpecifiers(*extend, this);
+                
 
-                if (!_targetType) {
+                if (!target_type) {
                     report::link::error("No type found with the name '{}' (tag not accurate anymore)", tag);
                 }
                 
 
+
                 //Qualifiers like const are put here depending on if the function is const. 
                 // We don't have those post declarations yet.
-				auto& param = parameters.emplace_back(QualifiedType{ _targetType }, parse_strings::this_word, 0);
-
-                report::fault::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
+				
+                //auto& param = parameters.emplace_back(QualifiedType{ _targetType }, parse_strings::this_word, 0);
+                //report::fault::trace("Adding {} to {}, type {}", param.GetFieldName(), GetName(), param.GetType()->GetName());
+                
                 //Include things like whether this is
-                __thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ _targetType }, parse_strings::this_word, 0);
+
+                
+                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type }, parse_strings::this_word, 0);
+                target_type->SetSelfQualifiers(_thisInfo->qualifiers);
             }
 
 
@@ -231,18 +154,21 @@ namespace LEX
                 if (!node_head)
 					report::compile::critical("No record named header.");
 
-                Declaration header{ *node_head, environment };
+                //Declaration header{ *node_head, this, Refness::Scoped, Refness::Auto };
+                Declaration header = Declaration::Create(*node_head, this, Refness::Scoped, Refness::Auto, 
+                    HeaderFlag::MemberSpecifiers | HeaderFlag::FunctionSpecifiers);
+
 
                 //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
-                if (header.Matches(true, Qualifier::Const | Qualifier::Runtime, DeclareSpecifier::Const) == false) {
-					report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-                }
+                //if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
+				//	report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
+                //}
 
                 QualifiedType type = QualifiedType{ header };
 
                 //auto& tag = node.FindChild("type")->GetFront().GetTag();
 
-                //ITypePolicy* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
+                //ITypeInfo* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
 
                 //if (!policy) {
                 //    report::link::error("Parameter type '{}' couldn't be found", tag);
@@ -251,7 +177,7 @@ namespace LEX
                 //GENERIC_SPACE
 
                 //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
-                auto& param = parameters.emplace_back(type, node.GetTag(), static_cast<uint32_t>(parameters.size()));
+                auto& param = parameters.emplace_back(type, node.GetTag(), GetParamCount());
                 
                 assert(param.GetType());
             }
@@ -265,7 +191,7 @@ namespace LEX
                 if (target.FindChild(parse_strings::code) == nullptr)
                     report::compile::error("Function '{}' doesn't have a body", GetName());
 
-                if (RoutineCompiler::Compile(_routine, target, this, GetEnvironment()) == false){
+                if (RoutineCompiler::Compile(_routine, target, this) == false){
                     return LinkResult::Failure;
                 }
             }
@@ -274,8 +200,10 @@ namespace LEX
 
         case LinkFlag::Final:
         {
-            if (procedureData && !_procedure)
-                report::link::error("Function '{}' did not register a procedure.");
+            if (_procedure.has_value() && _procedure.value() == nullptr) {
+                report::link::failure("Function '{}' did not register a procedure.");
+                return LinkResult::Failure;
+            }
             break;
         }
         break;
@@ -290,12 +218,41 @@ namespace LEX
         return LinkResult::Success;
     }
 
+    void FunctionBase::OnLinkComplete()
+    {
+        //I want a way to fire this off and still have links complete. Gonna take some thought though.
+        //if (GetValid() == false) {
+        //    report::link::warn("Function '{}' didn't register a procedure at the end of linking.", GetName());
+        //}
+    }
+
+    bool FunctionBase::GetValid() const
+    {
+        return !_procedure.has_value() || _procedure.value();
+    }
+
     LinkFlag FunctionBase::GetLinkFlags() 
     {
         //return LinkFlag::None;
         //Needs to handle linking once when declaration happens 
         return LinkFlag::Declaration | LinkFlag::Definition;
     }
+
+
+    RuntimeVariable FunctionBase::BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
+    {
+        if (IsValid() == false) {
+            report::log("Function '{}' is not valid. Maybe say error later.", IssueType::Apply, def ? IssueLevel::Failure : IssueLevel::Error, GetName());
+
+            //disable this warning.
+
+            return *def;
+        }
+
+        return __super::BasicExecute(self, body, args, caller, def);
+    }
+    
+
 
 
 }

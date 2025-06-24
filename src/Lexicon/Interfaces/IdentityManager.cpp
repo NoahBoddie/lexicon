@@ -5,8 +5,8 @@
 
 //src
 #include "Lexicon/Engine/Environment.h"
-#include "Lexicon/Engine/PolicyBase.h"
-#include "Lexicon/ITypePolicy.h"
+#include "Lexicon/Engine/TypeBase.h"
+#include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/VoidPolicy.h"
 
 #include "Lexicon/InherentType.h"
@@ -15,7 +15,7 @@ namespace LEX
 {
 	//KILLME
 	/*
-std::vector<PolicyBase*> Environment::FindTypes(std::string name)
+std::vector<TypeBase*> Environment::FindTypes(std::string name)
 {
 	auto end = typeMap.end();
 
@@ -31,7 +31,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 	inline void test(Record& f)
 	{
-		PolicyBase* base = nullptr;
+		TypeBase* base = nullptr;
 		base->FindTypes("");
 	}
 
@@ -63,7 +63,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	
 	struct PolicyEntry
 	{
-		PolicyBase* policy = nullptr;
+		TypeBase* policy = nullptr;
 		uint32_t index = 0;//Index serves as easy access to a category.
 
 	};
@@ -84,13 +84,13 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 	inline std::mutex _lock;
 	//inline std::vector<IdentityData> dataList;
 	//Policy list starts with an entry immediately. The void policy.
-	inline std::vector<PolicyBase*> policyList{};
+	inline std::vector<TypeBase*> policyList{};
 
 	//TODO: Instead of having to search every identity list, I think I may make a second list that basically points to what index it goes to. 
 	// This is easier to do, but also with the advent of so many different generated object types, it will become more performant to just do this.
 
 
-	inline std::array<PolicyBase*, InherentType::kTotal> inherentTypes
+	inline std::array<TypeBase*, InherentType::kTotal> inherentTypes
 	{
 		new VoidPolicy{}, 
 		new VoidablePolicy{}
@@ -122,14 +122,14 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 
 	
-	PolicyBase* IdentityManager::GetInherentBase(InherentType type)
+	TypeBase* IdentityManager::GetInherentBase(InherentType type)
 	{
 		return inherentTypes[type];
 	}
 	
-	ITypePolicy* IdentityManager::GetInherentType(InherentType type)
+	ITypeInfo* IdentityManager::GetInherentType(InherentType type)
 	{
-		return GetInherentBase(type);
+		return GetInherentBase(type)->AsType();
 	}
 
 
@@ -196,7 +196,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 
 	//This feels like it's really only going to be used for the other 2.
-	TypeID IdentityManager::ClaimID(PolicyBase* policy, uint32_t id)
+	TypeID IdentityManager::ClaimID(TypeBase* policy, uint32_t id)
 	{
 		//Fix.
 		std::lock_guard<std::mutex> guard{ _lock };
@@ -208,7 +208,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		assert(policyList.size() > index);
 
 
-		PolicyBase*& slot = policyList[index];
+		TypeBase*& slot = policyList[index];
 
 		if (slot) {
 			report::compile::critical("Slot for {} (id {}) already taken.", index, id);
@@ -252,7 +252,7 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 		return index;
 	}
 
-	uint32_t IdentityManager::ObtainID(PolicyBase* policy)
+	uint32_t IdentityManager::ObtainID(TypeBase* policy)
 	{
 		//uint32_t nextID = policyList.size();
 
@@ -282,12 +282,12 @@ std::vector<PolicyBase*> Environment::FindTypes(std::string name)
 
 
 	
-	ITypePolicy* IdentityManager::GetTypeByID(TypeID id)
+	ITypeInfo* IdentityManager::GetTypeByID(TypeID id)
 	{
-		return GetBaseByID(id);
+		return GetBaseByID(id)->AsType();
 	}
 	//This too is used often.(What does this mean?)
-	PolicyBase* IdentityManager::GetBaseByID(TypeID id)
+	TypeBase* IdentityManager::GetBaseByID(TypeID id)
 	{
 
 		//TODO: The first type should be the void policy, it should already be generated.

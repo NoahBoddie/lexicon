@@ -25,15 +25,18 @@ namespace LEX
 		//Used for specific handling of versions. Say a function has to change functionality and the expectation is no longer valid.
 
 		virtual bool CanHandle(uintptr_t) const { return true; }
-	
+	};
+
+	struct UnmovableInterface : public Interface
+	{
 	protected:
-		Interface() = default;
+		UnmovableInterface() = default;
 
-		Interface(Interface&&) = delete;
-		Interface(const Interface&) = delete;
+		UnmovableInterface(UnmovableInterface&&) = delete;
+		UnmovableInterface(const UnmovableInterface&) = delete;
 
-		Interface& operator=(Interface&&) = delete;
-		Interface& operator=(const Interface&) = delete;
+		UnmovableInterface& operator=(UnmovableInterface&&) = delete;
+		UnmovableInterface& operator=(const UnmovableInterface&) = delete;
 	};
 
 }
@@ -84,35 +87,47 @@ namespace api
 
 		container(const container& other)
 		{
-			Obtain(other._data, other._size);
+			if(other.IsElement())
+				Obtain(other._data, other._size);
+			else
+				Copy(other);
 		}
 
 		container(container&& other)
 		{
-			Move(other);
+			if (other.IsElement())
+				Obtain(other._data, other._size);
+			else
+				Move(other);
 		}
 
 
 
 		container& operator= (const elem& e)
 		{
-			return Obtain(e.data(), e.size());
+			return Copy(e.data(), e.size());
 		}
 
 		container& operator= (elem&& e)
 		{
-			return Obtain(e.data(), e.size());
+			return Copy(e.data(), e.size());
 		}
 
 
-		container& operator= (const container& c)
+		container& operator= (const container& other)
 		{
-			return Obtain(c._size, c._size);
+			if (other.IsElement())
+				return Obtain(other._data, other._size);
+			else
+				return Copy(other);
 		}
 
-		container& operator= (container&& c)
+		container& operator= (container&& other)
 		{
-			return Move(c);
+			if (other.IsElement())
+				return Obtain(other._data, other._size);
+			else
+				return Move(other);
 		}
 
 		//make const version of this, ensure that it only exists in the event that the self actually has a [].
@@ -195,7 +210,7 @@ namespace api
 
 	private:
 		//Move some of this to container base so it doesn't make extra functions. Though, this shit is probably inline-able
-		enum Enum
+		enum TypeEnum
 		{
 			kEmptyMode,
 			kPointerMode,
@@ -209,6 +224,11 @@ namespace api
 			}
 		}
 
+		bool IsElement() const
+		{
+			return GetMode() == kElementMode;
+		}
+		
 
 
 		elem& Obtain(const_pointer data, size_t size)
@@ -221,10 +241,32 @@ namespace api
 			return *_elem;
 		}
 
+
+
+		container& Copy(uint64_t raw, size_t size)
+		{
+			Clear();
+			
+			//_elem = size ? new elem(data, data + size) : new elem;
+			//_size = k_elementMode;
+			_raw = raw;
+			_size = size;
+
+			return *this;
+		}
+		container& Copy(void* data, size_t size)
+		{
+			return Copy((uintptr_t)data, size);
+		}
+
+		container& Copy(const container& other)
+		{
+			return Copy(other._raw, other._size);
+		}
+
 		container& Move(container& other)
 		{
-			_raw = other._raw;
-			_size = other._size;
+			Copy(other);
 
 			other._raw = 0;
 			other._size = 0;
@@ -233,16 +275,17 @@ namespace api
 		}
 
 
-		Enum GetMode() const
+
+		TypeEnum GetMode() const
 		{
 			if (!_raw)
-				return Enum::kEmptyMode;
+				return TypeEnum::kEmptyMode;
 
 			if (!_size)
-				return Enum::kEmptyMode;
+				return TypeEnum::kEmptyMode;
 
 			if (_size == k_elementMode)
-				return Enum::kElementMode;
+				return TypeEnum::kElementMode;
 
 			return kPointerMode;
 
@@ -341,8 +384,8 @@ namespace api
 	using string = container<std::string>;
 
 	//todo: I think I should probably use std::span more here.
-	template <class T, class Alloc = std::allocator<T>>
-	using vector = container<std::vector<T, Alloc>>;
+	//template <class T, class Alloc = std::allocator<T>>
+	//using vector = container<std::vector<T, Alloc>>;
 	//using 
 
 	/*

@@ -8,14 +8,14 @@
 #include"Lexicon/Versioning.h"
 
 //*src
-#include "Lexicon/ObjectPolicy.h"
+#include "Lexicon/ObjectPolicy.hpp"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {
 
 	//This should be hidden I think?
-	struct OBJECT_POLICY;
+	struct ObjectPolicy;
 
 	namespace Version
 	{
@@ -28,10 +28,10 @@ namespace LEX
 
 				virtual uint32_t GetIndexFromCategory(std::string_view category) = 0;
 
-				virtual OBJECT_POLICY* GetObjectPolicy(uint32_t index) = 0;
+				virtual ObjectPolicy* GetObjectPolicy(uint32_t index) = 0;
 
  
-				virtual OBJECT_POLICY* RegisterObjectType(api::vector<std::string_view> aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source) = 0;
+				virtual ObjectPolicy* RegisterObjectType(ObjectVTable* vtable, const std::span<std::string_view>& aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source) = 0;
 
 			};
 		}
@@ -46,22 +46,22 @@ namespace LEX
 
 		uint32_t GetIndexFromCategory(std::string_view category) INTERFACE_METHOD;
 
-		OBJECT_POLICY* GetObjectPolicy(uint32_t index) INTERFACE_METHOD;
+		ObjectPolicy* GetObjectPolicy(uint32_t index) INTERFACE_METHOD;
 
 
-		OBJECT_POLICY* RegisterObjectType(api::vector<std::string_view> aliases, std::string_view category,
+		ObjectPolicy* RegisterObjectType(ObjectVTable* vtable, const std::span<std::string_view>&aliases, std::string_view category,
 			TypeOffset range, DataBuilder builder, HMODULE source) INTERFACE_METHOD;
 
 
 
-		OBJECT_POLICY* GetObjectPolicyFromName(std::string_view category)
+		ObjectPolicy* GetObjectPolicyFromName(std::string_view category)
 		{
 			auto index = GetIndexFromCategory(category);
 
 			return GetObjectPolicy(index);
 		}
 
-		OBJECT_POLICY* GetObjectPolicyFromName(std::string& category)
+		ObjectPolicy* GetObjectPolicyFromName(std::string& category)
 		{
 			auto result = GetObjectPolicyFromName(std::string_view{ category });
 			return result;
@@ -77,13 +77,7 @@ namespace LEX
 		HMODULE source = GetCurrentModule();
 
 
-		auto* policy = ObjectPolicyManager::instance->RegisterObjectType(aliases, category, range, builder, source);
-
-		policy->base = vtable;
-		vtable->SetPolicy(policy);
-
-		//load vtable into returned function for object policy.
-
+		auto* policy = ObjectPolicyManager::instance->RegisterObjectType(vtable, aliases, category, range, builder, source);
 	}
 
 
@@ -112,7 +106,7 @@ namespace LEX
 	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
 	uint32_t GetObjectPolicyID()
 	{
-		constexpr std::string_view name = GetTypeName<T>();
+		constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
 		constexpr uint32_t invalid = -1;
 		static uint32_t index = invalid;
 
@@ -127,7 +121,7 @@ namespace LEX
 
 
 	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
-	OBJECT_POLICY* GetObjectPolicy()
+	ObjectPolicy* GetObjectPolicy()
 	{
 		uint32_t index = GetObjectPolicyID<T>();
 

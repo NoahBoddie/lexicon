@@ -1,6 +1,5 @@
 
 
-//#pragma once
 
 //This header file is used to copy the version namespace where included, as such it comes without a pragma. 
 // Simply include it within the scope of a namespace to use it in that location.
@@ -8,22 +7,15 @@
 //TODO: Some how make it only able to be included once per namespace. Include guards and pragmas are out.
 
 //This space will be repeated over and over again, but the other part will not be.
-/*
+
+
 #pragma region Declaring Version Namespaces
 
 #define DECL_VERSION_SPACE(mc_number, mc_prev) \
-			namespace _##mc_number { inline constexpr uintptr_t version = mc_number; namespace Previous = _##mc_prev; }
-
-
+			namespace _##mc_number { constexpr uintptr_t version = mc_number; namespace Previous = _##mc_prev; }
 
 namespace Version
 {
-	//Undeclare this, should just set up a version namespace everyone should be using.
-
-//This newer version will actually create a new struct so I can store the newest version within it. This will actually remove the need to declare get interface version everywhere.
-
-		//These aren't important anymore, the current version thing solves this.
-
 	DECL_VERSION_SPACE(1, 1);
 	DECL_VERSION_SPACE(2, 1);
 	DECL_VERSION_SPACE(3, 2);
@@ -47,14 +39,18 @@ namespace Version
 #undef DECL_VERSION_SPACE
 
 #pragma endregion
-//*/
-#ifndef LEX_VERSIONING
 
-#define LEX_VERSIONING 1
+
+
+#ifndef VERSIONING_H
+
+#define VERSIONING_H
 
 //Id like to turn this into VersionDeclareSpace. I'd additionally like to turn off the version declaring stuff once it's been declared already
 //Also, shorten the fuck out of these macros please.
 
+
+//TODO: I'd like to move these INTERFACE macros somewhere else if you'd please.
 
 //I would like to merge these, as I feel having the override visible would be helpful. The only difference might be
 // text.
@@ -77,18 +73,25 @@ namespace Version
 
 //TODO: I would like to use novtable on a the interface and current version to prevent it from having more vtables thatn needed.
 
+//INTERFACE_VERSION Doesn't need to do this because it doesn't have a body.
+
+//I previously used this to get the name of the self when using the interface types but screw it.
+//private ::RGL_INCLUDE_NAMESPACE::detail::SelfHelper<mc_name>,
+
 //If I can make these the same function some how, that'd be great.
-#define INTERFACE_VERSION_DERIVES(mc_name, mc_base, ...)\
+#define INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, mc_base, ...) __declspec(novtable) \
 			mc_name : public std::conditional_t<Previous::version != version, Previous::mc_name, mc_base> __VA_OPT__(,) __VA_ARGS__
 
+#define INTERFACE_VERSION_DERIVES(mc_name, mc_base, ...) INTERFACE_VERSION_DERIVES_NO_SFX(CONCAT(IV_,mc_name), mc_base,__VA_ARGS__)
 
 
-#define INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, Interface __VA_OPT__(,) __VA_ARGS__)
+#define INTERFACE_VERSION_NO_SFX(mc_name, ...) INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, UnmovableInterface, __VA_ARGS__)
+#define INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, UnmovableInterface, __VA_ARGS__)
 
-#define CURRENT_VERSION(mc_type, mc_number, ...)									\
+#define CURRENT_VERSION_NO_SFX(mc_type, mc_number, ...)								\
 	namespace Current																\
 	{																				\
-		struct mc_type : public _##mc_number::mc_type __VA_OPT__(,) __VA_ARGS__		\
+		struct __declspec(novtable)  mc_type :  public _##mc_number::mc_type __VA_OPT__(,) __VA_ARGS__	\
 		{																			\
 			inline static constexpr uintptr_t version = mc_number;					\
 																					\
@@ -99,89 +102,44 @@ namespace Version
 		};																			\
 	}
 
+#define CURRENT_VERSION(mc_type, mc_number, ...) CURRENT_VERSION_NO_SFX(CONCAT(IV_,mc_type), mc_number, __VA_ARGS__)
+
 //Short hand if you don't want to define the current version and implementation version differently. Note this could not forward declare, mustn't be abstract.
-#define CURRENT_IMPL_VERSION(mc_type, mc_number, ...) CURRENT_VERSION(mc_type, mc_number, public InterfaceSingleton<mc_type>)
+#define CURRENT_IMPL_VERSION_NO_SFX(mc_type, mc_number, ...) CURRENT_VERSION_NO_SFX(mc_type, mc_number, public InterfaceSingleton<mc_type>, __VA_ARGS__)
+#define CURRENT_IMPL_VERSION(mc_type, mc_number, ...) CURRENT_VERSION(mc_type, mc_number, public InterfaceSingleton<mc_type>, __VA_ARGS__)
 
 #define CHECK_INTERFACE_VERSION(...) if (Version() < version) { return __VA_ARGS__; }
 
-namespace detail
-{
-	//A struct that ensures that no data can ever actually be created.
-	struct uninstantiable_data
-	{
-		using _Self = uninstantiable_data;
-		uninstantiable_data() = delete;
-		uninstantiable_data(_Self&&) = delete;
-		uninstantiable_data(const _Self&) = delete;
-		_Self operator=(_Self&&) = delete;
-		_Self operator=(const _Self&&) = delete;
-
-	};
-}
 
 
-#if LEX_SOURCE
-//A macro that prevents implemented data from being used on non-source files. Currently shows data.
-#define IMPL_DATA_PREV(mc_name) mc_name
 
-//A macro that prevents implemented data from being used on non-source files. Currently shows data.
-#define IMPL_DATA() struct
+#define IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type) mc_name : public Version::Current::mc_type
+#define IMPL_VERSION_DERIVES(mc_name, mc_type) IMPL_VERSION_DERIVES_NO_SFX(mc_name, CONCAT(IV_,mc_type))
 
-//Want better names for these.
-
-#else
-//A macro that prevents implemented data from being used on non-source files. Currently hides implementation.
-#define IMPL_DATA_PREV(mc_name) mc_name{}; namespace hide { struct mc_name; } struct hide::mc_name
-
-//A macro that prevents implemented data from being used on non-source files. Currently hides data.
-#define IMPL_DATA() struct hidden_data : public ::detail::uninstantiable_data
-#endif
+#define IMPL_VERSION_NO_SFX(mc_type) IMPL_VERSION_DERIVES_NO_SFX(mc_type,mc_type)
+#define IMPL_VERSION(mc_type) IMPL_VERSION_DERIVES(mc_type,mc_type)
 
 
-//These allow for the names of certain functions to change based on if it's the implementation version or the non-implementation version.
-// The lack of an I at the end determines the one you should be using. Simply use the macro name, not a specific version.
 
-#ifdef LEX_SOURCE
+#define IMPL_SINGLETON_DERIVES_NO_SFX(mc_name, mc_type) IMPL_VERSION_DERIVES_NO_SFX(mc_name,mc_type), public InterfaceSingleton<mc_name>
+#define IMPL_SINGLETON_DERIVES(mc_name,mc_type) IMPL_VERSION_DERIVES(mc_name,mc_type), public InterfaceSingleton<mc_name>
 
-//Defines the given name as the interface version of the name. Currently will be named <name>I
-#define INT_NAME(mc_name) mc_name##I
 
-//Defines the given name as the impl version of the name. Save to use mc_name directly.
-#define IMP_NAME(mc_name) mc_name
+#define IMPL_SINGLETON_NO_SFX(mc_type) IMPL_SINGLETON_DERIVES_NO_SFX(mc_type,mc_type)
+#define IMPL_SINGLETON(mc_type) IMPL_SINGLETON_DERIVES(mc_type,mc_type)
 
-#else
 
-//Defines the given name as the interface version of the name. Safe to use mc_name directly.
-#define INT_NAME(mc_name) mc_name
 
-//Defines the given name as the impl version of the name. Currently will be named <name>I
-#define IMP_NAME(mc_name) mc_name##I
+
 
 #endif
-
-
-
-
-#define IMPL_VERSION(mc_type,...) mc_type : public Version::Current::mc_type __VA_OPT__(,) __VA_ARGS__
-#define IMPL_SINGLETON(mc_type) IMPL_VERSION(mc_type), public InterfaceSingleton<mc_type>
-
-
-namespace LEX
-{
-#include "VersionDeclareSpace.h"
-}
-
-
-
-
-
 
 
 
 #ifdef EXAMPLE //This is an example of how the version system is to be used.
 
 namespace LEX
-{	
+{
 	//This is how I will version stuff. The idea is basically the namespaces isolate the version it belongs to easier, allowing for the macro to say who's current.
 	// The struct outside of version provides an easy pivot point. This allows me to not use using which in turn allows me to forward declare the interface type.
 	// The implementation can then exist elsewhere, possibly within a source file, or not allowed to be compiled if it isn't a source.
@@ -225,7 +183,4 @@ namespace LEX
 		void IFuncDodad3() override INTERFACE_METHOD;
 	};
 }
-#endif
-
-
 #endif

@@ -1,30 +1,36 @@
 #include "Lexicon/Engine/GenericType.h"
 
 
-#include "Lexicon/Engine/SpecialTypePart.h"
-#include "Lexicon/Engine/SpecialTypeBody.h"
+#include "Lexicon/Engine/SpecialType.h"
 
 namespace LEX
 {
 
-	ITypePolicy* GenericType::CheckTypePolicy(GenericBase* base, ITemplatePart* args)
+	ITypeInfo* GenericType::CheckTypePolicy(ITemplatePart* args)
 	{
-		return dynamic_cast<ITypePolicy*>(ObtainSpecial(base, args));
+		return dynamic_cast<ITypeInfo*>(ObtainSpecial(args));
 	}
-	AbstractTypePolicy* GenericType::GetTypePolicy(ITemplateBody* args)
+	TypeInfo* GenericType::GetTypePolicy(ITemplateBody* args)
 	{
-		return dynamic_cast<AbstractTypePolicy*>(ObtainBody(args));
-	}
-
-	std::unique_ptr<SpecialPart> GenericType::CreatePart(ITemplatePart* args)
-	{
-
-		return std::make_unique<SpecialTypePart>(this, args);
+		return ObtainBody(args)->ToResolved<TypeInfo>();
 	}
 
-	std::unique_ptr<SpecialBody> GenericType::CreateBody(ITemplateBody* args)
+	/*
+	std::unique_ptr<SpecialBase> GenericType::CreatePart(ITemplatePart* args)
 	{
-		return std::make_unique<SpecialTypeBody>(this, args);
+
+		return std::make_unique<SpecialType>(this, args);
+	}
+
+	std::unique_ptr<SpecialBase> GenericType::CreateBody(ITemplateBody* args)
+	{
+		return std::make_unique<SpecialType>(this, args);
+	}
+	//*/
+
+	std::unique_ptr<SpecialBase> GenericType::CreateSpecial(ITemplatePart* args)
+	{
+		return std::unique_ptr<SpecialBase>{ new SpecialType {this, args} };
 	}
 
 }

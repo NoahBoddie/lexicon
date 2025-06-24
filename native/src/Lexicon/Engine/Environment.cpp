@@ -5,7 +5,7 @@
 //*src
 //#include "Function.h"
 
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 #include "Lexicon/Engine/Project.h"
 
 #include "Lexicon/Engine/Component.h"
@@ -18,6 +18,7 @@
 #include "Lexicon/Engine/FunctionInfo.h"
 #include "Lexicon/Engine/VariableInfo.h"//For tests only
 //*src
+#include "Lexicon/Engine/GenericFunction.h"
 #include "Lexicon/Engine/ConcreteFunction.h"
 
 #include "Lexicon/Engine/GlobalVariable.h"
@@ -30,7 +31,7 @@
 
 #include "Lexicon/Interfaces/ProjectManager.h"
 
-#include "Lexicon/Engine/PolicyBase.h"
+#include "Lexicon/Engine/TypeBase.h"
 
 #include "Lexicon/Engine/parse_strings.h"
 
@@ -126,7 +127,7 @@ namespace LEX
 			}
 		}
 
-		std::vector<PolicyBase*> Environment::FindTypes(std::string_view name)
+		std::vector<TypeBase*> Environment::FindTypes(std::string_view name)
 		{
 			auto end = typeMap.end();
 
@@ -139,72 +140,6 @@ namespace LEX
 		}
 
 
-
-
-		bool Environment::CheckOverload(OverloadKey& input, std::vector<FunctionInfo*> clauses, Overload& ret)
-		{
-			Overload out;
-
-			Overload* last = nullptr;
-
-
-			for (auto clause : clauses)
-			{
-				OverloadFlag flags = OverloadFlag::None;
-
-				Overload overload = input.Match(clause, nullptr, last, flags);
-
-				if (flags & OverloadFlag::Failure) {
-					logger::info("Failure");
-					continue;
-				}
-
-
-
-				if (flags & OverloadFlag::Ambiguous) {
-					logger::info("Ambiguous");
-					last = nullptr;
-					break;
-				}
-
-				if (0) {
-					bool _continue = false;
-					bool _break = false;
-
-
-					cycle_switch(flags)
-					{
-				case OverloadFlag::Failure:
-					logger::info("Failure");
-					_continue = true;
-					continue;
-
-				case OverloadFlag::Ambiguous:
-					logger::info("Ambiguous");
-					_break = true;
-					break;
-
-					}
-
-					if (_continue)
-						continue;
-
-					if (_break)
-						break;
-
-				}
-
-
-				out = std::move(overload);
-
-				last = &out;
-			}
-
-			if (last)
-				ret = *last;//this should move
-
-			return last;
-		}
 
 
 
@@ -242,7 +177,7 @@ namespace LEX
 			_parent = par;
 		}
 
-		void Environment::AddType(PolicyBase* policy)
+		void Environment::AddType(TypeBase* policy)
 		{
 			if (!policy) {
 				report::compile::critical("Null Policy attempted to be added");
@@ -263,6 +198,22 @@ namespace LEX
 				DeclareParentTo(policy);
 			}
 
+		}
+
+		void Environment::CreateFunction(SyntaxRecord& node)
+		{
+			std::unique_ptr<FunctionBase> func;
+
+			if (IsGenericElement() || node.FindChild(parse_strings::generic) != nullptr) {
+				func = std::unique_ptr<FunctionBase>(Component::Create<GenericFunction>(node));
+			}
+			else {
+				func = std::unique_ptr<FunctionBase>(Component::Create<ConcreteFunction>(node));
+			}
+
+			AddFunction(func.get());
+
+			func.release();
 		}
 
 

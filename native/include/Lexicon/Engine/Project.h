@@ -41,7 +41,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case Hash(TypeName<IProject>::value):
-				return (IProject*)this;
+				return static_cast<IProject*>(this);
 			case Hash(TypeName<Project>::value):
 				return this;
 			}
@@ -113,7 +113,7 @@ namespace LEX
 		}
 
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadKey* sign = nullptr) override
+		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
 		{
 			return Element::GetElementFromPath(path, elem, sign);
 		}
@@ -146,9 +146,11 @@ namespace LEX
 			return typeid(Project);
 		}
 
-		
 
-		Script* FindScript(std::string_view name);
+		Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) override;
+
+
+		Script* FindScript(const std::string_view& name);
 	};
 
 

@@ -3,13 +3,13 @@
 #include "Lexicon/TypeAliases.h"
 #include "TokenType.h"
 
-namespace LEX::Impl
+namespace LEX
 {
 	struct Token
 	{
 		//Currently the size is 1 + 2 + 2, which means 3 bytes aren't being used.
 		TokenType type = TokenType::Invalid;
-		//Want to use some free space here.
+		bool isConditional = false;//Used to tell if this was a conditional keyword or not, if it is it will check with the current parse module
 		Column column;
 		Line line;
 

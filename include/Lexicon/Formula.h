@@ -5,16 +5,29 @@
 #include "Lexicon/VariableType.h"
 #include "Lexicon/FormulaHandler.h"
 
+#include "Lexicon/Impl/ref_wrapper.h"
+
 #include "Lexicon/Interfaces/FormulaManager.h"
 
 namespace LEX
 {
 	struct IScript;
 
-	template <typename T>
+
+
+	template <typename T>// requires(detail::reference_type_v<T, true> == detail::kNoRef)
 	struct Formula;
+	
+	//I want a good way to prevent these from having a reference return type.
 
+	/*
+	template <typename T>
+	concept is_ref = std::is_reference_v<T>;
 
+	template <is_ref T>
+	struct Formula<T> {};
+	//*/
+	
 	//make summary later.
 	template <detail::function_has_var_type T>
 	struct Formula<T>
@@ -129,12 +142,6 @@ namespace LEX
 
 	};
 
-	template <typename From, typename To>
-	struct change_to { typedef To type; };
-
-	template <typename From, typename To>
-	using change_to_t = change_to<From, To>::type;
-
 
 
 	template <typename R, typename... Args>
@@ -233,23 +240,97 @@ namespace LEX
 	}
 
 
+	//TODO: This needs to be supported.
+	//using TEVE = void(std::string::*)() const;
+
 	template <typename R, typename T, typename... Args>
 	struct Formula<R(T::*)(Args...)> : public FormulaHandler
 	{
 		using Self = Formula<R(T::*)(Args...)>;
 
-		using TarType = std::conditional_t<std::is_pointer_v<detail::expected_var_type_t<T>>,
-			detail::expected_var_type_t<T>, detail::expected_var_type_t<T>&>;
+		using Type = detail::expected_var_type_t<T>;
 
+		using TarType = std::conditional_t<std::is_pointer_v<Type>,Type, Type&>;
 
 		using Ry = std::conditional_t<std::is_void_v<R>, Void, R>;
+
+		//The concept of this is, if you have a type that's a pointer
+		// it will use the pointer helper, which then needs to make the this helper to call on.
+		// if you aren't using a pointer, it will give you the this helper directly
+
+		struct HelperBase
+		{
+		protected:
+			friend class Self;
+
+			HelperBase(TarType tar, IFormula* form) : target{ tar }, call_unit{ form } {}
+
+			//Prevent these from being transfered
+
+
+		
+			IFormula* call_unit = nullptr;
+			TarType target;
+		};
+
+
+		struct ThisHelper : public HelperBase
+		{
+			using HelperBase::HelperBase;
+		
+			void* operator->() = delete;
+
+			R Call(Args... args, std::optional<Ry> def = std::nullopt)
+			{
+				//What should I do if someone tries to call this and doesn't have the right stuff?
+				if (!this->call_unit)
+				{
+					bool def_value = def.has_value();
+
+
+					report::log("Formula is null cannot call function.", std::source_location::current(),
+						IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
+
+
+					if (def_value) {
+						if constexpr (std::is_void_v<R>) {
+							return;
+						}
+						else {
+							return def.value();
+						}
+					}
+				}
+
+
+				RuntimeVariable result = this->call_unit->Call(std::forward<TarType>(this->target), std::forward<Args>(args)...);
+
+				if constexpr (!std::is_same_v<void, R>) {
+					return Unvariable<R>{}(result.Ptr());
+				}
+			}
+
+		};
+
+		struct PointerHelper : public HelperBase
+		{
+			using HelperBase::HelperBase;
+
+			ThisHelper* operator->()
+			{
+				return reinterpret_cast<ThisHelper*>(this);
+			}
+		};
+
+
 
 
 		//The idea of this is you cast an IFormula into this forcibly, and this type will then manage all of the function calls for the type.
 		// Basically, think of this as a std::function. it should then translate all the rest of the bullshit around it.
 
 		//Basically, this is a wrapper for a given IFormula.
-
+		
+		/*
 		R Call(TarType tar, Args&&... args, std::optional<Ry> def = std::nullopt)
 		{
 			//What should I do if someone tries to call this and doesn't have the right stuff?
@@ -260,7 +341,7 @@ namespace LEX
 
 
 				report::log("Formula is null cannot call function.", std::source_location::current(), 
-IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
+					IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
 
 
 				if (def_value) {
@@ -287,11 +368,37 @@ IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
 			return Call(tar, std::forward<Args>(args)...);
 		}
 
-		template <typename T = int>
+		//TODO: Use requires instead of enable_if.
+		template <typename = void>
 		R operator()(TarType&& tar, Args... args, std::optional<T> def = std::nullopt, typename std::enable_if_t<!std::is_pointer_v<TarType>, T>* = 0)
 		{
 			return Call(tar, std::forward<Args>(args)...);
 		}
+		//*/
+
+	private:
+		auto GetHelper(TarType target)
+		{
+			if constexpr (std::is_pointer_v<TarType>) {
+				return PointerHelper{ target, formula() };
+			}
+			else {
+				return ThisHelper{ target, formula() };
+			}
+		}
+	
+public:
+
+		auto operator()(TarType target)
+		{
+			return GetHelper(target);
+		}
+
+		auto operator()(Type&& target) requires(!std::is_pointer_v<TarType>)
+		{
+			return GetHelper(target);
+		}
+
 
 		//This version should have a special operator where using -> will yield a helper class that will be able to be called in order to handle the function
 		// So something like formula(target)->Call();  or formula(target)(); Or, I'll just allow the target to be one with the calls. Seems better that way.

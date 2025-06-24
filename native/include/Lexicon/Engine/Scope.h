@@ -8,8 +8,8 @@
 
 namespace LEX
 {
-	struct ITypePolicy;
-	struct PolicyBase;
+	struct ITypeInfo;
+	struct TypeBase;
 	struct FunctionInfo;
 
 
@@ -32,7 +32,7 @@ namespace LEX
 		}
 
 		//Seriously, this version should only be given to certain functions.
-		std::vector<Operation>&& Release(std::function<void(std::vector<Operation>*)> func)
+		std::vector<Instruction>&& Release(std::function<void(std::vector<Instruction>*)> func)
 		{
 			//This should not be used by many things, so probably friend functioning this some how. I don't want this to be used
 			// if it's through GetScope 
@@ -62,7 +62,7 @@ namespace LEX
 					if (_out) {
 
 
-						_out->insert_range(_out->end(), operationList);
+						_out->insert_range(_out->end(), instructionList);
 					}
 
 					//<KILL>process->_current = _prev;
@@ -72,7 +72,7 @@ namespace LEX
 				}
 			}
 
-			return std::move(operationList);
+			return std::move(instructionList);
 
 
 			//If stuff like out is to be used, I'll need
@@ -85,19 +85,19 @@ namespace LEX
 		}
 
 
-		std::vector<Operation>&& Release()
+		std::vector<Instruction>&& Release()
 		{
 			return std::move(Release(nullptr));
 		}
 
-		std::vector<Operation>& GetOperationList();
+		std::vector<Instruction>& GetInstructionList();
 
 		//So the out is where all the information goes, and the previous is the previous operation list.
 
-		[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s, std::vector<Operation>* out = nullptr) :
+		[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s, std::vector<Instruction>* out = nullptr) :
 			process{ compiler }, 
 			_type{ s },
-			_out { out ? out : process->GetOperationListPtr() }
+			_out { out ? out : process->GetInstructionListPtr() }
 		{
 			//TODO: Replace this with a proper check, or make scopes derive from a temporary variable differently than one that doesn't.
 			assert(!process->IsDetached());
@@ -110,14 +110,14 @@ namespace LEX
 			_parent = process->currentScope;
 			process->currentScope = this;
 			
-			//<KILL>process->_current = &operationList;
+			//<KILL>process->_current = &instructionList;
 
 			if (_parent && s == ScopeType::Header) {
 				report::fault::critical("invalid header scope with parent detected.");
 			}
 		} 
 		
-		[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s, std::vector<Operation>& out) :Scope{ compiler, s, &out }
+		[[nodiscard]] Scope(RoutineCompiler* compiler, ScopeType s, std::vector<Instruction>& out) :Scope{ compiler, s, &out }
 		{
 			
 		}
@@ -190,11 +190,11 @@ namespace LEX
 		
 
 
-		PolicyBase* SearchTypePath(SyntaxRecord& _path);
+		ITypeInfo* SearchTypePath(SyntaxRecord& _path);
 
-		FunctionInfo* SearchFunctionPath(SyntaxRecord& path, OverloadKey& input, Overload& out);
+		FunctionNode SearchFunctionPath(SyntaxRecord& path, OverloadArgument& input, Overload& out);
 
-		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadKey* key = nullptr);
+		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadArgument* key = nullptr);
 
 
 		Scope* parent() { return _parent; }
@@ -222,7 +222,7 @@ namespace LEX
 
 		bool IsTopLevel() const { return IsHeader() || (_parent ? _parent->_type == ScopeType::Header : false); }
 
-		bool IsEmpty() const { return operationList.empty(); }
+		bool IsEmpty() const { return instructionList.empty(); }
 
 		bool IsConstant() const { return _type == ScopeType::Required || _type == ScopeType::Header; }
 
@@ -245,10 +245,10 @@ namespace LEX
 
 
 
-		std::vector<Operation>* _out = nullptr;
+		std::vector<Instruction>* _out = nullptr;
 		
 
-		std::vector<Operation> operationList;
+		std::vector<Instruction> instructionList;
 		size_t allocator = -1;
 
 		const ScopeType _type;
@@ -361,14 +361,14 @@ namespace LEX
 		//Make sure to remove copy assignment stuff. Doesn't need it. Shouldn't leave its initial function
 	protected:
 
-		Operation& ObtainAllocator()
+		Instruction& ObtainAllocator()
 		{
-			auto& list = operationList;
+			auto& list = instructionList;
 			 
 			//What this allocates to seems to be the problem
 			if (allocator == -1){
 				allocator = list.size();
-				return list.emplace_back(InstructionType::IncrementVarStack, Operand{ 0 , OperandType::Differ });
+				return list.emplace_back(InstructionType::ModVarStack, Operand{ 0 , OperandType::Differ });
 			}
 			else{
 				return list[allocator];

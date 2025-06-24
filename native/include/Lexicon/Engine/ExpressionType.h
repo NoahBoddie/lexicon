@@ -16,10 +16,13 @@ namespace LEX
 		Boolean,
 		Field,
 		Variable, 
-		Path,			//Used to tell if something is a pathing record used as a header for a scope deduction.
+		
+
+		
 		Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
 		Scopename,//Basically is Scriptname, but static class functions might be introduced.
 		Call,
+		Ctor,
 		Function,		//Completely different than a call, this is more focused toward the declaration/definition of a function
 		Return,
 		StateBlock,				//The declaration of a code block, a manually denoted one. express for expression, state for statement
@@ -39,6 +42,8 @@ namespace LEX
 		While = Conditional,
 		For = Conditional,
 		
+		Typeof,
+
 
 
 		//Individual operators will not be used, I can just have something hash into an
@@ -55,6 +60,19 @@ namespace LEX
 		Total,//Any syntax greater or equal to this isn't able to be used within compiling functions.
 		
 		Invalid = Total,
+
+
+
+		Path,			//Used to tell if something is a pathing record used as a header for a scope deduction.
+		SpecifyGlobal,
+		SpecifyProject,
+		SpecifyShared,
+		SpecifyScript,
+		SpecifyCommons,
+		SpecifyType,
+
+
+
 
 		Header,
 		Disposable,

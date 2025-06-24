@@ -7,7 +7,7 @@
 
 
 
-std::optional<std::filesystem::path> log_directory()
+std::optional<std::filesystem::path> default_lex_directory()
 {
     TCHAR buff[MAX_PATH];
 
@@ -142,7 +142,7 @@ void logger::InitializeLogging()
 
     //LEX::SettingManager::GetSingleton()->level;
     
-    auto directory = log_directory();
+    auto directory = default_lex_directory();
 
 
 

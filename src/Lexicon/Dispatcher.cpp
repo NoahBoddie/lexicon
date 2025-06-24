@@ -3,7 +3,7 @@
 #include "Lexicon/Dispatcher.h"
 
 #include "Lexicon/Interfaces/ProcedureHandler.h"
-#include "Lexicon/IFunction.h"
+#include "Lexicon/Function.h"
 
 namespace LEX
 {

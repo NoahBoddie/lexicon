@@ -1,41 +1,267 @@
 #pragma once
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 #include "Lexicon/Engine/OverloadEntry.h"
 #include "Lexicon/Engine/OverloadFlag.h"
+#include "Lexicon/ITemplateBodyPart.h"
 //*src
 #include "Lexicon/Engine/HierarchyData.h"
-
+#include "Lexicon/Engine/TemplateType.h"
 namespace LEX
 {
 
-	struct OverloadClause;
+	struct OverloadParameter;
 
-	enum struct OverloadPreference
+
+	struct Overload : public ITemplateBodyPart
 	{
-		Current		= -1,
-		Ambiguous	=  0,
-		Previous	=  1,
+		//Making this an ITemplateBodyPart and then using it is the ideal
 
-	};
+		enum Bias
+		{
+			kPrevious = -1,
+			kAmbiguous = 0,
+			kCurrent = 1,
 
-	struct Overload
-	{
+
+			//These double time as the result for overload matching
+
+			kFailure = kPrevious,
+			kUnsucessful = kAmbiguous,
+			kSuccess = kCurrent,
+
+		};
+
+
 		//This is now a container that shows the given options for an overload.
 
-		OverloadClause* clause;
+		OverloadParameter* param = nullptr;
 
-		QualifiedType target;//
+		QualifiedType target;
+
+
+		//This should include TemplateTuple
+		std::vector<std::pair<ITypeInfo*, bool>> specialImplied;
+
+
 
 		//These align perfectly with arguments given.
 		// This has to be loaded with a properly sorted default by this point.
 		// Defaults have to go here because 
-		std::vector<OverloadEntry> given;
+		std::vector<OverloadEntry> implied;
+
+		std::map<std::string, size_t> statedEntries;
 
 
-		std::unordered_map<std::string, OverloadEntry> defaults;
 
-		
+		//The purpose of states is to have it unloaded into implied I think?
+
+
+		//I think I'll make it prefer the last Overload if this is not here.
+		OverloadEntry* failure = nullptr;//If there's a failure this will show where it is.
+
+
+		Bias bias = kCurrent;
+
+		size_t requiredTemplate = 0;
+
+		bool isResolved = true;
+
+
+
+		bool IsResolved() const override
+		{
+			return isResolved;
+		}
+
+
+		ITypeInfo* GetPartArgument(size_t i) const override
+		{
+			return specialImplied[i].first;
+		}
+
+		TypeInfo* GetBodyArgument(size_t i) const override
+		{
+			if (!isResolved)
+				return nullptr;
+
+			return specialImplied[i].first->GetTypePolicy(nullptr);
+
+		}
+
+		size_t GetSize() const
+		{
+			return specialImplied.size();
+		}
+
+
+
+
+		//Returns if there are any missing elements unfulfilled. Templates in particular.
+		bool IsValid() const
+		{
+			if (specialImplied.size() < requiredTemplate)
+				return false;
+
+			for (auto i = 0; i < requiredTemplate && i < specialImplied.size(); i++)
+			{
+				if (!specialImplied[i].first)
+					return false;
+			}
+
+			return true;
+		}
+
+		ITypeInfo* GetManualTemplateType(size_t index)
+		{
+			if (specialImplied.size() <= index) {
+				return nullptr;
+			}
+
+			if (auto entry = specialImplied[index]; entry.second)
+				return entry.first;
+
+			return nullptr;
+		}
+
+
+		//Type is the actual type used. Entry is the optional entry to be filled by said type.
+		std::optional<bool> EmplaceTemplate(OverloadEntry& entry, ITypeInfo* type, ITypeInfo* scope, bool manual = true)
+		{
+			std::optional<bool> result = std::nullopt;
+
+			if (entry.type)
+			{
+				//if (auto temp = entry.type->AsTemplate())
+				for (auto temp : entry.type->GetTemplateInputs())
+				{
+					//TODO: 
+
+					auto index = temp->index;
+					//Please note, more needs to be done if it's a TupleType.
+
+					if (specialImplied.size() <= index) {
+						specialImplied.resize(index + 1);
+					}
+
+					if (auto& slot = specialImplied[index]; !slot.first) {
+						if (isResolved && type->IsResolved() == false) {
+							isResolved = false;
+						}
+
+						slot.first = type;
+						slot.second = manual;
+						//Move this outside
+						if (type == temp)
+							entry.type.policy = type;
+
+						//if (result.has_value() == false);
+					}
+					else {
+						//If something already exists, see if we can convert it to that. Then if we can, supplant that new conversion.
+						// if not, remove and go next.
+
+
+						//TODO:This entire bit here needs to change. 
+
+						if (slot.second) {
+							Conversion convert;
+							auto result = type->IsConvertibleTo(slot.first, scope, convert);
+
+							if (result <= ConversionEnum::Failure) {
+								return false;
+							}
+
+							entry.convert = convert;
+							entry.convertType = result;
+						}
+						else {
+							logger::debug("Confliction");
+							return false;
+						}
+
+
+						if constexpr (0)
+						{
+							//TODO: I think this might need conversion flags.
+							Conversion convert;
+							auto result = type->IsConvertibleTo(slot.first, scope, convert);
+
+							if (result <= ConversionEnum::Failure) {
+								return false;
+							}
+
+							entry.convert = convert;
+							entry.convertType = result;
+						}
+					}
+
+					//if (result.has_value() == false);
+					result = true;
+
+				}
+			}
+			return result;
+		}
+
+		bool EmplaceEntry(OverloadEntry& entry, ITypeInfo* type, ITypeInfo* scope, std::string_view name = {})
+		{
+			//EmplaceEntry needs to adapt the type to what's loaded.
+
+			//I believe this can handle the entire bit itself.
+
+			auto result = EmplaceTemplate(entry, type, scope, false).value_or(true);
+
+
+			auto index = entry.index;
+
+
+			if (index == -1) {
+				target = entry.type;
+			}
+			else {
+				if (implied.size() <= index) {
+					implied.resize(index + 1);
+				}
+				auto& slot = implied[index];
+
+				if (slot.type) {
+					return false;
+				}
+
+				slot = entry;
+			}
+
+
+			if (name.empty() == false) {
+				auto& slot = statedEntries[std::string{ name }];
+
+				bool filled = slot;
+
+				slot = index;
+
+				//This bit doesn't seem needed
+				if (filled) {
+					return false;
+				}
+			}
+
+
+			//This function needs to be able to handle resolutions between param generic types. So like "params Type[]" should handle
+			// each new type, SOMEHOW. That may be a section all on it's own I believe, just about anything that's multi input. I believe this
+			// will only apply to to the call args
+
+			//CORRECTION... I realize now that what I'm talking about is like making an initializer list that can be understood without context.
+			// So, instead the only thing that can be done when some initialization happens like that is to resolve it. Perhaps I'll make something
+			// that does it for me, and assumes based on what types can convert into the others. For now, it's not a worry.
+
+
+
+			//Work needs to be done if it's a grouped type
+
+			return result;
+		}
+
 
 		static int CompareType(OverloadCode& left, OverloadCode& right, QualifiedType& left_type, QualifiedType& right_type)
 		{
@@ -60,6 +286,8 @@ namespace LEX
 				return left.distance - right.distance;
 			}
 
+			//We do reference comparison here
+
 			return 0;
 		}
 
@@ -73,16 +301,43 @@ namespace LEX
 
 
 
+		int SafeCompare(const std::string& name, OverloadEntry& entry, QualifiedType& arg)
+		{
+			if (!this) {
+				return -1;
+			}
+
+			auto it = statedEntries.find(name);
+
+			if (statedEntries.end() == it) {
+				return -1;
+			}
+
+			//auto& tar = it->second;
+			auto& other = implied[it->second];
+
+			return _ConvertComp(other, entry, arg);
+
+		}
+
+
+
 		//TODO: the safe compares of Overload are not yet completely resolved. The main issue being it doesn't account for conversions.
 		// to expand on the above, detecting a conversion is grounds for prefering one over the other, then it depends which conversion has the value closer to zero.
 		// conversions don't really happen right now so it's a big ol fuck it. But this WILL be important.
 
 		static int _ConvertComp(OverloadEntry& tar, OverloadEntry& entry, QualifiedType& arg)
 		{
-			//These should remove const conversions and stuff like that
-			//
-			bool prev_pure = tar.convertType < ConvertResult::Transformative;
-			bool curr_pure = entry.convertType < ConvertResult::Transformative;
+			//Arg is unused
+
+		//These should remove const conversions and stuff like that
+		//
+
+		//I want temp match to lose to everything but a conversion.
+
+			bool prev_pure = tar.convertType >= ConversionEnum::Exact && tar.convertType < ConversionEnum::Transformative;
+			bool curr_pure = entry.convertType >= ConversionEnum::Exact && entry.convertType < ConversionEnum::Transformative;
+
 
 			if (!prev_pure && curr_pure)
 				return -1;
@@ -118,43 +373,31 @@ namespace LEX
 			return 0;
 
 			//Qualified conversions have already played out by this point.
-			//if (target.IsConvertToQualified(other, scope) > ConvertResult::Failure)
+			//if (target.IsConvertToQualified(other, scope) > ConversionEnum::Failure)
 			//	return -1;
-			//else if (other.IsConvertToQualified(target, scope) > ConvertResult::Failure)
+			//else if (other.IsConvertToQualified(target, scope) > ConversionEnum::Failure)
 			//	return 1;
 
 			return 0;
 		}
 
 
-		int SafeCompare(std::string name, OverloadEntry& entry, QualifiedType& arg)
+		int SafeCompare(OverloadEntry& entry, QualifiedType& arg)
 		{
-			if (!this) {
-				return -1;
-			}
+			//TODO:Right here, safe compare should be viewing this through the qualified type through the lens of what the overload expects
+			// So it should
 
-			auto it = defaults.find(name);
+			//The idex can just use the entry btw
 
-			if (defaults.end() == it) {
-				return -1;
-			}
+			auto i = entry.index;
 
-			//auto& tar = it->second;
-
-			
-			return _ConvertComp(it->second, entry, arg);
-		
-		}
-
-		int SafeCompare(size_t i, OverloadEntry& entry, QualifiedType& arg)
-		{
 			if (!this)
 				return -1;
 
-			if (i >= given.size())
+			if (i >= implied.size())
 				return -1;
 
-			auto& tar = given[i];
+			auto& tar = implied[i];
 
 			//I don't think I should be assuming a lack of type. here that's an explicit error
 			if (tar.type && !entry.type)
@@ -188,31 +431,7 @@ namespace LEX
 
 
 
+	using OverloadBias = Overload::Bias;
 
-	struct Overload_Revised
-	{
-		//This is now a container that shows the given options for an overload.
-
-		OverloadClause* clause;
-
-		QualifiedType target;//
-
-		std::vector<std::vector<ITypePolicy*>> specialization;
-
-
-		//These align perfectly with arguments given.
-		// This has to be loaded with a properly sorted default by this point.
-		// Defaults have to go here because 
-		std::vector<OverloadEntry> given;
-
-		
-		std::unordered_map<std::string, OverloadEntry> defaults;
-
-
-
-		OverloadEntry* failure = nullptr;//If there's a failure this will show where it is.
-
-		OverloadFlag flag;//Extra place to tell the end result, namely ambiguous
-	};
 
 }

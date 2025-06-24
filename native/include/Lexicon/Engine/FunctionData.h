@@ -5,14 +5,15 @@
 #include "ParameterInfo.h"
 //Should have parameterinfos?
 
-#include "Lexicon/QualifiedType.h"
+#include "Lexicon/Engine/QualifiedType.h"
 
 #include "Lexicon/Engine/OverloadFlag.h"
 
+//*src
+#include "Lexicon/Engine/parse_strings.h"
 
 namespace LEX
 {
-	struct ITypePolicy;
 	class ParameterInfo;
 	
 	struct ProcedureData;
@@ -22,15 +23,12 @@ namespace LEX
 
 	//Definition is the name of the struct that holds either routine data, or caller data.
 	//Or maybe it should be an enum.
-	using Procedure = void(*)(RuntimeVariable&, Variable* target, api::vector<Variable*>, ProcedureData&);
+	using Procedure = void(*)(RuntimeVariable&, Variable*, std::span<Variable*>, ProcedureData&);
 	
 	struct BasicCallableData
 	{
 		QualifiedType _returnType = nullptr;
 
-		//Without a target type, this is a static function.
-		//Target type remains implicit
-		ITypePolicy* _targetType = nullptr;
 
 		//The actual object for this has severely changed. It's "ParamInfo" I think? But this isn't terribly important
 		// here yet so you know.
@@ -38,12 +36,26 @@ namespace LEX
 		//std::vector<DefinedParam> defParams;
 
 		//TODO: I would like to represent "this" as a unique pointer to a ParamInfo
-		std::unique_ptr<ParameterInfo> __thisInfo;
-		std::vector<ParameterInfo> parameters;
+		std::unique_ptr<ParameterInfo> _thisInfo;
 
+	//protected:
+		std::vector<ParameterInfo> parameters;
+	public:
 
 		RoutineBase _routine;  //actually needs to be a pointer
 
+
+		void VisitParameters(std::function<void(ParameterInfo&)> func)
+		{
+			if (_thisInfo)
+				func(*_thisInfo);
+
+			for (auto& param : parameters)
+			{
+				func(param);
+			}
+		}
+		
 
 		
 		RoutineBase* GetRoutine()
@@ -52,87 +64,76 @@ namespace LEX
 			return &_routine;
 		}
 
-		//I won't care about any of these I'll keep it a buck.
-	protected:
-		auto _ParamBegin()
-		{
-			auto begin = parameters.begin();
-
-			return begin;
-		}
-
-		auto _ParamEnd()
-		{
-			auto end = parameters.end();
-			return end;
-		}
-
-		auto _ParamBegin() const
-		{
-			auto begin = parameters.begin();
-
-			return begin;
-		}
-
-		auto _ParamEnd() const
-		{
-			auto end = parameters.end();
-			return end;
-		}
 
 	public:
-		std::vector<ParameterInfo> GetParameters()
+
+
+		//const std::vector<ParameterInfo>& GetParameters() const
+		//{
+			//return parameters;
+			//return { _ParamBegin(), _ParamEnd() };
+		//}
+
+
+		uint32_t GetParamCount() const
 		{
-			return { _ParamBegin(), _ParamEnd() };
+			return (uint32_t)GetArgCount() + !!_thisInfo;
 		}
 
-		std::vector<ParameterInfo> GetParameters() const
-		{
-			return { _ParamBegin(), _ParamEnd() };
-		}
-
-		size_t GetParamCount() const
+		size_t GetArgCount() const
 		{
 			return parameters.size();
 		}
 
-		size_t GetParamAllocSize() const
-		{
-			return parameters.size();
-		}
 
 		//For now, the maximum and minimum is both the same. Later, defaults will exist, so they don't have to
 		//be exact, and params keyword will hopefully exist at some point.
-		size_t GetReqArgCount()
+		size_t GetArgCountReq()
 		{
-			return GetParamCount();
+			return GetArgCount();
 		}
-		size_t GetMaxArgCount()
+		size_t GetArgCountMax()
 		{
-			return GetParamCount();
+			return GetArgCount();
 		}
+
 
 		std::array<size_t, 2> GetArgRange()
 		{
-			return { GetReqArgCount(), GetMaxArgCount() };
+			return { GetArgCountReq(), GetArgCountMax() };
 		}
 
-		//Needs to be moved into ITypePolicy/AbstractTypePolicy.
+		//Needs to be moved into IFunction/Function.
 		QualifiedType GetReturnType() const
 		{
 			return _returnType;
 		}
 
-		ITypePolicy* GetTargetType() const
+		QualifiedType GetReturnType(ITemplatePart* part) const
 		{
-			return _targetType;
+			return _returnType.QualifySpecial(part);
+		}
+
+
+		QualifiedType GetTargetType() const
+		{
+			return _thisInfo ? _thisInfo->GetQualifiedType() : nullptr;;
+		}
+
+		bool HasTarget() const
+		{
+			return !!_thisInfo;
 		}
 
 		//These sorts of things should be protected, not used up front.
 		//std::string name(){return _name;}
 
-		ParameterInfo* FindParameter(std::string a_name)
+		ParameterInfo* FindParameter(std::string_view a_name)
 		{
+			if (a_name == parse_strings::this_word) {
+				return _thisInfo.get();
+			}
+
 			auto end = parameters.end();
 			auto it = std::find_if(parameters.begin(), end, [&](ParameterInfo& q) { return q.GetFieldName() == a_name; });
 			if (it != end) {
@@ -140,6 +141,25 @@ namespace LEX
 			}
 			return nullptr;
 		}
+
+
+
+		//-1 is for this
+		ParameterInfo* FindParameterByPos(size_t index)
+		{
+			if (index == -1) {
+				return _thisInfo.get();
+			}
+
+			return std::addressof(parameters.at(index));
+		}
+
+
+
+	protected:
+
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, 
+			std::optional<Procedure> prod = std::nullopt);
 
 
 	};
@@ -160,11 +180,18 @@ namespace LEX
 
 		std::string _name;
 
+		//TODO: Please move Overload functionality back to base. Instead, give this a generic base
+		GenericBase* base = nullptr;
 		
+
+
+
+
+
 		size_t defaultIndex = (size_t)-1;  //max_value<size_t>;//basically whenever the defaults start.
-		
+		size_t paramsIndex = (size_t)-1;
 		//
-		Procedure _procedure = nullptr;
+		std::optional<Procedure> _procedure = std::nullopt;
 
 		//formulas won't have defaults, they don't have names, and they don't have procedures (such would defy the point of them.
 
@@ -175,120 +202,83 @@ namespace LEX
 			return &_routine;
 		}
 
-		Procedure GetProcedure()
+		std::optional<Procedure> GetProcedure()
 		{
 			return _procedure;
 		}
 
-	protected:
-		auto _ParamBegin()
+		std::string_view name() const
 		{
-			auto begin = parameters.begin();
-
-			if (HasTarget() == true)
-				begin++;
-
-			return begin;
+			return _name;
 		}
-
-		auto _ParamEnd()
-		{
-			auto end = parameters.end();
-			return end;
-		}
-		
-		auto _ParamBegin() const
-		{
-			auto begin = parameters.begin();
-
-			if (HasTarget() == true)
-				begin++;
-
-			return begin;
-		}
-
-		auto _ParamEnd() const
-		{
-			auto end = parameters.end();
-			return end;
-		}
-
 	public:
 
 
-		size_t GetParamCount() const
+		size_t GetArgCountReq()
 		{
-			return parameters.size() - HasTarget();
+			if (defaultIndex != -1)
+				return defaultIndex;
+
+			return GetArgCount();
+		}
+		size_t GetArgCountMax()
+		{
+			if (paramsIndex != -1)
+				return -1;
+
+			return GetArgCount();
 		}
 
-		size_t GetParamAllocSize() const
-		{
-			return parameters.size();
-		}
-
-		//For now, the maximum and minimum is both the same. Later, defaults will exist, so they don't have to
-		//be exact, and params keyword will hopefully exist at some point. 
-		size_t GetReqArgCount()
-		{
-			return GetParamCount();
-		}
-		size_t GetMaxArgCount()
-		{
-			return GetParamCount();
-		}
 
 		std::array<size_t, 2> GetArgRange()
 		{
-			return { GetReqArgCount(), GetMaxArgCount() };
+			return { GetArgCountReq(), GetArgCountMax() };
 		}
 
-		//Needs to be moved into ITypePolicy/AbstractTypePolicy.
-		QualifiedType GetReturnType() const
-		{
-			return _returnType;
-		}
 
-		ITypePolicy* GetTargetType() const
-		{
-			return _targetType;
-		}
 
-		//These sorts of things should be protected, not used up front.
-		//std::string name(){return _name;}
 
-		ParameterInfo* FindParameter(std::string_view a_name)
+		void CheckDefault(size_t index, size_t offset, OverloadFlag& flags)
 		{
-			auto end = parameters.end();
-			auto it = std::find_if(parameters.begin(), end, [&](ParameterInfo& q) {return q.GetFieldName() == a_name; });
-			if ( it != end) {
-				return &*it;
+			if (defaultIndex <= index && !offset) {
+
+				flags |= OverloadFlag::DefFilled;
 			}
-			return nullptr;
 		}
+		
 
-		bool HasTarget() const
+		bool MatchImpliedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
+
+		bool MatchStatedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags);
+
+
+
+
+		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags);
+
+		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
+
+		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags);
+
+
+		bool ResolveOverload(Overload& result, OverloadFlag& flags);
+
+
+
+		void QualifyOverload(Overload& out);
+
+
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
 		{
-			return _targetType;
+			return __super::BasicExecute(self, body, args, caller, def, GetProcedure());
 		}
 
-		//AbstractTypePolicy* GetConcreteReturnType();//move to abstractFunction
+		//TypeInfo* GetConcreteReturnType();//move to abstractFunction
 
 
 		//Possible use in deductions with generics, then I realized this isn't C++ and auto cannot exactly exist
 		// like I think it would.
-		//void SetReturnType(ITypePolicy*);
 
-
-
-		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag);
-
-
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags);
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags);
-
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags);
 
 
 

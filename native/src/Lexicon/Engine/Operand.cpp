@@ -10,6 +10,8 @@
 
 #include "Lexicon/Engine/Parser.h"
 
+#include "Lexicon/Engine/GlobalBase.h"
+
 namespace LEX
 {
 	Variable Operand::CopyVariable(Runtime* runtime)
@@ -27,7 +29,7 @@ namespace LEX
 			return runtime->GetRegister(Get<Register>());
 
 		case OperandType::Argument:
-			return runtime->GetArgument(Get<Index>());
+			return runtime->GetArgumentFromBack(Get<Index>());
 
 		case OperandType::Index:
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
@@ -58,7 +60,7 @@ namespace LEX
 
 		case OperandType::Argument:
 			//logger::critical("dos");
-			//return runtime->GetArgument(Get<Index>()).AsRef();
+			//return runtime->GetArgumentFromBack(Get<Index>()).AsRef();
 			__fallthrough;
 
 		case OperandType::Index:
@@ -68,18 +70,24 @@ namespace LEX
 
 			return AsVariable(runtime).AsRef();
 
-		case OperandType::Variable:
+		case OperandType::Global: {
 			//-1 should mean the default target.
-		{
-			auto& variable = *Get<Variable*>();
-			return std::ref(variable);
+			auto buff = Get<IGlobal*>();
+			auto global = buff->GetGlobal(runtime);
+			return global->GetReference();
 		}
 			
 
 
-		case OperandType::Type:
-		case OperandType::Function:
-			//Unsure if I'mm going to handle these, but this might be somewhat worth considering.
+		case OperandType::Type: {
+			auto type = Get<ITypeInfo*>();
+			return type->GetTypePolicy(runtime);
+		}
+		
+		case OperandType::Function: {
+			//auto func = Get<IFunction*>();
+			//return func->GetFunction(runtime);
+		}
 
 
 		//Useless without context.
@@ -121,7 +129,7 @@ namespace LEX
 			break;
 
 		case OperandType::Argument:
-			run_var = std::addressof(runtime->GetArgument(Get<Index>()));
+			run_var = std::addressof(runtime->GetArgumentFromBack(Get<Index>()));
 			break;
 
 		}
@@ -150,7 +158,7 @@ namespace LEX
 			break;
 
 		case OperandType::Argument:
-			run_var = std::addressof(runtime->GetArgument(Get<Index>()));
+			run_var = std::addressof(runtime->GetArgumentFromBack(Get<Index>()));
 			break;
 
 		}
@@ -164,6 +172,20 @@ namespace LEX
 		return GetVariable(runtime);
 	}
 
+
+	TypeInfo* Operand::GetTypeInfo(Runtime* runtime)
+	{
+		switch (type)
+		{
+		case OperandType::Type:
+			return Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+
+		default:
+			report::fault::critical("Operand didn't exist. Fixer later. {} ", (uint8_t)type);
+		}
+
+		return nullptr;
+	}
 	
 
 

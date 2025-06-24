@@ -16,7 +16,7 @@
 #include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/InstructionType.h"
 #include "Lexicon/Engine/Runtime.h"
-#include "Lexicon/Engine/ConcretePolicy.h"
+#include "Lexicon/Engine/ConcreteType.h"
 //Move me you idiot.
 
 #include "Lexicon/Engine/Scope.h"
@@ -31,6 +31,7 @@
 #include "Lexicon/Engine/VoidPolicy.h"
 
 #include "Lexicon/Engine/CompileUtility.h"
+#include "Lexicon/Engine/RuntimeUtility.h"
 
 #include "Lexicon/Engine/parse_strings.h"
 
@@ -39,8 +40,10 @@
 #include "Lexicon/ProcedureData.h"
 
 #include "Lexicon/Impl/common_type.h"
+#include "Lexicon/Impl/ref_wrapper.h"
 
 #include "Lexicon/Number.h"
+
 
 void TestFunction()
 {
@@ -143,36 +146,33 @@ namespace LEX
 
 			IFunction* itfc = a_lhs.Get<IFunction*>();
 
-			AbstractFunction* func = itfc->GetFunction(runtime);
+			Function* func = itfc->GetFunction(runtime);
 
 			Index count = a_rhs.Get<Index>();
 
 			
-			
-			std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
+			{//Needs to be scoped for now so args don't maintain references longer than they should
+				std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
 
-			ret = func->Execute(args, runtime, nullptr);
-
+				ret = func->Execute(args, runtime, nullptr);
+			}
 			//I may actually just include the decrement in here myself.
 
 			if (count) {//Only needs to do this if it had arguments. Handles reference snags basically.
-				auto& arg_var = runtime->GetArgument(runtime->GetStackPointer(StackPointer::Argument) - count);
+				runtime->AdjustStackPointer(StackPointer::Argument, -static_cast<int64_t>(count));
 				
-				if (arg_var.IsReference() == true)//Ideally, all call stuff is a reference. Im just checking 
-					arg_var.Clear();
-				
-				
-				//Personally, I would actually like to bake the decrement into the call, as there's never a situation where you wouldn't want it.
+				//auto& arg_var = runtime->GetArgument(runtime->GetStackPointer(StackPointer::Argument) - count);
+				//if (arg_var.IsRuntimeRef() == true)//Ideally, all call stuff is a reference. Im just checking 
+				//	arg_var.Clear();
 			}
 		}
 
 		static void Convert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
-			//This is old and I forget how it's done.
-
 
 			ICallableUnit* func = nullptr;
-
+			
+			//For Convert, once when I start using spans, please put it in a single sized array.Just to save space and to not have to allocate.
 			std::vector<RuntimeVariable> from { a_rhs.GetVariable(runtime) };
 
 			get_switch (a_lhs.type)
@@ -182,9 +182,6 @@ namespace LEX
 					IFunction* itfc = a_lhs.Get<IFunction*>();
 					
 					func = itfc->GetFunction(runtime);
-					
-					
-
 				}
 				break;
 			
@@ -205,13 +202,13 @@ namespace LEX
 					if (!from_type)
 						report::runtime::critical("NO FROM");
 
-					auto to_type = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+					auto to_type = a_lhs.GetTypeInfo(runtime);
 
 					
-					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionType::Explicit); convert_result > convertFailure)
+					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result)
 					{
 						ret = var.Ref();
-						ret->SetPolicy(to_type->FetchTypePolicy(runtime));
+						//ret->SetPolicy(to_type->FetchTypePolicy(runtime));
 					}
 					else
 					{
@@ -234,16 +231,52 @@ namespace LEX
 				ret = func->Execute(from, runtime, nullptr);
 		}
 
+		
+		//Confirms that a reference promotion is valid
+		static void CheckPromotion(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			RuntimeVariable variable = a_lhs.GetVariable(runtime);
+
+			auto type = (Refness)a_rhs.Get<Index>();
+			
+			auto result = RunUtil::CantPromote(variable, runtime, type);
+
+			switch (result)
+			{
+			case 0:
+				break;
+
+			case 1:
+				report::runtime::error("Not reference, maybe ref can't be promoted");
+				break;
+
+			case 2:
+				report::runtime::error("Reference located in current runtime, local ref can't be promoted");
+				break;
+
+			case 3:
+				report::runtime::error("Reference located within a runtime, scoped ref can't be promoted");
+				break;
+
+			default: 
+				report::runtime::error("Ref promotion error '{}' unknown.", result);
+				break;
+			}
+		
+		}
+
 
 		//void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
 
-		static void IncArgStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		//TODO: Merge mod arg stack and mod var stack, they roughly do the same thing.
+
+		static void ModArgStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 			//Pretty simple honestly. Increase by the amount.
 			runtime->AdjustStackPointer(StackPointer::Argument, a_lhs.Get<Differ>());
 		}
 
-		static void IncVarStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void ModVarStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 
 			auto dif = a_lhs.Get<Differ>();
@@ -260,7 +293,7 @@ namespace LEX
 		
 			//RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);
-			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 			
 			//if no policy, fatal fault
 			if (!policy){
@@ -278,8 +311,10 @@ namespace LEX
 			//While this may seem useless, this prevents things like where a float is given where a number is expected, causing any giving of a non-float number
 			// to result in an error within assign.
 
-			RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
-			AbstractTypePolicy* policy = a_rhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			return;
+
+			RuntimeVariable& var = a_lhs.AsVariable(runtime);//s runtime->GetVariable(a_lhs.Get<Index>());
+			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 
 			//if no policy, fatal fault
 			if (!policy) {
@@ -288,20 +323,10 @@ namespace LEX
 
 			logger::debug(" index of set {}", a_lhs.Get<Index>());
 
-			var->SetPolicy(policy);
+			//var->SetPolicy(policy);
 
 		}
-
-
-		static void Push(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-		{
-			//This is deprecated at this point,
-			//Not much else needs to be known.
-			// The destination is upto the operation out.
-			
-			//Push is going to become move. There's no merit in this being as it is.
-			ret = a_lhs.GetVariable(runtime);
-		}
+		
 
 
 		static void Transfer(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
@@ -310,30 +335,51 @@ namespace LEX
 
 			if (a_lhs.type == OperandType::Literal) {
 				//This is hard enforced because this will impact so much more than this function.
-				report::runtime::critical("Move attempted to set literal value.");
+				report::fault::critical("Transfer attempted to set literal value.");
 			}
+
 
 
 			//Note, these likely are reversed. Move replaces, forward copies.
-			if (instruct == InstructType::Forward)	//Forward//References
+			switch (instruct)
 			{
-				
-				//As shown in the logging, the addresses are not the same.
-				//auto first = (uintptr_t)&a_rhs.GetVariable(runtime).Ref();
-
-				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.GetVariable(runtime).Ref();
-				//a_lhs.ObtainVariable(runtime)->Assign(a_rhs.GetVariable(runtime).Ref());
+			case InstructType::Reference://Actually reference
+				//Attempts to get a reference to the variable and will present a copy if not possible (think literals and such).
+				// Best used on a call target, or when a parameter is a reference
 				a_lhs.ObtainAsVariable(runtime).AssignRef(a_rhs.GetVariable(runtime));
-				
-				//auto second = (uintptr_t)&a_lhs.ObtainVariable(runtime).Ref();
-				//logger::critical("forward test, {} vs {}", first, second);
-				//std::system("pause");
+				break;
 
-			}
-			else									//Move//Copies
-			{
-				//a_lhs.ObtainVariable(runtime).Ref() = a_rhs.CopyVariable(runtime);
-				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
+			case InstructType::Move:
+				//Similar copy, but moves the resources
+				// Best used when pulling something from a register
+				a_lhs.ObtainVariable(runtime)->Assign(std::move(a_rhs.GetVariable(runtime).Ref()));
+				break;
+			
+			case InstructType::Forward:
+				//Sets the lhs to be the exact type as the left hand side.
+				// best used when it's unknown whether the rhs is a reference or not
+				a_lhs.ObtainAsVariable(runtime).AssignRef(a_rhs.AsVariable(runtime));
+				break;
+
+
+			case InstructType::ForwardMove:
+				//Same as Forward but uses a move instead
+				// best used when it's unknown whether the rhs is a reference or not, AND when coming from a temporary location such as a register
+				a_lhs.ObtainAsVariable(runtime).AssignRef(std::move(a_rhs.AsVariable(runtime)));
+				break;
+
+			case InstructType::Copy:
+				//Copies the value of the rhs into the lhs.
+				// Best used when not transfering between registers and references aren't involved
+				
+				
+				//a_lhs.ObtainVariable(runtime)->Assign(a_rhs.CopyVariable(runtime));
+				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.GetVariable(runtime).Ref());//Trying it this way because it doesn't need to copy
+				break;
+
+			default:
+				report::runtime::critical("Instruct type {} not accounted for.", magic_enum::enum_name(instruct));
+				break;
 			}
 		}
 
@@ -342,12 +388,12 @@ namespace LEX
 		static void Test(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
 			//Not actually sure how this would work, the idea is basically that I implicit bool cast to it, and output the result
-			// to the process flags.
+			// to the process qualifiers.
 
 
 
 			//bool value = process->GetVariable(a_lhs).GetImplicit<ValueType::Boolean>();
-			//process->flags.Set(ProcessFlags::TestBit, value);
+			//process->qualifiers.Set(ProcessFlags::TestBit, value);
 		}
 
 		static void Ret(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
@@ -415,7 +461,7 @@ namespace LEX
 		{
 
 			RuntimeVariable from = a_rhs.GetVariable(runtime);
-			AbstractTypePolicy* to = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			TypeInfo* to = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 			//from->
 		}
 
@@ -430,7 +476,7 @@ namespace LEX
 
 			//Have a AsScript/AsPolicy possibly?
 
-			ConcretePolicy* policy = dynamic_cast<ConcretePolicy*>(env);
+			ConcreteType* policy = dynamic_cast<ConcreteType*>(env);
 
 			result = policy->GetDefault();
 		}
@@ -439,15 +485,39 @@ namespace LEX
 		static void Construct(RuntimeVariable& result, Operand a_lhs, Operand, InstructType, Runtime* runtime)
 		{
 			
-			AbstractTypePolicy* policy = a_lhs.Get<ITypePolicy*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 
 			if (!policy)
 				report::runtime::critical("No policy could be fetched.");
 
 			result = policy->GetDefault();
-
-			logger::critical("type is in result? {}, is void {}", !!result->Policy(), result->IsVoid());
 		}
+
+
+	private:
+
+
+		static void DetachRef(RuntimeVariable& result, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		{
+			if (a_lhs.type == OperandType::Literal || a_rhs.type == OperandType::Literal) {
+				//This is hard enforced because this will impact so much more than this function.
+				report::runtime::critical("DetachRef attempted to set literal value.");
+			}
+
+			auto& variable = a_lhs.AsVariable(runtime);
+
+			//This second one is checking for local
+			//if (!variable->IsPolymorphic() && !variable->IsPolymorphic())
+			{
+				decltype(auto) out = variable.Detach();
+
+				if (a_rhs.type != OperandType::None) {
+					
+					a_rhs.AsVariable(runtime) = std::move(out);
+				}
+			}
+		}
+
 
 
 		//Conditional instructions
@@ -594,7 +664,7 @@ namespace LEX
 
 			case "*"_h:
 				logger::debug("construct symbol \'*\'");
-				return InstructType::Multiply;
+				return binary ? InstructType::Multiply : InstructType::Promote;
 
 			case "+"_h:
 				logger::trace("construct symbol '+' ({})", binary ? "binary" : "unary");
@@ -608,9 +678,9 @@ namespace LEX
 				logger::trace("construct symbol \'/\'");
 				return InstructType::Division;
 
-			case "**"_h:
-				logger::trace("construct symbol \'^\'");
-				return InstructType::Exponent;
+			//case "**"_h:
+			//	logger::trace("construct symbol \'^\'");
+			//	return InstructType::Exponent;
 
 			case "%"_h:
 				logger::trace("construct symbol \'%\'");
@@ -622,7 +692,7 @@ namespace LEX
 
 			case "="_h:
 				logger::trace("construct symbol \'=\'");
-				return InstructType::Assign;
+				return InstructType::Assign;//Assign is not a real instruction as it turns out, transfer gets used in it. But it works 2 jobs ig
 
 			case "=>"_h:
 			case "then"_h:
@@ -647,7 +717,7 @@ namespace LEX
 			//No need to deviate for now.
 			//InstructType type = OperatorToInstruction(op);
 
-			ITypePolicy* policy;
+			ITypeInfo* policy;
 
 			assert(it.policy);
 
@@ -686,12 +756,12 @@ namespace LEX
 			// I can't reach that.
 
 
-			compiler->GetOperationList().push_back(Operation{ op, out, it, it });
+			compiler->GetInstructionList().push_back(Instruction{ op, out, it, it });
 
 
-			logger::trace("<!> inst {}, result policy {}", compiler->GetOperationList().back()._instruct,
+			logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
 				(uint32_t)policy->GetTypeID());
-			return Solution{ policy, OperandType::Register, out };
+			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
 
 
@@ -704,7 +774,7 @@ namespace LEX
 			//No need to deviate for now.
 			//InstructType type = OperatorToInstruction(op);
 
-			ITypePolicy* policy;
+			ITypeInfo* policy;
 
 			assert(lhs.policy);
 			assert(rhs.policy);
@@ -766,12 +836,12 @@ namespace LEX
 			// I can't reach that.
 
 
-			compiler->GetOperationList().push_back(Operation{ op, out, lhs, rhs });
+			compiler->GetInstructionList().push_back(Instruction{ op, out, lhs, rhs });
 
 
-			logger::trace("<!> inst {}, result policy {}", compiler->GetOperationList().back()._instruct,
+			logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
 				(uint32_t)policy->GetTypeID());
-			return Solution{ policy, OperandType::Register, out };
+			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
 
 
@@ -827,10 +897,10 @@ namespace LEX
 						//This should actually be pushing what's in the lhs into the result register, then
 						// making the lh solution the result register.
 
-						//compiler->GetOperationList().emplace_back(InstructType::Push, Register::Result, lhs);
+						//compiler->GetInstructionList().emplace_back(InstructType::Push, Register::Result, lhs);
 						//lhs = Solution{ lhs.policy, OperandType::Register, Register::Result };
 
-						compiler->GetOperationList().push_back(CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
+						compiler->GetInstructionList().push_back(CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
 					}
 
 					
@@ -898,15 +968,8 @@ namespace LEX
 			{
 				Register prefered = compiler->GetPrefered();
 
-				std::string str1 = parse_strings::lhs;
-				std::string str2 = parse_strings::rhs;
-
-
-				Register reg1 = Register::Left;
-				Register reg2 = Register::Right;
-
-				SyntaxRecord& left = target.FindChild(str1)->GetFront();
-				SyntaxRecord& right = target.FindChild(str2)->GetFront();
+				SyntaxRecord& left = target.FindChild(parse_strings::lhs)->GetFront();
+				SyntaxRecord& right = target.FindChild(parse_strings::rhs)->GetFront();
 
 
 
@@ -914,36 +977,24 @@ namespace LEX
 
 				if (to.IsReadOnly() == true) {
 
-					report::compile::error("target solution is read only.");
+					report::compile::error("target solution must be an assignable value.");
 				}
 
+				//TODO: Please make some compiler shorthand for this. Like free register
 				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true) {
-					compiler->GetOperationList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
+					compiler->GetInstructionList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
 				}
 
 
 
 
+				//TODO: At a later point, the AssignProcess will need to use the constructor directly in cases of no-name constructor syntax
+				Solution from = compiler->CompileExpression(right, Register::Right);
 
-				Solution from = compiler->CompileExpression(right, reg2, to, TargetObject::Assign);
 
+				CompUtil::HandleConversion(compiler, from, to, target, Register::Right);
 
-				//Conversion out;
-				//auto convert = from.IsConvertToQualified(to, nullptr, &out);
-				//if (convert <= ConvertResult::Failure) {
-				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
-				//}
-				//CompUtil::HandleConversion(compiler, out, from, to, convert);
-
-				CompUtil::HandleConversion(compiler, from, to, target);
-
-				//compiler->GetOperationList().push_back(CompUtil::MutateCopy(from, to));
-
-				//return from;
-				//TRANSFOR
-				
-				//compiler->GetOperationList().push_back(Operation{ InstructType::Move, to, from });
-				compiler->GetOperationList().push_back(CompUtil::Mutate(from, to));
+				compiler->GetInstructionList().push_back(CompUtil::Mutate(from, to));
 
 				return to;
 			}
@@ -964,7 +1015,18 @@ namespace LEX
 			}
 
 
+			static Solution PromoteProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+			{
 
+
+				Solution result = compiler->CompileExpression(target.GetChild(0), compiler->GetPrefered());
+
+				if (result.PromoteRefness() == false) {
+					report::compile::error("'{}' Reference type cannot be promoted.", magic_enum::enum_name(result.reference));
+				}
+
+				return result;
+			}
 		};
 
 
@@ -989,6 +1051,10 @@ namespace LEX
 			
 			case InstructType::Then:
 				return OpProcessors::ThenProcess(compiler, target);
+				
+			case InstructType::Promote:
+				return OpProcessors::PromoteProcess(compiler, target);
+
 			default:
 				return OpProcessors::GenericProcess(compiler, target, op);
 			}
@@ -1019,7 +1085,7 @@ namespace LEX
 
 
 				//*Slated for deletion
-				//static ITypePolicy* boolean = nullptr;
+				//static ITypeInfo* boolean = nullptr;
 				//if (!boolean) {
 				//	//This may use a different boolean type eventually.
 				//	boolean = IdentityManager::instance->GetTypeByOffset("NUMBER", GetNumberOffsetFromType<bool>());
@@ -1029,16 +1095,16 @@ namespace LEX
 				
 				//Conversion out;
 				//auto convert = query.IsConvertToQualified(QualifiedType{ boolean }, nullptr, &out);
-				//if (convert <= ConvertResult::Failure) {
+				//if (convert <= ConversionEnum::Failure) {
 				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				//}
 				//CompUtil::HandleConversion(compiler, out, query, convert);
 
 				CompUtil::HandleConversion(compiler, query, QualifiedType{ common_type::boolean() }, target);
 
-				auto& list = compiler->GetOperationList();
+				auto& list = compiler->GetInstructionList();
 
-				std::vector<Operation> back_list;
+				std::vector<Instruction> back_list;
 
 				//TODO: I feel I should actually use an out on the dependent one, but do it first. By doing this, I can actually increase the jump
 				// size, and reduce a cycle. Optimizations for AFTER this starts working again
@@ -1055,7 +1121,7 @@ namespace LEX
 
 					if constexpr (0)
 					{
-						std::vector<Operation> ops;
+						std::vector<Instruction> ops;
 						{
 							//This set up will allow for us to include the deallocations included in the death of a scope.
 							Scope a_scope{ compiler, ScopeType::Depedent, ops };
@@ -1100,7 +1166,7 @@ namespace LEX
 
 				if constexpr (0)
 				{
-					std::vector<Operation> ops;
+					std::vector<Instruction> ops;
 					{
 						Scope a_scope{ compiler, ScopeType::Conditional, ops };
 
@@ -1152,22 +1218,32 @@ namespace LEX
 			//Combine with the use of variables.
 			Literal result = LiteralManager::ObtainLiteral(target);
 
-			Solution sol{ result->Policy(), OperandType::Literal, result };
+			Solution sol{ QualifiedType{ result->GetTypeInfo(), Constness::Const }, OperandType::Literal, result };
 			
 			return sol;
 		}
+
+
+		Solution TypeofProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+		{
+			//Declaration decl{ target, compiler->GetElement(), Refness::Temp };
+			Declaration decl  = Declaration::CreateOnly(target, compiler->GetElement(), Refness::Temp, HeaderFlag::TypeSpecifiers);
+
+			Solution sol{ QualifiedType{ common_type::type_info() }, OperandType::Type, decl.policy };
+
+			return sol;
+		}
+
 
 		Solution FieldProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			//Currently, this cannot be handled
 			QualifiedField var = compiler->GetScope()->SearchFieldPath(target);
 
-			if (!var) {
+			if (!var) {//Check if the var was this specifically.
 				report::compile::error("Cannot find variable '{}'.", target.GetTag());
 			}
 
-			//XTOR
-			//Solution result{ var->GetType(), OperandType::Index, var->GetFieldIndex() };
 			Solution result = var.AsSolution();
 
 
@@ -1185,7 +1261,10 @@ namespace LEX
 		
 
 
-		Solution HandleCall_V2(ExpressionCompiler* compiler, SyntaxRecord& target)
+
+
+
+		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 
 			//The argument check has to happen first.
@@ -1199,20 +1278,20 @@ namespace LEX
 			//This is used so that we know what size we're to after the fact, and place it at the head.
 			// By default it starts with 1, so we don't have to resize when we add the last (and first) piece.
 			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
-			//std::vector<Operation> ops{1};
+			//std::vector<Instruction> ops{1};
 
-			TargetObject* self = compiler->GetTarget()->GetCallTarget();
+			TargetObject* self = compiler->GetTarget();
 
-			std::vector<Solution> args;
-			std::vector<std::vector<Operation>> operations;
+			std::vector<std::pair<Solution, size_t>> args;
+			std::vector<std::vector<Instruction>> operations;
 
-			size_t alloc_size = arg_record->size();
-
+			int64_t alloc_size = arg_record->size();
+			int64_t sub_alloc = 0;
 
 			args.resize(alloc_size);
 			operations.resize(alloc_size);
 
-
+			//static_assert(false, "Some error in judgement has caused this to not produce an argument to be loaded. Address plz");
 
 			//At a later point, one will get the ability to define default arg out of order, via the below:
 			// function(arg1, arg2, def_param4 = arg3);
@@ -1229,12 +1308,18 @@ namespace LEX
 			for (size_t i = 0; auto & arg : arg_record->children())
 			{
 
+				compiler->DelayArgDecrement();
+
 				//Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
 				Solution result = compiler->CompileExpression(arg, Register::Right, operations[i]);//, ops);
 
-				//compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+				if (auto buf = compiler->ResumeArgDecrement(); buf > sub_alloc) {
+					sub_alloc = buf;
+				}
 
-				args[i] = result;
+				//compiler->GetInstructionList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+
+				args[i] = std::make_pair(result, 0);
 
 				i++;
 			}
@@ -1246,20 +1331,23 @@ namespace LEX
 
 			OverloadInput input;
 			input.object = self;
-			input.paramInput = args;//can probably move here.
+			input.implied = args;//can probably move here.
 
 			Overload instructions;
 
+
+
 			//Around here, you'd use the args.
-			FunctionInfo* info = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
+			FunctionNode node = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
 
 			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
 
-			if (!info) {
+			if (!node) {
 				report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
 			}
 
-			FunctionBase* func = info->Get();
+			//FunctionBase* func = info->Get();
+			FunctionData* func = node.GetSignature();
 
 			if (!func) {
 				report::compile::error("No callable for info at '{}' detected.", target.GetTag());
@@ -1267,7 +1355,7 @@ namespace LEX
 
 			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
 
-			size_t req_args = func->GetReqArgCount();
+			size_t req_args = func->GetArgCountReq();
 
 
 			if constexpr (1)
@@ -1276,7 +1364,7 @@ namespace LEX
 					report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
 				}
 
-				if (func->GetTargetType() != nullptr) {
+				if (func->GetTargetType().policy != nullptr) {
 					//Increase the allocation size to include the "this" argument.
 					//alloc_size++;
 				}
@@ -1284,24 +1372,30 @@ namespace LEX
 
 			bool has_tar = func->GetTargetType();
 
-			alloc_size += instructions.defaults.size() + has_tar;
+			//alloc_size = instructions.implied.size() + has_tar;
+			alloc_size = instructions.implied.size();
+			alloc_size += has_tar;
 
-			auto& list = compiler->GetOperationList();
+			auto& list = compiler->GetInstructionList();
 
 
-			auto start = compiler->ModArgCount(alloc_size);
+			auto start = compiler->ModArgCount(alloc_size, sub_alloc);
 
 
-			if (func->GetTargetType() != nullptr) {
+
+			if (func->GetTargetType().policy != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
-				list.push_back(CompUtil::MutateRef(std::as_const(*self->target), Operand{ start, OperandType::Argument }));
+				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
+				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
+				assert(self->target->type != OperandType::Argument);
+				list.push_back(Instruction{ InstructType::Reference, Operand{ alloc_size, OperandType::Argument }, *self->target });
 			}
 
 
 			for (size_t i = 0; i < args.size(); i++)
 			{
-				auto& o_entry = instructions.given[i];
-				auto& arg = args[i];
+				auto& o_entry = instructions.implied[i];
+				auto& arg = args[i].first;
 				auto& ops = operations[i];
 
 				list.append_range(std::move(ops));
@@ -1309,177 +1403,66 @@ namespace LEX
 				//This should basically already be successful, no real need for checks
 				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, Register::Right);
 
-				list.push_back(CompUtil::Mutate(arg, Operand{ start + i + has_tar, OperandType::Argument }));
+				auto index = i + has_tar;
+
+				//list.append_range(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
+				list.append_range(CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
 			}
 
 			//default is dealt with here.
 
-
-			size_t dealloc_size = alloc_size;
-
-			list.emplace_back(InstructType::Call, compiler->GetPrefered(),
-				Operand{ func, OperandType::Function },
-				Operand{ alloc_size, OperandType::Index });
-
-			compiler->ModArgCount(-static_cast<int64_t>(alloc_size));
+			Operand function;
 
 
+			auto generic = node.GetFunction();
 
-			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
-		}
-
-
-
-		Solution HandleCall(ExpressionCompiler* compiler, SyntaxRecord& target)
-		{
-
-			//The argument check has to happen first.
-
-			SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
-
-			if (!arg_record) {
-				report::compile::error("no args record in '{}' detected.", target.GetTag());
-			}
-
-			//This is used so that we know what size we're to after the fact, and place it at the head.
-			// By default it starts with 1, so we don't have to resize when we add the last (and first) piece.
-			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
-			//std::vector<Operation> ops{1};
-
-			TargetObject* self = compiler->GetTarget()->GetCallTarget();
-
-			std::vector<Solution> args;
-
-			size_t alloc_size = arg_record->size();
-			size_t dealloc_size = alloc_size;
-
-			args.resize(alloc_size);
-
-
-
-			if (self) {
-				//This will push itself into the arguments, but it will only be used under certain situations.
-				compiler->GetOperationList().push_back(CompUtil::MutateRef(std::as_const(*self->target), Operand{ compiler->ModArgCount(), OperandType::Argument }));
-				dealloc_size++;
-			}
-
-			//At a later point, one will get the ability to define default arg out of order, via the below:
-			// function(arg1, arg2, def_param4 = arg3);
-			// This sort of thing is known as a default argument, and instead of processing it here,
-			// it will process it later, when it is processing default arguments. 
-			//std::vector<SyntaxRecord*> def_args;
-
-
-
-			//I do the index this way in prep for explicit default arguments, where any default argument found
-			// will NOT increment the index, instead storing the record for later use.
-			//Additionally, I use get arg count so that the index being pushed
-			//*Turns out, the I was not required.
-			for (size_t i = 0; auto & arg : arg_record->children())
+			switch (node.type())
 			{
+			case FunctionNode::kFunction:
+				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
+					Operand{ node.GetFunction(), OperandType::Function },
+					Operand{ alloc_size, OperandType::Index });
+				break;
+			case FunctionNode::kMethod:
+				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
+					Operand{ node.GetMethod(), OperandType::Member },
+					Operand{ alloc_size, OperandType::Index });
+				break;
 
-				Solution result = compiler->CompileExpression(arg, compiler->GetPrefered());//, ops);
-
-				compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
-
-				args[i++] = result;
+			default:
+				report::error("invalid function type detected");
+				break;
 			}
 
+			compiler->ModArgCount(-alloc_size, -sub_alloc, false);
 
-			//'function' <Expression: Call>
-			//		'args' <Expression: Header>
-
-
-			OverloadInput input;
-			input.object = self;
-			input.paramInput = args;
-
-			Overload instructions;
-
-			//Around here, you'd use the args.
-			FunctionInfo* info = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
-
-			//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
-
-			if (!info) {
-				report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
-			}
-
-			FunctionBase* func = info->Get();
-
-			if (!func) {
-				report::compile::error("No callable for info at '{}' detected.", target.GetTag());
-			}
-
-			//Other checks should occur here, such as is static to determine how many arguments will be loaded.
-
-			size_t req_args = func->GetReqArgCount();
-
-			if (args.size() < req_args) {
-				report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
-			}
-
-			if (func->GetTargetType() != nullptr) {
-				//Increase the allocation size to include the "this" argument.
-				alloc_size++;
-			}
-
-
-			compiler->GetOperationList().emplace_back(InstructType::Call, compiler->GetPrefered(),
-				Operand{ func, OperandType::Function },
-				Operand{ alloc_size, OperandType::Index });
-
-			compiler->ModArgCount(-static_cast<int64_t>(dealloc_size));
-
-
-
-			return Solution{ func->GetReturnType(), OperandType::Register, compiler->GetPrefered() };
+			//TODO: The return of call should probably handled by whatever generic element it has, the proposed plan that could handle members
+			return Solution{ func->GetReturnType(generic->GetTemplatePart()), OperandType::Register, compiler->GetPrefered() };
 		}
 
 
-		bool HandleCtor(Solution& result, ExpressionCompiler* compiler, SyntaxRecord& target)
-		{
 
+		Solution CtorProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+		{
 			//OverloadInput input;
 			//input.object = self;
 			//input.paramInput = args;
 
 			//TODO: Should be in error if has an explicit target.
 
-			ITypePolicy* type = compiler->GetScope()->SearchTypePath(target);
+			//TODO: Future: constructors will need to be able to handle headers as well, address that when you can.
+			ITypeInfo* type = compiler->GetScope()->SearchTypePath(target);
 
-			if (type)
-			{
-				//TODO: Give this a compiler utility function, in case it has a manually defined constructor.
-				compiler->GetOperationList().emplace_back(InstructType::Construct, compiler->GetPrefered(),
-					Operand{ type, OperandType::Type });
+			if (!type)
+				//TODO: Please make this say the full name
+				report::error("Couldn't find type '{}'.", target.GetView());
 
-				result = Solution{ type, OperandType::Register, compiler->GetPrefered() };
-			}
+			//TODO: Future: Give this a compiler utility function, in case it has a manually defined constructor.
+			compiler->GetInstructionList().emplace_back(InstructType::Construct, compiler->GetPrefered(), Operand{ type, OperandType::Type });
 
-
-			return type;
+			return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
+		
 		}
-
-
-
-
-
-		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
-		{
-			//I seek to merge the functionality of these 2 functions into this one, seeing as they need to tread the same ground.
-
-			Solution result;
-
-			if (HandleCtor(result, compiler, target) == false) {
-				//result = HandleCall(compiler, target);
-				result = HandleCall_V2(compiler, target);
-			}
-
-
-			return result;
-		}
-
 
 
 
@@ -1495,17 +1478,18 @@ namespace LEX
 			if (!head_rec)
 				report::compile::error("No record named header.");
 
-			Declaration header{ *head_rec, compiler->GetEnvironment() };
-
+			//Declaration header{ *head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto };
+			//Declaration header = Declaration::CreateOnly(*head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto, HeaderFlag::Constness | HeaderFlag::Reference);
+			Declaration header = Declaration::CreateOnly(*head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto,
+				HeaderFlag::TypeSpecifiers | HeaderFlag::Constness | HeaderFlag::Reference);
+			
+			
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
 			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
-			if (header.Matches(true, Qualifier::Const | Qualifier::Runtime) == false) {
-				report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
-			}
-
-			if (header.flags & Qualifier::Const)
-				logger::info("{} is const", target.GetTag());
+			//if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
+			//	report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
+			//}
 
 			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);
 
@@ -1514,23 +1498,25 @@ namespace LEX
 				auto& def = definition->GetChild(0);
 				Solution result = compiler->CompileExpression(def, Register::Result);
 
+				//TODO: Here' try to adapt this to be the reference type loaded if it's generic
 
 
+				loc->MutateReference(result.reference);//TODO: This needs some point of failure
 
 				//-QUAL_CONV
 				//Conversion out;
 				//auto convert = result.IsConvertToQualified(header, nullptr, &out);
-				//if (convert <= ConvertResult::Failure) {
+				//if (convert <= ConversionEnum::Failure) {
 				//	report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert));
 				//}
 				//CompUtil::HandleConversion(compiler, out, result, header, convert);
 				
-				CompUtil::HandleConversion(compiler, result, header, def);
+				CompUtil::HandleConversion(compiler, result, header, def, ConversionFlag::Initialize);
 
 
-				//Operation free_reg{ InstructType::Move, Operand{var_index, OperandType::Index}, result };
-				//compiler->GetOperationList().emplace_back(InstructType::Forward, Operand{ var_index, OperandType::Index }, result);
-				compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
+				
+				//compiler->GetInstructionList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
+				compiler->GetInstructionList().append_range(CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
 			}
 
 
@@ -1557,19 +1543,19 @@ namespace LEX
 		{
 			QualifiedType return_policy = compiler->GetReturnType();
 
-			auto& list = compiler->GetOperationList();
+			auto& list = compiler->GetInstructionList();
 
 			if (target.size() != 0)
 			{
 				auto& ret = target.GetChild(0);
 
-				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result);
+				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result, compiler->IsReturnReference());
 
 				//Right here the solutions given type should be evaluated to see if a correct type is being returned.
 
 				//TODO: if the solution isn't in a register that is the result register, push the solution into 
 				// the return. Also check type.
-				//compiler->GetOperationList().push_back(ret_op);
+				//compiler->GetInstructionList().push_back(ret_op);
 
 				//left broken because I just realized even non-abstract types are going to have to worry about
 				// inheritence too.
@@ -1592,7 +1578,7 @@ namespace LEX
 				//}
 				//CompUtil::HandleConversion(compiler, out, result, return_policy, convert_result);
 
-				CompUtil::HandleConversion(compiler, result, return_policy, ret);
+				CompUtil::HandleConversion(compiler, result, return_policy, ret, ConversionFlag::Return);
 
 			}
 			else if (return_policy->CheckRuleset(TypeRuleset::NoReturn) == false)
@@ -1609,10 +1595,10 @@ namespace LEX
 
 			scope->FlagReturn();
 
-			//Operation ret_op{ InstructionType::Return };
+			//Instruction ret_op{ InstructionType::Return };
 
 			//This part should probably say what left and right situation should be on display.
-			compiler->GetOperationList().emplace_back(InstructionType::Return);
+			compiler->GetInstructionList().emplace_back(InstructionType::Return);
 		}
 
 
@@ -1621,15 +1607,20 @@ namespace LEX
 
 			auto& rhs = target.FindChild(parse_strings::rhs)->GetFront();
 
-			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetEnvironment() };
+			//Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp };
+			Declaration header = Declaration::CreateOnly(target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp,
+				HeaderFlag::TypeSpecifiers | HeaderFlag::Constness);
 
-			if (!header) {
-				report::compile::error("No type found for cast");
-			}
+			//if (!header) {
+			//	report::compile::error("No type found for cast");
+			//}
+			//if (header.Matches(DeclareMatches::Constness) == false) {
+			//	report::compile::error("Unexpected qualifiers detected.");
+			//}
 
 			auto& lhs = target.FindChild(parse_strings::lhs)->GetFront();
 
-			Solution expression = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered());
+			Solution expression = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered(), false);
 
 
 
@@ -1642,17 +1633,17 @@ namespace LEX
 
 			if (1 || target.GetView() != "maybe")
 			{
-				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, true); convert_result > convertFailure)
+				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, ConversionFlag::Explicit); convert_result)
 				{
 					//If this can convert, it's basically going to be something automatic.
 					CompUtil::HandleConversion(compiler, out, expression, header, convert_result);
 				}
 				//if the type we're trying to go to can convert into ours with only type conversions
-				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, true); convert_result > convertFailure)
+				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
-					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
+					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
-					compiler->GetOperationList().emplace_back(
+					compiler->GetInstructionList().emplace_back(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
 						Operand{ header.policy, OperandType::Type },
@@ -1668,11 +1659,11 @@ namespace LEX
 
 
 
-				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, true); convert_result > convertFailure)
+				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
-					expression = Solution{ header.policy, OperandType::Register, compiler->GetPrefered() };
+					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
-					compiler->GetOperationList().emplace_back(
+					compiler->GetInstructionList().emplace_back(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
 						Operand{ header.policy, OperandType::Type },
@@ -1705,14 +1696,14 @@ namespace LEX
 
 			//Right here the solutions given type should be evaluated to see if a correct type is being returned.
 
-			Operation ret_op{ InstructionType::Return };
+			Instruction ret_op{ InstructionType::Return };
 
 			//This part should probably say what left and right situation should be on display.
 
 
 
 
-			compiler->GetOperationList().push_back(ret_op);
+			compiler->GetInstructionList().push_back(ret_op);
 		}
 
 
@@ -1732,7 +1723,7 @@ namespace LEX
 
 			inline static Self* instance = &GetSingleton();
 
-			RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime*, RuntimeVariable*) override
+			RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime*, RuntimeVariable*) override
 			{
 				return (double)args[0]->AsString().size();
 			}
@@ -1762,7 +1753,7 @@ namespace LEX
 
 				inline static Self* instance = &GetSingleton();
 
-				virtual RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime*, RuntimeVariable*)
+				virtual RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime*, RuntimeVariable*)
 				{
 
 					//Convert should be real simple.
@@ -1874,28 +1865,28 @@ namespace LEX
 		}
 
 
-		struct StringType : public ConcretePolicy
+		struct StringType : public ConcreteType
 		{
-			using ConcretePolicy::ConcretePolicy;
+			using ConcreteType::ConcreteType;
 
-			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
 
 				static StrConvert converter{};
 
-				ConvertResult result = __super::IsConvertibleTo(other, scope, out, type);
+				ConvertResult result = __super::GetConvertTo(other, scope, out, flags);
 
 
-				if (out && result <= ConvertResult::Failure)
+				if (out && result <= ConversionEnum::Failure)
 				{
 					auto double_offset = Number::Settings::CreateFromType<double>().GetOffset();
 					
 					if (IdentityManager::instance->GetTypeByOffset("NUMBER", double_offset) == other)
 					{
 						out->implDefined = std::addressof(converter);
-						result = ConvertResult::ImplDefined;
+						result = ConversionEnum::ImplDefined;
 					}
 				}
 
@@ -1904,25 +1895,27 @@ namespace LEX
 		};
 
 
-		struct NumberType : public ConcretePolicy
+		struct NumberType : public ConcreteType
 		{
-			NumberType(std::string_view name, Number::Settings settings) : ConcretePolicy{ name, settings.GetOffset() }, _settings{settings}
+			NumberType(std::string_view name, Number::Settings settings) : ConcreteType{ name, settings.GetOffset() }, _settings{settings}
 			{}
 
 			//please, make this with a setting attached.
 
+			//Numbers are final so they don't have to deal with this.
+			void SetSelfQualifiers(Qualifier& qualifiers) const override {}
 
-			ConvertResult IsConvertibleTo(const ITypePolicy* other, const ITypePolicy* scope, Conversion* out = nullptr, ConversionType type = ConversionType::Implicit) const override
+			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
 
-				ConvertResult result = __super::IsConvertibleTo(other, scope, out, type);
+				ConvertResult result = __super::GetConvertTo(other, scope, out, flags);
 				
 				
 				
 				
-				if (out && result <= ConvertResult::Failure)
+				if (out && result <= ConversionEnum::Failure)
 				{
 					
 
@@ -1937,14 +1930,14 @@ namespace LEX
 						//With this, I might as well just be able to convert it and ignore the rest of this shit innit?
 						const NumberType* other_num = dynamic_cast<const NumberType*>(other);
 
-						if (other_num && (type == ConversionType::Explicit || !other_num->_settings.IsInteger() || _settings.IsInteger()))
+						if (other_num && (flags & ConversionFlag::Explicit || !other_num->_settings.IsInteger() || _settings.IsInteger()))
 						{
 							if (identity.offset >= Number::Settings::length)
 								report::fault::critical("Offset greater than number type length.");
 
 							out->implDefined = convertMap[--identity.offset];
 
-							result = ConvertResult::ImplDefined;
+							result = ConversionEnum::ImplDefined;
 						}
 					}
 				}
@@ -1957,13 +1950,13 @@ namespace LEX
 		};
 
 
-		struct CoreType : public ConcretePolicy
+		struct CoreType : public ConcreteType
 		{
 			//Core types basically will just not have manual types loaded.
 
-			using ConcretePolicy::ConcretePolicy;
+			using ConcreteType::ConcreteType;
 
-			std::vector<ITypePolicy*> GetPostAffixedTypes() const override
+			std::vector<ITypeInfo*> GetPostAffixedTypes() const override
 			{
 				return {};
 			}
@@ -1998,11 +1991,13 @@ namespace LEX
 			generatorList[SyntaxType::Boolean] = LiteralProcess;
 			generatorList[SyntaxType::String] = LiteralProcess;
 			generatorList[SyntaxType::Object] = LiteralProcess;
+			generatorList[SyntaxType::Typeof] = TypeofProcess;
 
 
 			generatorList[SyntaxType::Variable] = VariableProcess;
 			generatorList[SyntaxType::Field] = FieldProcess;
 			generatorList[SyntaxType::Call] = CallProcess;
+			generatorList[SyntaxType::Ctor] = CtorProcess;
 			generatorList[SyntaxType::Conditional] = ConditionalProcess;
 
 
@@ -2011,14 +2006,19 @@ namespace LEX
 			instructList[InstructType::Convert] = InstructWorkShop::Convert;
 			instructList[InstructType::Construct] = InstructWorkShop::Construct;
 
-			instructList[InstructType::Push] = InstructWorkShop::Push;//deprecated
+
 			//These 2 are one in the same.
 			instructList[InstructType::Move] = InstructWorkShop::Transfer;
+			instructList[InstructType::Copy] = InstructWorkShop::Transfer;
+			instructList[InstructType::Reference] = InstructWorkShop::Transfer;
 			instructList[InstructType::Forward] = InstructWorkShop::Transfer;
+			instructList[InstructType::ForwardMove] = InstructWorkShop::Transfer;
+
+
 			instructList[InstructType::Return] = InstructWorkShop::Ret;
 			instructList[InstructType::JumpStack] = InstructWorkShop::JumpStack;
-			instructList[InstructType::IncArgStack] = InstructWorkShop::IncArgStack;
-			instructList[InstructType::IncVarStack] = InstructWorkShop::IncVarStack;
+			instructList[InstructType::ModArgStack] = InstructWorkShop::ModArgStack;
+			instructList[InstructType::ModVarStack] = InstructWorkShop::ModVarStack;
 			instructList[InstructType::DefineVariable] = InstructWorkShop::DefineVar;
 			instructList[InstructType::DefineParameter] = InstructWorkShop::DefineParam;
 			instructList[InstructType::DropStack] = InstructWorkShop::DropStack;
@@ -2043,6 +2043,7 @@ namespace LEX
 			//We not ready for this one.
 			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;
 			instructList[InstructType::UnaryMinus] = InstructWorkShop::UnaryMath<std::negate<void>>;
+			instructList[InstructType::Promote] = InstructWorkShop::CheckPromotion;
 
 			
 
@@ -2056,9 +2057,24 @@ namespace LEX
 
 			IdentityManager::instance->GenerateID("CORE", 0);
 
+			IdentityManager::instance->GenerateID("REFLECT_None", 0);
+			IdentityManager::instance->GenerateID("REFLECT_Type", 2);
+
+			static ConcreteType* reflectBase = new ConcreteType{ "REFLECT_None", 0 };
+
+			static ConcreteType* typeBasic = new ConcreteType{ "REFLECT_Type", 0 };
+			static ConcreteType* typeGeneric = new ConcreteType{ "REFLECT_Type", 1 };
+			static ConcreteType* typeConcrete = new ConcreteType{ "REFLECT_Type", 2 };
+
+
 
 			IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length);
 			IdentityManager::instance->GenerateID("STRING", 0);
+
+
+
+
+
 
 
 			constexpr auto offset = Number::Settings::GetOffset(NumeralType::Floating);
@@ -2068,26 +2084,26 @@ namespace LEX
 			//TODO: This type of instantiation should be reserved squarely for intrinsic types like numbers, strings etc.
 			// Other than that, no type should be created knowing what it is already.
 
-			static ConcretePolicy* NUMBER = new ConcretePolicy{ "NUMBER", 0 };
+			static ConcreteType* NUMBER = new ConcreteType{ "NUMBER", 0 };
 
 			//I'd like to make a trival ID. The trival id is a singular empty id for a type that cannot be searched for
 			// such as a function signature or 
 
-			static ConcretePolicy* string8 = new ConcretePolicy{ "STRING", 0 };
+			static ConcreteType* string8 = new ConcreteType{ "STRING", 0 };
 
 
 			//For the love of god, automate making these. I beg.
-			static ConcretePolicy* float64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<double>() };
-			static ConcretePolicy* float32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<float>() };
-			static ConcretePolicy* uBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
-			static ConcretePolicy* sBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
-			static ConcretePolicy* sInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int32_t>() };
-			static ConcretePolicy* uInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint32_t>() };
-			static ConcretePolicy* sInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int64_t>() };
-			static ConcretePolicy* uInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint64_t>() };
+			static ConcreteType* float64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<double>() };
+			static ConcreteType* float32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<float>() };
+			static ConcreteType* uBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
+			static ConcreteType* sBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
+			static ConcreteType* sInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int32_t>() };
+			static ConcreteType* uInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint32_t>() };
+			static ConcreteType* sInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int64_t>() };
+			static ConcreteType* uInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint64_t>() };
 			
 
-			static ConcretePolicy* _coreObject = new CoreType{ "CORE", 0 };
+			static ConcreteType* _coreObject = new CoreType{ "CORE", 0 };
 			
 			_coreObject->SetInheritFrom(common_type::voidable());
 			

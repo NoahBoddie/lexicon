@@ -3,15 +3,19 @@
 #include "Expression.h"
 #include "ExpressionType.h"
 #include "Solution.h"
-#include "Operation.h"
+#include "Instruction.h"
 #include "RoutineBase.h"
 
 #include "parse_strings.h"
+
+#include "Lexicon/ITemplatePart.h"
 
 //*src
 #include "ConcreteFunction.h"
 #include "TargetObject.h"
 #include "CompileUtility.h"
+#include "Lexicon/Engine/GenericBase.h"
+
 namespace LEX
 {
 
@@ -65,16 +69,16 @@ namespace LEX
 	inline std::map<SyntaxType, Generator> generatorList;//Kinda temp.
 
 
-	struct CompilerBase
+	struct CompilerBase : public ITemplatePart
 	{
 	protected:
 		struct TempListHandle
 		{
-			std::vector<Operation>*& current;
-			std::vector<Operation>* prev = nullptr;
+			std::vector<Instruction>*& current;
+			std::vector<Instruction>* prev = nullptr;
 
 
-			TempListHandle(std::vector<Operation>& out, std::vector<Operation>*& target) :current{ target }
+			TempListHandle(std::vector<Instruction>& out, std::vector<Instruction>*& target) :current{ target }
 			{
 				prev = current;
 				current = std::addressof(out);
@@ -87,13 +91,25 @@ namespace LEX
 		};
 
 	public:
+		//Put all information from this into a Base with routine compiler just being the highest level
+		friend class Scope;
 
 		virtual ~CompilerBase() = default;
 
 
-		//Put all information from this into a Base with routine compiler just being the highest level
-		friend class Scope;
+		size_t GetSize() const override
+		{
+			return _generic ? _generic->GetSize() : 0;
+		}
 
+		virtual ITypeInfo* GetPartArgument(size_t i) const 
+		{
+			return _generic ? _generic->GetPartArgument(i) : 0;
+		}
+
+
+
+		
 		//Important thing to note. This is only for THE CODE. So while everything else is important, all it does is create routine stuff.
 
 		Register GetPrefered()
@@ -102,9 +118,9 @@ namespace LEX
 		}
 
 
-		std::vector<Operation>* GetOperationListPtr();
+		std::vector<Instruction>* GetInstructionListPtr();
 
-		std::vector<Operation>& GetOperationList();
+		std::vector<Instruction>& GetInstructionList();
 
 
 		size_t GetArgCount() const
@@ -112,26 +128,69 @@ namespace LEX
 			return argCount[0];
 		}
 
-		size_t ModArgCount(int64_t i = 1)
+		void ShiftArgCount(int64_t i)
+		{
+			//I'm thinking of undoing the bit once I get out of the parameter.
+			if ((argCount[0] += i) > argCount[1])
+				argCount[1] = argCount[0];
+		}
+
+		size_t ModArgCount(int64_t x, int64_t y, bool append = true)
 		{
 			//Try to unionize this when you can.
 			size_t count = argCount[0];
 
-			if ((argCount[0] += i) > argCount[1])
-				argCount[1] = argCount[0];
+			//i >= 0 || 
+			if (!delayDec[0])
+			{
+				ShiftArgCount(x + y);
+			
+			}
+			else if(x > 0) {// if (i < 0) {
+				delayDec[1] += x;
+			}
 
-			if (i)
-				GetOperationList().emplace_back(InstructionType::IncrementArgStack, Operand{ i , OperandType::Differ });
+			if (x && append)
+				GetInstructionList().emplace_back(InstructionType::ModArgStack, Operand{ x , OperandType::Differ });
+
 
 			return count;
 		}
 
 
+		void DelayArgDecrement()
+		{
+			delayDec[0]++;
+		}
 
-		QualifiedType GetReturnType()
+		[[nodiscard]] int64_t ResumeArgDecrement()
+		{
+			//dec 1 isn't being incremented
+
+			//The concept of important
+			int64_t result = 0;
+			if (--delayDec[0] == 0){
+				//ShiftArgCount(delayDec[1]);
+				//delayDec[1] = 0;
+				std::swap(result, delayDec[1]);
+			}
+
+			assert(delayDec[0] >= 0);
+
+			return result;
+		}
+		
+
+
+		QualifiedType GetReturnType() const
 		{
 			//this return type doesn't need to be the specialized one. In fact, for now it's better that it isn't.
 			return _callData->GetReturnType();
+		}
+
+		std::optional<bool> IsReturnReference() const
+		{
+			return GetReturnType().IsReference();
 		}
 
 		
@@ -148,133 +207,20 @@ namespace LEX
 			return _object;
 		}
 
-		void PushTargetObject(TargetObject& obj)
-		{
-			_object = &obj;
-		}
 
-		void PopTargetObject()
+		Element* GetElement()
 		{
-			if (_object)
-				_object = _object->prev;
-		}
-
-
-		Environment* GetEnvironment()
-		{
-			return _environment;
+			return _element;
 		}
 
 
 	protected:
 
-		//Please merge these 2 functions. make them mod var count, with a boolean to handle it being a param.
-
-		
-		//Mods the count for parameters, not including the increment instructions.
-		/*
-		size_t ModParamCountOLD(int64_t inc, std::vector<ITypePolicy*> policies = {})
-		{
-			auto size = policies.size();
-
-			if (inc > 0 && size != inc)
-			{
-				//TODO: make error a Fatal Fault
-				report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
-				throw nullptr;
-			}
-
-			//make the below use this.
-			size_t count = varCount[0];
-
-			if ((varCount[0] += inc) > varCount[1])
-				varCount[1] = varCount[0];
-
-
-			auto& op_list = GetOperationList();
-
-
-			if (inc > 0)
-			{
-				for (auto i = 0; i < size; i++)
-				{
-					//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-					// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
-					// have an instruction intend to specialize.
-
-					size_t index = count + i;
-					ITypePolicy* policy = policies[i];
-					op_list.emplace_back(InstructionType::DefineParameter, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
-				}
-			}
-
-
-			return count;
-		}
-
-		
-		size_t ModVarCountOLD(int64_t inc, std::vector<ITypePolicy*> policies = {})
-		{
-			size_t count = varCount[0];
-
-			//If there is no operative list, we're at the very end, and there's no reason to actually decrement.
-			if (_current)
-			{
-
-				auto size = policies.size();
-
-				if (inc > 0 && size != inc)
-				{
-					//TODO: make error a Fatal Fault
-					report::compile::critical("Size of policies does not equal expected size({} != {})", size, inc);
-					throw nullptr;
-				}
-
-				if ((varCount[0] += inc) > varCount[1])
-					varCount[1] = varCount[0];
-				
-				auto& op_list = GetOperationList();
-				
-				op_list.emplace_back(InstructionType::IncrementVarStack, Operand{ inc , OperandType::Differ });
-				
-
-				if (inc > 0)
-				{
-					for (auto i = 0; i < size; i++)
-					{
-						//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-						// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
-						// have an instruction intend to specialize.
-
-						size_t index = count + i;
-
-						ITypePolicy* policy = policies[i];
-						op_list.emplace_back(InstructionType::DefineVariable, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
-					}
-				}
-			}
-
-
-			return count;
-		}
-
-		size_t ModVarCountOLD(ITypePolicy* policy)
-		{
-			return ModVarCountOLD(1, { policy });
-		}
-
-
-		size_t ModParamCountOLD(ITypePolicy* policy)
-		{
-			return ModParamCountOLD(1, { policy });
-		}
-		//*/
-
 
 		size_t ModVarCount(int64_t inc);
 
 
-		size_t InitVariables(const std::vector<ITypePolicy*>& types, bool param)
+		size_t InitVariables(const std::vector<ITypeInfo*>& types, bool param)
 		{
 			auto size = types.size();
 
@@ -282,31 +228,31 @@ namespace LEX
 			size_t count = ModVarCount(static_cast<int64_t>(size));
 
 
-			auto& op_list = GetOperationList();
+			auto& op_list = GetInstructionList();
 
 			auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
 
 			for (auto i = 0; i < size; i++)
 			{
 				//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-				// the respective variable index by instruction, and if the ITypePolicy is generic, then it should
+				// the respective variable index by instruction, and if the ITypeInfo is generic, then it should
 				// have an instruction intend to specialize.
 
 				size_t index = count + i;
-				ITypePolicy* policy = types[i];
+				ITypeInfo* policy = types[i];
 				op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 			}
 
 			return count;
 		}
 
-		size_t InitLocals(std::vector<ITypePolicy*> types){return InitVariables(types, false);}
+		size_t InitLocals(std::vector<ITypeInfo*> types){return InitVariables(types, false);}
 
-		size_t InitParams(std::vector<ITypePolicy*> types){return InitVariables(types, true);}
+		size_t InitParams(std::vector<ITypeInfo*> types){return InitVariables(types, true);}
 
-		size_t InitLocal(ITypePolicy* type){return InitVariables({ type }, false);}
+		size_t InitLocal(ITypeInfo* type){return InitVariables({ type }, false);}
 
-		size_t InitParam(ITypePolicy* type){return InitVariables({ type }, true);}
+		size_t InitParam(ITypeInfo* type){return InitVariables({ type }, true);}
 
 
 		bool IsDetached() const
@@ -318,31 +264,35 @@ namespace LEX
 		}
 
 		//I'll try to set this up a bit later.
-		//friend std::vector<Operation>& Scope::GetOperationList();
+		//friend std::vector<Instruction>& Scope::GetInstructionList();
 
 
-		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Environment* env) : CompilerBase {ast, owner, env, owner->_name, owner->GetTargetType() }
+		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Element* elem, GenericBase* base) : CompilerBase { ast, owner, elem, base, owner->_name }
 		{
 
 		}
 
-		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name= "<no name>", ITypePolicy* tarType = nullptr) :
+		CompilerBase(SyntaxRecord& ast, BasicCallableData* owner, Element* elem, GenericBase* base, std::string_view name = "<no name>") :
 			funcRecord{ ast },
-			_name { name },
+			_name{ name },
 			_callData{ owner },
-			_environment{ env },
-			_targetType{ tarType }
+			_generic{ base },
+			_element{ elem }
 		{
 
 		}
+
+
 
 
 		//Don't use this no more. Each must provide their own container
-		//std::vector<Operation> _cache;
+		//std::vector<Instruction> _cache;
 
 
 
 		//First is current, second is largest.
+
+		std::array<int64_t, 2> delayDec{ 0, 0 };//Decrements delayed due to functions. Want something that handles this better
 		std::array<size_t, 2> argCount{ 0, 0 };
 		std::array<size_t, 2> varCount{ 0, 0 };
 
@@ -365,21 +315,18 @@ namespace LEX
 
 		//Replacement for targetFunc
 		BasicCallableData* _callData = nullptr;
-		
-		ITypePolicy* _targetType = nullptr;
-		//std::unique_ptr<ParameterInfo> __thisInfo;
-		
+		GenericBase* _generic = nullptr;
 		std::string_view _name;
 
 		size_t GetParamAllocSize() const
 		{
-			return  _callData ? _callData->GetParamAllocSize() : 0;
+			return  _callData ? _callData->GetParamCount() : 0;
 		}
 
 
-		ITypePolicy* GetTargetType() const
+		QualifiedType GetTargetType() const
 		{
-			return _targetType;
+			return _callData ? _callData->GetTargetType() : nullptr;
 		}
 
 		std::string_view name()
@@ -393,19 +340,44 @@ namespace LEX
 			return _callData ? _callData->FindParameter(a_name) : nullptr;
 		}
 
+
+
+		[[nodiscard]] uint32_t AddRecord(SyntaxRecord& record)
+		{
+			auto result = _instructRecords.size();
+
+
+			if (result >= 0x00FFFFFF) {
+				report::compile::error("can't be biger than max index, better log later");
+			}
+
+
+			_instructRecords.push_back(&record);
+
+			return result;
+		}
+
+		uint32_t GetRecordIndex()const
+		{
+			auto result = _instructRecords.size();
+
+
+			return result ? result : -1;
+		}
+
 		//~end
 
-
+		std::vector<SyntaxRecord*> _instructRecords;
 
 		//I would like to remove environment from play, and replace it with just the element being given.
-		Environment* _environment = nullptr;
+		Element* _element = nullptr;
 		//ICallableUnit* routine = nullptr;
 
 		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
 		SyntaxRecord& funcRecord;
 		
 		//Here's the concept, this remains null if the scope is what handles the object. Basically, it's detached if this is true.
-		std::vector<Operation>* _current = nullptr;
+		std::vector<Instruction>* _current = nullptr;
 
 		Scope* currentScope{};//Scopes are the thing that should handle how many variables are in use, that sort of schtick I think.
 		// as well as the concept of memory being freed.
@@ -433,7 +405,7 @@ namespace LEX
 		virtual Solution CompileExpression(SyntaxRecord& node, Register pref) = 0;
 
 
-		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out)
+		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Instruction>& out)
 		{
 			TempListHandle handle{ out, _current };
 
@@ -443,24 +415,20 @@ namespace LEX
 		}
 
 
-		Solution CompileExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::Explicit)
+		Solution CompileExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::None)
 		{
 			//Consider making this self managing like how scope does.
 
-			TargetObject target{ tar, GetTarget(), flags };
-
-			PushTargetObject(target);
+			TargetObject target{ &tar, _object, flags };
 
 			Solution result = CompileExpression(node, pref);
-
-			PopTargetObject();
 
 			return result;
 		}
 
 
 
-		Solution PushExpression(SyntaxRecord& node, Register pref)
+		Solution PushExpression(SyntaxRecord& node, Register pref, std::optional<bool> is_ref)//is_ref is false by default I guess??
 		{
 			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
 			// one.
@@ -468,29 +436,26 @@ namespace LEX
 
 
 			if (result.type != OperandType::Register) {
-				//TODO: this should use Mutate
+				//TODO: this should use Mutate, Scratch, it will want to use Load, maybe a combo of the 2
 
-				//GetOperationList().emplace_back(InstructType::Forward, Operand{ pref, OperandType::Register }, result);
-				GetOperationList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
+				
+				//GetInstructionList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
+				GetInstructionList().append_range(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
 				
 				//This uses the policy of the solution, but uses the register that the above uses.
-				return Solution{ result.policy, OperandType::Register, pref };
+				return Solution{ result, OperandType::Register, pref };
 			}
 
 			return result;
 		}
 
 
-		Solution PushExpression(SyntaxRecord& node, Register pref, Solution tar, bool is_expl = true)
+		Solution PushExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::None)
 		{
 
-			TargetObject target{ tar, GetTarget(), is_expl };
+			TargetObject target{ &tar, _object, flags };
 
-			PushTargetObject(target);
-
-			Solution result = PushExpression(node, pref);
-
-			PopTargetObject();
+			Solution result = PushExpression(node, pref, false);
 
 			return result;
 		}
@@ -636,13 +601,9 @@ namespace LEX
 
 		void CompileStatement(SyntaxRecord& node, Register pref, Solution tar)
 		{
-			TargetObject target{ tar, GetTarget(), true };
-
-			PushTargetObject(target);
+			TargetObject target{ &tar, _object };
 
 			CompileStatement(node, pref);
-
-			PopTargetObject();
 		}
 
 
@@ -691,17 +652,32 @@ namespace LEX
 
 		//function data is no longer an ask, it's a requirement now.
 		// additional. FunctionData can hold its own record.
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Environment* env)
+		
+		
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionBase* owner)
 		{
-			return Compile(routine, ast, owner, env, owner->_name, owner->GetTargetType());
+			return Compile(routine, ast, owner, owner, owner->AsGenericElement(), owner->GetName());
 		}
 		
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Environment* env, std::string_view name = parse_strings::no_name, ITypePolicy* tarType = nullptr)
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Element* elem)
+		{
+			return Compile(routine, ast, owner, elem, nullptr, owner->name());
+		}
+		
+		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Element* elem, GenericBase* gen, std::string_view name = parse_strings::no_name)
 		{
 			report _{ IssueType::Compile };
-			RoutineCompiler compiler{ ast, owner, env, name, tarType };
+			RoutineCompiler compiler{ ast, owner, elem, gen, name };
 			bool result = compiler.CompileRoutine(routine);
-			RGL_LOG(debug, "Compilation complete.");
+			
+			if (!result) {
+				
+				report::compile::failure("Compilation of '{}' failure. Address logs", name), (IsDebuggerPresent() ? __debugbreak() : void());
+			}
+			else {
+				report::compile::debug("Compilation of '{}' complete.", name);
+			}
+
 			return result;
 		}
 		private:

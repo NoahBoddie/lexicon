@@ -1,115 +1,133 @@
 #pragma once
 
+#include "Target.h"
 #include "Operand.h"
+#include "OperandType.h"
+#include "Operation.h"
 #include "InstructionType.h"
+
 namespace LEX
 {
 
-	class Runtime;
-	//union Target;
-	//class Operand;
-
-
-	//EVERYTHING here will need some revision, but most of all the operation compiling functions. Once that is fixed up, I can go into
-	// details about the compiler.
-
-
-	//For operator, the left variable is a reference, while the right is a const Variable ref. 
-	// Pointing to the left being an lvalue, being able to be edited under the right conditions (though it will be forbidden for constants).
-	// While the right is something that may not be there (so maybe it should be a pointer or optional)
-
-	//Includes InstructType so I can reuse some functions, like "+" for "+="
-
-	//Both of these types aren't so used yet, so I'm concealing them for now.
-	//Operator is the term for exposed functions like + or *. They're quite literal and use variables instead of positions.
-	//Operator can access runtime, but it's going to be const, because operators can't edit anything.
-	using Operator = RuntimeVariable(*)(RuntimeVariable&, RuntimeVariable, InstructType, const Runtime*);
-
-	//Directive is the term for components of instructions, like TEST or push_arg. They cannot be manually manipulated.
-	using Directive = void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
-
-
-	//A revision to the above, Operator might be the left a runtime variable, and the right a const variable
-
-
-	//Should probably call this instructions
-	//The public one are likely called operators, these just take variables. The other one is instructions or destiction like that.
-	// I have plenty of names for the inbetweens of them.
-	struct Instruction : public ConstClassAlias<std::variant<Operator, Directive>>
+	struct Instruction final
 	{
-		Instruction() = default;
-		ALIAS_HEADER;
-
-		//Should this use std::function? Probably no real reason.
-
-		//This is basically what would sort this, no idea what I'll do. Do it later.
-		//TEST_OpResult OpResult no longer viable, given this doesn't remark what register it goes into.
-		//std::vector<ForceTest>* test_list//I'm really unsure if I'm truly gonna use this. Having a "test" function for 
-		// NewOperation might work.
-		void Operate(RuntimeVariable& result, Runtime* process, Operand a_lhs, Operand a_rhs, InstructType type) const
+		struct RecordIndex
 		{
-			//No idea why this shit works but I can't just call it.
-
-			if (index() == 0)
+			constexpr RecordIndex() noexcept = default;
+			constexpr RecordIndex(uint32_t i)
 			{
-				RuntimeVariable left = a_lhs.GetVariable(process);
+				if (i >= k_maxIndex) {
+					value = k_invalid;
+					return;
+				}
 
-				RuntimeVariable right = a_rhs.GetVariable(process);
-
-				//do stuff that makes this operator.
-				//Note, the routine process should likely handle the base transfer to turn the index into a variable.
-				result = std::get<Operator>(*this)(left, right, type, process);
+				value[0] = (i & 0x0000FF);
+				value[1] = (i & 0x00FF00) << 8;
+				value[2] = (i & 0xFF0000) << 16;
 			}
-			else if (index() == 1)
+
+			operator uint32_t () const
 			{
-				std::get<Directive>(*this)(result, a_lhs, a_rhs, type, process);
+				if (k_invalid == value) {
+					return -1;
+				}
+
+				return (value[0]) | (value[1] << 8) | (value[2] << 16);
 			}
+
+
+			static constexpr uint32_t k_maxIndex = 0x00FFFFFF;
+			constexpr static std::array<uint8_t, 3> k_invalid{ 255, 255, 255 };
+
+			std::array<uint8_t, 3> value = k_invalid;
+		};
+
+
+
+		//Main constructor, Takes 2 Operands left and right, an out register, and instruction.
+		//The instruction and register are first, because usually they're non optional.
+
+		constexpr Instruction() = default;
+		//switch order, reg last
+		constexpr Instruction(InstructionType it, Register reg = Register::Invalid, Operand left = {}, Operand right = {}, uint32_t i = -1) :
+			_instruct{ it }, _out{ reg },
+			_lhs{ left }, _ltype{ left.type },
+			_rhs{ right }, _rtype{ right.type },
+			index{ i }
+		
+		{
+
 		}
-	};
+
+		//remove when above is fixed
+		constexpr Instruction(InstructionType it, Operand left, Operand right = {}, uint32_t i = -1) :
+			_instruct{ it },
+			_lhs{ left }, _ltype{ left.type },
+			_rhs{ right }, _rtype{ right.type }
+
+		{
+
+		}
+
+		constexpr Instruction(InstructionType it, Operand left, uint32_t i) : Instruction{ it, left, {}, i }
+		{
+
+		}
 
 
-	//TODO:Move the OperatorWorkShop functions to their own placement when I've confirmed their functionality.
-	//TODO: (MakeManager) The instruct execution list. Should be named to that effect. Give it it's own space.
-	//I intend on moving this
-	inline std::array<Instruction, InstructType::Total> instructList
-	{
+		//might switch target and operand names
+		Target _lhs{};//8
+		Target _rhs{};//8
+
+		OperandType _ltype = OperandType::None;//1
+		OperandType _rtype = OperandType::None;//1	
+
+		InstructType _instruct = InstructType::Invalid;//2?
+
+		Register _out = Register::Invalid;//1
+
+		//This exists as an index for "failable action". Will stop recording at a certain point, but basically along side of compilation, should be a list of record pointers
+		// which allow one to get the line and column of its failure. Will not be used for something that wasn't given a place to allocate record pointers to. Also, if it runs out of
+		// space it will just stop debugging entirely.
+		//The record code is really just an integer.
+		
+		RecordIndex index{};
+
 		/*
-		Instruction{},//Pass
-		OperatorWorkShop::BitwiseXOR,//BitwiseXOR
-		OperatorWorkShop::BitwiseOR,//BitwiseOR
-		OperatorWorkShop::BitwiseAND,//BitwiseAND
-		OperatorWorkShop::RightShift,//RightShift
-		OperatorWorkShop::LeftShift,//LeftShift
-		OperatorWorkShop::BitwiseNOT,//BitwiseNOT
-		OperatorWorkShop::LogicalNOT,//LogicalNOT
-		{},//UnaryPlus
-		OperatorWorkShop::UnaryMinus,//UnaryMinus
-		OperatorWorkShop::GreaterThan,//GreaterThan
-		OperatorWorkShop::LesserThan,//LesserThan
-		OperatorWorkShop::GreaterThan,//GreaterOrEqual
-		OperatorWorkShop::LesserThan,//LesserOrEqual
-		OperatorWorkShop::Equals,//EqualTo
-		OperatorWorkShop::Equals,//NotEqualTo
-		OperatorWorkShop::Equals,//EqualAbsTo
-		OperatorWorkShop::LogicalOR,//LogicalOR
-		OperatorWorkShop::LogicalAND,//LogicalAND
-		OperatorWorkShop::Subtract,//Subtract
-		OperatorWorkShop::Addition,//Addition
-		OperatorWorkShop::Division,//Division
-		OperatorWorkShop::Multiply,//Multiply
-		OperatorWorkShop::Modulo,//Modulo
-		OperatorWorkShop::Exponent,//Exponent
-		{},//Access
-		OperatorWorkShop::Push,//Push
-		{},//PushVariable
-		OperatorWorkShop::IncArgStack,//IncrementArgStack
-		{},//IncrementTarStack
-		OperatorWorkShop::Test,//Test
-		{},//ObjectTest
-		OperatorWorkShop::Call,//Call
-		{},//ReturnDefault
-		OperatorWorkShop::DropStack,//DropStack
-		OperatorWorkShop::JumpStack//JumpStack
+		std::array<uint8_t, 3> recordCode{ 255, 255, 255 };
+
+		//Want to clean the below up bit this is fine for now
+
+		static constexpr uint32_t maxCode = 0x00FFFFFF;
+
+		//Instead of this, I could possibly use a different operation to handle this. That starts in reference to a record, and ends in reference to a record.
+		// which basically just tells you where you were at. It's a thing to think about, especially with formulas.
+		bool SetRecordCode(uint32_t value)
+		{
+			if (value >= maxCode)
+				return false;
+
+			recordCode[0] = (value & 0x0000FF);
+			recordCode[1] = (value & 0x00FF00) << 8;
+			recordCode[2] = (value & 0xFF0000) << 16;
+
+			//byte0 + (byte1 << 8) + (byte2 << 16);
+
+			return true;
+		}
+
+		uint32_t GetRecordCode()
+		{
+			return recordCode[0] | (recordCode[1] << 8) | (recordCode[2] << 16);
+		}
 		//*/
+		Operand GetTarget(bool left)
+		{
+			return left ? Operand{ _lhs, _ltype } : Operand{ _rhs, _rtype };
+		}
+
+		void Execute(Runtime* runtime);
+
 	};
+	REQUIRED_SIZE(Instruction, 0x18);
 }

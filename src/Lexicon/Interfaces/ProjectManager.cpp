@@ -20,6 +20,8 @@
 
 #include "Lexicon/Engine/Signature.h"
 
+#include "Lexicon/Engine/ConcreteFunction.h"
+
 namespace LEX
 {
 
@@ -54,10 +56,10 @@ namespace LEX
 
 
 	//Move this to some  one off junk folder.
-	struct PathParser : public LEX::Impl::ParseModule, public LEX::Impl::IdenDeclBoilerPlate
+	struct PathParser : public LEX::ParseModule, public LEX::IdenDeclBoilerPlate
 	{
 		//The idea of this is it's a simple parser that acts like the identifier parser, but will handle this in a way that can handle
-		bool CanHandle(LEX::Impl::Parser* parser, Record* target, LEX::Impl::ParseFlag flag) const override
+		bool CanHandle(ParsingStream* parser, Record* target, LEX::ParseFlag flag) const override
 		{
 			return true;
 		}
@@ -68,27 +70,22 @@ namespace LEX
 		}
 
 
-		Record _HandleThis(LEX::Impl::Parser* parser)
+		Record _HandleThis(ParsingStream* parser)
 		{
 			RecordData next = parser->next();
 			next.GetTag() = parse_strings::this_word;
-			return LEX::Impl::Parser::CreateExpression(next, SyntaxType::Field);
+			return ParsingStream::CreateExpression(next, SyntaxType::Field);
 		}
 
 
-		Record HandleToken(LEX::Impl::Parser* parser, Record*) override
+		Record HandleToken(ParsingStream* parser, Record*) override
 		{
 
 			return _HandlePath(parser, SyntaxType::ProjectName);
 
 		}
-		// Need some boilerplate resolver.
-		std::string_view GetModuleName() override
-		{
-			return typeid(PathParser).name();
-		}
-
-		bool ContextAllowed(LEX::Impl::ProcessContext*, LEX::Impl::ProcessChain*) override
+		
+		bool ContextAllowed(ParseModule*, ModuleChain*) override
 		{
 			//This prevents anything from following it up for the most part. This shit is a one man show!
 			// If this causes any issues with parsers I may use later, feel free to make a variable to help handle when this is allowed be handled.
@@ -531,12 +528,12 @@ namespace LEX
 		Record tmp_directives;
 
 
-		Impl::PreprocessorParser direct_parse;
+		PreprocessorParser direct_parse;
 
 
-		//tmp_directives = Impl::Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+		//tmp_directives = Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
 
-		if (Impl::Parser__::CreateSyntaxTree(tmp_directives, contents, file, &direct_parse) == false) {
+		if (Parser__::CreateSyntaxTree(tmp_directives, contents, file, &direct_parse) == false) {
 			return APIResult::CreationFailed;
 		}
 
@@ -549,7 +546,7 @@ namespace LEX
 
 
 
-		if (Impl::Parser__::CreateSyntaxTree(ast, contents, file) == false) {
+		if (Parser__::CreateSyntaxTree(ast, contents, file) == false) {
 			return APIResult::CreationFailed;
 		}
 
@@ -581,7 +578,7 @@ namespace LEX
 	}
 
 
-	APIResult ProjectManager::CreateScript(IProject* a_project, std::string_view name, std::string_view path, std::optional<std::string_view> content, IScript** out, api::vector<std::string_view> options)
+	APIResult ProjectManager::CreateScript(IProject* a_project, std::string_view name, std::string_view path, std::optional<std::string_view> content, IScript** out, std::span<std::string_view> a_options)
 	{
 		//Path and name are still included, as they can be used to help refer to the location of the file when debugging.
 		SyntaxRecord ast;
@@ -591,6 +588,8 @@ namespace LEX
 		bool made_from_script;
 
 		auto project = dynamic_cast<Project*>(a_project);
+
+		std::vector<std::string_view> options { a_options.begin(), a_options.end() };
 
 		if (content.has_value() == true) {
 			made_from_script = true;
@@ -610,7 +609,7 @@ namespace LEX
 
 		Script* script = name == "Commons" ? Component::Create<CommonScript>(ast) : Component::Create<Script>(ast);
 
-		for (auto& entry : *options)
+		for (auto& entry : options)
 		{
 			constexpr std::string_view inc = "incremental";
 

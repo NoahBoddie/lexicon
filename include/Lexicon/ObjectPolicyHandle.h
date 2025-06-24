@@ -4,7 +4,7 @@
 
 namespace LEX
 {
-	struct OBJECT_POLICY;
+	struct ObjectPolicy;
 
 
 	struct ObjectPolicyHandle
@@ -28,17 +28,17 @@ namespace LEX
 		}
 
 
-		OBJECT_POLICY* get() const;
+		ObjectPolicy* get() const;
 
 
-		operator OBJECT_POLICY* () const
+		operator ObjectPolicy* () const
 		{
 			return get();
 
 		}
 
 
-		OBJECT_POLICY* operator-> ()const
+		ObjectPolicy* operator-> ()const
 		{
 			return get();
 		}

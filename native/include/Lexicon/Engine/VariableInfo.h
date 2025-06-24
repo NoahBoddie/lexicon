@@ -4,6 +4,7 @@
 #include "MemberInfo.h"
 #include "Lexicon/MemberPointer.h"
 //*src
+#include "Lexicon/Global.h"
 #include "GlobalData.h"
 #include "GlobalVariable.h"
 
@@ -12,15 +13,15 @@ namespace LEX
 	struct VariableInfo : public MemberInfo
 	{
 		//no qualifiers for now.
-		//VariableInfo(ITypePolicy* t, size_t i, Qualifier q) : _index{ i }, _type{ t }
+		//VariableInfo(ITypeInfo* t, size_t i, Qualifier q) : _index{ i }, _type{ t }
 		//{
 		//	DataAs<Settings>().flags = q;
 		//}
 
 
-		FieldType GetFieldType() const override { return FieldType::Variable; }
+		FieldType GetFieldType() const override { return IsStatic() ? FieldType::Global : FieldType::Member; }
 
-		ITypePolicy* GetType() const override { return nullptr; }
+		ITypeInfo* GetType() const override { return nullptr; }
 
 		Qualifier GetQualifiers() const override { return qualifiers; }
 		Specifier GetSpecifiers() const override { return specifiers; }

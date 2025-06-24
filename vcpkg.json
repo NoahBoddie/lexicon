@@ -9,7 +9,6 @@
     "tomlplusplus",
     "magic-enum",
     "boost-regex",
-    "simpleini",
-    "boost-multiprecision"
+    "simpleini"
   ]
 }

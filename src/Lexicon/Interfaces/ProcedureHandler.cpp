@@ -1,12 +1,17 @@
 #include "Lexicon/Interfaces/ProcedureHandler.h"
 
 #include "Lexicon/Engine/Signature.h"
-#include "Lexicon/Engine/FunctionBase.h"
+//#include "Lexicon/Engine/FunctionBase.h"
 #include "Lexicon/Engine/Script.h"
 
-#include "Lexicon/AbstractFunction.h"
+//#include "Lexicon/Function.h"
 #include "Lexicon/Dispatcher.h"
 #include "Lexicon/ProcedureData.h"
+
+#include "Lexicon/Engine/ConcreteFunction.h"
+
+
+
 namespace LEX
 {
 
@@ -20,20 +25,8 @@ namespace LEX
 
 		OverloadFlag flag = OverloadFlag::AllAccess;
 
-		auto overload = sign.Match(dynamic_cast<FunctionBase*>(func), nullptr, nullptr, flag);
+		bool result = sign.Match(dynamic_cast<ConcreteFunction*>(func));
 
-		bool result;
-
-
-
-		if (flag & OverloadFlag::Failure) {
-			//logger::info("FAILED TO MATCH");
-			result = false;
-		}
-		else {
-			//logger::info("SUCCESS TO MATCH");
-			result = true;
-		}
 		//Should this fail on any step it needs to report the error to itself.
 
 		return result;
@@ -54,7 +47,7 @@ namespace LEX
 
 		_dispatchList.emplace_back(std::unique_ptr<Dispatcher>{ dispatch });
 
-		auto reciever = [](RuntimeVariable& result, Variable* target, api::vector<Variable*> args, ProcedureData& data) -> void {
+		auto reciever = [](RuntimeVariable& result, Variable* target, std::span<Variable*> args, ProcedureData& data) -> void {
 			auto p_data = data.function->GetProcedureData();
 
 			//check data here.
@@ -96,6 +89,8 @@ namespace LEX
 
 		Signature sign{ base };
 
-		return core->GetElementFromPath(path, ElementType::kFuncElement, &sign)->As<IFunction>();
+		auto element = core->GetElementFromPath(path, ElementType::kFuncElement, &sign);
+		
+		return dynamic_cast<IFunction*>(element);
 	}
 }

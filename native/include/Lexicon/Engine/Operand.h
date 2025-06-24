@@ -112,12 +112,31 @@ namespace LEX
 
 		RuntimeVariable& AsVariable(Runtime* runtime);
 
-
+		//Returns a RuntimeVariable that's either a viable reference to a Variable, or a pure variable if able
 		RuntimeVariable GetVariable(Runtime* runtime);
 
 
 		RuntimeVariable ObtainVariable(Runtime* runtime);
 		RuntimeVariable& ObtainAsVariable(Runtime* runtime);
+
+		//This should be used later to retrieve functions that need to be called. Also to be used to get specific functions I'd presume
+		//Function* GetFunction(Runtime* runtime);
+
+		TypeInfo* GetTypeInfo(Runtime* runtime);
+
+		constexpr bool IsTemporary() const noexcept
+		{
+			switch (type)
+			{
+			case OperandType::Register:
+			case OperandType::Literal:
+			//case OperandType::Argument://Argument is pretty temporary
+				return true;
+			default:
+				return false;
+			}
+		}
+
 
 		constexpr static Operand None()
 		{

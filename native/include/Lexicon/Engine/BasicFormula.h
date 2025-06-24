@@ -23,42 +23,10 @@ namespace LEX
 		//Think this should probably store the string that it came from perhaps. Could be useful.
 
 
-		RuntimeVariable Execute(api::vector<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
+		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def) override
 		{
-			if (args->size() != parameters.size())
-				report::apply::critical("Arg size not compatible with param size ({}/{})", args->size(), parameters.size());
-
-			size_t size = parameters.size();
-
-			if (!1)
-			for (int i = 0; i < size; i++) {
-				//Cancelling this for now.
-				break;
-				int j = i;
-
-				AbstractTypePolicy* expected = parameters[i].GetType()->FetchTypePolicy(runtime);
-				if (!expected)
-					throw nullptr;
-				RuntimeVariable check = args[j]->Convert(expected);
-
-				if (check.IsVoid() == true)
-					report::apply::critical("cannot convert argument into parameter {}, {} vs {}", parameters[i].GetFieldName(), i, j);
-
-				args[i] = check;
-			}
-
-			{
-				RuntimeVariable result;
-
-				Runtime _runtime{ *GetRoutine(), args };
-
-				result = _runtime.Run();
-
-				return result;
-			}
+			return BasicExecute(nullptr, nullptr, args, caller, def);
 		}
-		
-
 	};
 
 }

@@ -2,34 +2,33 @@
 
 namespace LEX
 {
+	struct ITypeInfo;
+
 	struct GenericBase;
-	struct ITypePolicy;
 	struct ITemplateBody;
 
+	class GenericArray;
 
 	struct ITemplatePart
 	{
 		virtual size_t GetSize() const = 0;
 
-		virtual ITypePolicy* GetPartArgument(size_t i) const = 0;
+		virtual ITypeInfo* GetPartArgument(size_t i) const = 0;
 
 		//TODO: Instead of all this, why not make a hash of each entry?
 
 		//Always try to promote before using. 
-		virtual ITemplateBody* TryPromoteTemplate() { return nullptr; }
+		virtual ITemplateBody* TryResolve() { return nullptr; }
 
-		bool IsSpecialized() { return TryPromoteTemplate(); }
+		//This should be pure
+		virtual GenericBase* GetClient() const { return nullptr; }
 
-
-
-
-
-		virtual std::unique_ptr<ITemplatePart> MakeGenericArray(GenericBase* ask, ITemplatePart* args);
-
-		virtual std::unique_ptr<ITemplateBody> MakeGenericArray(ITemplateBody* args);
+		bool IsSpecialized() { return TryResolve(); }
 
 
 
+
+		static GenericArray SpecializeTemplate(ITemplatePart* args);
 	};
 
 }

@@ -3,12 +3,12 @@
 #include "Lexicon/VariableType.h"
 
 //*src
-#include "Lexicon/AbstractTypePolicy.h"
+#include "Lexicon/TypeInfo.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
 {
-	struct AbstractTypePolicy;
+	struct TypeInfo;
 
 	using c_string = const char*;
 
@@ -122,9 +122,12 @@ namespace LEX
 			if (length == -1)
 				length = std::strlen(str);
 
-			_ptr = new char[length];
+			if (!str || !length)
+				return;
+
+			_ptr = new char[length + 1];
 			std::strncpy(_ptr, str, length);
-			
+			_ptr[length] = '\0';
 
 			//_ptr = new char[length + 1];
 			//strncpy_s(_ptr, length, str);
@@ -160,9 +163,9 @@ namespace LEX
 		bool operator==(const String& other) const = default;
 
 
-		static AbstractTypePolicy* GetVariableType(const String*)
+		static TypeInfo* GetVariableType(const String*)
 		{
-			ITypePolicy* policy = IdentityManager::instance->GetTypeByOffset("STRING", 0);
+			ITypeInfo* policy = IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
 			//Should already be specialized, so just sending it.
 			return policy->FetchTypePolicy(nullptr);
@@ -178,7 +181,7 @@ namespace LEX
 	struct VariableType<std::string>
 	{
 
-		AbstractTypePolicy* operator()()
+		TypeInfo* operator()()
 		{
 			return String::GetVariableType(nullptr);
 		}
@@ -188,7 +191,7 @@ namespace LEX
 	struct VariableType<std::string_view>
 	{
 
-		AbstractTypePolicy* operator()()
+		TypeInfo* operator()()
 		{
 			return String::GetVariableType(nullptr);
 		}

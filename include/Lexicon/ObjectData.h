@@ -66,6 +66,71 @@ namespace LEX
 
 	union ObjectData
 	{
+		constexpr ObjectData() noexcept = default;
+	private:
+		template <typename T>
+		void LoadData(T* load)
+		{
+			using _Type = std::remove_cvref_t<T>;
+
+
+			//I may make this a concept, so it can fail at use and not just within here.
+			constexpr bool declared_storage = object_storage_v<_Type>;
+			constexpr bool storage_match = detail::object_storage_v<_Type> == declared_storage;
+
+
+			//QUERY: Can this shit not use the get functions from ObjectData?
+			if constexpr (declared_storage == value_storage)
+			{
+				static_assert(storage_match, "Declared storage is value, but type structure requires pointer.");
+
+				reinterpret_cast<_Type&>(*this) = std::move(*load);
+			}
+			else
+			{
+				if constexpr (std::is_pointer<_Type>::value)
+				{
+					//If data returned as a pointer
+					if (load) {
+						logger::debug("Load by value");
+						ptrVal = *load;
+					}
+					else {
+						logger::debug("Init by value");
+						ptrVal = _Type{};
+					}
+				}
+				else
+				{
+					//This is basically assuming it's not a pointer already. Deal with that.
+
+					if (load) {
+						logger::debug("Load by ptr");
+						ptrVal = new _Type{ *load };
+					}
+					else {
+						logger::debug("Init by ptr");
+						ptrVal = new _Type{};
+					}
+				}
+			}
+		}
+
+	public:
+		template <typename T>
+		explicit ObjectData(T& load)// : ObjectData{ std::addressof(load) }
+		{
+			LoadData(std::addressof(load));
+		}
+
+		template <typename T>
+		explicit ObjectData(T&& load)// : ObjectData{ std::addressof(load) }
+		{
+			LoadData(std::addressof(load));
+		}
+
+
+
 		size_t raw = 0;
 
 		mutable uintptr_t fstVal;		// If the value is small enough, the data can be stored directly onto the data without needing to handle a heap pointer.
@@ -158,11 +223,11 @@ namespace LEX
 
 	//Type will be used later to control whether something is pooled or not.	
 	template <typename T>
-	void FillObjectData(ObjectData& data, T* load)
+	ObjectData FillObjectData(T* load)
 	{
+		using _Type = std::remove_cvref_t<T>;
 
-		using _Type = std::remove_reference_t<std::remove_const_t<T>>;
-
+		ObjectData data{};
 
 
 		//I may make this a concept, so it can fail at use and not just within here.
@@ -170,7 +235,7 @@ namespace LEX
 		constexpr bool storage_match = detail::object_storage_v<_Type> == declared_storage;
 
 
-
+		//QUERY: Can this shit not use the get functions from ObjectData?
 		if constexpr (declared_storage == value_storage)
 		{
 			static_assert(storage_match, "Declared storage is value, but type structure requires pointer.");
@@ -205,13 +270,17 @@ namespace LEX
 				}
 			}
 		}
+
+		return data;
 	}
 
 	template <typename T>
-	void FillObjectData(ObjectData& data, T& load)
+	ObjectData FillObjectData(T& load)
 	{
-		return FillObjectData<T>(data, &load);
+		return FillObjectData<T>(&load);
 	}
+
+	//TODO: Send more information with the Object data builder. Namely, send the TypeInfo with it
 
 	//This function takes the type id or instance id of the created object as information how to qualify it's given type.
 	// This can be useful for data that is sometimes, but not always pooled. If it's a template function it will be sending the instance
@@ -223,8 +292,6 @@ namespace LEX
 	template <typename T>
 	ObjectData GenericDataBuilder(uint32_t id = 0)
 	{
-		ObjectData data;
-
 
 		//For starters, you won't want to use create type. 
 
@@ -237,15 +304,12 @@ namespace LEX
 		//Take this section. I think this is how I'll fill data, least mess this way.	
 		T in{};
 
-		FillObjectData<T>(data, std::addressof(in));
+		//ObjectData data = FillObjectData<T>(data, std::addressof(in));
+		ObjectData data{ in };
 		
 		BuildQualifier<T>(data, id);
 
 		return data;
 	}
-
-
-
-
 
 }

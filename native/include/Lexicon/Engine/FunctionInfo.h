@@ -7,39 +7,12 @@
 namespace LEX
 {
 
-	struct FunctionInfo : public MemberInfo, public OverloadClause
+
+
+	struct FunctionInfo : public MemberInfo, public OverloadParameter
 	{
-		using FunctionType = FunctionBase;//
+		using FunctionType = FunctionBase;
 		
-
-
-		struct Newstructure
-		{
-			//Since this takes up the same about of space, I think what I'll do is this.
-			//it holds function data
-
-			//So the concept here is it always holds function data, and that this is the thing that's used with overloads.
-			//This thing to find if something matches will try for equality.
-
-			//the structure
-
-			//There's a slight problem with the idea and the implementation of generics would cause me some issues. So, instead, I think it would probably be better
-			// to just have it the way that I have it now, either a function or a method pointer. That being said, I can likely drop the FunctionData and just stick with the member
-			// pointer, having an empty function at said location.
-			// I might instead spend that information on this being able to know it's owner, OR just require that to be submitted in order to get that.
-
-			FunctionData* signature;
-
-			union
-			{
-				uint64_t raw = 0;
-				MemberPointer virtualMethod;
-				FunctionBase* declaredMethod;
-			};
-
-			bool isPureVirtual = false;
-		};
-
 
 		struct {
 
@@ -57,7 +30,41 @@ namespace LEX
 
 		bool IsVirtual() const
 		{
-			return specifiers & Specifier::Virtual;
+			return specifiers.flags & SpecifierFlag::Virtual;
+		}
+
+		FunctionNode CreateNode(ITemplatePart* part)
+		{
+			if (IsVirtual() == true)
+				return FunctionNode{ nullptr, signature, method };
+			else
+				return FunctionNode{ function, signature, function->AsFunction()->CheckFunction(part) };
+		}
+
+
+		FunctionData* tmpSignature()
+		{
+			return signature;
+		}
+
+		MemberPointer GetMethod() const
+		{
+			return method;
+		}
+
+
+		IFunction* GetFunction() const
+		{
+			if (IsVirtual() == false)
+			return function->AsFunction();
+			return nullptr;
+		}
+
+		IFunction* GetFunction(ITemplatePart* part) const
+		{
+			if (IsVirtual() == false)
+			return function->AsFunction()->CheckFunction(part);
+			nullptr;
 		}
 
 		FunctionType* Get() const
@@ -68,13 +75,23 @@ namespace LEX
 			return nullptr;
 		}
 
+
+		bool IsValid() const
+		{
+			if (auto base = Get())
+				return base->IsFlaggedSuccess();
+
+			return true;
+		}
+
+
 		FieldType GetFieldType() const override { return FieldType::Function; }
 
 		//For now, this is true, there is no way to handle a function's type.
-		ITypePolicy* GetType() const override { return nullptr; }
+		ITypeInfo* GetType() const override { return nullptr; }
 
 
-		Qualifier GetQualifiers() const override { return Qualifier::Const; }	//Functions do not have qualifiers.
+		Qualifier GetQualifiers() const override { return Qualifier{ Refness{}, Constness::Const, {} }; }	//Functions do not have qualifiers.
 		Specifier GetSpecifiers() const override { return specifiers; }
 
 		std::string GetFieldName() const override { return std::string{ Get()->GetName() }; }
@@ -85,30 +102,34 @@ namespace LEX
 		}
 
 
-		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
+
+		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags) override
 		{
-			return signature->CanMatch(type, suggested, optional, flag);
+			return signature->CanMatch(target, callArgs, tempArgs, flags);
+		}
+
+		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
+		{
+			return signature->MatchImpliedEntry(out, type, scope, overload, index, offset, flags);
 		}
 
 
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) override
 		{
-			return signature->MatchSuggestedEntry(type, scope, offset, index, flags);
-
-		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
-		{
-			return signature->MatchDefaultEntry(type, scope, name, flags);
-		}
-
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
-		{
-			return signature->ResolveEntries(entries, scope, flags);
+			return signature->MatchStatedEntry(out, type, scope, overload, name, flags);
 		}
 
 
+		void QualifyOverload(Overload& overload) override
+		{
+			return signature->QualifyOverload(overload);
+		}
+
+		bool ResolveOverload(Overload& entries, OverloadFlag& flags) override
+		{
+			return signature->ResolveOverload(entries, flags);
+		}
 	};
+
 
 }

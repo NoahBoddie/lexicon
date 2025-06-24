@@ -1,39 +1,41 @@
 #pragma once
 
 #include "Lexicon/Engine/Element.h"
-#include "Lexicon/IFunction.h"
+#include "Lexicon/Engine/IFunctionImpl.h"
+#include "Lexicon/Function.h"
 #include "FunctionData.h"
 #include "OverloadClause.h"
 namespace LEX
 {
-	class FunctionBase : public virtual IFunction, public SecondaryElement, public OverloadClause, public FunctionData
+	class Runtime;
+
+	class FunctionBase : public SecondaryElement, public OverloadParameter, public FunctionData
 	{
 	public:
-		virtual IFunction* AsFunction() { return this; }
+		virtual IFunction* AsFunction() = 0;
+		virtual const IFunction* AsFunction() const = 0;
 
 
-	private:
-
+	protected:
 
 		//This is a pivot for for functions, more important than anywhere else, this set up excludes formulas
 		// from being able to be stored in a function, or having the same linking
 
 		void LoadFromRecord(SyntaxRecord& target) override;
 
-		void OnAttach() override;
-		
-		virtual LinkResult OnLink(LinkFlag flags) override;
+		LinkResult OnLink(LinkFlag flags) override;
 
-		virtual LinkFlag GetLinkFlags() override;
+		void OnLinkComplete() override;
+
+		bool GetValid() const override;
+
+		LinkFlag GetLinkFlags() override;
 	
 	protected:
 		void* Cast(std::string_view name) override
 		{
 			switch (Hash(name))
 			{
-			case Hash(TypeName<IFunction>::value):
-				return (IFunction*)this;
-
 			case Hash(TypeName<FunctionBase>::value):
 				return this;
 			}
@@ -48,30 +50,240 @@ namespace LEX
 		virtual void SetReturnType(QualifiedType type);
 
 		
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def);
+
+
+
+
+
+
 #pragma region Clause
 
-		bool CanMatch(QualifiedType type, size_t suggested, size_t optional, OverloadFlag flag) override
+		void CheckDefault(size_t index, size_t offset, OverloadFlag& flags)
 		{
-			return FunctionData::CanMatch(type, suggested, optional, flag);
+			if (defaultIndex <= index && !offset) {
+
+				flags |= OverloadFlag::DefFilled;
+			}
+		}
+		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags) override
+		{
+			if (target) {
+
+				if (target != _returnType)
+					return false;
+			}
+
+			//This isn't necessary
+			//if (flags & OverloadFlag::StatesArgument && GetArgCountReq() < callArgs) {
+			//	logger::debug("uses more than required but also states");
+			//	return false;
+			//}
+
+
+			if (flags & OverloadFlag::StatesArgument && defaultIndex == -1)// || tempArgs.second
+			{
+				logger::debug("uses optionals");
+				return false;
+			}
+
+			auto required = GetArgCountReq();
+
+			if (required > callArgs) {
+				logger::debug("uses param diff {} vs {}", required, callArgs);
+				return false;
+			}
+
+			auto max = GetArgCountMax();
+
+			if (max < callArgs) {
+				logger::debug("uses more than max {} vs {}", max, callArgs);
+				return false;
+			}
+
+
+			return true;
 		}
 
 
-		//Fuck it, these return non-booleans and use something else to denote their failures.
-
-		OverloadEntry MatchSuggestedEntry(QualifiedType type, ITypePolicy* scope, size_t offset, size_t index, OverloadFlag& flags) override
+		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
 		{
-			return FunctionData::MatchSuggestedEntry(type, scope, offset, index, flags);
+			//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
+			if (index != -1 && GetArgCountMax() <= index)
+			{
+				logger::critical("Failure to evaluate");
+				return false;
+			}
+
+			CheckDefault(index, offset, flags);
+
+			ParameterInfo* subject = FindParameterByPos(index);
+
+
+
+
+			QualifiedType sub_type = subject->FetchQualifiedType();
+
+
+
+			ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
+
+			if (flags & OverloadFlag::AllAccess) {
+				con_flags |= ConversionFlag::IgnoreAccess;
+			}
+
+
+
+			if (type && sub_type)
+			{
+				/*
+				if constexpr (0)
+					if (auto temp = sub_type->AsTemplate()) {
+						if (auto type = overload.GetManualTemplateType(temp->index); type) {
+							logger::info("template type already placed");
+							sub_type.policy = type;
+						}
+					}
+				//*/
+
+				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
+
+				out.convertType = convertType;
+
+				if (convertType <= ConversionEnum::Failure) {
+					return false;
+				}
+
+
+				//out.convertType = ConversionEnum::TypeDefined;
+				out.index = subject->GetFieldIndex();
+				out.type = sub_type;
+			}
+			else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
+			{
+				//This bit will need to change, as you may be able to access static functions from a member function.
+				out.convertType = ConversionEnum::Exact;
+				out.index = -1;
+			}
+			else
+			{
+
+				out.convertType = ConversionResult::Ineligible;
+				out.index = -1;
+				return false;
+			}
+
+			return true;
 
 		}
-		OverloadEntry MatchDefaultEntry(QualifiedType type, ITypePolicy* scope, std::string name, OverloadFlag& flags) override
+
+		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) override
 		{
-			return FunctionData::MatchDefaultEntry(type, scope, name, flags);
+
+
+			//I'd maybe like to rework this VariableInfo to work like this.
+
+			//ParameterInfo* subject = index != -1 ?
+			//	&parameters[index + HasTarget()] : HasTarget() ?
+			//	&parameters[0] : nullptr;
+
+			ParameterInfo* subject = FindParameter(name);
+
+			if (!subject) {
+				report::failure("Couldn't find parameter '{}'.", name);
+				return false;
+			}
+
+			if (subject->IsOptional() == false) {
+				report::failure("Parameter '{}' isn't optional.", name);
+				return false;
+			}
+
+			QualifiedType sub_type = subject->FetchQualifiedType();
+
+
+
+			ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
+
+			if (flags & OverloadFlag::AllAccess) {
+				con_flags |= ConversionFlag::IgnoreAccess;
+			}
+
+
+
+			if (type && sub_type)
+			{
+				//TODO: I'm not sure if I actually want to do this, C++ doesn't do it largely because it's not possible to tell which is actually prefered
+				/*
+				if constexpr (0)
+					if (auto temp = sub_type->AsTemplate()) {
+						if (auto type = overload.GetManualTemplateType(temp->index); type) {
+							logger::info("template type already placed");
+							sub_type.policy = type;
+						}
+					}
+				//*/
+
+
+				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
+
+				out.convertType = convertType;
+
+				out.index = subject->GetFieldIndex();
+				out.type = sub_type;
+
+				if (convertType <= ConversionEnum::Failure) {
+					return false;
+				}
+
+			}
+			else
+			{
+
+				out.convertType = ConversionResult::Ineligible;
+				out.index = subject->GetFieldIndex();
+				return false;
+			}
+
+			return true;
 		}
 
-		std::vector<OverloadEntry> ResolveEntries(Overload& entries, ITypePolicy* scope, OverloadFlag& flags) override
+
+		bool ResolveOverload(Overload& result, OverloadFlag& flags)
 		{
-			return FunctionData::ResolveEntries(entries, scope, flags);
+			auto& call_args = result.implied;
+
+			call_args.resize(parameters.size());
+
+
+			for (auto i = defaultIndex; i < call_args.size(); i++)
+			{
+				auto& entry = call_args[i];
+
+				if (entry.type) {
+					continue;
+				}
+
+				//report::critical("Cant handle this yet.");
+
+
+				auto& param = parameters[i];
+
+
+				RoutineBase* def_routine = nullptr;
+
+				entry.routine = def_routine;
+				entry.convertType = ConversionEnum::Exact;
+				entry.type = param.GetQualifiedType();
+				entry.index = param.GetFieldIndex();
+			}
+
+			return true;
 		}
+
+
+
+
 
 #pragma endregion
 
@@ -79,21 +291,6 @@ namespace LEX
 
 	public:
 
-		bool IsMethod() const override { return _targetType; }
-
-		std::string_view GetName() const override
-		{//would an empty check be better?
-			if (_name == "")
-				return "<empty>";
-			
-			return _name;
-		}
-
-
-		virtual uint64_t GetProcedureData() const
-		{
-			return procedureData;
-		}
 
 		virtual void SetProcedureData(Procedure proc, uint64_t data)
 		{
@@ -114,5 +311,46 @@ namespace LEX
 
 	};
 
+
+	//For what it's worth, I really fucking loathe this system all together.
+	template <typename T>
+	struct PivotFuncBase : public FunctionBase, public T
+	{
+		using FunctionBase::FunctionBase;
+
+		IFunction* AsFunction() override { return this; }
+		const IFunction* AsFunction() const override { return this; }
+
+
+		bool IsMethod() const override { return !!_thisInfo; }
+
+		std::string_view GetName() const override
+		{//would an empty check be better?
+			if (_name == "")
+				return "<empty>";
+
+			return _name;
+		}
+
+
+		uint64_t GetProcedureData() const override
+		{
+			return procedureData;
+		}
+
+		void* Cast(std::string_view name) override
+		{
+			switch (Hash(name))
+			{
+			case Hash(TypeName<IFunction>::value):
+				return static_cast<IFunction*>(this);
+			}
+
+			return __super::Cast(name);
+		}
+	};
+
+	using GenericFuncBase = PivotFuncBase<IFunction>;
+	using ConcreteFuncBase = PivotFuncBase<Function>;
 
 }
