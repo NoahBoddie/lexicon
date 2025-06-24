@@ -82,18 +82,18 @@ namespace LEX
 
 	public:
 
-		virtual IRuntime* GetPreviousRuntime() const
+		IRuntime* GetParent() const override
 		{
 			return _caller;
 		}
 
 
-		virtual const Function* GetFunction() const
+		const Function* GetFunction() const override
 		{
 			return _function;
 		}
 
-		virtual RuntimeVariable* GetDefault() const
+		RuntimeVariable* GetDefault() const override
 		{
 			return nullptr;
 		}
@@ -113,12 +113,28 @@ namespace LEX
 			return "<No file found>";
 		}
 
+		ITemplateBody* AsBody() override
+		{
+			return this;
+		}
+
 		Runtime* AsRuntime() const override
 		{
 			return const_cast<Runtime*>(this);
 		}
 
+		void Log(const std::string_view& message, IssueLevel level = IssueLevel::Trace, std::source_location loc = std::source_location::current()) override
+		{
+			auto record = GetCurrentRecord();
 
+			if (!record) {
+				report::warn("no record for logging or something");
+			}
+
+			record->Log(std::string{ message }, loc, level);
+
+		}
+		
 
 
 		virtual size_t GetSize() const override
@@ -171,8 +187,10 @@ namespace LEX
 		}
 		//*/
 		//Very temporary, delete me
-		Runtime(RoutineBase& base, std::span<RuntimeVariable> args = {}, Runtime* caller = nullptr, ITemplateBody* body = nullptr) :
-			_data{ base }
+		Runtime(RoutineBase& base, Function* function = nullptr, std::span<RuntimeVariable> args = {}, Runtime* caller = nullptr, ITemplateBody* body = nullptr) :
+			_function{ function }
+			, _data{ base }
+			, _records { &base.records }
 			//These accidently create numbers.
 			//, _varStack{ _data.GetVarCapacity() }
 			//, _argStack{ _data.GetArgCapacity() }
@@ -189,8 +207,14 @@ namespace LEX
 			_varStack.shrink_to_fit();
 			_argStack.shrink_to_fit();
 			
+			
+
 			if (args.size() != 0)
 			{
+				if (_varStack.size() < args.size())
+					report::fault::critical("the size of the var stack is less tha the size of the arguments given.");
+
+
 				//std::copy(_varStack.begin(), _varStack.begin(), args.begin());
 				for (int i = 0; i < args.size(); i++)
 				{
@@ -203,10 +227,13 @@ namespace LEX
 		}
 	
 
+
 		//
 		Function* _function = nullptr;
 
 		RoutineBase& _data;
+
+		RecordList* _records = nullptr;
 
 		std::array<RuntimeVariable, Register::Total> _registers;
 
@@ -237,6 +264,8 @@ namespace LEX
 		int64_t _vsp{ 0 };		//Variable stack pointer, denotes the current size of the variable. Being smaller than PSP should crash.
 		int64_t _asp{ 0 };		//Argument StackPointer, denotes the current size of the argument stack. A function exiting with it !0 should crash.
 		int64_t _rsp{ 0 };		//Runtime Stack Pointer, denotes the index at which the runtime is currently. If exceeds the operation count it should crash
+
+		
 
 		//This will help check if something was stack allocated, and if that stack allocated 
 		// object is being passed by reference some place it shouldn't be.
@@ -405,20 +434,16 @@ namespace LEX
 			return _flags;
 		}
 
-
-		void Operate(Operation& operation)
+		SyntaxRecord* GetCurrentRecord()
 		{
-			//GetTarget- use this instead.
+			if (_records)
+			{
+				if (uint32_t index = _data[_rsp].index; index != -1 && _records->size() > index){
+					return _records->operator[](index);
+				}
+			}
 
-			/*
-			Variable result;//Unsure if this is advized.
-
-			instructList[operation._instruct].Operate(result, this, operation._lhs, operation._rhs);//It's possible that this should possibly return.
-			//If not void and complete (or just complete because void isn't a complete type
-			//If it's void, that's fine
-			if (operation._out != Register::Invalid && result.IsVoid() == false)
-				GetVariable(operation._out);
-			//*/
+			return nullptr;
 		}
 
 
@@ -476,7 +501,7 @@ namespace LEX
 
 			report _{ IssueType::Runtime };
 
-			size_t _limit = _data.GetOperativeCapacity();
+			size_t _limit = _data.GetInstructCapacity();
 			
 			if (_limit == 0)
 				return {};

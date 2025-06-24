@@ -55,12 +55,16 @@ namespace LEX
 
 		IFunction* GetFunction() const
 		{
+			if (IsVirtual() == false)
 			return function->AsFunction();
+			return nullptr;
 		}
 
 		IFunction* GetFunction(ITemplatePart* part) const
 		{
+			if (IsVirtual() == false)
 			return function->AsFunction()->CheckFunction(part);
+			nullptr;
 		}
 
 		FunctionType* Get() const
@@ -70,6 +74,16 @@ namespace LEX
 
 			return nullptr;
 		}
+
+
+		bool IsValid() const
+		{
+			if (auto base = Get())
+				return base->IsFlaggedSuccess();
+
+			return true;
+		}
+
 
 		FieldType GetFieldType() const override { return FieldType::Function; }
 

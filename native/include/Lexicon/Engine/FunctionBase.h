@@ -23,9 +23,13 @@ namespace LEX
 
 		void LoadFromRecord(SyntaxRecord& target) override;
 
-		virtual LinkResult OnLink(LinkFlag flags) override;
+		LinkResult OnLink(LinkFlag flags) override;
 
-		virtual LinkFlag GetLinkFlags() override;
+		void OnLinkComplete() override;
+
+		bool GetValid() const override;
+
+		LinkFlag GetLinkFlags() override;
 	
 	protected:
 		void* Cast(std::string_view name) override

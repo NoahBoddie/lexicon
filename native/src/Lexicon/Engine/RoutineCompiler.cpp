@@ -5,7 +5,7 @@
 #include "Lexicon/Engine/Expression.h"
 #include "Lexicon/Engine/ExpressionType.h"
 #include "Lexicon/Engine/Solution.h"
-#include "Lexicon/Engine/Operation.h"
+#include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/RoutineBase.h"
 
 //*src
@@ -18,21 +18,21 @@
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
-	std::vector<Operation>* CompilerBase::GetOperationListPtr()
+	std::vector<Instruction>* CompilerBase::GetInstructionListPtr()
 	{
 		if (_current)
 			return _current;
 
 		if (auto scope = GetScope())
-			return &scope->GetOperationList();
+			return &scope->GetInstructionList();
 
 		return nullptr;
 	}
 
 
-	std::vector<Operation>& CompilerBase::GetOperationList()
+	std::vector<Instruction>& CompilerBase::GetInstructionList()
 	{
-		return *GetOperationListPtr();
+		return *GetInstructionListPtr();
 	}
 
 
@@ -78,7 +78,7 @@ namespace LEX
 		
 		try
 		{
-			std::vector<Operation> operations;
+			std::vector<Instruction> operations;
 
 			{
 				//<KILL> _current = &operations;
@@ -200,7 +200,7 @@ namespace LEX
 
 					//<KILL> _current = &operations;//Doing this is stupid and I hate it but fuck it whatever.
 					CompUtil::PrepareReturn(this, return_policy, result);
-					GetOperationList().emplace_back(InstructionType::Return);
+					GetInstructionList().emplace_back(InstructionType::Return);
 				}
 
 
@@ -212,7 +212,7 @@ namespace LEX
 
 			operations.shrink_to_fit();
 
-			routine = RoutineBase{ std::move(operations), varCount[1], argCount[1] };
+			routine = RoutineBase{ std::move(operations), std::move(_instructRecords), varCount[1], argCount[1]};
 			return _success;
 		}
 		catch (CompileError& error)
@@ -257,7 +257,7 @@ namespace LEX
 		}
 		else {
 
-			auto& op_list = GetOperationList();
+			auto& op_list = GetInstructionList();
 
 			op_list.emplace_back(InstructionType::ModVarStack, Operand{ inc , OperandType::Differ });
 

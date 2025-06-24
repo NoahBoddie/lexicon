@@ -1,4 +1,4 @@
-#include "Lexicon/Conversion.h"
+#include "Lexicon/Engine/Conversion.h"
 
 #include "Lexicon/Engine/QualifiedType.h"
 
@@ -70,7 +70,7 @@ namespace LEX
 		}
 	}
 
-	void ConvertResult::PrintError(const SyntaxRecord& record, const QualifiedType& lhs, const QualifiedType& rhs, const std::source_location& loc)
+	void ConvertResult::PrintError(SyntaxRecord& record, const QualifiedType& lhs, const QualifiedType& rhs, const std::source_location& loc)
 	{
 		auto left_view = GetViewFromQType(lhs, false);
 		auto right_view = GetViewFromQType(lhs, true);

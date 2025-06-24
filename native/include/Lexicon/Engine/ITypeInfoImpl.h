@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/ITypeInfo.h"
-
+#include "Lexicon/Engine/Conversion.h"
 namespace LEX
 {
 	

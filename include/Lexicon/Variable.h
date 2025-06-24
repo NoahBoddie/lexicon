@@ -59,6 +59,7 @@ namespace LEX
 	{
 		//Program the clearing of this padding into the component.
 
+		//Volatile?
 		mutable uint32_t refs = 0;
 
 		mutable VariableFlag flags = VariableFlag::None;
@@ -185,14 +186,14 @@ namespace LEX
 		const VariableData& GetData() const
 		{
 			auto a_this = (uintptr_t)this;
-
+			
 			return *reinterpret_cast<VariableData*>(a_this + sizeof(VariableValue) - sizeof(VariableData));
 		}
 
 
 		auto Inc() const
 		{
-			//logger::critical("inc {:X}", (uintptr_t)this);
+			logger::info("inc {:X}", (uintptr_t)this);
 			return ++GetData().refs;
 		}
 
@@ -204,7 +205,7 @@ namespace LEX
 			if (!refs)
 				report::fault::critical("Decrementing refs below 0.");
 
-			//logger::critical("dec {:X}", (uintptr_t)this);
+			logger::info("dec {:X}", (uintptr_t)this);
 			return --refs;
 		}
 

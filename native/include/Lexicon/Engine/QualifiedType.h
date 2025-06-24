@@ -5,7 +5,7 @@
 #include "Lexicon/AnnotatedType.h"
 //#include "BasicQualifier.h"
 //#include "RuntimeQualifier.h"
-
+#include "Lexicon/Engine/Conversion.h"
 
 //*src
 #include "Lexicon/TypeInfo.h"

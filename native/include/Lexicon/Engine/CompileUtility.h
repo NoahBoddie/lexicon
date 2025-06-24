@@ -1,14 +1,15 @@
 #pragma once
 
 #include "Lexicon/Engine/Solution.h"
-#include "Lexicon/Engine/Operation.h"
+#include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
 
 namespace LEX
 {
 	struct RoutineCompiler;
 	struct ExpressionCompiler;
-
+	
+	using InstructList = std::vector<Instruction>;
 
 	struct CompUtil
 	{
@@ -18,14 +19,14 @@ namespace LEX
 	private:
 		//There are some instances where transfer cannot be used, namely with references. Or rather when initing them, 
 		// transfers job is passing values, not passing references
-		static Operation _Transfer(const Operand& left, Operand& right, std::optional<bool> is_ref)
+		static Instruction _Transfer(const Operand& left, Operand& right, std::optional<bool> is_ref)
 		{
-			return Operation{ false ? InstructType::Reference : InstructType::Copy, left, right };
+			return Instruction{ false ? InstructType::Reference : InstructType::Copy, left, right };
 		}
 
 	public:
 
-		static Operation Transfer(const Operand& left, Solution& right)
+		static Instruction Transfer(const Operand& left, Solution& right)
 		{
 			//The left can be an operand because it doesn't quite matter what it does, we just need to know
 			// where it's to go. That check should be handled, before hand.
@@ -42,7 +43,7 @@ namespace LEX
 		}
 
 
-		static Operation Transfer(Solution& left, Solution& right)
+		static Instruction Transfer(Solution& left, Solution& right)
 		{
 			//If the left is a reference already, it's not allowed to be overriden.
 			if (left.IsReference() == true)
@@ -52,13 +53,13 @@ namespace LEX
 		}
 
 		//This should be used during initialization
-		static Operation Initialize(const Solution& left, Solution& right, SyntaxRecord* from)
+		static Instruction Initialize(const Solution& left, Solution& right, SyntaxRecord* from)
 		{
 			InstructType  type;
 
 			if (auto refl = left.IsReference(); !refl.has_value()) {
 				//Maybe ref
-				return Operation{ right.IsTemporary() ? InstructType::ForwardMove : InstructType::Forward, left, right };
+				return Instruction{ right.IsTemporary() ? InstructType::ForwardMove : InstructType::Forward, left, right };
 			}
 			else if (refl.value_or(true) == true)
 			{
@@ -68,7 +69,7 @@ namespace LEX
 					from->error("cannot initialize reference with a non-reference value");
 				}
 
-				return Operation{ InstructType::Reference, left, right };
+				return Instruction{ InstructType::Reference, left, right };
 				
 			}
 			else
@@ -84,12 +85,12 @@ namespace LEX
 
 
 		//Changes the solution to be where the operand is, and gives the operation that would make it where it's expected.
-		[[nodiscard]] static Operation Mutate(Solution& sol, Operand op)
+		[[nodiscard]] static Instruction Mutate(Solution& sol, Operand op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 
 			//Using transfer ensures safety for literals.
-			Operation result = CompUtil::Transfer(op, sol);
+			Instruction result = CompUtil::Transfer(op, sol);
 
 			//This will set what operand stores into the solution without touching the type data within
 			sol = op;
@@ -99,13 +100,13 @@ namespace LEX
 		}
 
 		//Changes the solution to be where the operand is similar to mutate, but forces it to copy instead.
-		[[nodiscard]] static Operation MutateCopy(Solution& sol, Operand op)
+		[[nodiscard]] static Instruction MutateCopy(Solution& sol, Operand op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 
 			//When the fuck is this supposed to be used?
 
-			Operation result = Operation{ InstructType::Copy, op, sol };
+			Instruction result = Instruction{ InstructType::Copy, op, sol };
 
 			sol = op;
 
@@ -116,29 +117,29 @@ namespace LEX
 		//TODO: Mutate ref does NOT need all this shit.
 
 		//Changes the solution to be where the operand is similar to mutate, but forces it to ref instead. A temporary function to sus out issue with member accesses.
-		[[nodiscard]] static Operation MutateRef(const Solution& sol, Operand op)
+		[[nodiscard]] static Instruction MutateRef(const Solution& sol, Operand op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 			
-			return Operation{ InstructType::Reference, op, sol };
+			return Instruction{ InstructType::Reference, op, sol };
 		}
 
 
-		[[nodiscard]] static Operation MutateRef(Solution& sol, Operand op)
+		[[nodiscard]] static Instruction MutateRef(Solution& sol, Operand op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 
-			Operation result = MutateRef(std::as_const(sol), op);
+			Instruction result = MutateRef(std::as_const(sol), op);
 
 			sol = op;
 
 			return result;
 		}
-		[[nodiscard]] static Operation MutateRef(Solution&& sol, Operand op)
+		[[nodiscard]] static Instruction MutateRef(Solution&& sol, Operand op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 
-			Operation result = MutateRef(std::as_const(sol), op);
+			Instruction result = MutateRef(std::as_const(sol), op);
 
 			return result;
 		}
@@ -148,7 +149,7 @@ namespace LEX
 
 
 		
-		static Operation Transfer(const Operand& left, const Solution& right)
+		static Instruction Transfer(const Operand& left, const Solution& right)
 		{
 
 			//When would transfer want to forward move?
@@ -189,15 +190,15 @@ namespace LEX
 				instruct = InstructType::Copy;
 			}
 #endif
-			return Operation{ instruct, left, right };
+			return Instruction{ instruct, left, right };
 		}
 
 
-		static std::vector<Operation> Load(const Operand& left, const Solution& right, std::optional<bool> is_ref)
+		static std::vector<Instruction> Load(const Operand& left, const Solution& right, std::optional<bool> is_ref)
 		{
-			std::vector<Operation> result;
+			std::vector<Instruction> result;
 
-			//return Operation{ InstructType::Copy, left, right };
+			//return Instruction{ InstructType::Copy, left, right };
 			if (!left.IsTemporary() && right.IsPromoted() == true) {
 				//Unsure if the left temporary is a necessary check.
 				result.emplace_back(InstructType::Promote, right, Operand{ right.reference, OperandType::Index });
@@ -264,10 +265,10 @@ namespace LEX
 			result.emplace_back(instruct, left, right);
 			
 			return  result;
-			return  { Operation{ instruct, left, right } };
+			return  { Instruction{ instruct, left, right } };
 		}
 
-		static std::vector<Operation> Load(const Solution& left, const Solution& right)
+		static std::vector<Instruction> Load(const Solution& left, const Solution& right)
 		{
 			return Load(left, right, left.IsReference());
 		}
@@ -276,7 +277,7 @@ namespace LEX
 
 
 
-		static Operation Transfer(Register reg, const Solution& right)
+		static Instruction Transfer(Register reg, const Solution& right)
 		{
 			return Transfer(Operand{ reg, OperandType::Register }, right);
 		}
@@ -289,16 +290,16 @@ namespace LEX
 
 
 		//Changes the solution to be where the operand is, and gives the operation that would make it where it's expected.
-		[[nodiscard]] static Operation Mutate(Solution& sol, const Operand& op)
+		[[nodiscard]] static Instruction Mutate(Solution& sol, const Operand& op)
 		{
-			Operation result = CompUtil::Transfer(op, sol);
+			Instruction result = CompUtil::Transfer(op, sol);
 			sol = op;
 			return result;
 		}
 
-		[[nodiscard]] static Operation Mutate(Solution& sol, Register reg)
+		[[nodiscard]] static Instruction Mutate(Solution& sol, Register reg)
 		{
-			Operation result = CompUtil::Transfer(reg, sol);
+			Instruction result = CompUtil::Transfer(reg, sol);
 
 			sol = Operand{ reg, OperandType::Register };
 
@@ -314,13 +315,13 @@ namespace LEX
 
 
 		//Changes the solution to be where the operand is similar to mutate, but forces it to copy instead.
-		[[nodiscard]] static Operation MutateCopy(Solution& sol, const Operand& op)
+		[[nodiscard]] static Instruction MutateCopy(Solution& sol, const Operand& op)
 		{
 			//Result shouldn't be discarded, because the solution is being change to reflect the operation.
 
 			//When the fuck is this supposed to be used?
 
-			Operation result = Operation{ InstructType::Copy, op, sol };
+			Instruction result = Instruction{ InstructType::Copy, op, sol };
 
 			sol = op;
 
@@ -328,7 +329,7 @@ namespace LEX
 		}
 
 		//Changes the solution to be where the operand is similar to mutate, but forces it to copy instead.
-		[[nodiscard]] static Operation MutateCopy(Solution& sol, Register reg)
+		[[nodiscard]] static Instruction MutateCopy(Solution& sol, Register reg)
 		{
 			return MutateCopy(sol, Operand{ reg, OperandType::Register });
 		}
@@ -339,14 +340,14 @@ namespace LEX
 		//TODO: Mutate ref does NOT need all this shit.
 
 		//Changes the solution to be where the operand is similar to mutate, but forces it to ref instead. A temporary function to sus out issue with member accesses.
-		[[nodiscard]] static Operation MutateRef(Solution& sol, const Operand& op)
+		[[nodiscard]] static Instruction MutateRef(Solution& sol, const Operand& op)
 		{
-			Operation result = Operation{ InstructType::Reference, op, sol };
+			Instruction result = Instruction{ InstructType::Reference, op, sol };
 			sol = op;
 			return result;
 		}
 
-		[[nodiscard]] static Operation MutateRef(Solution& sol, Register reg)
+		[[nodiscard]] static Instruction MutateRef(Solution& sol, Register reg)
 		{
 			return MutateRef(sol, Operand{ reg, OperandType::Register });
 		}
@@ -355,7 +356,7 @@ namespace LEX
 
 
 
-		static std::vector<Operation> MutateLoad(Solution& sol, const Operand& to, std::optional<bool> is_ref)
+		static std::vector<Instruction> MutateLoad(Solution& sol, const Operand& to, std::optional<bool> is_ref)
 		{
 			auto result = Load(to, sol, is_ref);
 			sol.ClearPromotion();
@@ -365,22 +366,22 @@ namespace LEX
 
 
 
-		[[nodiscard]] static std::vector<Operation> MutateLoad(Solution& sol,  const Solution& to)
+		[[nodiscard]] static std::vector<Instruction> MutateLoad(Solution& sol,  const Solution& to)
 		{
 			return MutateLoad(sol, to, to.IsReference());
 		}
 		
-		using OperateList = std::vector<Operation>;
+		
 
 
-		static Operation RemoveOperation(std::vector<Operation>& ops, OperateList::iterator it)
+		static Instruction RemoveOperation(std::vector<Instruction>& ops, InstructList::iterator it)
 		{
 			bool before = true;
 
 
 		}
 
-		static int GetStackOpDirection(const Operation& op, size_t loc)
+		static int GetStackOpDirection(const Instruction& op, size_t loc)
 		{
 			int64_t distance;
 
@@ -403,17 +404,17 @@ namespace LEX
 			return std::clamp<Differ>(op._lhs.differ, -1, 1);
 		}
 
-		static size_t RemoveOperations(std::vector<Operation>& ops, std::function<bool(OperateList::iterator)> function)
+		static size_t RemoveOperations(std::vector<Instruction>& ops, std::function<bool(InstructList::iterator)> function)
 		{
 			//The idea is this function records relevant
 
-			std::vector<OperateList::iterator> locDown;//This is for any jump or jump like operation that points to a place downwards (is positive)
-			std::vector<OperateList::iterator> locUp;	//For any jump or jump like operation that points upwards (is positive).
+			std::vector<InstructList::iterator> locDown;//This is for any jump or jump like operation that points to a place downwards (is positive)
+			std::vector<InstructList::iterator> locUp;	//For any jump or jump like operation that points upwards (is positive).
 
 			
 			size_t removed = 0;
 			bool erased;
-			std::function<void(OperateList::iterator)> EraseEntry = [&](OperateList::iterator it)
+			std::function<void(InstructList::iterator)> EraseEntry = [&](InstructList::iterator it)
 			{
 				it = ops.erase(it);
 				erased = true;
@@ -436,7 +437,7 @@ namespace LEX
 				}
 			};
 
-			std::function<void(OperateList::iterator)> DecUpLoc = [&](OperateList::iterator it)
+			std::function<void(InstructList::iterator)> DecUpLoc = [&](InstructList::iterator it)
 			{
 				it->_lhs.differ -= removed;
 				locUp.push_back(it);
@@ -473,7 +474,7 @@ namespace LEX
 			return removed;
 		}
 
-		[[nodiscard]] static size_t MergeIncrement(std::span<std::vector<Operation>> list, bool argument)
+		[[nodiscard]] static size_t MergeIncrement(std::span<std::vector<Instruction>> list, bool argument)
 		{
 			size_t result = 0;
 
@@ -483,7 +484,7 @@ namespace LEX
 			for (auto& ops : list)
 			{
 
-				RemoveOperations(ops, [&](OperateList::iterator it)->bool
+				RemoveOperations(ops, [&](InstructList::iterator it)->bool
 				{
 					if (it->_instruct == type) {
 						result += std::max<Differ>(it->_lhs.differ, 0);
@@ -497,7 +498,7 @@ namespace LEX
 			return result;
 		}
 
-		[[nodiscard]] static size_t MergeIncrement(std::vector<Operation>& ops, bool argument)
+		[[nodiscard]] static size_t MergeIncrement(std::vector<Instruction>& ops, bool argument)
 		{
 			return MergeIncrement({ &ops, 1 }, argument);
 		}
@@ -522,6 +523,9 @@ namespace LEX
 
 
 		static int64_t SkipScope(RoutineCompiler* compiler, const Operand& query, bool negate, uint64_t offset = 0);
+
+
+
 	};
 
 }

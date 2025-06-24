@@ -6,16 +6,19 @@ namespace LEX
 
 	ENUM(KeywordType)
 	{
-		TypeQual,
-		DeclSpec,
-		TypeSpec,
+		TypeQualifier,
+		DeclarationSpecifier,
+		TypeSpecifier,
+		TypeQual = KeywordType::TypeQualifier,
+		DeclSpec = KeywordType::DeclarationSpecifier,
+		TypeSpec = KeywordType::TypeSpecifier,
 
 		Total,
 
 		None = KeywordType::Total,
 	};
 
-	ENUM(HeaderFlag, int16_t)
+	ENUM(HeaderFlag, uint16_t)
 	{
 		None		= 0 << 0,
 		Signable	= 1 << 0,
@@ -26,10 +29,20 @@ namespace LEX
 		DeclConst	= 1 << 5,
 		DeclMute	= 1 << 6,
 		Storage		= 1 << 7,
-		Primary		= 1 << 8,
+		Primary		= 1 << 8,//Make another versoin of primary but for keyword types.
 		Access1st	= 1 << 9,
 		Access2nd	= 1 << 10,
-		All			= -1,
+		Virtual		= 1 << 11,
+		Linking		= 1 << 11,
+		All			= static_cast<uint16_t>(-1),
+
+
+		TypeSpecifiers = HeaderFlag::Signable | HeaderFlag::Signable | HeaderFlag::Primary,
+		//GenerallyAllowed = Signable | Sizable,
+		//GlobalSpecifiers = 0,
+		Access = HeaderFlag::Access1st | HeaderFlag::Access2nd,
+		MemberSpecifiers = HeaderFlag::Mutable | HeaderFlag::Storage,
+		FunctionSpecifiers = HeaderFlag::Virtual | HeaderFlag::Linking | HeaderFlag::DeclConst| HeaderFlag::DeclMute,
 		MostlyAll	= HeaderFlag::All & ~HeaderFlag::Storage,
 	};
 
@@ -62,9 +75,9 @@ namespace LEX
 
 		headerGuide[KeywordType::DeclSpec]["const"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["static"] = { HeaderFlag::Storage, HeaderFlag::None };
-		headerGuide[KeywordType::DeclSpec]["abstract"] = { HeaderFlag::Storage, HeaderFlag::None };
-		//headerGuide[KeywordType::DeclSpec]["virtual"] = { HeaderFlag::Storage, HeaderFlag::None };
-		headerGuide[KeywordType::DeclSpec]["external"] = { HeaderFlag::None, HeaderFlag::None };//Extern doesn't really have any enemies other than maybe abstract?
+		//headerGuide[KeywordType::DeclSpec]["abstract"] = { HeaderFlag::Virtual, HeaderFlag::Storage };
+		headerGuide[KeywordType::DeclSpec]["virtual"] = { HeaderFlag::Virtual, HeaderFlag::Storage };
+		headerGuide[KeywordType::DeclSpec]["external"] = { HeaderFlag::Linking, HeaderFlag::None };//Extern doesn't really have any enemies other than maybe abstract?
 		headerGuide[KeywordType::DeclSpec]["mutable"] = { HeaderFlag::DeclMute, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["readonly"] = { HeaderFlag::DeclConst, HeaderFlag::None, true };
 		headerGuide[KeywordType::DeclSpec]["public"] = { HeaderFlag::Access1st, HeaderFlag::None };
@@ -80,7 +93,7 @@ namespace LEX
 		headerGuide[KeywordType::TypeSpec]["short"] = { HeaderFlag::Sizable, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["long"] = { HeaderFlag::Sizable, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["bool"] = { HeaderFlag::Primary, HeaderFlag::Sizable };//booleans can be signed to represent a maybe value.
-		headerGuide[KeywordType::TypeSpec]["string"] = { HeaderFlag::Primary, HeaderFlag::Sizable };
+		headerGuide[KeywordType::TypeSpec]["string"] = { HeaderFlag::Primary, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["int"] = { HeaderFlag::Primary, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["double"] = { HeaderFlag::Primary, HeaderFlag::Sizable };
 		headerGuide[KeywordType::TypeSpec]["float"] = { HeaderFlag::Primary, HeaderFlag::Sizable };
@@ -88,8 +101,7 @@ namespace LEX
 		headerGuide[KeywordType::TypeSpec]["voidable"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };
 		headerGuide[KeywordType::TypeSpec]["string"] = { HeaderFlag::Primary, HeaderFlag::None };
 		headerGuide[KeywordType::TypeSpec]["char"] = { HeaderFlag::Primary, HeaderFlag::None };//char doesn't exist yet.
-		headerGuide[KeywordType::TypeSpec]["object"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };//char doesn't exist yet.
-
+		headerGuide[KeywordType::TypeSpec]["object"] = { HeaderFlag::Primary, HeaderFlag::MostlyAll };
 		//These are searched in perfect order, among keywords submitted to it.
 
 	};
@@ -132,18 +144,13 @@ namespace LEX
 	}
 
 
-	inline bool IsTypename(std::string& name)
+	inline bool IsTypename(const std::string& name)
 	{
 		auto& map = headerGuide[KeywordType::TypeSpec];
 
 		auto it = map.find(name);
 
 		return map.end() != it && it->second.includeFlags & HeaderFlag::Primary;
-	}
-
-	inline bool IsTypename(std::string&& name)
-	{
-		return IsTypename(name);
 	}
 
 }

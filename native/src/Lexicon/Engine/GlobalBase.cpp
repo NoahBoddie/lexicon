@@ -47,7 +47,12 @@ namespace LEX
                 report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, environment, Refness::Global, Refness::Static };
+            
+
+            //Declaration header{ *head_rec, environment, Refness::Global, Refness::Static };
+            //No reference stuff right now
+            Declaration header = Declaration::CreateOnly(*head_rec, environment, Refness::Global, Refness::Static, 
+                HeaderFlag::TypeSpecifiers | HeaderFlag::Constness | HeaderFlag::Access);
             
             switch (header.reference)
             {
@@ -66,9 +71,9 @@ namespace LEX
             constexpr auto spec = ~(SpecifierFlag::External | SpecifierFlag::Virtual) & SpecifierFlag::All;
             
 
-            if (header.Matches(DeclareMatches::Constness, spec) == false) {
-                report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
-            }
+            //if (header.Matches(DeclareMatches::Constness, spec) == false) {
+            //    report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");
+            //}
 
             //if (auto filter = header.Filter(qual, spec); filter) {
             //    report::compile::critical("Either unexpected qualifiers/specifiers or missing type.");

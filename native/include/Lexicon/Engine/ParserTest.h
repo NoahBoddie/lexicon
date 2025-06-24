@@ -1589,7 +1589,7 @@ namespace LEX
 						}
 
 						Record& inherit = derives.EmplaceChild(ParseModule::UseModule<IdentifierParser>(stream, nullptr));
-
+						inherit.SYNTAX().type = SyntaxType::Typename;
 						if (specifiers)
 							inherit.EmplaceChild(std::move(*specifiers));
 

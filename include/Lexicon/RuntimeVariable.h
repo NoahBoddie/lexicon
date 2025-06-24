@@ -208,8 +208,8 @@ namespace LEX
 
 		RunDataHelper& operator=(const RunDataHelper& other)
 		{
-			Unhandle();
 			Handle(other);
+			Unhandle();
 			return *this;
 		}
 
@@ -217,8 +217,8 @@ namespace LEX
 
 		RunDataHelper& operator=(RunDataHelper&& other)
 		{
-			Unhandle();
 			Handle(other);
+			Unhandle();
 			return *this;
 		}
 
@@ -233,16 +233,20 @@ namespace LEX
 			Handle(other.get());
 		}
 		
+
 		/*
+		void FUNDERSON() { logger::info("Funderson called"); }
 		//I don't think this will actually do anything
 		RunDataHelper& operator=(const VariableRef& other)
 		{
+			FUNDERSON();
 			Unhandle();
 			Handle(other.get());
 			return *this;
 		}
 		RunDataHelper& operator=(VariableRef&& other)
 		{
+			FUNDERSON();
 			Unhandle();
 			Handle(other.get());
 			return *this;

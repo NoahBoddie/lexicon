@@ -58,7 +58,48 @@ namespace LEX
 		std::function<LogEditor> Mutator();
 
 
+		template <is_not<std::source_location>... Ts> void Log(const std::string& message, std::source_location& src, IssueLevel level, Ts&&... args)
+		{
+			auto handle = ReportManager::instance->AddEditor(Mutator());
+
+			return report::log(message, src, ReportManager::instance->GetIssueType(), level, args...);
+			//return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+		}
+
+		template <is_not<std::source_location>... Ts> void Log(IssueCode code, std::source_location& src, IssueLevel level, Ts&&... args)
+		{
+			auto handle = ReportManager::instance->AddEditor(Mutator());
+
+			return report::log(code, src, ReportManager::instance->GetIssueType(), level, args...);
+			//return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+		}
+
 		//scoped_logger log(Mutator(), LogState::Prep); 
+
+#define DECLARE_SYNTAX_LOGGER(mc_name, mc_level,...)\
+		template <is_not<std::source_location>... Ts>\
+		void mc_name(SourceAndProxy<std::string> message, Ts&&... args)\
+		{\
+			return Log(message.prox, message.src, IssueLevel::mc_level, args...);\
+		}\
+		template <is_not<std::source_location>... Ts>\
+		void mc_name(std::string& message, std::source_location loc, Ts&&... args)\
+		{\
+			return Log(message, loc, IssueLevel::mc_level, args...);\
+		}\
+		template <is_not<std::source_location>... Ts>\
+		void mc_name(IssueCode code, Ts&&... args)\
+		{\
+			return Log(code, IssueLevel::mc_level, args...);\
+		}\
+		template <is_not<std::source_location>... Ts>\
+		void mc_name(IssueCode code, std::source_location loc, Ts&&... args)\
+		{\
+			return Log(code, loc, IssueLevel::mc_level, args...);\
+		}
+
+
+		/*
 
 #define DECLARE_SYNTAX_LOGGER(mc_name, mc_level,...)\
 		template <is_not<std::source_location>... Ts>\
@@ -83,14 +124,14 @@ namespace LEX
 		}
 
 
+		//*/
+
+
 		DECLARE_SYNTAX_LOGGER(LogCritical, Critical);
 
 		DECLARE_SYNTAX_LOGGER(LogInfo, Info);
 		DECLARE_SYNTAX_LOGGER(LogDebug, Debug);
 		DECLARE_SYNTAX_LOGGER(error, Error);
-
-
-
 
 		template <is_not<std::source_location>... Ts> void Note(SourceAndProxy<std::string> message, Ts&&... args) 
 		{

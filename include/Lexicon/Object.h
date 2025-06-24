@@ -132,9 +132,9 @@ namespace LEX
 				auto* test = result.policy.get();
 				//assert(result.policy->base);
 
-				if (result.policy->base != vtable) {
+				if (result.policy->GetVTable() != vtable) {
 					//Non-inhouse checks (should only happen once.
-					report::fault::critical("issue");
+					//report::fault::critical("issue");
 				}
 			}
 

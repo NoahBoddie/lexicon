@@ -27,13 +27,13 @@ namespace LEX
 			switch (res.data)
 			{
 			case ConversionEnum::ImplDefined:
-				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
+				compiler->GetInstructionList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
 				break;
 
 			case ConversionEnum::UserDefined:
 			resume:
 
-				compiler->GetOperationList().emplace_back(InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
+				compiler->GetInstructionList().emplace_back(InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
 
 
 				if (!fall)
@@ -47,7 +47,7 @@ namespace LEX
 					goto resume;
 				}
 
-				compiler->GetOperationList().emplace_back(
+				compiler->GetInstructionList().emplace_back(
 					InstructionType::Convert,
 					reg,
 					Operand{ out.userToImpl, OperandType::Callable },
@@ -91,14 +91,14 @@ namespace LEX
 			
 			//Actually, if it's void you'll want to clear it even more
 			
-			compiler->GetOperationList().emplace_back(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
+			compiler->GetInstructionList().emplace_back(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
 		}
 	}
 
 	int64_t CompUtil::SkipScope(RoutineCompiler* compiler, const Operand& condition, bool negate, uint64_t offset)
 	{
 		auto scope = compiler->GetScope();
-		auto& list = compiler->GetOperationList();
+		auto& list = compiler->GetInstructionList();
 
 		if (scope->IsHeader() == true) {
 			report::fault::critical("Header scope cannot be skipped (Also, I need a record pls).");
@@ -106,7 +106,7 @@ namespace LEX
 
 		int64_t size = (int64_t)list.size();
 
-		scope->Release([&](std::vector<Operation>* out)
+		scope->Release([&](std::vector<Instruction>* out)
 			{
 				auto size = (int64_t)list.size();
 

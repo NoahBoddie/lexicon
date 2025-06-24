@@ -158,6 +158,10 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/FunctionNode.h"
 		"native/include/Lexicon/Engine/GenericFunction.h"
 		"native/include/Lexicon/Engine/SpecialFunction.h"
+		"native/include/Lexicon/Engine/ModuleChain.h"
+		"native/include/Lexicon/Engine/RuntimeUtility.h"
+		"native/include/Lexicon/Engine/Conversion.h"
+
 	)
 		
 
@@ -175,7 +179,7 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/Literal.cpp
 		native/src/Lexicon/Engine/LiteralManager.cpp
 		native/src/Lexicon/Engine/Operand.cpp
-		native/src/Lexicon/Engine/Operation.cpp
+		native/src/Lexicon/Engine/Instruction.cpp
 		native/src/Lexicon/Engine/OverloadEntry.cpp
 		native/src/Lexicon/Engine/OverloadInput.cpp
 		native/src/Lexicon/Engine/OverloadKey.cpp
@@ -219,7 +223,7 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/QualifiedType.cpp
 		"native/src/Lexicon/Engine/Field.cpp"
 		"native/src/Lexicon/Engine/ITypeInfoImpl.cpp"
-		"src/Lexicon/Conversion.cpp"
+		"native/src/Lexicon/Engine/Conversion.cpp"
 		"native/src/Lexicon/Engine/GenericFunction.cpp"
 		)
 else()
@@ -235,7 +239,6 @@ set(headers
 	include/Lexicon/TypeInfo.h
 	
 	include/Lexicon/Array.h
-	include/Lexicon/Conversion.h
 	include/Lexicon/DataType.h
 	"include/Lexicon/Specifier.h"
 	include/Lexicon/Default.h
@@ -308,7 +311,7 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "native/include/Lexicon/Engine/OperateList.h" "include/Lexicon/NativeReference.h" "native/include/Lexicon/Engine/RuntimeUtility.h" "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h" "native/include/Lexicon/Engine/ModuleChain.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h" )
 
 
 set(sources
@@ -458,8 +461,12 @@ target_precompile_headers(${PROJECT_NAME}
         ${PRIVATE_ACCESS}
         include/Lexicon/Impl/PCH.h)
 
-#rogues gallery stuff
-set(RoguePath "C:/Users/Noah/Desktop/Modding/[Lab]/{Lab Tools}/RoguesGallery")
+
+
+if (NOT RoguePath)
+	cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH CMAKE_REPO_DIR)
+	set(RoguePath "${CMAKE_REPO_DIR}/RoguesGallery")
+endif()
 
 
 add_subdirectory(${RoguePath} RoguesGallery)

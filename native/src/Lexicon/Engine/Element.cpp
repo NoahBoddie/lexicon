@@ -107,7 +107,7 @@ namespace LEX
 	}
 
 
-	std::vector<QualifiedName> Element::GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched)
+	std::vector<QualifiedName> Element::GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType relation, std::set<Element*>& searched)
 	{
 		/*
 		make variable that stores temp environment here.
@@ -151,8 +151,8 @@ namespace LEX
 				if (env)
 					result.emplace_back(env, std::move(inserter));
 				
-				if (a != RelateType::None)
-					buffer.insert_range(buffer.end(), elem->GetAssociates(a));
+				if (relation != RelateType::None)
+					buffer.insert_range(buffer.end(), elem->GetAssociates(relation));
 			}
 
 			out = std::move(buffer);
@@ -380,13 +380,20 @@ namespace LEX
 
 				for (auto& env : query)
 				{
+
 					auto buff = env->FindFunctions(path.GetView());
+
+					//TODO: I think I'd actually just not have this work so something not working wouldn't disrupt the expected order of the objects
+
+					auto it = std::remove_if(buff.begin(), buff.end(), [](FunctionInfo* other) {return !other->IsValid(); });
+					if (auto end = buff.end(); end != it)
+						buff.erase(it, end);
 
 					i += buff.size();
 
 					//this should compile and then run.
 					funcs.insert_range(funcs.end(), buff);
-
+					
 
 					genericList.emplace_back(std::make_pair(i, env.AsPart()));
 				
@@ -395,10 +402,6 @@ namespace LEX
 
 				if (funcs.size() != 0)
 				{
-					if (path.GetView() == "size")
-					{
-						logger::info("registering");
-					}
 
 					if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
 					{
@@ -496,10 +499,9 @@ namespace LEX
 	
 	Script* Element::SearchScriptPath(Element* a_this, SyntaxRecord& path)
 	{
-
 		Script* result = nullptr;
-
-		SearchPathBase(a_this, path, [&](std::vector<QualifiedName>& query) -> bool
+		
+		SearchPathBase(a_this, path, [&](std::vector<QualifiedElement>& query) -> bool
 			{
 				for (auto env : query)
 				{
@@ -554,7 +556,7 @@ namespace LEX
 
 
 
-	bool Element::HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate)
+	bool Element::HandlePath(Element* focus, SyntaxRecord* rec, const SearchFunction& func, std::set<Element*>& searched, bool need_associate)
 	{
 		if (!focus) {
 			auto name = ParseUtility::SeekNextPath(rec);
@@ -566,22 +568,33 @@ namespace LEX
 
 			//I didn't want to do this, but I think this is probably proper.
 
-			name = ParseUtility::SeekNextPath(rec);
+			focus = project;
 
-			focus = project->FindScript(name->GetView());
+			if constexpr (0)
+			{
+				name = ParseUtility::SeekNextPath(rec);
 
-			if (!focus)
-				return false;
+				if (!name) {
+					return false;
+				}
+
+				focus = project->FindScript(name->GetView());
+
+				if (!focus)
+					return false;
+			}
 
 		}
 			
 		Element* secondary = nullptr;
 
-		RelateType ship = RelateType::Included;
+		RelateType ship = need_associate ?  RelateType::Included  : RelateType::None;
 
 		Environment* env = focus->GetEnvironment();
 
 		Element* target;
+
+		bool allow_element = func.index();
 
 		if (!env) {
 			//The only time something like this happens is if it's a project. SO, we will have a secondary bit where it will be loaded later, and if
@@ -598,22 +611,39 @@ namespace LEX
 
 		//I'm thinking that the above should be handled before we get here maybe.
 
-		for (; ship != RelateType::None; ship--)
+		do
 		{
 
 
-			std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{};
+			//std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{};
+			std::vector<QualifiedName> query = GetEnvironments(target, rec, ship, searched);
 
-			if (env && !need_associate) {
+			if (env && rec) {
 				query.push_back(env);
 			}
 
+			//if (env && !need_associate) {
+				//query.push_back(env);
+			//}
 
-			bool success = func(query);
+			bool success;
+
+			if (allow_element) {
+				query.push_back(target);
+				success = std::get<1>(func)(reinterpret_cast<std::vector<QualifiedElement>&>(query));
+			}
+			else {
+				success = std::get<0>(func)(query);
+
+			}
+			
+
+			//bool success = func(query);
 
 			if (success)
 				return true;
 		}
+		while (ship-- != RelateType::None);
 
 		if (secondary) {
 			return HandlePath(secondary, rec, func, searched, need_associate);
@@ -623,7 +653,7 @@ namespace LEX
 		return false;
 	}
 
-	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func)
+	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, const SearchFunction& func)
 	{
 		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
 

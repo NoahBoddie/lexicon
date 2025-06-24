@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Conversion.h"
+#include "Lexicon/Engine/Conversion.h"
 #include "Lexicon/Engine/QualifiedType.h"
 
 

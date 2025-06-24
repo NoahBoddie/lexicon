@@ -88,7 +88,7 @@ namespace LEX
 		None = 0,
 		Params = 1 << 0,
 		ImplicitReadonly = 1 << 1,
-#ifdef LEX_SOURCE
+//#ifdef LEX_SOURCE
 		
 		//Initialized,		//Used when a value can be initialized. Think for out and in
 		//Open,				//The idea would be the reference can now be reassigned
@@ -99,7 +99,7 @@ namespace LEX
 		Promoted = 1 << 4,	//Flag to denote promoted refs. Promoted refs cannot be used in any space other than loading, but can be converted into a bool
 
 		All = -1,
-#endif
+//#endif
 	};
 
 

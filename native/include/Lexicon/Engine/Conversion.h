@@ -90,7 +90,7 @@ namespace LEX
 
 		std::optional<std::string_view> GetViewFromQType(const QualifiedType& q_type, bool right);
 
-		void PrintError(const SyntaxRecord& record, const QualifiedType& lhs, const QualifiedType& rhs, const std::source_location& loc = std::source_location::current());
+		void PrintError(SyntaxRecord& record, const QualifiedType& lhs, const QualifiedType& rhs, const std::source_location& loc = std::source_location::current());
 
 	};
 

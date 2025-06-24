@@ -1,15 +1,15 @@
-#include "Lexicon/Engine/Operation.h"
+#include "Lexicon/Engine/Instruction.h"
 
 #include "Lexicon/Engine/Runtime.h"
 #include "Lexicon/Engine/Target.h"
 #include "Lexicon/Engine/Operand.h"
 #include "Lexicon/Engine/OperandType.h"
-#include "Lexicon/Engine/Instruction.h"
+#include "Lexicon/Engine/Operation.h"
 #include "Lexicon/Engine/InstructionType.h"
 
 namespace LEX
 {
-	void Operation::Execute(Runtime* runtime)
+	void Instruction::Execute(Runtime* runtime)
 	{
 		//GetTarget- use this instead.
 

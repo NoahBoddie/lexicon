@@ -89,6 +89,8 @@ namespace LEX
 
 		Signature sign{ base };
 
-		return core->GetElementFromPath(path, ElementType::kFuncElement, &sign)->As<IFunction>();
+		auto element = core->GetElementFromPath(path, ElementType::kFuncElement, &sign);
+		
+		return dynamic_cast<IFunction*>(element);
 	}
 }

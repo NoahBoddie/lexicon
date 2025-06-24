@@ -158,7 +158,8 @@ namespace LEX
 
 	protected:
 
-		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, Procedure prod = nullptr);
+		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, 
+			std::optional<Procedure> prod = std::nullopt);
 
 
 	};
@@ -190,7 +191,7 @@ namespace LEX
 		size_t defaultIndex = (size_t)-1;  //max_value<size_t>;//basically whenever the defaults start.
 		size_t paramsIndex = (size_t)-1;
 		//
-		Procedure _procedure = nullptr;
+		std::optional<Procedure> _procedure = std::nullopt;
 
 		//formulas won't have defaults, they don't have names, and they don't have procedures (such would defy the point of them.
 
@@ -201,7 +202,7 @@ namespace LEX
 			return &_routine;
 		}
 
-		Procedure GetProcedure()
+		std::optional<Procedure> GetProcedure()
 		{
 			return _procedure;
 		}

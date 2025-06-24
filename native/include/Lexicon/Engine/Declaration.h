@@ -141,7 +141,34 @@ namespace LEX
 		Declaration() = default;
 
 		//Do this via function
-		Declaration(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef = Refness::Temp);
+		//Declaration(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef = Refness::Temp);
+
+
+		static Declaration Create(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef = Refness::Temp, HeaderFlag init_excl = {});
+		
+		static Declaration Create(SyntaxRecord& header, Element* source, Refness genericRef, HeaderFlag init_excl)
+		{
+			return Create(header, source, genericRef, Refness::Temp, init_excl);
+		}
+
+		static Declaration CreateOnly(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef, HeaderFlag only)
+		{
+			return Create(header, source, genericRef, defaultRef, ~only);
+		}
+
+		static Declaration CreateOnly(SyntaxRecord& header, Element* source, Refness genericRef, HeaderFlag only)
+		{
+			return Create(header, source, genericRef, Refness::Temp, ~only);
+		}
+
+
+		//template <std::convertible_to<std::string_view>... Args>
+		//static Declaration Create(SyntaxRecord& header, Element* source, Args... exclude)
+		//{
+			//return Declaration
+		//}
+
+
 
 		using QualifiedType::operator=;
 		Declaration& operator=(const Specifier& other) { __super::operator=(other); return *this; }

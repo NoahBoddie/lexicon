@@ -16,6 +16,16 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION_DERIVES(IFunction, ISpecial)
 			{
+				std::string_view FetchName(const std::string_view& str) const
+				{
+					return this ? GetName() : str;
+				}
+
+				std::string_view FetchName() const
+				{
+					return FetchName("<null>");
+				}
+
 
 				virtual bool IsConversion() const { return false; }
 				virtual bool IsMethod() const { return false; }

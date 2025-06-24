@@ -45,7 +45,6 @@
 #include "Lexicon/Number.h"
 
 
-
 void TestFunction()
 {
 
@@ -757,10 +756,10 @@ namespace LEX
 			// I can't reach that.
 
 
-			compiler->GetOperationList().push_back(Operation{ op, out, it, it });
+			compiler->GetInstructionList().push_back(Instruction{ op, out, it, it });
 
 
-			logger::trace("<!> inst {}, result policy {}", compiler->GetOperationList().back()._instruct,
+			logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
 				(uint32_t)policy->GetTypeID());
 			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
@@ -837,10 +836,10 @@ namespace LEX
 			// I can't reach that.
 
 
-			compiler->GetOperationList().push_back(Operation{ op, out, lhs, rhs });
+			compiler->GetInstructionList().push_back(Instruction{ op, out, lhs, rhs });
 
 
-			logger::trace("<!> inst {}, result policy {}", compiler->GetOperationList().back()._instruct,
+			logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
 				(uint32_t)policy->GetTypeID());
 			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
@@ -898,10 +897,10 @@ namespace LEX
 						//This should actually be pushing what's in the lhs into the result register, then
 						// making the lh solution the result register.
 
-						//compiler->GetOperationList().emplace_back(InstructType::Push, Register::Result, lhs);
+						//compiler->GetInstructionList().emplace_back(InstructType::Push, Register::Result, lhs);
 						//lhs = Solution{ lhs.policy, OperandType::Register, Register::Result };
 
-						compiler->GetOperationList().push_back(CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
+						compiler->GetInstructionList().push_back(CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
 					}
 
 					
@@ -983,7 +982,7 @@ namespace LEX
 
 				//TODO: Please make some compiler shorthand for this. Like free register
 				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true) {
-					compiler->GetOperationList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
+					compiler->GetInstructionList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
 				}
 
 
@@ -995,7 +994,7 @@ namespace LEX
 
 				CompUtil::HandleConversion(compiler, from, to, target, Register::Right);
 
-				compiler->GetOperationList().push_back(CompUtil::Mutate(from, to));
+				compiler->GetInstructionList().push_back(CompUtil::Mutate(from, to));
 
 				return to;
 			}
@@ -1103,9 +1102,9 @@ namespace LEX
 
 				CompUtil::HandleConversion(compiler, query, QualifiedType{ common_type::boolean() }, target);
 
-				auto& list = compiler->GetOperationList();
+				auto& list = compiler->GetInstructionList();
 
-				std::vector<Operation> back_list;
+				std::vector<Instruction> back_list;
 
 				//TODO: I feel I should actually use an out on the dependent one, but do it first. By doing this, I can actually increase the jump
 				// size, and reduce a cycle. Optimizations for AFTER this starts working again
@@ -1122,7 +1121,7 @@ namespace LEX
 
 					if constexpr (0)
 					{
-						std::vector<Operation> ops;
+						std::vector<Instruction> ops;
 						{
 							//This set up will allow for us to include the deallocations included in the death of a scope.
 							Scope a_scope{ compiler, ScopeType::Depedent, ops };
@@ -1167,7 +1166,7 @@ namespace LEX
 
 				if constexpr (0)
 				{
-					std::vector<Operation> ops;
+					std::vector<Instruction> ops;
 					{
 						Scope a_scope{ compiler, ScopeType::Conditional, ops };
 
@@ -1227,7 +1226,8 @@ namespace LEX
 
 		Solution TypeofProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
-			Declaration decl{ target, compiler->GetElement(), Refness::Temp };
+			//Declaration decl{ target, compiler->GetElement(), Refness::Temp };
+			Declaration decl  = Declaration::CreateOnly(target, compiler->GetElement(), Refness::Temp, HeaderFlag::TypeSpecifiers);
 
 			Solution sol{ QualifiedType{ common_type::type_info() }, OperandType::Type, decl.policy };
 
@@ -1278,12 +1278,12 @@ namespace LEX
 			//This is used so that we know what size we're to after the fact, and place it at the head.
 			// By default it starts with 1, so we don't have to resize when we add the last (and first) piece.
 			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
-			//std::vector<Operation> ops{1};
+			//std::vector<Instruction> ops{1};
 
 			TargetObject* self = compiler->GetTarget();
 
 			std::vector<std::pair<Solution, size_t>> args;
-			std::vector<std::vector<Operation>> operations;
+			std::vector<std::vector<Instruction>> operations;
 
 			int64_t alloc_size = arg_record->size();
 			int64_t sub_alloc = 0;
@@ -1317,7 +1317,7 @@ namespace LEX
 					sub_alloc = buf;
 				}
 
-				//compiler->GetOperationList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
+				//compiler->GetInstructionList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
 
 				args[i] = std::make_pair(result, 0);
 
@@ -1376,7 +1376,7 @@ namespace LEX
 			alloc_size = instructions.implied.size();
 			alloc_size += has_tar;
 
-			auto& list = compiler->GetOperationList();
+			auto& list = compiler->GetInstructionList();
 
 
 			auto start = compiler->ModArgCount(alloc_size, sub_alloc);
@@ -1386,7 +1386,9 @@ namespace LEX
 			if (func->GetTargetType().policy != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
-				list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
+				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
+				assert(self->target->type != OperandType::Argument);
+				list.push_back(Instruction{ InstructType::Reference, Operand{ alloc_size, OperandType::Argument }, *self->target });
 			}
 
 
@@ -1456,7 +1458,7 @@ namespace LEX
 				report::error("Couldn't find type '{}'.", target.GetView());
 
 			//TODO: Future: Give this a compiler utility function, in case it has a manually defined constructor.
-			compiler->GetOperationList().emplace_back(InstructType::Construct, compiler->GetPrefered(), Operand{ type, OperandType::Type });
+			compiler->GetInstructionList().emplace_back(InstructType::Construct, compiler->GetPrefered(), Operand{ type, OperandType::Type });
 
 			return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
 		
@@ -1476,14 +1478,18 @@ namespace LEX
 			if (!head_rec)
 				report::compile::error("No record named header.");
 
-			Declaration header{ *head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto };
-
+			//Declaration header{ *head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto };
+			//Declaration header = Declaration::CreateOnly(*head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto, HeaderFlag::Constness | HeaderFlag::Reference);
+			Declaration header = Declaration::CreateOnly(*head_rec, compiler->GetElement(), Refness::Generic, Refness::Auto,
+				HeaderFlag::TypeSpecifiers | HeaderFlag::Constness | HeaderFlag::Reference);
+			
+			
 			//TODO: I can allow this to be static, but it'll be something interesting I'll likely handle later
 			// Notably, exclusively if given a space that can facilitate it. IE an error should happen if you make static variables within a formula.
 			// Should be a compartment that a function gets that a formula doesn't (mostly because formulas can be temporary, and don't really link).
-			if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
-				report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
-			}
+			//if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
+			//	report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
+			//}
 
 			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);
 
@@ -1509,8 +1515,8 @@ namespace LEX
 
 
 				
-				//compiler->GetOperationList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
-				compiler->GetOperationList().append_range(CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
+				//compiler->GetInstructionList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
+				compiler->GetInstructionList().append_range(CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
 			}
 
 
@@ -1537,7 +1543,7 @@ namespace LEX
 		{
 			QualifiedType return_policy = compiler->GetReturnType();
 
-			auto& list = compiler->GetOperationList();
+			auto& list = compiler->GetInstructionList();
 
 			if (target.size() != 0)
 			{
@@ -1549,7 +1555,7 @@ namespace LEX
 
 				//TODO: if the solution isn't in a register that is the result register, push the solution into 
 				// the return. Also check type.
-				//compiler->GetOperationList().push_back(ret_op);
+				//compiler->GetInstructionList().push_back(ret_op);
 
 				//left broken because I just realized even non-abstract types are going to have to worry about
 				// inheritence too.
@@ -1589,10 +1595,10 @@ namespace LEX
 
 			scope->FlagReturn();
 
-			//Operation ret_op{ InstructionType::Return };
+			//Instruction ret_op{ InstructionType::Return };
 
 			//This part should probably say what left and right situation should be on display.
-			compiler->GetOperationList().emplace_back(InstructionType::Return);
+			compiler->GetInstructionList().emplace_back(InstructionType::Return);
 		}
 
 
@@ -1601,15 +1607,16 @@ namespace LEX
 
 			auto& rhs = target.FindChild(parse_strings::rhs)->GetFront();
 
-			Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp };
+			//Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp };
+			Declaration header = Declaration::CreateOnly(target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp,
+				HeaderFlag::TypeSpecifiers | HeaderFlag::Constness);
 
-			if (!header) {
-				report::compile::error("No type found for cast");
-			}
-
-			if (header.Matches(DeclareMatches::Constness) == false) {
-				report::compile::error("Unexpected qualifiers detected.");
-			}
+			//if (!header) {
+			//	report::compile::error("No type found for cast");
+			//}
+			//if (header.Matches(DeclareMatches::Constness) == false) {
+			//	report::compile::error("Unexpected qualifiers detected.");
+			//}
 
 			auto& lhs = target.FindChild(parse_strings::lhs)->GetFront();
 
@@ -1636,7 +1643,7 @@ namespace LEX
 				{
 					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
-					compiler->GetOperationList().emplace_back(
+					compiler->GetInstructionList().emplace_back(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
 						Operand{ header.policy, OperandType::Type },
@@ -1656,7 +1663,7 @@ namespace LEX
 				{
 					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
-					compiler->GetOperationList().emplace_back(
+					compiler->GetInstructionList().emplace_back(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
 						Operand{ header.policy, OperandType::Type },
@@ -1689,14 +1696,14 @@ namespace LEX
 
 			//Right here the solutions given type should be evaluated to see if a correct type is being returned.
 
-			Operation ret_op{ InstructionType::Return };
+			Instruction ret_op{ InstructionType::Return };
 
 			//This part should probably say what left and right situation should be on display.
 
 
 
 
-			compiler->GetOperationList().push_back(ret_op);
+			compiler->GetInstructionList().push_back(ret_op);
 		}
 
 

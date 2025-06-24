@@ -10,9 +10,9 @@
 
 namespace LEX
 {
-	std::vector<Operation>& Scope::GetOperationList()
+	std::vector<Instruction>& Scope::GetInstructionList()
 	{
-		return operationList;
+		return instructionList;
 	}
 
 

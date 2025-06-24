@@ -3,7 +3,7 @@
 #include "Expression.h"
 #include "ExpressionType.h"
 #include "Solution.h"
-#include "Operation.h"
+#include "Instruction.h"
 #include "RoutineBase.h"
 
 #include "parse_strings.h"
@@ -74,11 +74,11 @@ namespace LEX
 	protected:
 		struct TempListHandle
 		{
-			std::vector<Operation>*& current;
-			std::vector<Operation>* prev = nullptr;
+			std::vector<Instruction>*& current;
+			std::vector<Instruction>* prev = nullptr;
 
 
-			TempListHandle(std::vector<Operation>& out, std::vector<Operation>*& target) :current{ target }
+			TempListHandle(std::vector<Instruction>& out, std::vector<Instruction>*& target) :current{ target }
 			{
 				prev = current;
 				current = std::addressof(out);
@@ -118,9 +118,9 @@ namespace LEX
 		}
 
 
-		std::vector<Operation>* GetOperationListPtr();
+		std::vector<Instruction>* GetInstructionListPtr();
 
-		std::vector<Operation>& GetOperationList();
+		std::vector<Instruction>& GetInstructionList();
 
 
 		size_t GetArgCount() const
@@ -151,7 +151,7 @@ namespace LEX
 			}
 
 			if (x && append)
-				GetOperationList().emplace_back(InstructionType::ModArgStack, Operand{ x , OperandType::Differ });
+				GetInstructionList().emplace_back(InstructionType::ModArgStack, Operand{ x , OperandType::Differ });
 
 
 			return count;
@@ -228,7 +228,7 @@ namespace LEX
 			size_t count = ModVarCount(static_cast<int64_t>(size));
 
 
-			auto& op_list = GetOperationList();
+			auto& op_list = GetInstructionList();
 
 			auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
 
@@ -264,7 +264,7 @@ namespace LEX
 		}
 
 		//I'll try to set this up a bit later.
-		//friend std::vector<Operation>& Scope::GetOperationList();
+		//friend std::vector<Instruction>& Scope::GetInstructionList();
 
 
 		CompilerBase(SyntaxRecord& ast, FunctionData* owner, Element* elem, GenericBase* base) : CompilerBase { ast, owner, elem, base, owner->_name }
@@ -286,7 +286,7 @@ namespace LEX
 
 
 		//Don't use this no more. Each must provide their own container
-		//std::vector<Operation> _cache;
+		//std::vector<Instruction> _cache;
 
 
 
@@ -340,9 +340,34 @@ namespace LEX
 			return _callData ? _callData->FindParameter(a_name) : nullptr;
 		}
 
+
+
+		[[nodiscard]] uint32_t AddRecord(SyntaxRecord& record)
+		{
+			auto result = _instructRecords.size();
+
+
+			if (result >= 0x00FFFFFF) {
+				report::compile::error("can't be biger than max index, better log later");
+			}
+
+
+			_instructRecords.push_back(&record);
+
+			return result;
+		}
+
+		uint32_t GetRecordIndex()const
+		{
+			auto result = _instructRecords.size();
+
+
+			return result ? result : -1;
+		}
+
 		//~end
 
-
+		std::vector<SyntaxRecord*> _instructRecords;
 
 		//I would like to remove environment from play, and replace it with just the element being given.
 		Element* _element = nullptr;
@@ -352,7 +377,7 @@ namespace LEX
 		SyntaxRecord& funcRecord;
 		
 		//Here's the concept, this remains null if the scope is what handles the object. Basically, it's detached if this is true.
-		std::vector<Operation>* _current = nullptr;
+		std::vector<Instruction>* _current = nullptr;
 
 		Scope* currentScope{};//Scopes are the thing that should handle how many variables are in use, that sort of schtick I think.
 		// as well as the concept of memory being freed.
@@ -380,7 +405,7 @@ namespace LEX
 		virtual Solution CompileExpression(SyntaxRecord& node, Register pref) = 0;
 
 
-		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Operation>& out)
+		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Instruction>& out)
 		{
 			TempListHandle handle{ out, _current };
 
@@ -414,8 +439,8 @@ namespace LEX
 				//TODO: this should use Mutate, Scratch, it will want to use Load, maybe a combo of the 2
 
 				
-				//GetOperationList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
-				GetOperationList().append_range(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
+				//GetInstructionList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
+				GetInstructionList().append_range(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
 				
 				//This uses the policy of the solution, but uses the register that the above uses.
 				return Solution{ result, OperandType::Register, pref };

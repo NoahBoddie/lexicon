@@ -210,7 +210,7 @@ namespace api
 
 	private:
 		//Move some of this to container base so it doesn't make extra functions. Though, this shit is probably inline-able
-		enum Enum
+		enum TypeEnum
 		{
 			kEmptyMode,
 			kPointerMode,
@@ -276,16 +276,16 @@ namespace api
 
 
 
-		Enum GetMode() const
+		TypeEnum GetMode() const
 		{
 			if (!_raw)
-				return Enum::kEmptyMode;
+				return TypeEnum::kEmptyMode;
 
 			if (!_size)
-				return Enum::kEmptyMode;
+				return TypeEnum::kEmptyMode;
 
 			if (_size == k_elementMode)
-				return Enum::kElementMode;
+				return TypeEnum::kElementMode;
 
 			return kPointerMode;
 

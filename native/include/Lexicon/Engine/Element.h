@@ -38,14 +38,21 @@ namespace LEX
 	struct ITemplateInserter;
 
 	struct QualifiedName;
+	struct QualifiedElement;
 
 	struct TypeNode;
 
-	using ElementSearch = bool(std::vector<QualifiedName>&/*, ITemplatePart* */);
-	
+
 	
 	struct Element : public Component, public IElementImpl
 	{
+
+		using ElementSearch = bool(std::vector<QualifiedElement>&);
+
+		using EnvironSearch = bool(std::vector<QualifiedName>&);
+
+		using SearchFunction = std::variant<std::function<EnvironSearch>, std::function<ElementSearch>>;
+
 		enum Flag
 		{
 			None		= 0 << 0,
@@ -119,11 +126,11 @@ namespace LEX
 
 
 
-		bool HandlePath(Element* focus, SyntaxRecord* rec, std::function<ElementSearch>& func, std::set<Element*>& searched, bool need_associate);
+		bool HandlePath(Element* focus, SyntaxRecord* rec, const SearchFunction& func, std::set<Element*>& searched, bool need_associate);
 
 
-		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, std::function<ElementSearch> func);
-
+		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, const SearchFunction& func);
+		
 
 		static TypeNode SearchTypePath(Element* a_this, SyntaxRecord& _path);
 

@@ -166,7 +166,7 @@ namespace LEX
 	bool FunctionData::CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags)
 	{
 		if (target) {
-			logger::info("Names {} vs {}", target->GetName(), _returnType->GetName());
+			logger::debug("Names {} vs {}", target->GetName(), _returnType->GetName());
 
 			if (target != _returnType)
 				return false;
@@ -378,12 +378,14 @@ namespace LEX
 
 
 
-	RuntimeVariable BasicCallableData::BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, Procedure prod)
+	RuntimeVariable BasicCallableData::BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, std::optional<Procedure> prod)
 	{
 
 		if (args.size() != GetParamCount())
 			report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
-
+		
+		//TODO: Make this debug
+		logger::info("Preparing Execute for: {}", self ? self->GetName() : "Nameless function"sv);
 
 
 		VisitParameters([&](ParameterInfo& param)
@@ -414,6 +416,12 @@ namespace LEX
 
 		if (prod)
 		{
+			auto func = prod.value();
+
+			if (!func) {
+				report::apply::error("Procedure for {} is null", self->FetchName());
+			}
+
 			if (!self)
 				report::apply::error("procedures require a function to be associated with them.");
 
@@ -441,7 +449,7 @@ namespace LEX
 
 			report _{ IssueType::Runtime };
 
-			prod(result, target, send_args, data);
+			func(result, target, send_args, data);
 
 			//if (result.IsRefNegated())
 			if (false)
@@ -472,7 +480,7 @@ namespace LEX
 		}
 		else
 		{
-			Runtime runtime{ *GetRoutine(), args, caller, body };//The creation of caller yields 2 numbers that should not exist.
+			Runtime runtime{ *GetRoutine(), self, args, caller, body };//The creation of caller yields 2 numbers that should not exist.
 
 			result = runtime.Run();
 

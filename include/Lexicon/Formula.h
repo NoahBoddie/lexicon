@@ -142,12 +142,6 @@ namespace LEX
 
 	};
 
-	template <typename From, typename To>
-	struct change_to { typedef To type; };
-
-	template <typename From, typename To>
-	using change_to_t = change_to<From, To>::type;
-
 
 
 	template <typename R, typename... Args>
@@ -286,7 +280,7 @@ namespace LEX
 		
 			void* operator->() = delete;
 
-			R Call(Args&&... args, std::optional<Ry> def = std::nullopt)
+			R Call(Args... args, std::optional<Ry> def = std::nullopt)
 			{
 				//What should I do if someone tries to call this and doesn't have the right stuff?
 				if (!this->call_unit)

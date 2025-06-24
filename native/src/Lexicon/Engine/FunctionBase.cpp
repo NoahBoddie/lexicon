@@ -42,6 +42,25 @@ namespace LEX
             report::compile::critical("Not a function, cannot load.");
         }
 
+        /*
+        //This makes it search twice, but EH, I don't think I care much. I might seperate declarations from specifiers or make an option
+        // to ignore later. Ain't interface so it's ripe to burn
+        SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
+
+        if (!head_rec)
+            report::compile::critical("No record named header.");
+
+        
+        SyntaxRecord& decl_spec = *head_rec->FindChild(parse_strings::declare_specifier);
+        auto spec = GetSpecifiersFromStrings(decl_spec);
+        if (spec & SpecifierFlag::External)
+        {
+            _procedure = nullptr;
+            procedureData = -1;
+        }
+
+        //*/
+
         _name = target.GetTag();
 	}
 
@@ -70,14 +89,19 @@ namespace LEX
 				report::compile::critical("No record named header.");
             //LINK_AFTER
 
-            Declaration header{ *head_rec, this, Refness::Local };
+            //If function is seen as being static, it should not allow for 
 
-            if (header.Matches(DeclareMatches::Constness) == false) {
-				report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-            }
+            Declaration header = Declaration::Create(*head_rec, this, Refness::Local, HeaderFlag::Mutable);
+
+
+            //Declaration header{ *head_rec, this, Refness::Local };
+            //if (header.Matches(DeclareMatches::Constness) == false) {
+			//	report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
+            //}
 
             if (header.SpecifierFlags() & SpecifierFlag::External)
             {
+                _procedure = nullptr;
                 procedureData = -1;
             }
 
@@ -130,12 +154,15 @@ namespace LEX
                 if (!node_head)
 					report::compile::critical("No record named header.");
 
-                Declaration header{ *node_head, this, Refness::Scoped, Refness::Auto };
+                //Declaration header{ *node_head, this, Refness::Scoped, Refness::Auto };
+                Declaration header = Declaration::Create(*node_head, this, Refness::Scoped, Refness::Auto, 
+                    HeaderFlag::MemberSpecifiers | HeaderFlag::FunctionSpecifiers);
+
 
                 //Unlike the return type, clearly parameters cannot be static, that's a compiling error.
-                if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
-					report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
-                }
+                //if (header.Matches(DeclareMatches::Constness | DeclareMatches::Refness) == false) {
+				//	report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
+                //}
 
                 QualifiedType type = QualifiedType{ header };
 
@@ -173,7 +200,7 @@ namespace LEX
 
         case LinkFlag::Final:
         {
-            if (procedureData && !_procedure) {
+            if (_procedure.has_value() && _procedure.value() == nullptr) {
                 report::link::failure("Function '{}' did not register a procedure.");
                 return LinkResult::Failure;
             }
@@ -189,6 +216,19 @@ namespace LEX
 
 
         return LinkResult::Success;
+    }
+
+    void FunctionBase::OnLinkComplete()
+    {
+        //I want a way to fire this off and still have links complete. Gonna take some thought though.
+        //if (GetValid() == false) {
+        //    report::link::warn("Function '{}' didn't register a procedure at the end of linking.", GetName());
+        //}
+    }
+
+    bool FunctionBase::GetValid() const
+    {
+        return !_procedure.has_value() || _procedure.value();
     }
 
     LinkFlag FunctionBase::GetLinkFlags() 

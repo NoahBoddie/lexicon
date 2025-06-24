@@ -202,8 +202,8 @@ namespace LEX
 		}
 		return result;
 	}
-
-
+	
+	/*
 	Declaration::Declaration(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef)
 	{
 		if (header.GetTag() != parse_strings::header) {
@@ -235,6 +235,7 @@ namespace LEX
 				//std::string name = child.SYNTAX().type == SyntaxType::Declare ? 
 				std::string name;
 
+				//I can make a better method for this.
 				switch (child.SYNTAX().type)
 				{
 				case SyntaxType::ProjectName:
@@ -292,5 +293,133 @@ namespace LEX
 			reference = defaultRef;
 			break;
 		}
+	}
+	//*/
+
+
+	Declaration Declaration::Create(SyntaxRecord& header, Element* source, Refness genericRef, Refness defaultRef, HeaderFlag init_exclude)
+	{
+		if (header.GetTag() != parse_strings::header) {
+			report::fault::critical("header not found.");
+		}
+
+
+		Declaration declare{};
+
+		//std::array<SyntaxRecord&, 3> header_nodes{ *header.FindChild("type_qual") , *header.FindChild("type_spec"), *header.FindChild("decl_spec") };
+		SyntaxRecord& type_qual = *header.FindChild(parse_strings::type_qualifier);
+		SyntaxRecord& decl_spec = *header.FindChild(parse_strings::declare_specifier);
+		SyntaxRecord& type_spec = *header.FindChild(parse_strings::type_specifier);
+
+		//So here's the concept, if you see 2 restricteds in the same place, they aren't compatible. This simplifies this sort of thing.
+		// rest
+		//SyntaxType::Restricted;
+
+
+		HeaderFlag flags{};
+		HeaderFlag excludes = init_exclude;
+
+		KeywordType type = KeywordType::TypeQual;
+
+		//Need some fucking rules about this.
+		for (auto& node : header.children())
+		{
+
+			for (auto& child : node.children())
+			{
+				//std::string name = child.SYNTAX().type == SyntaxType::Declare ? 
+				std::string name;
+
+				//I can make a better method for this.
+				switch (child.SYNTAX().type)
+				{
+				case SyntaxType::ProjectName:
+				case SyntaxType::Scriptname:
+				case SyntaxType::Typename:
+				case SyntaxType::Scopename:
+					name = "typename";
+					break;
+
+				default:
+					name = child.GetTag();
+					break;
+				}
+
+				//bool post = child.SYNTAX().type == SyntaxType::Declare;
+
+				HeaderEntry entry;
+
+				auto it = headerGuide[type].find(name);
+
+				if (headerGuide[type].end() == it) {
+					//This didn't crash for some fucking reason????
+					report::fault::critical("cannot find setting flags for keyword {}", name);
+				}
+
+				entry = it->second;
+
+				/*
+				std::string cmp = entry.postOnly ? "~" + it->first : it->first;
+				
+				if (exclude_names.contains(cmp) == true) {
+					child.error("{} '{}' is not allowed here", magic_enum::enum_name(type), it->first);
+					//report::compile::error("{} '{}' is not allowed here", magic_enum::enum_name(type), it->first);
+				}
+				//*/
+				if (auto res = entry.includeFlags & init_exclude; res != HeaderFlag::None) {
+					child.error("{} '{}' is not allowed here", magic_enum::enum_name(type), it->first);
+					//report::compile::error("Previous declaration keywords exclude setting {}", magic_enum::enum_name(res));
+				}
+
+				if (auto res = entry.includeFlags & excludes; res != HeaderFlag::None) {
+					child.error("Previous declaration keywords exclude setting {} with '{}'", magic_enum::enum_name(res), it->first);
+					//report::compile::error("Previous declaration keywords exclude setting {}", magic_enum::enum_name(res));
+				}
+				if (auto res = entry.includeFlags & flags; res != HeaderFlag::None) {
+					child.error("Previous declaration keywords already set {} with '{}'", magic_enum::enum_name(res), it->first);
+					//report::compile::error("Previous declaration keywords already set {}", magic_enum::enum_name(res));
+				}
+					
+
+				flags |= entry.includeFlags;
+				excludes |= entry.excludeFlags;
+			}
+
+			type = static_cast<decltype(type)>(type + 1);
+		}
+
+		declare.policy = GetPolicyFromSpecifiers(type_spec, source);
+
+		if (!declare.policy) {
+			std::string name;
+
+			for (auto& child : type_spec.children())
+			{
+				if (name.empty() == false)
+					name += " ";
+				
+				name += child.GetTag();
+			}
+			
+			
+			type_spec.GetFront().error("Couldn't locate type '{}'", name);
+		}
+		declare = GetQualifiersFromStrings(type_qual);
+		declare = GetSpecifiersFromStrings(decl_spec);
+
+
+
+		switch (declare.reference)
+		{
+		case Refness::Generic:
+			declare.reference = genericRef;
+			break;
+
+		case Refness::Temp:
+			declare.reference = defaultRef;
+			break;
+		}
+
+		return declare;
 	}
 }
