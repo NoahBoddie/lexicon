@@ -465,7 +465,7 @@ target_precompile_headers(${PROJECT_NAME}
 
 if (NOT RoguePath)
 	cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH CMAKE_REPO_DIR)
-	set(RoguePath "${CMAKE_REPO_DIR}/RoguesGallery")
+	set(RoguePath "${CMAKE_REPO_DIR}/rogues-gallery")
 endif()
 
 

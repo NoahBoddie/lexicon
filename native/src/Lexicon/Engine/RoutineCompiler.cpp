@@ -18,6 +18,34 @@
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
+	Solution Generator::GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& target)
+	{
+		//The factory pieces seem like they need something to plug into
+
+		auto temp = compiler->ReadyRecord(target);
+
+		get_switch(index())
+		{
+			case 0:
+				target.critical<IssueType::Fault>("Code Generator is neither a statement nor expression.", switch_value); break;
+
+			case 1:
+				std::get<StatementProcessor>(*this)(reinterpret_cast<RoutineCompiler*>(compiler), target); break;
+
+			case 2:
+				return std::get<ExpressionProcessor>(*this)(reinterpret_cast<ExpressionCompiler*>(compiler), target);
+
+
+
+			default:
+				target.critical<IssueType::Fault>("Code Generator is unknown. (type {})", switch_value); break;
+		}
+
+		return {};
+	}
+
+
+
 	std::vector<Instruction>* CompilerBase::GetInstructionListPtr()
 	{
 		if (_current)
@@ -126,11 +154,11 @@ namespace LEX
 				auto voidable = common_type::voidable();
 
 				Solution result;
-
+				
 				switch (funcRecord.GetSyntax().type)
 				{
 				case SyntaxType::Function: {
-					//operations = CompileBlock(*funcRecord.FindChild("code"));
+					//operations = CompileBlock(*funcRecord.FindChild("code"));			
 					CompileBlock(*funcRecord.FindChild(parse_strings::code));
 
 					//~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,7 +172,6 @@ namespace LEX
 				default: {//case SyntaxType::Return:
 					//operations = CompileLine(funcRecord, Register::Result);
 					//<KILL> _current = &operations;
-
 
 					implicitReturn = true;
 					//operations.insert_range(end, CompileLine(funcRecord, Register::Result, result));
@@ -182,7 +209,7 @@ namespace LEX
 								report::compile::error("Expression not convertible to return type.");
 							}
 
-							CompUtil::HandleConversion(this, out, result, return_policy, convert_result);
+							CompUtil::HandleConversion(this, out, result, return_policy, convert_result, funcRecord);
 						}
 					}
 
@@ -197,10 +224,10 @@ namespace LEX
 				//if (!operations.empty() && operations.back()._instruct != InstructionType::Return) {
 				if (!a_scope.IsEmpty() && a_scope.IsReturned() == false) {
 					//I know this is important, but why is this happening here
-
+					auto temp = implicitReturn ? ReadyRecord(ParseUtility::GetFrontExpression(funcRecord)) : ReadyNoRecord();
 					//<KILL> _current = &operations;//Doing this is stupid and I hate it but fuck it whatever.
 					CompUtil::PrepareReturn(this, return_policy, result);
-					GetInstructionList().emplace_back(InstructionType::Return);
+					EmplaceInstruction(InstructionType::Return);
 				}
 
 
@@ -211,8 +238,8 @@ namespace LEX
 			}
 
 			operations.shrink_to_fit();
-
-			routine = RoutineBase{ std::move(operations), std::move(_instructRecords), varCount[1], argCount[1]};
+			
+			routine.Set(RoutineBase{std::move(operations), _instructRecords, varCount[1], argCount[1]});
 			return _success;
 		}
 		catch (CompileError& error)
@@ -256,10 +283,7 @@ namespace LEX
 			currentScope->IncrementVarCount(inc);
 		}
 		else {
-
-			auto& op_list = GetInstructionList();
-
-			op_list.emplace_back(InstructionType::ModVarStack, Operand{ inc , OperandType::Differ });
+			EmplaceInstruction(InstructionType::ModVarStack, Operand{ inc , OperandType::Differ });
 
 		}
 

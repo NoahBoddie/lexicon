@@ -44,6 +44,7 @@
 
 #include "Lexicon/Number.h"
 
+#include "Lexicon/Engine/ParseUtility.h"
 
 void TestFunction()
 {
@@ -65,7 +66,7 @@ namespace LEX
 
 		//Mathmatics and Comparison can have a base function.
 		template<class Operatable, bool Assign = false>
-		static RuntimeVariable BinaryMath(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime*)
+		static RuntimeVariable BinaryMath(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime* runtime)
 		{
 			//This covers basically most of the below stuff.
 			Number back = a_lhs->AsNumber();
@@ -76,6 +77,11 @@ namespace LEX
 
 			Number result = op(back, front);
 
+			fmt::format_string<int, int> test = "{}{}";
+
+			auto test1 = std::forward<decltype(test)>(test);
+			((IRuntime*)runtime)->Report("{}{}", 1, 2);
+			
 			//
 			//The below needs to curb "class std::" from the below
 			report::runtime::trace("{} {} {} = {}", back.PrintString(), typeid(Operatable).name(), front.PrintString(), result.PrintString());
@@ -756,11 +762,11 @@ namespace LEX
 			// I can't reach that.
 
 
-			compiler->GetInstructionList().push_back(Instruction{ op, out, it, it });
+			compiler->PushInstruction(Instruction{ op, out, it, it });
 
 
-			logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
-				(uint32_t)policy->GetTypeID());
+			//logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
+			//	(uint32_t)policy->GetTypeID());
 			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
 
@@ -836,11 +842,11 @@ namespace LEX
 			// I can't reach that.
 
 
-			compiler->GetInstructionList().push_back(Instruction{ op, out, lhs, rhs });
+			compiler->PushInstruction(Instruction{ op, out, lhs, rhs });
 
 
-			logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
-				(uint32_t)policy->GetTypeID());
+			//logger::trace("<!> inst {}, result policy {}", compiler->GetInstructionList().back()._instruct,
+			//	(uint32_t)policy->GetTypeID());
 			return Solution{ QualifiedType{policy}, OperandType::Register, out };
 		}
 
@@ -865,7 +871,7 @@ namespace LEX
 				//if (op == OperatorType::Invalid) {
 				if (op == InstructType::Invalid) {
 					
-					target.LogCritical("Invalid instruction for operation.");
+					target.critical("Invalid instruction for operation.");
 					report::compile::error("Invalid instruction for operation.");
 				}
 
@@ -881,8 +887,8 @@ namespace LEX
 					Register reg1 = Register::Left;
 					Register reg2 = Register::Right;
 
-					SyntaxRecord& left = target.FindChild(str1)->GetChild(0);
-					
+					SyntaxRecord& left = target.FindChild(parse_strings::lhs)->GetFront();
+					SyntaxRecord& right = target.FindChild(parse_strings::rhs)->GetFront();
 					lhs = compiler->CompileExpression(left, reg1);
 					
 
@@ -900,11 +906,11 @@ namespace LEX
 						//compiler->GetInstructionList().emplace_back(InstructType::Push, Register::Result, lhs);
 						//lhs = Solution{ lhs.policy, OperandType::Register, Register::Result };
 
-						compiler->GetInstructionList().push_back(CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
+						compiler->PushInstruction(right, CompUtil::Mutate(lhs, Operand{ Register::Result, OperandType::Register }));
 					}
 
 					
-					rhs = compiler->CompileExpression(target.FindChild(str2)->GetChild(0), reg2);
+					rhs = compiler->CompileExpression(right, reg2);
 
 
 
@@ -982,7 +988,7 @@ namespace LEX
 
 				//TODO: Please make some compiler shorthand for this. Like free register
 				if (prefered == Register::Result && to.Equals<OperandType::Register>(Register::Left) == true) {
-					compiler->GetInstructionList().push_back(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
+					compiler->PushInstruction(CompUtil::Mutate(to, Operand{ Register::Result, OperandType::Register }));
 				}
 
 
@@ -994,7 +1000,7 @@ namespace LEX
 
 				CompUtil::HandleConversion(compiler, from, to, target, Register::Right);
 
-				compiler->GetInstructionList().push_back(CompUtil::Mutate(from, to));
+				compiler->PushInstruction(CompUtil::Mutate(from, to));
 
 				return to;
 			}
@@ -1091,7 +1097,9 @@ namespace LEX
 				//	boolean = IdentityManager::instance->GetTypeByOffset("NUMBER", GetNumberOffsetFromType<bool>());
 				//}
 				
-				Solution query = compiler->CompileExpression(target.FindChild(parse_strings::expression_block)->GetFront(), compiler->GetPrefered());
+				SyntaxRecord& expression = target.FindChild(parse_strings::expression_block)->GetFront();
+
+				Solution query = compiler->CompileExpression(expression, compiler->GetPrefered());
 				
 				//Conversion out;
 				//auto convert = query.IsConvertToQualified(QualifiedType{ boolean }, nullptr, &out);
@@ -1100,7 +1108,8 @@ namespace LEX
 				//}
 				//CompUtil::HandleConversion(compiler, out, query, convert);
 
-				CompUtil::HandleConversion(compiler, query, QualifiedType{ common_type::boolean() }, target);
+
+				CompUtil::HandleConversion(compiler, query, QualifiedType{ common_type::boolean() }, ParseUtility::PeekFirstRecord(expression));
 
 				auto& list = compiler->GetInstructionList();
 
@@ -1117,7 +1126,7 @@ namespace LEX
 					//NEW
 					Scope scope{ compiler, ScopeType::Depedent, back_list };
 					compiler->CompileBlock(*else_block);
-					CompUtil::SkipScope(compiler, Operand::None(), false);
+					CompUtil::SkipScope(compiler, *else_block, Operand::None(), false);
 
 					if constexpr (0)
 					{
@@ -1139,7 +1148,7 @@ namespace LEX
 
 						if (back_size) {
 
-							back_list.emplace_back(InstructType::DropStack, Operand{ back_size + 1, OperandType::Differ }, Operand::None());
+							back_list.emplace_back(InstructType::DropStack, Operand{ back_size + 1, OperandType::Differ }, Operand::None(), compiler->UseRecord(*else_block));
 
 							back_list = std::move(ops);
 
@@ -1155,7 +1164,7 @@ namespace LEX
 				Scope scope{ compiler, ScopeType::Conditional };
 				compiler->CompileBlock(*target.FindChild(parse_strings::statement_block));
 				//CompUtil::SkipScope(compiler, query, true, back_list.size());
-				CompUtil::SkipScope(compiler, query, true, !back_list.empty());
+				CompUtil::SkipScope(compiler, target, query, true, !back_list.empty());
 
 
 				if (back_list.empty() == false){
@@ -1179,6 +1188,7 @@ namespace LEX
 					if (size) {
 						//We'll only place these if there's actually somethin
 
+						//compiler->EmplaceInstruction(InstructType::DropStackN, Operand{ (int64_t)size + 1, OperandType::Differ }, query);
 						list.emplace_back(InstructType::DropStackN, Operand{ (int64_t)size + 1, OperandType::Differ }, query);
 
 						list.insert_range(list.end(), std::move(ops));
@@ -1200,7 +1210,7 @@ namespace LEX
 				//case "else"_h:
 					return CondProcessors::IfElseProcess(compiler, target);
 				default:
-					report::compile::error("invalid conditional tag '{}' unable to be processed", target.GetTag());
+					target.error("invalid conditional tag '{}' unable to be processed", target.GetTag());
 			}
 		}
 
@@ -1290,7 +1300,7 @@ namespace LEX
 
 			args.resize(alloc_size);
 			operations.resize(alloc_size);
-
+			
 			//static_assert(false, "Some error in judgement has caused this to not produce an argument to be loaded. Address plz");
 
 			//At a later point, one will get the ability to define default arg out of order, via the below:
@@ -1305,7 +1315,7 @@ namespace LEX
 			// will NOT increment the index, instead storing the record for later use.
 			//Additionally, I use get arg count so that the index being pushed
 			//*Turns out, the I was not required.
-			for (size_t i = 0; auto & arg : arg_record->children())
+			for (size_t i = 0; auto& arg : arg_record->children())
 			{
 
 				compiler->DelayArgDecrement();
@@ -1381,34 +1391,37 @@ namespace LEX
 
 			auto start = compiler->ModArgCount(alloc_size, sub_alloc);
 
-
+			
 
 			if (func->GetTargetType().policy != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
 				assert(self->target->type != OperandType::Argument);
-				list.push_back(Instruction{ InstructType::Reference, Operand{ alloc_size, OperandType::Argument }, *self->target });
+				compiler->PushInstruction(Instruction{ InstructType::Reference, Operand{ alloc_size, OperandType::Argument }, *self->target });
 			}
 
-
-			for (size_t i = 0; i < args.size(); i++)
 			{
-				auto& o_entry = instructions.implied[i];
-				auto& arg = args[i].first;
-				auto& ops = operations[i];
+				auto temp = compiler->ReadyNoRecord();
+				for (size_t i = 0; i < args.size(); i++)
+				{
+					auto& o_entry = instructions.implied[i];
+					auto& arg = args[i].first;
+					auto& ops = operations[i];
+					auto& record = arg_record->GetChild(i);
+					list.append_range(std::move(ops));
 
-				list.append_range(std::move(ops));
 
-				//This should basically already be successful, no real need for checks
-				CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, Register::Right);
 
-				auto index = i + has_tar;
+					//This should basically already be successful, no real need for checks
+					CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, record, Register::Right);
 
-				//list.append_range(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
-				list.append_range(CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
+					auto index = i + has_tar;
+
+					//list.append_range(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
+					compiler->AppendInstructions(record, CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
+				}
 			}
-
 			//default is dealt with here.
 
 			Operand function;
@@ -1419,18 +1432,18 @@ namespace LEX
 			switch (node.type())
 			{
 			case FunctionNode::kFunction:
-				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
+				compiler->EmplaceInstruction(InstructType::Call, compiler->GetPrefered(),
 					Operand{ node.GetFunction(), OperandType::Function },
 					Operand{ alloc_size, OperandType::Index });
 				break;
 			case FunctionNode::kMethod:
-				list.emplace_back(InstructType::Call, compiler->GetPrefered(),
+				compiler->EmplaceInstruction(InstructType::Call, compiler->GetPrefered(),
 					Operand{ node.GetMethod(), OperandType::Member },
 					Operand{ alloc_size, OperandType::Index });
 				break;
 
 			default:
-				report::error("invalid function type detected");
+				target.error<IssueType::Fault>("invalid function type detected");
 				break;
 			}
 
@@ -1458,7 +1471,7 @@ namespace LEX
 				report::error("Couldn't find type '{}'.", target.GetView());
 
 			//TODO: Future: Give this a compiler utility function, in case it has a manually defined constructor.
-			compiler->GetInstructionList().emplace_back(InstructType::Construct, compiler->GetPrefered(), Operand{ type, OperandType::Type });
+			compiler->EmplaceInstruction(InstructType::Construct, compiler->GetPrefered(), Operand{ type, OperandType::Type });
 
 			return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
 		
@@ -1468,6 +1481,7 @@ namespace LEX
 
 		void VariableProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
+
 
 			//TODO: Readdress VariableProcess. Also might be an expression?
 
@@ -1516,7 +1530,7 @@ namespace LEX
 
 				
 				//compiler->GetInstructionList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
-				compiler->GetInstructionList().append_range(CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
+				compiler->AppendInstructions(def, CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
 			}
 
 
@@ -1542,8 +1556,6 @@ namespace LEX
 		void ReturnProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
 			QualifiedType return_policy = compiler->GetReturnType();
-
-			auto& list = compiler->GetInstructionList();
 
 			if (target.size() != 0)
 			{
@@ -1598,7 +1610,7 @@ namespace LEX
 			//Instruction ret_op{ InstructionType::Return };
 
 			//This part should probably say what left and right situation should be on display.
-			compiler->GetInstructionList().emplace_back(InstructionType::Return);
+			compiler->EmplaceInstruction(InstructionType::Return);
 		}
 
 
@@ -1636,14 +1648,15 @@ namespace LEX
 				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, ConversionFlag::Explicit); convert_result)
 				{
 					//If this can convert, it's basically going to be something automatic.
-					CompUtil::HandleConversion(compiler, out, expression, header, convert_result);
+					//No idea what this was supposed to be
+					CompUtil::HandleConversion(compiler, out, expression, header, convert_result, target);
 				}
 				//if the type we're trying to go to can convert into ours with only type conversions
 				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
 					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
-					compiler->GetInstructionList().emplace_back(
+					compiler->EmplaceInstruction(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
 						Operand{ header.policy, OperandType::Type },
@@ -1663,7 +1676,7 @@ namespace LEX
 				{
 					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
 
-					compiler->GetInstructionList().emplace_back(
+					compiler->EmplaceInstruction(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
 						Operand{ header.policy, OperandType::Type },
@@ -1703,7 +1716,7 @@ namespace LEX
 
 
 
-			compiler->GetInstructionList().push_back(ret_op);
+			compiler->PushInstruction(ret_op);
 		}
 
 
@@ -1999,7 +2012,7 @@ namespace LEX
 			generatorList[SyntaxType::Call] = CallProcess;
 			generatorList[SyntaxType::Ctor] = CtorProcess;
 			generatorList[SyntaxType::Conditional] = ConditionalProcess;
-
+			
 
 
 			instructList[InstructType::Call] = InstructWorkShop::Call;

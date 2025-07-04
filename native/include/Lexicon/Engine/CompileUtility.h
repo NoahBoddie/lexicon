@@ -509,7 +509,7 @@ namespace LEX
 
 
 
-		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, const QualifiedType& to, ConvertResult res, Register reg = Register::Invalid);
+		static bool HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, const QualifiedType& to, ConvertResult res, SyntaxRecord& target, Register reg = Register::Invalid);
 		
 		static bool HandleConversion(ExpressionCompiler* compiler, Solution& from, const QualifiedType& to, SyntaxRecord& target, Register reg = Register::Invalid, ConversionFlag flags = ConversionFlag::None);
 		
@@ -522,7 +522,7 @@ namespace LEX
 		static void PrepareReturn(ExpressionCompiler* compiler, QualifiedType return_type, Solution value);
 
 
-		static int64_t SkipScope(RoutineCompiler* compiler, const Operand& query, bool negate, uint64_t offset = 0);
+		static int64_t SkipScope(RoutineCompiler* compiler, SyntaxRecord& target, const Operand& query, bool negate, uint64_t offset = 0);
 
 
 

@@ -104,6 +104,10 @@ namespace LEX
                 _procedure = nullptr;
                 procedureData = -1;
             }
+            else
+            {
+                _routine.name = GetName().data();
+            }
 
             //ITypeInfo* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
 

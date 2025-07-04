@@ -53,50 +53,57 @@ namespace LEX
 		//This may exclude commons to make that part easier.
 		std::vector<std::pair<std::string, std::string>> result{};
 
-		for (const auto iterator = std::filesystem::directory_iterator(a_folder); const auto& entry : iterator) {
-			if (entry.exists() == false)
-				continue;
+		try
+		{
+			for (const auto iterator = std::filesystem::directory_iterator(a_folder); const auto & entry : iterator) {
 
-			bool expects_directory = a_extension == "";
+				if (entry.exists() == false)
+					continue;
 
-			bool contains = false;
+				bool expects_directory = a_extension == "";
 
-			if (a_extension.front() == '*') {
-				contains = true;
-				a_extension = { a_extension.begin() + 1, a_extension.end() };
+				bool contains = false;
+
+				if (a_extension.front() == '*') {
+					contains = true;
+					a_extension = { a_extension.begin() + 1, a_extension.end() };
+				}
+
+				if (entry.is_directory() != expects_directory)
+					continue;
+
+				const auto& path = entry.path();
+				//path.extension() !=
+				if (path.empty())
+					continue;
+
+				if (contains && a_extension.contains(path.extension().string()) == false)
+					continue;
+				else if (!contains && ends_with(path.filename().string(), a_extension) == false)
+					continue;
+
+				auto filename = path.filename().string();
+
+				if (ignore.contains(filename) == true)
+					continue;
+
+				result.push_back({ path.parent_path().string(), filename });
+
+
+				//if (entry.exists()) {
+				//	if (const auto& path = entry.path(); !path.empty() && path.extension() == a_extension) {
+				//		std::pair<std::string, std::string> script = std::make_pair(path.parent_path().string(), path.filename().string());
+				//		result.push_back(script);
+				//	}
+				//}
 			}
 
-			if (entry.is_directory() != expects_directory)
-				continue;
-
-			const auto& path = entry.path();
-			//path.extension() !=
-			if (path.empty())
-				continue;
-
-			if (contains && a_extension.contains(path.extension().string()) == false)
-				continue;
-			else if (!contains && ends_with(path.filename().string(), a_extension) == false)
-				continue;
-
-			auto filename = path.filename().string();
-
-			if (ignore.contains(filename) == true)
-				continue;
-
-			result.push_back({ path.parent_path().string(), filename });
-
-
-			//if (entry.exists()) {
-			//	if (const auto& path = entry.path(); !path.empty() && path.extension() == a_extension) {
-			//		std::pair<std::string, std::string> script = std::make_pair(path.parent_path().string(), path.filename().string());
-			//		result.push_back(script);
-			//	}
-			//}
+			std::ranges::sort(result);
 		}
-
-		std::ranges::sort(result);
-
+		catch (std::filesystem::filesystem_error& error)
+		{
+			logger::error("Issue encountered loading '{}', what: {}", a_folder, error.what());
+		}
 		return result;
 	}
 

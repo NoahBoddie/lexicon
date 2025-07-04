@@ -24,6 +24,23 @@ namespace LEX
 			
 			return left ? &left->GetFront() : &a_this->GetFront();
 		}
+
+		static SyntaxRecord* PeekCurrentExpressionImpl(SyntaxRecord*& a_this)
+		{
+
+			if (a_this && a_this->IsPath() == false) {
+				a_this = a_this->FindChild(parse_strings::path);
+			}
+
+			if (!a_this || a_this->IsPath() == false) {
+				return nullptr;
+			}
+
+			auto left = a_this->FindChild(parse_strings::lhs);
+
+			return left ? &left->GetFront() : &a_this->GetFront();
+		}
+
 	public:
 
 
@@ -39,6 +56,20 @@ namespace LEX
 		}
 
 
+		static SyntaxRecord& GetFrontExpression(SyntaxRecord& a_this)
+		{
+			switch (a_this.GetSyntax().type)
+			{
+			case SyntaxType::Binary:
+				return *a_this.FindChild(parse_strings::lhs);
+
+			case SyntaxType::Unary:
+				return a_this.GetFront();
+			default:
+				return a_this;
+			}
+		}
+
 		static SyntaxRecord* SeekNextPath(SyntaxRecord*& a_this)
 		{
 			auto current = PeekCurrentPathImpl(a_this);
@@ -48,6 +79,14 @@ namespace LEX
 			return current;
 		}
 
+
+		static SyntaxRecord& PeekFirstRecord(SyntaxRecord& a_this)
+		{
+			auto record = PeekCurrentPath(a_this);
+
+			return record ? *record : a_this;
+
+		}
 		
 		//Traits are non-blocking and shouldn't be the be end be all, rather used as a header
 

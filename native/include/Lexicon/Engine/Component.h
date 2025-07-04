@@ -218,6 +218,10 @@ namespace LEX
 		//virtual void OnInit(Record& rec)
 		static void Link(LinkFlag flags) 
 		{
+
+			report::link::debug("Starting link stage: {} ", magic_enum::enum_name(flags));
+
+
 			//Make sure to remove the linkCheckFlags
 
 			auto end = _linkerContainer.end();
@@ -240,11 +244,10 @@ namespace LEX
 					LinkResult result = LinkResult::Failure;
 
 
-					try
+					if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
 					{
-						result = target->OnLink(flag);
+						report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
 					}
-					catch (LEX::Error& error){}//Nothing special, just an error.
 
 					//Its also possible the impl version of the call can do this for me.
 					if (result == LinkResult::Success) {
@@ -294,7 +297,7 @@ namespace LEX
 			}
 
 
-			logger::trace("Finalized linkage: {}", magic_enum::enum_name(flags));
+			report::link::debug("Finalized link stage: {}", magic_enum::enum_name(flags));
 
 			//Should it have processed everything it should remove it all.
 		}
@@ -330,7 +333,7 @@ namespace LEX
 			return _linkCheckFlags;
 		}
 
-
+		virtual std::string_view GetName() const = 0;
 
 		virtual LinkResult OnLink(LinkFlag flags) { return LinkResult::Failure; }
 

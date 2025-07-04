@@ -79,7 +79,7 @@ namespace LEX
 		bool IsValid() const
 		{
 			if (auto base = Get())
-				return base->IsFlaggedSuccess();
+				return !base->InvalidFlag();
 
 			return true;
 		}

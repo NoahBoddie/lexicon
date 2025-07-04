@@ -118,23 +118,32 @@ namespace LEX
 			return this;
 		}
 
-		Runtime* AsRuntime() const override
-		{
-			return const_cast<Runtime*>(this);
-		}
 
-		void Log(const std::string_view& message, IssueLevel level = IssueLevel::Trace, std::source_location loc = std::source_location::current()) override
+		/*
+		void Message(const std::string_view& message, IssueLevel level = IssueLevel::Trace, std::source_location loc = std::source_location::current()) const
 		{
-			auto record = GetCurrentRecord();
 
-			if (!record) {
+			logger::info("");
+			if (_data[_rsp].index == -1) {
 				report::warn("no record for logging or something");
 			}
 
-			record->Log(std::string{ message }, loc, level);
+			_records->Log(std::string{ message }, loc, level, _data[_rsp].index);
 
 		}
-		
+		//*/
+
+		void Log(std::source_location loc, IssueLevel level, const std::string_view& message) const override
+		{
+			
+			if (_data[_rsp].index == -1) {
+				report::warn("no record for logging or something");
+			}
+
+			_records->Log(std::string{ message }, loc, level, _data[_rsp].index);
+		}
+
+
 
 
 		virtual size_t GetSize() const override
@@ -190,7 +199,7 @@ namespace LEX
 		Runtime(RoutineBase& base, Function* function = nullptr, std::span<RuntimeVariable> args = {}, Runtime* caller = nullptr, ITemplateBody* body = nullptr) :
 			_function{ function }
 			, _data{ base }
-			, _records { &base.records }
+			, _records { &base }
 			//These accidently create numbers.
 			//, _varStack{ _data.GetVarCapacity() }
 			//, _argStack{ _data.GetArgCapacity() }
@@ -233,7 +242,7 @@ namespace LEX
 
 		RoutineBase& _data;
 
-		RecordList* _records = nullptr;
+		RecordHolder* _records = nullptr;
 
 		std::array<RuntimeVariable, Register::Total> _registers;
 
@@ -434,17 +443,6 @@ namespace LEX
 			return _flags;
 		}
 
-		SyntaxRecord* GetCurrentRecord()
-		{
-			if (_records)
-			{
-				if (uint32_t index = _data[_rsp].index; index != -1 && _records->size() > index){
-					return _records->operator[](index);
-				}
-			}
-
-			return nullptr;
-		}
 
 
 		Runtime* GetCaller() const noexcept
@@ -524,6 +522,7 @@ namespace LEX
 					//Probably want to do a try catch around here.
 					//Operate(_data[_rsp]);
 					//TODO: I want to make a break point here to simulate walking through the system, but enable and disable it somehow.
+					Debug("Logging");
 					_data[_rsp].Execute(this);
 					
 
@@ -572,8 +571,7 @@ namespace LEX
 			return _registers[Register::Reg0];
 			//*/
 		}
-
-
+		
 
 
 		//THIS is the gist of what I'd like.

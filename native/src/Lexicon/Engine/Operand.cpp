@@ -102,7 +102,7 @@ namespace LEX
 			break;
 		}
 
-		report::runtime::critical("Operand didn't exist. Fixer later. {} ", (uint8_t)type);
+		report::runtime::critical("Operand didn't exist. Fixer later. {} ", magic_enum::enum_name(type));
 		throw nullptr;//Error.
 
 		//*/

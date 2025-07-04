@@ -74,6 +74,18 @@ namespace LEX
 		return nullptr;
 	}
 
+	Instruction& Scope::ObtainAllocator()
+	{
+		auto& list = instructionList;
 
+		//What this allocates to seems to be the problem
+		if (allocator == -1) {
+			allocator = list.size();
+			return list.emplace_back(InstructionType::ModVarStack, Operand{ 0 , OperandType::Differ }, process->UseRecord());
+		}
+		else {
+			return list[allocator];
+		}
+	}
 
 }

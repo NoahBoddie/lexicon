@@ -96,7 +96,7 @@ namespace LEX
 
 				if (CreateNum(code, free_value, out) == false) {
 					//send an exception
-					report::compile::critical("invalid to be a number");
+					ast.critical("invalid to be a number");
 				}
 
 				result = out;
@@ -111,7 +111,7 @@ namespace LEX
 				break;
 
 			default:
-				report::compile::critical("Not a literal expression."); break;
+				ast.critical("Not a literal expression."); break;
 		}
 		
 

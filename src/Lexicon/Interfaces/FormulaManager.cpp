@@ -41,7 +41,8 @@ namespace LEX
 
 
 
-	[[nodiscard]] uint64_t FormulaManager::RequestFormula(const ISignature& base, std::span<std::string_view> params, std::string_view routine, FormulaHandler& out, std::optional<IScript*> from)
+	[[nodiscard]] uint64_t FormulaManager::RequestFormula(const ISignature& base, std::span<std::string_view> params, std::string_view routine, 
+		FormulaHandler& out, std::optional<IScript*> from, const std::source_location& loc)
 	{
 		//TODO FormulaManager needs to return the APIResult not a random ass integer.
 		std::optional<IScript*> test;
@@ -65,9 +66,9 @@ namespace LEX
 			}
 		}
 
-		SyntaxRecord ast;
+		SyntaxRecord& ast = formula->records;
 		
-		if (Parser__::CreateSyntax<LineParser>(ast, routine) == false)
+		if (Parser__::CreateSyntax<LineParser>(ast, routine, loc.line()) == false)
 		{
 			
 			return 1;
@@ -90,26 +91,38 @@ namespace LEX
 			return 2;
 		}
 
+		std::string name;
+
 		if (false) {
 			//Some way to stringize a Signature locally would be really cool for visuals.
-			std::string name;
 			name += base.result()->GetName();
 			name += " (";
-			
+
 			name += ")";
 
 		}
+		else
+		{
+			constexpr auto limit = 25;
+			if (routine.size() <= 25) {
+				name = std::format("<: {} :>", routine);
+			}
+			else {
+				name = std::format("<: {}... :>", routine.substr(0, 25 - 3));
 
+			}
+		}
 		
 		//This needs to confirm it's proper
-		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, nullptr, parse_strings::no_name) == false) {
+		if (RoutineCompiler::Compile(formula->_routine, ast, formula.get(), perspective, nullptr, name) == false) {
 			return 3;
 		}
-
+		formula->SetName(name);
+		formula->SetFile(loc.file_name());
 
 		formulaMap[formula.get()].refCount = 1;
-		out._formula = formula.get();
-		formula.release();
+		out._formula = formula.release();
+		
 		//Zero means success
 		return 0;
 	}

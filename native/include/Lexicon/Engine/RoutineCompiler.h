@@ -15,7 +15,7 @@
 #include "TargetObject.h"
 #include "CompileUtility.h"
 #include "Lexicon/Engine/GenericBase.h"
-
+#include "Lexicon/Engine/ParseUtility.h"
 namespace LEX
 {
 
@@ -30,38 +30,16 @@ namespace LEX
 	struct TargetObject;
 
 	//TODO: Statement generator uses RoutineCompiler. If there's something statement compiler does not have, please address.
-	using StatementGenerator = void(*)(RoutineCompiler*, SyntaxRecord&);
-	//This doesn't need an out does it
-	using ExpressionGenerator = Solution(*)(ExpressionCompiler*, SyntaxRecord&);//, Solution, Solution);//, Register);
-
+	using StatementProcessor = void(*)(RoutineCompiler*, SyntaxRecord&);
+	using ExpressionProcessor = Solution(*)(ExpressionCompiler*, SyntaxRecord&);//, Solution, Solution);//, Register);
 	
-	struct Generator : public ConstClassAlias<std::variant<std::monostate, StatementGenerator, ExpressionGenerator>>
+	
+	struct Generator : public ConstClassAlias<std::variant<std::monostate, StatementProcessor, ExpressionProcessor>>
 	{
 		//I don't quite have the word for this yet, so I'm going to leave it. Module might be it, but dunno.
 		ALIAS_HEADER;
 
-		Solution GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& target)
-		{
-			//The factory pieces seem like they need something to plug into
-
-			get_switch (index())
-			{
-			case 0:
-				report::fault::critical("Code Generator is neither a statement nor expression.", switch_value); break;
-
-			case 1:
-				std::get<StatementGenerator>(*this)(reinterpret_cast<RoutineCompiler*>(compiler), target); break;
-
-			case 2:
-				return std::get<ExpressionGenerator>(*this)(reinterpret_cast<ExpressionCompiler*>(compiler), target);
-
-			default:
-				report::compile::critical("Code Generator is unknown. (type {})", switch_value); break;
-			}
-
-			
-			return {};
-		}
+		Solution GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& target);
 	};
 
 	//I would like to rewrite this so that 1 factory can take up multiple expressions, and additionally that there would be a bit flag to control which places have an entry automatically
@@ -69,8 +47,14 @@ namespace LEX
 	inline std::map<SyntaxType, Generator> generatorList;//Kinda temp.
 
 
+
 	struct CompilerBase : public ITemplatePart
 	{
+
+		using InstructRecord = std::pair<SyntaxRecord*, uint32_t>;
+
+
+
 	protected:
 		struct TempListHandle
 		{
@@ -117,10 +101,143 @@ namespace LEX
 			return _prefered;
 		}
 
+	
 
 		std::vector<Instruction>* GetInstructionListPtr();
-
+	
 		std::vector<Instruction>& GetInstructionList();
+	private:
+
+		
+		void PushInstruction(uint32_t index, Instruction instruct)
+		{
+			instruct.index = index;
+			GetInstructionList().push_back(instruct);
+		}
+
+		void InsertInstruction(uint32_t index, Instruction instruct)
+		{
+			instruct.index = index;
+			auto& list = GetInstructionList();
+			list.insert(list.begin(), instruct);
+		}
+		
+
+		void AppendInstructions(uint32_t index, InstructList&& list)
+		{
+			if (index != -1) {
+				for (auto& entry : list) {
+					if (entry.index == -1) {
+						entry.index = index;
+					}
+				}
+			}
+
+			GetInstructionList().append_range(std::forward<InstructList>(list));
+		}
+		
+		void AppendInstructions(uint32_t index, const InstructList& list)
+		{
+			return AppendInstructions(index, static_cast<InstructList>(list));
+		}
+
+
+		template <typename... Args> requires (requires(uint32_t index, Args&&... args) { Instruction{ std::forward<Args>(args)..., index }; })
+		Instruction& EmplaceInstruction(uint32_t index, Args&&... args) 
+		{
+			return GetInstructionList().emplace_back(std::forward<Args>(args)..., index);
+		}
+		
+		//I think these versions will by my primary way of using them. Almost all instructions will have something associated with them.
+		// Making a simple way to state it's actually nothing might be helpful.  something kinda like nullopt, maybe literally that.
+	public:
+
+		void PushInstruction(Instruction instruct)
+		{
+			return PushInstruction(UseRecord(), instruct);
+		}
+		void InsertInstruction(Instruction instruct)
+		{
+			return InsertInstruction(UseRecord(), instruct);
+		}
+
+		void AppendInstructions(const InstructList& list)
+		{
+			return AppendInstructions(UseRecord(), static_cast<InstructList>(list));
+		}
+
+		void AppendInstructions(InstructList&& list)
+		{
+			return AppendInstructions(UseRecord(), std::forward<InstructList>(list));
+		}
+
+		template <typename... Args>
+		Instruction& EmplaceInstruction(Args&&... args) requires (requires(Args&&... args) { Instruction{ std::forward<Args>(args)... }; })
+		{
+			return EmplaceInstruction(UseRecord(), std::forward<Args>(args)...);
+		}
+
+
+		void PushInstruction(SyntaxRecord& record, Instruction instruct)
+		{
+			auto temp = ReadyRecord(record);
+			return PushInstruction(instruct);
+		}
+
+
+
+		void InsertInstruction(SyntaxRecord& record, Instruction instruct)
+		{
+			auto temp = ReadyRecord(record);
+			return InsertInstruction(instruct);
+		}
+
+		void AppendInstructions(SyntaxRecord& record, const InstructList& list)
+		{
+			auto temp = ReadyRecord(record);
+			AppendInstructions(list);
+		}
+
+		void AppendInstructions(SyntaxRecord& record, InstructList&& list)
+		{
+			auto temp = ReadyRecord(record);
+			AppendInstructions(std::forward<InstructList>(list));
+		}
+
+		template <typename... Args>
+		Instruction& EmplaceInstruction(SyntaxRecord& record, Args&&... args) requires (requires(Args&&... args) { Instruction{ std::forward<Args>(args)... }; })
+		{
+			auto temp = ReadyRecord(record);
+			return EmplaceInstruction(std::forward<Args>(args)...);
+		}
+
+		/*
+
+		void PushInstruction(std::nullopt_t, Instruction instruct)
+		{
+			auto temp = ReadyNoRecord();
+			PushInstruction(instruct);
+		}
+
+		void AppendInstructions(std::nullopt_t, const InstructList& list)
+		{
+			auto temp = ReadyNoRecord();
+			AppendInstructions(list);
+		}
+
+		void AppendInstructions(std::nullopt_t, InstructList&& list)
+		{
+			auto temp = ReadyNoRecord();
+			AppendInstructions(std::forward<InstructList>(list));
+		}
+
+		template <typename... Args>
+		Instruction& EmplaceInstruction(std::nullopt_t, Args&&... args) requires (requires(Args&&... args) { Instruction{ std::forward<Args>(args)... }; })
+		{
+			return EmplaceInstruction(std::forward<Args>(args)...);
+		}
+
+		//*/
 
 
 		size_t GetArgCount() const
@@ -150,9 +267,9 @@ namespace LEX
 				delayDec[1] += x;
 			}
 
-			if (x && append)
-				GetInstructionList().emplace_back(InstructionType::ModArgStack, Operand{ x , OperandType::Differ });
-
+			if (x && append) {
+				EmplaceInstruction(InstructionType::ModArgStack, Operand{ x , OperandType::Differ });
+			}
 
 			return count;
 		}
@@ -222,13 +339,14 @@ namespace LEX
 
 		size_t InitVariables(const std::vector<ITypeInfo*>& types, bool param)
 		{
+			//TODO: This function doesn't properly handle the inability to use it
 			auto size = types.size();
 
 			//make the below use this.
 			size_t count = ModVarCount(static_cast<int64_t>(size));
 
 
-			auto& op_list = GetInstructionList();
+			//auto& op_list = GetInstructionList();
 
 			auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
 
@@ -240,7 +358,9 @@ namespace LEX
 
 				size_t index = count + i;
 				ITypeInfo* policy = types[i];
-				op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+				
+				EmplaceInstruction(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+				//op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 			}
 
 			return count;
@@ -341,31 +461,225 @@ namespace LEX
 		}
 
 
+	public:
 
-		[[nodiscard]] uint32_t AddRecord(SyntaxRecord& record)
+
+
+		uint32_t GetRecordIndex(SyntaxRecord* record)
 		{
-			auto result = _instructRecords.size();
+			if (!record)
+			{
+
+				auto begin = _instructRecords.begin();
+				auto end = _instructRecords.end();
+				auto it = std::find(begin, end, record);
 
 
-			if (result >= 0x00FFFFFF) {
-				report::compile::error("can't be biger than max index, better log later");
+				if (it != end) {
+					return std::distance(begin, it);
+				}
+			}
+			return -1;
+		}
+
+
+
+		[[nodiscard]] origin_value<InstructRecord> ReadyRecord(SyntaxRecord* record)
+		{
+			size_t size = _instructRecords.size();
+
+			origin_value<InstructRecord> result{ _currentRecord, [=](origin_value<InstructRecord>& origin)
+				{
+					origin.OriginDefault();
+
+					if (_currentRecord.first)
+					{
+						auto& slot = _currentRecord.second;
+
+						if (slot == -1 && _instructRecords.size() != size)
+						{
+							if (auto index = GetRecordIndex(record); index != -1) {
+								slot = index;
+							}
+						}
+					}
+				}
+			};
+
+			_currentRecord = std::make_pair(record, GetRecordIndex(record));
+			
+			return result;
+		}
+		[[nodiscard]] origin_value<InstructRecord> ReadyRecord(SyntaxRecord& record)
+		{
+			return ReadyRecord(&ParseUtility::PeekFirstRecord(record));
+		}
+
+
+		[[nodiscard]] origin_value<InstructRecord> ReadyNoRecord()
+		{
+			return ReadyRecord(nullptr);
+		}
+
+		uint32_t AddRecord(SyntaxRecord* record)
+		{
+			auto value = _instructRecords.size();
+
+			if (value >= 0x00FFFFFF) {
+				record->error<IssueType::Fault>("can't be biger than max index, better log later");
 			}
 
+			_instructRecords.push_back(record);
+			return static_cast<uint32_t>(value);
+		}
 
-			_instructRecords.push_back(&record);
+		uint32_t UseRecord()
+		{
+			auto record = _currentRecord.first;
+
+			if (!record)
+				return -1;
+
+			auto& result = _currentRecord.second;
+
+
+			if (_currentRecord.second == -1) {
+				result = AddRecord(record);
+			}
+
+			return result;
+		}
+		uint32_t UseRecord(SyntaxRecord& record)
+		{
+			auto result = GetRecordIndex(&record);
+
+			if (result == -1) {
+				result = AddRecord(&record);
+			}
+
+			return result;
+		}
+		///////////////
+
+
+
+
+		/*
+
+		[[nodiscard]] origin_value<uint32_t> SetNoRecord()
+		{
+			origin_value result{ _currRecordIndex };
+
+			_currRecordIndex = -1;
 
 			return result;
 		}
 
-		uint32_t GetRecordIndex()const
+
+		uint32_t GetRecordIndex(SyntaxRecord& record)
 		{
-			auto result = _instructRecords.size();
+
+			auto begin = _instructRecords.begin();
+			auto end = _instructRecords.end();
+			auto it = std::find(begin, end, &record);
 
 
-			return result ? result : -1;
+			if (it == end) {
+				return -1;
+			}
+			else {
+				return std::distance(begin, it);
+			}
 		}
 
-		//~end
+		[[nodiscard]] origin_value<SyntaxRecord*> ReadyRecord(SyntaxRecord& record)
+		{
+			size_t size = _instructRecords.size();
+
+			{
+				origin_value<SyntaxRecord*> result{ _tenativeRecord, [=](origin_value<SyntaxRecord*>& origin)
+					{
+						if (_instructRecords.size() != size)
+						{
+							if (auto index = GetRecordIndex(); index == -1) {
+								_currRecordIndex = index;
+								return;
+							}
+							
+						}
+
+						origin.OriginDefault();
+					} 
+				};
+
+				auto begin = _instructRecords.begin();
+				auto end = _instructRecords.end();
+				auto it = std::find(begin, end, &record);
+
+
+				if (GetRecordIndex() == -1) {
+					_tenativeRecord = &record;
+
+				}
+
+				return result;
+			}
+
+			origin_value result{ _currRecordIndex };
+
+			_currRecordIndex = static_cast<uint32_t>(new_value);
+
+			return result;
+		}
+
+		[[nodiscard]] origin_value<uint32_t> AddRecord(SyntaxRecord& record)
+		{
+			size_t new_value;
+
+			{
+				auto begin = _instructRecords.begin();
+				auto end = _instructRecords.end();
+				auto it = std::find(begin, end, &record);
+
+
+				if (it == end) {
+					new_value = _instructRecords.size();
+
+					if (new_value >= 0x00FFFFFF) {
+						record.error<IssueType::Fault>("can't be biger than max index, better log later");
+					}
+
+					_instructRecords.push_back(&record);
+				}
+				else {
+					new_value = std::distance(begin, it);
+				}
+			}
+
+			origin_value result{ _currRecordIndex };
+
+			_currRecordIndex = static_cast<uint32_t>(new_value);
+
+			return result;
+		}
+
+
+		uint32_t UseRecord(SyntaxRecord& record)
+		{
+			auto temp = record;
+			return _currRecordIndex;
+
+		}
+		//*/
+	protected:
+
+
+
+
+		//SyntaxRecord* _tenativeRecord = nullptr;
+		//uint32_t _currRecordIndex = -1;
+
+		InstructRecord _currentRecord{ nullptr, -1 };
 
 		std::vector<SyntaxRecord*> _instructRecords;
 
@@ -440,7 +754,7 @@ namespace LEX
 
 				
 				//GetInstructionList().emplace_back(CompUtil::Transfer(Operand{ pref, OperandType::Register }, result));
-				GetInstructionList().append_range(CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
+				AppendInstructions(node, CompUtil::Load(Operand{ pref, OperandType::Register }, result, is_ref));
 				
 				//This uses the policy of the solution, but uses the register that the above uses.
 				return Solution{ result, OperandType::Register, pref };
@@ -481,26 +795,6 @@ namespace LEX
 
 	
 
-		Solution _InteralProcess__DEAD(Generator& factory, SyntaxRecord& node)
-		{
-			//Dead func
-
-			//this function returns the Expectation instead, and has an out for the vector. As such is the convention for such.
-
-			Solution result;
-
-			//<KILL>auto old = _current;
-			//<KILL>_current = &out;
-
-
-			//Func records use is temporary
-			result = factory.GenerateSolution(this, node);
-
-
-			//<KILL>_current = old;
-			
-			return result;
-		}
 
 
 

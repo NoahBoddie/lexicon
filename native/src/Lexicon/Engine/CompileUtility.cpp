@@ -4,7 +4,7 @@
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
-	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, const QualifiedType& to, ConvertResult res, Register reg)
+	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, const QualifiedType& to,ConvertResult res, SyntaxRecord& target, Register reg)
 	{
 
 		if (out) {
@@ -27,13 +27,13 @@ namespace LEX
 			switch (res.data)
 			{
 			case ConversionEnum::ImplDefined:
-				compiler->GetInstructionList().emplace_back(InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
+				compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
 				break;
 
 			case ConversionEnum::UserDefined:
 			resume:
 
-				compiler->GetInstructionList().emplace_back(InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
+				compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
 
 
 				if (!fall)
@@ -47,7 +47,7 @@ namespace LEX
 					goto resume;
 				}
 
-				compiler->GetInstructionList().emplace_back(
+				compiler->EmplaceInstruction(target,
 					InstructionType::Convert,
 					reg,
 					Operand{ out.userToImpl, OperandType::Callable },
@@ -75,10 +75,10 @@ namespace LEX
 		auto convert = from.IsConvertToQualified(to, nullptr, &out, flags);
 		
 		if (!convert) {
-			report::compile::error("Cannot initialize. Error {}", magic_enum::enum_name(convert.data));
+			target.error<IssueType::Compile>("Cannot initialize. Error {}", magic_enum::enum_name(convert.data));
 		}
 
-		return CompUtil::HandleConversion(compiler, out, from, to, convert, reg);
+		return CompUtil::HandleConversion(compiler, out, from, to, convert, target, reg);
 
 	}
 
@@ -90,12 +90,12 @@ namespace LEX
 			//Solution has no value and it is not void
 			
 			//Actually, if it's void you'll want to clear it even more
-			
-			compiler->GetInstructionList().emplace_back(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
+			//TODO: I wish to know why this doesn't properly log the location of the return.
+			compiler->EmplaceInstruction(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
 		}
 	}
 
-	int64_t CompUtil::SkipScope(RoutineCompiler* compiler, const Operand& condition, bool negate, uint64_t offset)
+	int64_t CompUtil::SkipScope(RoutineCompiler* compiler, SyntaxRecord& target, const Operand& condition, bool negate, uint64_t offset)
 	{
 		auto scope = compiler->GetScope();
 		auto& list = compiler->GetInstructionList();
@@ -116,21 +116,14 @@ namespace LEX
 					auto instruct = negate ? InstructType::DropStackN : InstructType::DropStack;
 					
 					//From an optimal standpoint, I'd like to place this first, and have everything else done after.
-					list.insert(list.begin(), { instruct, Operand{ (int64_t)size + offset + 1, OperandType::Differ }, condition });
+					
+					compiler->InsertInstruction(target, { instruct, Operand{ (int64_t)size + offset + 1, OperandType::Differ }, condition });
+					//list.insert(list.begin(), { instruct, Operand{ (int64_t)size + offset + 1, OperandType::Differ }, condition, compiler->UseRecord(target)});
 					//out->emplace_back(instruct, Operand{ (int64_t)size , OperandType::Differ }, query);
 				//}
 			});
 
 		return size;
-		
-		auto _size = (int64_t)list.size();
-
-		if (size) {
-			//We'll only place these if there's actually somethin
-
-			auto instruct = negate ? InstructType::DropStackN : InstructType::DropStack;
-			//
-			list.emplace_back(instruct, Operand{ (int64_t)size + 1, OperandType::Differ }, condition);
-		}
+	
 	}
 }

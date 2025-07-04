@@ -57,11 +57,16 @@ namespace LEX
 	{
 		T prox;
 		std::source_location src;
+		
+		//I want to make this solely consteval at some point. I will stomach strings for now.
 		template <std::convertible_to<T> To>
-		SourceAndProxy(To&& p, std::source_location s = std::source_location::current()) :
+		SourceAndProxy(To&& p, std::source_location s = std::source_location::current())
+			:
 			src{ s },
-			prox{ static_cast<T>(p) }
-		{}
+			prox{ std::forward<To>(p) }
+		{
+			//static_assert(!is_consteval_constuctible_v<T, To&&>);
+		}
 	};
 
 	struct report

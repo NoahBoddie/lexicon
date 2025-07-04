@@ -35,6 +35,11 @@ namespace LEX
 				return (value[0]) | (value[1] << 8) | (value[2] << 16);
 			}
 
+			uint32_t operator*() const
+			{
+				return *this;
+			}
+
 
 			static constexpr uint32_t k_maxIndex = 0x00FFFFFF;
 			constexpr static std::array<uint8_t, 3> k_invalid{ 255, 255, 255 };
@@ -47,6 +52,8 @@ namespace LEX
 		//Main constructor, Takes 2 Operands left and right, an out register, and instruction.
 		//The instruction and register are first, because usually they're non optional.
 
+		//*
+
 		constexpr Instruction() = default;
 		//switch order, reg last
 		constexpr Instruction(InstructionType it, Register reg = Register::Invalid, Operand left = {}, Operand right = {}, uint32_t i = -1) :
@@ -54,16 +61,25 @@ namespace LEX
 			_lhs{ left }, _ltype{ left.type },
 			_rhs{ right }, _rtype{ right.type },
 			index{ i }
-		
-		{
+		{}
 
+		constexpr Instruction(InstructionType it, uint32_t i) :Instruction{ it, Register::Invalid, {}, {}, i }
+		{
 		}
+
+		constexpr Instruction(InstructionType it, Register reg, uint32_t i) :Instruction{ it, reg, {}, {}, i }
+		{}
+
+		constexpr Instruction(InstructionType it, Register reg, Operand left, uint32_t i) : Instruction{ it, reg, left, {}, i }
+		{}
+
 
 		//remove when above is fixed
 		constexpr Instruction(InstructionType it, Operand left, Operand right = {}, uint32_t i = -1) :
 			_instruct{ it },
 			_lhs{ left }, _ltype{ left.type },
-			_rhs{ right }, _rtype{ right.type }
+			_rhs{ right }, _rtype{ right.type },
+			index { i }
 
 		{
 
@@ -74,7 +90,8 @@ namespace LEX
 
 		}
 
-
+		//*/
+		
 		//might switch target and operand names
 		Target _lhs{};//8
 		Target _rhs{};//8

@@ -158,7 +158,7 @@ namespace LEX
 
 
 
-	bool Parser__::CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name, ParseModule* mdl, Column column, Line line)
+	bool Parser__::CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name, ParseModule* mdl, Line line, Column column)
 	{
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.
@@ -199,7 +199,7 @@ namespace LEX
 	}
 
 
-	bool Parser__::CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Column column, Line line)
+	bool Parser__::CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Line line, Column column)
 	{
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.
@@ -210,7 +210,7 @@ namespace LEX
 			report::fault::critical("No parse module given bruv");
 		}
 		
-		return CreateSyntaxTree(out, text, "<untitled>", mdl, column, line);
+		return CreateSyntaxTree(out, text, "<untitled>", mdl, line, column);
 	}
 
 }

@@ -41,6 +41,7 @@ namespace LEX
 	}
 
 
+
 	std::string SyntaxBody::GetAffix()
 	{
 		//Add project
@@ -70,8 +71,11 @@ namespace LEX
 
 						if (script) {
 							params.loc.filename = script->GetName().data();
-							params.loc.line = syntax.line;
 						}
+						else {
+							params.loc.filename = "";
+						}
+						params.loc.line = syntax.line;
 
 						//params.suffix << GetAffix();
 					}

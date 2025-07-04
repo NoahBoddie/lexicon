@@ -361,19 +361,8 @@ namespace LEX
 		//Make sure to remove copy assignment stuff. Doesn't need it. Shouldn't leave its initial function
 	protected:
 
-		Instruction& ObtainAllocator()
-		{
-			auto& list = instructionList;
-			 
-			//What this allocates to seems to be the problem
-			if (allocator == -1){
-				allocator = list.size();
-				return list.emplace_back(InstructionType::ModVarStack, Operand{ 0 , OperandType::Differ });
-			}
-			else{
-				return list[allocator];
-			}
-		}
+		Instruction& ObtainAllocator();
+		
 
 
 		void ClearAllocParent()

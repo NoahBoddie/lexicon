@@ -386,8 +386,12 @@ namespace LEX
 					//TODO: I think I'd actually just not have this work so something not working wouldn't disrupt the expected order of the objects
 
 					auto it = std::remove_if(buff.begin(), buff.end(), [](FunctionInfo* other) {return !other->IsValid(); });
-					if (auto end = buff.end(); end != it)
+					if (auto end = buff.end(); end != it) {
+						//Testing with the idea of just not having this work full stop so it doesn't change the intent of the code when compiling.
+						return true;
 						buff.erase(it, end);
+
+					}
 
 					i += buff.size();
 

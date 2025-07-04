@@ -741,19 +741,19 @@ namespace LEX
 		// That, or I'll make project locations and such sorta suggestions.
 
 		template <std::derived_from<ParseModule> Module>
-		static bool CreateSyntax(RecordBase& out, std::string_view text, Column column = 1, Line line = 1)
+		static bool CreateSyntax(RecordBase& out, std::string_view text, Line line = 1, Column column = 1)
 		{
 			std::unique_ptr<ParseModule> mdl;
 
 			mdl = std::make_unique<Module>();
 
-			return CreateSyntax(out, text, mdl.get(), column, line);
+			return CreateSyntax(out, text, mdl.get(), line, column);
 		}
 
 
-		static bool CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Column column = 1, Line line = 1);
+		static bool CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Line line = 1, Column column = 1);
 
-		static bool CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name = "", ParseModule* mdl = nullptr, Column column = 1, Line line = 1);
+		static bool CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name = "", ParseModule* mdl = nullptr, Line line = 1, Column column = 1);
 	};
 	
 }

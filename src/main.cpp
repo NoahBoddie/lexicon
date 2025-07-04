@@ -597,7 +597,10 @@ namespace PropertyTest
 #endif
 
 
+
 int main(int argc, char** argv) {
+  
+
     //logger::InitializeLogging(true);
 #ifdef _DEBUG
     //Need a way to only have this happen when holding down a key
@@ -635,14 +638,8 @@ int main(int argc, char** argv) {
         //Formula<float>::Run("'something'.size()", "ActorValueGenerator::Commons");
 
     });
+   
     
-
     std::system("pause");
 	return 0;
 }
-
-
-
-
-
-//*/

@@ -21,7 +21,29 @@ namespace LEX
 		// They don't have targets (SCRATCH, they now have targets)
 
 		//Think this should probably store the string that it came from perhaps. Could be useful.
+		
+	public:
 
+		std::string_view GetName() const
+		{
+			return text;
+		}
+		
+		
+		virtual void SetName(const std::string_view& name) override
+		{
+			text = name;
+			_routine.name = text.data();
+		}
+
+		void SetFile(const char* file)
+		{
+			_routine.file = file;
+		}
+
+		std::string text;
+		
+		SyntaxRecord records;
 
 		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def) override
 		{

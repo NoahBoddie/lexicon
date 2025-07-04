@@ -41,6 +41,7 @@ namespace LEX
 		ConvertResult convertType = ConversionResult::Ineligible;
 		size_t index;//The guide of where to put the given entries routine information.
 
+		SyntaxRecord* source = nullptr;
 		RoutineBase* routine = nullptr;
 
 
