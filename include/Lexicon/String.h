@@ -163,6 +163,11 @@ namespace LEX
 		bool operator==(const String& other) const = default;
 
 
+		constexpr bool IsValueZero() const noexcept
+		{
+			return !_ptr && !_size;
+		}
+
 		static TypeInfo* GetVariableType(const String*)
 		{
 			ITypeInfo* policy = IdentityManager::instance->GetTypeByOffset("STRING", 0);

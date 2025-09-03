@@ -622,7 +622,7 @@ namespace LEX
 			}
 		}
 
-		bool IsNull() const
+		bool IsValueZero() const
 		{
 			if (policy)
 				return policy->Exists(data());

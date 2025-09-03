@@ -598,8 +598,23 @@ namespace PropertyTest
 
 
 
+
+int nested_func(int c)
+{
+    throw std::exception("we out");
+    return c + 1;
+}
+
+int func(int b)
+{
+    return nested_func(b + 1);
+}
+
+
+
 int main(int argc, char** argv) {
-  
+
+
 
     //logger::InitializeLogging(true);
 #ifdef _DEBUG

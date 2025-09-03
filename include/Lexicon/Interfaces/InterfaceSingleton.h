@@ -8,6 +8,8 @@ namespace LEX
 	template <typename T>
 	struct InterfaceSingleton
 	{
+
+
 		using _Self = InterfaceSingleton<T>;
 
 		InterfaceSingleton()
@@ -23,15 +25,23 @@ namespace LEX
 			_unprotect() : T() {}
 		};
 
-		static T* RequestSingleton()
+#ifndef LEX_SOURCE
+
+	private:
+		inline static T* _interface = nullptr;//should be atomic?
+	public:
+
+
+		static Update CheckSingleton(bool catch_error)
 		{
-			static T* _interface = nullptr;
-			
 			if (!_interface)
 			{
-				Update result = InterfaceManager::RequestInterface<T>(_interface, T::version);
+				Update result;
 
-
+				if (SafeInvoke<InterfaceManager::RequestError>(catch_error, [&]() { result = InterfaceManager::RequestInterface<T>(_interface, T::version); }))
+				{
+					result = Update::Missing;
+				}
 
 				//Make this part a static function plz
 				switch (result)
@@ -41,28 +51,40 @@ namespace LEX
 					break;//mention the name is probably wrong
 
 				case Update::Library:
-					report::fault::critical("update library");
+					report::message::critical("update library");
 					break;//Library is out of date, developer fault.
 
 				case Update::Engine:
-					report::fault::critical("update engine");
+					report::message::critical("update engine");
 					break;//Engine is out of date, user fault.
 
 				case Update::Match:
-					if (!_interface)
-						//report::fault::
-						logger::warn("interface not returned despite success.");
+					assert_if_not (!_interface)
+						report::message::critical("interface not returned despite success.");
 					else
-						logger::info("interface {} success.", TypeName<T>::value);
+						report::message::trace("interface {} success.", TypeName<T>::value);
 					break;//We're all gucci
+				case Update::Missing:
+					break;
 				default:
-					logger::info("unknown issue");
+					logger::info("unknown issue {}", magic_enum::enum_name(result));
 					break;
 				}
-			}
 
+				return result;
+			}
+			
+			return Update::Match;
+		}
+
+		static T* RequestSingleton()
+		{
+			CheckSingleton(false);
 			return _interface;
 		}
+#endif
+
+
 
 
 		static T& GetSingleton()
@@ -112,7 +134,7 @@ namespace LEX
 				return true;
 
 #else			
-				return get();
+				return CheckSingleton(true) == Update::Match;
 #endif
 			}
 		};

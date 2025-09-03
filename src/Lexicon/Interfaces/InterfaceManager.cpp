@@ -14,6 +14,32 @@ namespace LEX
 	}
 	
 
+	Update CheckVersion_Impl(uintptr_t version)
+	{
+		return Update::Match;
+	}
+
+	LEX_API Update PullVersion_Impl(uintptr_t client, uintptr_t& server)
+	{
+		server = LEX_VERSION;
+
+		Update result = Update::Match;
+
+
+		for (auto check : InterfaceManager::checks)
+		{
+			assert_if_not (check)
+				result = check(server, client);
+			
+			if (result != Update::Match)
+				break;
+		}
+
+		return result;
+	}
+
+
+
 	bool RegisterInterface_Impl(Interface& ifc, std::string_view name)
 	{
 		auto& interfaceList = GetInterfaceList();

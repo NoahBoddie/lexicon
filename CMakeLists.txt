@@ -3,16 +3,29 @@ cmake_minimum_required(VERSION 3.21)
 # ---- Project ----
 
 set(PARENT_NAME "${PROJECT_NAME}")
+set(PARENT_VERSION "${PROJECT_VERSION}")
+set(PARENT_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set(PARENT_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set(PARENT_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+set(PARENT_VERSION_TWEAK "${PROJECT_VERSION_TWEAK}")
 
 project(
 	Lexicon
 	LANGUAGES CXX
+	VERSION 0.0.0.1
 )
 
 if (NOT PARENT_NAME)
 	set(PARENT_NAME "${PROJECT_NAME}")
 endif()
 
+if (NOT PARENT_VERSION)
+	set(PARENT_VERSION "${PROJECT_VERSION}")
+	set(PARENT_VERSION "${PROJECT_VERSION}")
+	set(PARENT_VERSION "${PROJECT_VERSION}")
+	set(PARENT_VERSION "${PROJECT_VERSION}")
+	set(PARENT_VERSION "${PROJECT_VERSION}")
+endif()
 
 
 
@@ -311,7 +324,7 @@ set(headers
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
 	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h" )
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "native/include/Lexicon/Engine/Convert.h")
 
 
 set(sources
@@ -470,7 +483,6 @@ endif()
 
 
 add_subdirectory(${RoguePath} RoguesGallery)
-
 add_dependencies(${PROJECT_NAME} RoguesGallery::RoguesGallery)
 
 #was explicit
@@ -593,6 +605,7 @@ install(
 
 get_target_property(BINARY_TYPE ${PARENT_NAME} TYPE)
 message(${BINARY_TYPE})
+
 if (${BINARY_TYPE} STREQUAL EXECUTABLE)
 	set(BINARY_TYPE exe)
 elseif (${BINARY_TYPE} STREQUAL SHARED_LIBRARY)
@@ -617,6 +630,13 @@ target_compile_definitions(
 	"${PROJECT_NAME}"
 	PUBLIC
 		LEX_BINARY_MODULE=\"${PARENT_NAME}.${BINARY_TYPE}\"
+	)
+
+target_compile_definitions(
+	"${PROJECT_NAME}"
+	PUBLIC
+		LEX_VERSION=${PROJECT_VERSION_TWEAK}ULL<<0|${PROJECT_VERSION_PATCH}ULL<<8|${PROJECT_VERSION_MINOR}ULL<<16|${PROJECT_VERSION_MAJOR}ULL<<24
+
 	)
 
 

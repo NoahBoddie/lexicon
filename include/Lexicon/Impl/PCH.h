@@ -97,8 +97,8 @@
 #include <variant>
 #include <vector>
 #include <version>
-
-
+#include <codecvt>
+#include <shlwapi.h>
 #include <ShlObj_core.h>
 #include <Windows.h>
 #include <Psapi.h>
@@ -127,8 +127,6 @@
 //move this please.
 inline HMODULE GetCurrentModule()
 {
-    //Make this static in that it stores teh result it gets the first time so it never needs to search it again.
-    // NB: XP+ solution!
     static HMODULE hModule = NULL;
 
     if (hModule == NULL) {
@@ -143,17 +141,21 @@ inline HMODULE GetCurrentModule()
 
 inline std::string GetModuleName(HMODULE mdl)
 {
-    //Make this static in that it stores teh result it gets the first time so it never needs to search it again.
-    // NB: XP+ solution!
-    static HMODULE hModule = NULL;
+    char buffer[MAX_PATH];
 
-    std::vector<char> buffer;
-    buffer.resize(MAX_PATH);
+    GetModuleFileNameA(mdl, buffer, MAX_PATH);
+    
+    auto name = strrchr(buffer, '\\');
 
-    GetModuleFileNameA(mdl, &buffer.at(0), MAX_PATH);
 
-    return std::string{ buffer.data() };
+    return std::string{ name ? ++name : buffer };
 }
+
+inline std::string GetModuleName()
+{
+    return GetModuleName(GetCurrentModule());
+}
+
 
 
 
@@ -275,8 +277,10 @@ namespace logger
 
 #include "RoguesGallery.hpp"
 
+//I'd really rather just move this
+#ifdef LEX_SOURCE
 #include "boost/regex.hpp"
-
+#endif
 
 
 
@@ -374,7 +378,7 @@ struct Initializer
 
 //Initializes something on the spot.
 #define INITIALIZE__COUNTED(mc_counter,...) inline void CONCAT(__init_func_,mc_counter)();\
-inline Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
+inline ::Initializer CONCAT(__init_var_,mc_counter) = {CONCAT(__init_func_,mc_counter) __VA_OPT__(,) __VA_ARGS__};\
 inline void CONCAT(__init_func_,mc_counter)()
 
 //An alternate version
@@ -454,14 +458,14 @@ T ReturnDefaultOrFailure()
 
 
 
-template<typename T, typename... Args>
+template<typename T, typename Ex = std::exception, typename... Args>
 std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name, Args&&... args)
 {
     using _Ret = std::invoke_result_t<T, Args...>;
 
     using _Func = T*;//_Ret(*)(Args...);
 
-
+    
     _Func func = (_Func)GetProcAddress(a_module, func_name);
 
     
@@ -478,13 +482,15 @@ std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name
     else {
         static bool once = false;
 
+        std::string message = std::format("Extern call failed. Function {}.", func_name);
+
         if (!once) {
             //RGL_LOG(critical, "Extern call failed. Function {} not found in {}.", func_name, GetModuleName(a_module));
-            RGL_LOG(critical, "Extern call failed. Function {}.", func_name);
+            RGL_LOG(critical, "{}", message);
             once = true;
         }
 
-        return ReturnDefaultOrFailure<_Ret>();
+        throw Ex(message.c_str());
     }
     
 
@@ -495,36 +501,43 @@ std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name
 
 
 
-template<typename T, typename... Args>
-std::invoke_result_t<T, Args...> ExternCall(LPCSTR module_name, LPCSTR func_name, Args&&... args)
+template<typename T, typename Ex = std::exception, typename... Args>
+std::invoke_result_t<T, Args...> ExternCall(FCSTR module_name, LPCSTR func_name, Args&&... args)
 {
 	using _Ret = std::invoke_result_t<T, Args...>;
 
     using _Func = T*;//_Ret(*)(Args...);
 
-    HINSTANCE a_module = GetModuleHandleA(module_name);
+    HINSTANCE a_module = GetModuleHandle(module_name);
 
     if (a_module == nullptr) {
         static bool once = false;
 
+#ifdef UNICODE
+        std::wstring_convert<std::codecvt_utf8<WCHAR>, WCHAR> converter;
+        std::string to_print = std::format("Extern Call failed. Module {} not found.", converter.to_bytes(module_name));
+#else
+        std::string to_print = std::format("Extern Call failed. Module {} not found.", module_name);
+#endif
+        once = true;
+
         if (!once) {
-            RGL_LOG(debug, "Extern Call failed. Module {} not found.", module_name);
-            once = true;
+            RGL_LOG(error, "{}", to_print);
         }
 
-        return ReturnDefaultOrFailure<_Ret>();
+        throw Ex(to_print.c_str());
     }
 
 
-    return ExternCall<T, Args...>(a_module, func_name, std::forward<Args>(args)...);
+    return ExternCall<T, Ex, Args...>(a_module, func_name, std::forward<Args>(args)...);
 
 
 }
 
-template <auto T, typename... Args> requires(std::is_function_v<std::remove_pointer_t<decltype(T)>>)
-std::invoke_result_t<decltype(T), Args...> ExternCall(LPCSTR module_name, LPCSTR func_name, Args&&... args)
+template <auto T, typename Ex = std::exception, typename... Args> requires(std::is_function_v<std::remove_pointer_t<decltype(T)>>)
+std::invoke_result_t<decltype(T), Args...> ExternCall(FCSTR module_name, LPCSTR func_name, Args&&... args)
 {
-	return ExternCall<decltype(T), Args...>(module_name, func_name, std::forward<Args>(args)...);
+	return ExternCall<decltype(T), Ex, Args...>(module_name, func_name, std::forward<Args>(args)...);
 }
 
 namespace LEX

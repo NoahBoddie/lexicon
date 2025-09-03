@@ -2044,7 +2044,17 @@ namespace LEX
 }
 
 
+template <typename T1, typename T2 = void, typename... Args>
+void KillMeLaterPls(Args... args)
+{
 
+}
+
+
+INITIALIZE()
+{
+	KillMeLaterPls<int>(1, 23);
+}
 
 namespace LEX
 {

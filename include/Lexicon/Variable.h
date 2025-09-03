@@ -292,11 +292,14 @@ namespace LEX
 
 		TypeInfo* GetTypeInfo() const;
 
-		bool IsNull() const
+		bool IsValueZero() const
 		{
 			bool result = std::visit([](auto&& lhs) -> bool {
-				if constexpr (requires () { { lhs.IsNull() } ->std::same_as<bool>; }) {
-					return lhs.IsNull();
+				if constexpr (requires () { { lhs.IsValueZero() } ->std::same_as<bool>; }) {
+					return lhs.IsValueZero();
+				}
+				else if constexpr (std::is_convertible_v<decltype(lhs), bool>) {
+					return !!lhs;
 				}
 				else {
 					return false;
@@ -505,8 +508,30 @@ namespace LEX
 			return false;
 		}
 
-		RuntimeVariable Convert(TypeInfo* to);
+		bool Convert(TypeInfo* to, Variable& out);
 
+		Variable Convert(TypeInfo* to)
+		{
+			Variable result;
+			Convert(to, result);
+			return result;
+		}
+
+		
+		std::optional<bool> ToBoolean()
+		{
+			Variable out;
+
+			if (bool success = Convert(common_type::boolean(), out))
+				return out.AsNumber();
+			else
+				return std::nullopt;
+		}
+
+		bool ToBoolean(bool fail)
+		{
+			return ToBoolean().value_or(fail);
+		}
 
 	private:
 

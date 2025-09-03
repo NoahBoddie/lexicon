@@ -4,17 +4,11 @@
 
 namespace LEX
 {
-    RuntimeVariable Variable::Convert(TypeInfo* to)
+    bool Variable::Convert(TypeInfo* to, Variable& out)
     {
         //TODO: Needs cleaning.
         TypeInfo* from = GetTypeInfo();
-        Variable result{};
-        if (from)
-        {
-            from->Convert(*this, result, to);
-        }
-
-        return result;
+        return from ? from->Convert(*this, out, to) : false;
     }
     
     TypeInfo* Variable::GetTypeInfo() const

@@ -8,7 +8,7 @@
 
 //*src
 #include "Lexicon/ITemplatePart.h"
-
+#include "Lexicon/Engine/Convert.h"
 namespace LEX
 {
 	class TypeBase;
@@ -118,11 +118,7 @@ namespace LEX
 		}
 
 
-		
-
-
-		//This needs some form of conversion result.
-		ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		ConvertResult GetConvertTo_Hierarchy(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out, ConversionFlag flags) const
 		{
 			if (AsType() == other) {
 				return ConversionEnum::Exact;
@@ -199,6 +195,43 @@ namespace LEX
 
 
 			return ConversionEnum::TypeDefined;//Should have access
+		}
+
+		bool GetConvertTo_Intrinsic(const ITypeInfo* other, Conversion* out, bool exp) const
+		{
+			//Handles the conversions of strings and bool
+
+			if (out && exp) {
+				if (common_type::string() == other) {
+					constexpr auto func = [](RuntimeVariable var) -> RuntimeVariable {return var->PrintString(); };
+					out->implDefined = Convert<func>::instance;
+					return true;
+				}
+
+				else if (common_type::boolean() == other) {
+					constexpr auto func = [](RuntimeVariable var) -> RuntimeVariable {return var->IsValueZero(); };
+					out->implDefined = Convert<func>::instance;
+					return true;
+				}
+
+			}
+			return false;
+		}
+
+
+		//This needs some form of conversion result.
+		ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		{
+			auto result = GetConvertTo_Hierarchy(other, scope, out, flags);
+
+			if (result == ConversionResult::Ineligible) {
+				bool res = GetConvertTo_Intrinsic(other, out, flags & ConversionFlag::Explicit);
+
+				if (res)
+					return ConversionEnum::ImplDefined;
+			}
+
+			return result;
 		}
 
 		void CheckDeriveFrom(ITypeInfo* other) override;

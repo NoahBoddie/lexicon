@@ -4,6 +4,8 @@
 
 namespace LEX
 {
+	//TODO: some what big. Stop havin errors and shit store their strings.
+
 	struct APIResult_
 	{
 

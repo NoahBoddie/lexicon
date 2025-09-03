@@ -25,6 +25,17 @@ namespace LEX
 			return type;
 		}
 
+		static TypeInfo* string()
+		{
+			static TypeInfo* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetTypeByOffset("STRING", 0)->FetchTypePolicy(nullptr);
+			}
+
+			return type;
+		}
+
 
 		static TypeInfo* uboolean()
 		{

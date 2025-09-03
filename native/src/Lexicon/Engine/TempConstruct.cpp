@@ -68,6 +68,20 @@ namespace LEX
 		template<class Operatable, bool Assign = false>
 		static RuntimeVariable BinaryMath(RuntimeVariable& a_lhs, RuntimeVariable a_rhs, InstructType type, const Runtime* runtime)
 		{
+			if constexpr (std::is_same_v<std::plus<>, Operatable>)
+			{
+				if (a_lhs->IsString() && a_rhs->IsString())
+				{
+					//TODO: I'd like to set up an actual function to do this for me, rather than having this sort of thing do it. \/
+					// it could be a binary like function, but I think a set of parameters that will do that would be good.
+					String& back = a_lhs->AsString();
+
+					String& front = a_rhs->AsString();
+					
+					return std::format("{}{}", back.view(), front.view());
+				}
+			}
+
 			//This covers basically most of the below stuff.
 			Number back = a_lhs->AsNumber();
 			
@@ -80,7 +94,7 @@ namespace LEX
 			fmt::format_string<int, int> test = "{}{}";
 
 			auto test1 = std::forward<decltype(test)>(test);
-			((IRuntime*)runtime)->Report("{}{}", 1, 2);
+			(runtime)->Report("{}{}", 1, 2);
 			
 			//
 			//The below needs to curb "class std::" from the below
@@ -771,7 +785,7 @@ namespace LEX
 		}
 
 
-		Solution BasicBinaryGenerator(ExpressionCompiler* compiler, InstructType op, Solution lhs, Solution rhs, Register out)
+		Solution BasicBinaryGenerator(ExpressionCompiler* compiler, InstructType op, Solution lhs, Solution rhs, Register out, SyntaxRecord& target)
 		{
 			//Similar to the way operators and directives are seperated, I'd seek to have 2 types of operator generators,
 			// one that's basic and allows one to create values after it, and another that needs them raw
@@ -820,6 +834,30 @@ namespace LEX
 				
 				policy = common_type::integer64();
 				break;
+
+			case InstructType::Addition:
+			{
+				ITypeInfo* string = common_type::string();
+
+				//I'm using left here but I'm unsure if this is actually what I want.
+				if (lhs.policy == string && rhs.policy != string)
+				{
+					if (CompUtil::HandleConversion(compiler, rhs, QualifiedType{ string }, target, Register::Left, ConversionFlag::Explicit) == false)
+						report::error("cannot convert to string");
+				}
+				else if (rhs.policy == string && lhs.policy != string)
+				{
+					if (CompUtil::HandleConversion(compiler, lhs, QualifiedType{ string }, target, Register::Left, ConversionFlag::Explicit) == false)
+						report::error("cannot convert to string");
+				}
+
+				if (lhs.policy == rhs.policy && lhs.policy == string) {
+					policy = string;
+					break;
+				}
+
+			}
+
 
 			default:
 				
@@ -916,7 +954,7 @@ namespace LEX
 
 					//Do operation here. Needs solutions, outputs solution.
 					//return operatorCtorList[op](compiler, op, lhs, rhs, prefered);
-					return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered);
+					return BasicBinaryGenerator(compiler, op, lhs, rhs, prefered, target);
 					
 				}
 				else// if syntax == unary blah blah blah

@@ -453,7 +453,8 @@ namespace LEX
 
 		Variable& Ref()
 		{
-			return const_cast<Variable&>(std::as_const(*this).Ref());
+			return unconst(make_const(this)->Ref());
+			//return const_cast<Variable&>(std::as_const(*this).Ref());
 		}
 		//*/
 
