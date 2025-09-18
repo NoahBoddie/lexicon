@@ -56,7 +56,7 @@ namespace LEX
 		{
 			return _formula;
 		}
-
+	
 		void Clear()
 		{
 			Unhandle();

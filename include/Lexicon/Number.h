@@ -325,6 +325,7 @@ namespace LEX
 
 
 
+    //TODO: Move this to some kind of central interface. I'm not actually sure why this is made for every project.
     INITIALIZE()
     {
         //there are 3 limit types

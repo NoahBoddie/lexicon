@@ -165,7 +165,7 @@ inline std::string GetModuleName()
 //#include <spdlog/sinks/msvc_sink.h>
 //#include <spdlog/sinks/stdout_sinks.h>
 #include "spdlog/sinks/stdout_color_sinks.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 namespace logger
 {
 	//Apparently this has issues with clang, but I don't use clang (atm) so I'm free (for now)
@@ -403,12 +403,6 @@ void CONCAT(_event_class_,mc_counter)::CONCAT(_event_func_,mc_counter)()
 //Revised to need to be executed at a particular time. This prevents issues with it going off too early.
 //Revise this in a manner that it doesn't have to have a semi-colon at the end. maybe forward declare a function rather than a lambda.
 #pragma region RGL_SPACE
-
-#define REQ_CONSTRAINT(mc_type, mc_size, mc_cmp, mc_phrase) static_assert(sizeof(mc_type) mc_cmp mc_size, STRINGIZE(sizeof mc_type mc_phrase mc_size.))
-
-#define REQUIRED_SIZE(mc_type, mc_size) REQ_CONSTRAINT(mc_type, mc_size, ==, is not)
-#define REQ_LESS_SIZE(mc_type, mc_size) REQ_CONSTRAINT(mc_type, mc_size, <, is not less than)
-#define REQ_OR_LESS_SIZE(mc_type, mc_size) REQ_CONSTRAINT(mc_type, mc_size, <=, is greater than)
 
 
 //Can instantiate should have template versions so it will basically handle construction in however it's best handled.
