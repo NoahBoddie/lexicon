@@ -251,6 +251,35 @@ namespace LEX
 				ret = func->Execute(from, runtime, nullptr);
 		}
 
+
+		static void AssertConvert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+
+			ICallableUnit* func = nullptr;
+
+			//For Convert, once when I start using spans, please put it in a single sized array.Just to save space and to not have to allocate.
+			std::vector<RuntimeVariable> from{ a_rhs.GetVariable(runtime) };
+
+			auto& var = from[0];
+
+			//This is the real solution, I just want to check if I was right.
+			auto from_type = LEX::GetVariableType(a_rhs.AsVariable(runtime).Ref());
+			//auto from_type = var->Policy();
+
+			if (!from_type)
+				report::runtime::critical("NO FROM");
+
+			auto to_type = a_lhs.GetTypeInfo(runtime);
+
+			auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit);
+			
+			assert_if(!convert_result)
+			{
+				runtime->Error("Cannot perform type convert from {} to {}.", from_type->GetName(), to_type->GetName());
+			}
+		}
+
+
 		
 		//Confirms that a reference promotion is valid
 		static void CheckPromotion(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
@@ -1373,13 +1402,33 @@ namespace LEX
 			}
 
 
-			//'function' <Expression: Call>
-			//		'args' <Expression: Header>
-
 
 			OverloadInput input;
 			input.object = self;
 			input.implied = args;//can probably move here.
+			;
+
+			if (auto spec_rec = target.FindChild(parse_strings::specialize))
+			{
+				auto& spec_args = input.specialImplied;
+
+				spec_args.resize(spec_rec->size());
+
+				for (size_t i = 0; auto& arg : spec_rec->children())
+				{
+					//We just want the type
+					Declaration decl = Declaration::CreateOnly(arg, compiler->GetElement(), Refness::Temp, HeaderFlag::TypeSpecifiers);;
+					
+					spec_args[i] = std::make_pair(decl.policy, 0);
+
+					i++;
+				}
+			}
+
+
+			//'function' <Expression: Call>
+			//		'args' <Expression: Header>
+
 
 			Overload instructions;
 
@@ -1658,7 +1707,7 @@ namespace LEX
 			auto& rhs = target.FindChild(parse_strings::rhs)->GetFront();
 
 			//Declaration header{ target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp };
-			Declaration header = Declaration::CreateOnly(target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp,
+			Declaration to = Declaration::CreateOnly(target.FindChild(parse_strings::rhs)->GetFront(), compiler->GetElement(), Refness::Temp,
 				HeaderFlag::TypeSpecifiers | HeaderFlag::Constness);
 
 			//if (!header) {
@@ -1670,64 +1719,133 @@ namespace LEX
 
 			auto& lhs = target.FindChild(parse_strings::lhs)->GetFront();
 
-			Solution expression = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered(), false);
+			Solution from = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered(), false);
 
 
 
 
 			Conversion out;
 
-			assert(expression.policy);
+			assert(from.policy);
 			
 			//report::compile::debug("result {:X}", (uint64_t)expression.policy);
 
-			if (1 || target.GetView() != "maybe")
+			switch (Hash(target.GetView()))
 			{
-				if (auto convert_result = expression.IsConvertToQualified(header, nullptr, &out, ConversionFlag::Explicit); convert_result)
+			case "as"_h:
+				as:
+				if (auto convert_result = from.IsConvertToQualified(to, nullptr, &out, ConversionFlag::Explicit); convert_result)
 				{
 					//If this can convert, it's basically going to be something automatic.
 					//No idea what this was supposed to be
-					CompUtil::HandleConversion(compiler, out, expression, header, convert_result, target);
+					CompUtil::HandleConversion(compiler, out, from, to, convert_result, target);
 				}
 				//if the type we're trying to go to can convert into ours with only type conversions
-				else if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
+				else if (auto convert_result = to.IsConvertToQualified(from, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
-					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
+					from = Solution{ to, OperandType::Register, compiler->GetPrefered() };
 
 					compiler->EmplaceInstruction(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
-						Operand{ header.policy, OperandType::Type },
-						expression);
+						Operand{ to.policy, OperandType::Type },
+						from);
 				}
 				else
 				{
 					report::compile::error("Expression not convertible to cast type.");
 				}
-			}
-			else
-			{
 
+				break;
 
-
-				if (auto convert_result = header.IsConvertToQualified(expression, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
+			case "maybe"_h:
+				goto as;
+				//I think as maybe is supposed to be for 2 types that don't have a direct link, and will produce a default value if fails.
+				// Basically dynamic cast
+				if (auto convert_result = to.IsConvertToQualified(from, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
-					expression = Solution{ header, OperandType::Register, compiler->GetPrefered() };
+					from = Solution{ to, OperandType::Register, compiler->GetPrefered() };
 
 					compiler->EmplaceInstruction(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
-						Operand{ header.policy, OperandType::Type },
-						expression);
+						Operand{ to.policy, OperandType::Type },
+						from);
 				}
+				break;
 
-				//The 2 classes must both 
+
+			case "ref"_h:
+				//Don't care about quals
+				if (auto convert_result = from->IsConvertibleTo(to, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
+				{
+					from.policy = to.policy;
+					compiler->EmplaceInstruction(
+						InstructionType::AssertConvert,
+						Operand{ to.policy, OperandType::Type },
+						from);
+				}
+				else if (auto convert_result = to->IsConvertibleTo(from, nullptr, nullptr, ConversionFlag::Explicit); !convert_result)
+				{
+					//If the above is successful there's no real reason to actually cast since it would be one deriving from the other
+					report::compile::error("Expression not convertible to cast type. {} {}", from->GetName(), to->GetName());
+				}
+				break;
 			}
 
+
+			//Old and smelly, keeping just to make sure
+			if constexpr (0)
+			{
+
+				if (1 || target.GetView() != "maybe")
+				{
+					if (auto convert_result = from.IsConvertToQualified(to, nullptr, &out, ConversionFlag::Explicit); convert_result)
+					{
+						//If this can convert, it's basically going to be something automatic.
+						//No idea what this was supposed to be
+						CompUtil::HandleConversion(compiler, out, from, to, convert_result, target);
+					}
+					//if the type we're trying to go to can convert into ours with only type conversions
+					else if (auto convert_result = to.IsConvertToQualified(from, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
+					{
+						from = Solution{ to, OperandType::Register, compiler->GetPrefered() };
+
+						compiler->EmplaceInstruction(
+							InstructionType::Convert,
+							compiler->GetPrefered(),
+							Operand{ to.policy, OperandType::Type },
+							from);
+					}
+					else
+					{
+						report::compile::error("Expression not convertible to cast type.");
+					}
+				}
+				else
+				{
+
+
+
+					if (auto convert_result = to.IsConvertToQualified(from, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
+					{
+						from = Solution{ to, OperandType::Register, compiler->GetPrefered() };
+
+						compiler->EmplaceInstruction(
+							InstructionType::Convert,
+							compiler->GetPrefered(),
+							Operand{ to.policy, OperandType::Type },
+							from);
+					}
+
+					//The 2 classes must both 
+				}
+
+			}
 			
 		
 
-			return expression;
+			return from;
 		}
 
 
@@ -2055,6 +2173,7 @@ namespace LEX
 
 			instructList[InstructType::Call] = InstructWorkShop::Call;
 			instructList[InstructType::Convert] = InstructWorkShop::Convert;
+			instructList[InstructType::AssertConvert] = InstructWorkShop::AssertConvert;
 			instructList[InstructType::Construct] = InstructWorkShop::Construct;
 
 

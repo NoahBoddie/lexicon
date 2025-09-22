@@ -2,6 +2,7 @@
 
 #include "Lexicon/ITypeInfo.h"
 #include "Lexicon/Engine/Conversion.h"
+
 namespace LEX
 {
 	
@@ -64,12 +65,28 @@ namespace LEX
 
 		//GetConvertTo
 		//GetConvertFrom
-		virtual ConvertResult GetConvertTo(const ITypeInfo* rhs, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
-		{
-			if (this == rhs)
-				return ConversionEnum::Exact;
 
-			return ConversionResult::Ineligible;
+
+		ConvertResult GetConvertTo_Hierarchy(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out, ConversionFlag flags) const;
+
+
+		bool GetConvertTo_Intrinsic(const ITypeInfo* other, Conversion* out, bool exp) const;
+
+
+		virtual ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const
+		{
+			//TODO: This needs to be moved to ITypeInfo, because this is sorta wide spread in its use
+
+			auto result = GetConvertTo_Hierarchy(other, scope, out, flags);
+
+			if (result == ConversionResult::Ineligible) {
+				bool res = GetConvertTo_Intrinsic(other, out, flags & ConversionFlag::Explicit);
+
+				if (res)
+					return ConversionEnum::ImplDefined;
+			}
+
+			return result;
 		}
 
 		virtual ConvertResult GetConvertFrom(const ITypeInfo* rhs, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const

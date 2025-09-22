@@ -140,7 +140,7 @@ namespace LEX
 				}
 
 				//TODO: Here's where parameter allocation actually happens seemingly. While I don't want to change that, this needs to define params.
-				varCount[0] = varCount[1] = GetParamAllocSize();
+				//varCount[0] = varCount[1] = GetParamAllocSize();
 
 
 				auto end = operations.end();

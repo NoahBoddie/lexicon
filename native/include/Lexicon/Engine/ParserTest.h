@@ -285,6 +285,7 @@ namespace LEX
 						//These are the universial punctuators
 					case "}"_h:
 						data.braces++;
+						[[fallthrough]];
 					case ":"_h:
 					case ";"_h:
 						return true;
@@ -470,8 +471,11 @@ namespace LEX
 		};
 
 
+		/*
 		struct IdenDeclBoilerPlate
 		{
+
+
 			Record _HandlePath(ParsingStream* stream, SyntaxType enforced_type)
 			{
 
@@ -540,10 +544,8 @@ namespace LEX
 
 		};
 
-		int;
-		
 
-		struct IdentifierParser : public AutoParser<IdentifierParser>, public IdenDeclBoilerPlate
+		struct IdentifierParserOld : public AutoParser<IdentifierParser>, public IdenDeclBoilerPlate
 		{
 			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
@@ -598,6 +600,201 @@ namespace LEX
 
 		};
 
+//*/
+
+
+		struct IdentifierParser : public AutoParser<IdentifierParser>
+		{
+
+			bool HandleSpecialize(Record& identifier, ParsingStream* stream);
+
+			void HandlePath(Record& main, ParsingStream* stream, SyntaxType enforced_type)
+			{
+
+
+				auto& path = main.EmplaceChild(ParsingStream::CreateExpression(parse_strings::path, SyntaxType::Path));
+
+
+				auto& branch = path.EmplaceChild(ParsingStream::CreateExpression(parse_strings::identifier, SyntaxType::None));
+
+				auto& focus = branch.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), enforced_type));
+
+				//Do generic processing here.
+				bool cont = HandleSpecialize(focus, stream);
+
+				switch (enforced_type) {
+				case SyntaxType::ProjectName:
+					enforced_type = SyntaxType::Scriptname;
+					break;
+				case SyntaxType::Scriptname:
+					enforced_type = SyntaxType::Typename;
+					break;
+
+				default:
+					enforced_type = SyntaxType::Scopename;
+					[[fallthrough]];
+
+				case SyntaxType::Typename:
+					//Typename feeds into itself
+					[[fallthrough]];
+				case SyntaxType::Scopename:
+					//And so does scope name.
+					break;
+				}
+
+
+				//Identifier
+				//| Identifer
+				//| Path
+				//| | Path
+				//identifier
+				// path if one exists
+
+
+
+
+				if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
+					
+					HandlePath(path, stream, enforced_type);
+				}
+			}
+
+
+
+			void HandlePath2(Record& main, Record& out, ParsingStream* stream, SyntaxType enforced_type)
+			{
+				//Whatever calls this assigns it to be identifier
+				Record focus = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), enforced_type);
+
+				bool cont = HandleSpecialize(focus, stream);
+
+				switch (enforced_type) {
+				case SyntaxType::ProjectName:
+					enforced_type = SyntaxType::Scriptname;
+					break;
+				case SyntaxType::Scriptname:
+					enforced_type = SyntaxType::Typename;
+					break;
+
+				default:
+					enforced_type = SyntaxType::Scopename;
+					[[fallthrough]];
+
+				case SyntaxType::Typename:
+					//Typename feeds into itself
+					[[fallthrough]];
+				case SyntaxType::Scopename:
+					//And so does scope name.
+					break;
+				}
+
+
+				//Identifier
+				//| Identifer
+				//| Path
+				//| | Path
+				//identifier
+				// path if one exists
+
+
+
+
+				if (cont && stream->SkipIfType(TokenType::Punctuation, "::") == true) {
+					auto& path = out.EmplaceChild(ParsingStream::CreateExpression(parse_strings::path, SyntaxType::Path));
+					auto& branch = path.EmplaceChild(ParsingStream::CreateExpression(parse_strings::identifier, SyntaxType::None));
+					branch.EmplaceChild(focus);
+					HandlePath2(main, path, stream, enforced_type);
+				}
+				else {
+					focus.SYNTAX().type = SyntaxType::Identifier;
+					main.data() = std::move(focus.data());
+					main.EmplaceChildren(std::move(focus.children()));
+
+				}
+			}
+
+			Record HandlePath2(ParsingStream* stream, SyntaxType enforced_type)
+			{
+				Record result;
+
+				HandlePath2(result, result, stream, enforced_type);
+
+				return result;
+			}
+
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				if (target)
+					return false;
+
+
+				return stream->IsType(TokenType::Punctuation, "::") || stream->IsType(TokenType::Identifier) || stream->IsType(TokenType::Keyword, "this");
+
+			}
+
+			bool IsAtomic() const override
+			{
+				return true;
+			}
+
+
+			Record _HandleThis(ParsingStream* stream)
+			{
+				RecordData next = stream->next();
+				next.GetTag() = parse_strings::this_word;
+				return ParsingStream::CreateExpression(next, SyntaxType::Field);
+			}
+
+
+			Record HandleToken(ParsingStream* stream, Record*) override
+			{
+
+				//if the presented field is an unscoped, it should attempt to put it in a box, to ensure that it's known that it's an outside field.
+
+
+				if (stream->IsType(TokenType::Keyword, "this") == true) {
+					return _HandleThis(stream);
+				}
+				else {
+					SyntaxType enforced_type = SyntaxType::Scopename;
+					
+
+					if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
+						enforced_type = SyntaxType::Scriptname;						
+					}
+					else if (stream->SkipIfType(TokenType::Keyword, "project")) {
+						enforced_type = SyntaxType::Scriptname;
+						stream->SkipType(TokenType::Punctuation, "::");
+					}
+					else if (stream->SkipIfType(TokenType::Keyword, "script")) {
+						//There's no option for this
+						enforced_type = SyntaxType::Typename;
+						stream->SkipType(TokenType::Punctuation, "::");
+					}
+					else if (stream->SkipIfType(TokenType::Keyword, "global")) {
+						enforced_type = SyntaxType::ProjectName;
+						stream->SkipType(TokenType::Punctuation, "::");
+					}
+
+
+					//Record main = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::Identifier);
+					//HandleSpecialize(main, stream);
+					//if (stream->SkipIfType(TokenType::Punctuation, "::") == true)
+					//	HandlePath(main, stream, enforced_type);
+					//return main;
+
+					return HandlePath2(stream, enforced_type);
+				}
+
+
+			}
+
+			bool RequiresNested() const override { return true; }
+
+		};
+
+
 
 		
 		struct HeaderParser : public AutoParser<HeaderParser>
@@ -638,6 +835,9 @@ namespace LEX
 				else
 					return peek.TOKEN().type == TokenType::Keyword && IsKeyword(peek.GetTag(), post);
 			}
+
+
+			//TODO: Types in the header parser produce header records. This isn't proper.
 			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				bool post = target && target->SYNTAX().type == SyntaxType::Declaration;
@@ -750,6 +950,37 @@ namespace LEX
 
 		};
 
+		inline bool IdentifierParser::HandleSpecialize(Record& identifier, ParsingStream* stream)
+		{//No idea why this wont link unless it's inline
+			bool cont = true;
+
+
+			if (stream->IsType(TokenType::Operator, "<") == true)
+			{
+				try
+				{
+
+					auto mem = stream->preserve();
+
+					auto spec = ParsingStream::CreateExpression(parse_strings::specialize, SyntaxType::None);
+
+					spec.EmplaceChildren(stream->Delimited("<", ">", ",", [](ParsingStream* stream) -> Record {
+						Record result;
+
+						if (ParseModule::TryModule<HeaderParser>(stream, result, nullptr) == false)
+							throw (int)0;
+
+						return result;
+
+						}));
+					identifier.EmplaceChild(std::move(spec));
+				}
+				catch (int& e) { cont = false; }
+			}
+
+			return cont;
+		}
+
 
 		struct TypeofParser : public AutoParser<TypeofParser>
 		{
@@ -789,7 +1020,7 @@ namespace LEX
 
 
 
-		struct DeclarationParser : public AutoParser<DeclarationParser>, IdenDeclBoilerPlate
+		struct DeclarationParser : public AutoParser<DeclarationParser>//, IdenDeclBoilerPlate
 		{
 
 			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
@@ -819,7 +1050,7 @@ namespace LEX
 				}
 			
 				
-
+				/*
 				//You'll notice this is just the Identifier stream. That it is.
 				// This is ACTUALLY supposed to derive from it. However, since that's kinda hard to set up, 
 				// boilerplate. At least until that gets resolved.
@@ -831,6 +1062,8 @@ namespace LEX
 				}
 				
 				auto result = _HandlePath(stream, enforced_type);
+				//*/
+				auto result = ParseModule::ExecuteModule<IdentifierParser>(stream, nullptr);
 				
 				result.SYNTAX().type = SyntaxType::Declaration;
 				
@@ -1104,7 +1337,50 @@ namespace LEX
 		};
 
 
-		
+		//TODO: Please move this into identifier parser
+		struct GenericUseParser : public AutoParser<GenericUseParser>
+		{
+			uint32_t GetPriority() const override
+			{
+				return ModulePriority::High;
+			}
+
+
+			bool ContextAllowed(ParseModule* module, ModuleChain*) override
+			{
+
+				return module != this;
+			}
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
+			{
+				return false;
+
+				return stream->IsType(TokenType::Operator, "<") && target && target->SYNTAX().type == SyntaxType::Identifier;
+			}
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				Record& generic = target->EmplaceChild(ParsingStream::CreateExpression(parse_strings::generic, SyntaxType::None));
+
+				generic.EmplaceChildren(stream->Delimited("<", ">", ",", [](ParsingStream* stream) -> Record {
+					Record result;
+					
+					if (ParseModule::TryModule<HeaderParser>(stream, result, nullptr) == false)
+						stream->AbortModule();
+
+					return result;
+
+					}));
+
+				return *target;
+			}
+
+			//Atomic due to object literal stream
+			bool IsAtomic() const override { return true; }
+		};
+
+
 		
 		struct LiteralParser : public AutoParser<LiteralParser>
 		{
@@ -1278,7 +1554,7 @@ namespace LEX
 				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseSyntax(); }) });
 				auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("(", ")", ",", &ParsingStream::ParseSyntax));
 
-				target->EmplaceChildren(args);
+				target->EmplaceChild(std::move(args));
 
 				return std::move(*target);
 			}
@@ -1860,7 +2136,7 @@ namespace LEX
 			{
 				auto next = stream->next();
 				
-				if (stream->peek().GetView() == "maybe")
+				if (stream->peek().GetView() == "maybe" || stream->peek().GetView() == "ref")
 				{
 					next = stream->next();
 				}
@@ -1905,7 +2181,7 @@ namespace LEX
 
 				generic.GetTag() = parse_strings::generic;
 
-
+				//TODO: after using generic this needs to make sure the type isn't identifier, as that's unassigned
 				auto hits = stream->Delimited("<", ">", ",", [](ParsingStream* stream) { return ParsingStream::CreateExpression(stream->next(), SyntaxType::Identifier); });
 
 				generic.EmplaceChildren(std::move(hits));

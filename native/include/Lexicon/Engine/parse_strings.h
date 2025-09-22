@@ -8,6 +8,7 @@ namespace LEX
 		constexpr static auto rhs = "<:right:>";
 		constexpr static auto lhs = "<:left:>";
 		constexpr static auto path = "<:path:>";
+		constexpr static auto identifier = "<:iden:>";
 		constexpr static auto unscoped = "<:unscoped:>";
 		constexpr static auto scope = "::";
 		constexpr static auto header = "<:header:>";
@@ -31,6 +32,7 @@ namespace LEX
 		constexpr static auto maybe_value = "maybe";
 
 		constexpr static auto generic = "<:gen:>";
+		constexpr static auto specialize = "<:spec:>";
 		constexpr static auto settings = "<:settings:>";
 		constexpr static auto data_type = "<:datatype:>";
 		constexpr static auto attach = "<:attach:>";

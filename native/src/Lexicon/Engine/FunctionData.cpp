@@ -211,7 +211,8 @@ namespace LEX
 		}
 		else if (tempArgs)
 		{
-			report::failure("Templates used on a non-template overload");
+			
+			report::debug("Templates used on a non-template overload");
 			return false;
 		}
 

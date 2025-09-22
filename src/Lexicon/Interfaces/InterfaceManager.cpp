@@ -28,7 +28,7 @@ namespace LEX
 
 		for (auto check : InterfaceManager::checks)
 		{
-			assert_if_not (check)
+			assert_if_not(check)
 				result = check(server, client);
 			
 			if (result != Update::Match)

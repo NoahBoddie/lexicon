@@ -611,9 +611,20 @@ int func(int b)
 }
 
 
+//Varadic testing.
+
+void VATest(int test...)
+{
+    int t = test;
+}
+
+using TestVA = decltype(VATest);
 
 int main(int argc, char** argv) {
-
+    assert_if(true)
+    {
+        report::info("test");
+    }
 
 
     //logger::InitializeLogging(true);

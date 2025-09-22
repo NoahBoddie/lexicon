@@ -48,7 +48,35 @@ namespace LEX
 
 		};
 
-		
+		//Preserves the memory of the parser so that if error should occur, it goes back to where it initially was.
+		struct Iteration
+		{
+			Memory it;
+			ParsingStream* parser = nullptr;
+
+			void Disable()
+			{
+				parser = nullptr;
+			}
+
+			Iteration(ParsingStream* p) : parser{ p }, it{ p->_memory } {}
+
+
+			~Iteration()
+			{
+				if (parser && std::uncaught_exceptions() > 0) {
+					parser->_memory = it;
+				}
+				
+			}
+		};
+
+		struct AbortStream : std::exception
+		{
+			AbortStream() : exception{ "Aborting stream execution" } {}
+
+
+		};
 
 
 		ParsingStream(const std::string_view& name, const std::string_view& str, ParseModule* mdl, Line l = 1, Column c = 1) : 
@@ -205,6 +233,18 @@ namespace LEX
 		}
 
 
+		Iteration preserve()
+		{
+			return Iteration{ this };
+		}
+
+		/// <summary>
+		/// Aborts the currently executing module. If executed it will proceed as if it failed the query
+		/// </summary>
+		void AbortModule()
+		{
+			throw AbortStream{};
+		}
 
 
 		constexpr Line line() const noexcept { return _memory.line; }
@@ -467,10 +507,15 @@ namespace LEX
 
 			bool handle = QueryModule(rec_nest, mdl, flag);
 
-
 			if (handle) {
-				ExecuteModule(out, rec_nest, mdl);
+				try 
+				{ 
+					auto mem = preserve();
+					ExecuteModule(out, rec_nest, mdl); 
+				}
+				catch (AbortStream& abort) { handle = false; }
 			}
+			
 
 			return handle;
 
@@ -576,7 +621,7 @@ namespace LEX
 		}
 
 		//template <typename TClass>
-		std::vector<Record> Delimited(std::string start, std::string stop, std::string separator, std::function<Record(ParsingStream*)> func)
+		std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<Record(ParsingStream*)> func)
 		{
 			return Delimited(start, stop, separator, [=](ParsingStream* a1, auto) { return func(a1); });
 		}
@@ -584,7 +629,7 @@ namespace LEX
 
 
 		//A shorthand so new lambdas don't need to get made contantly to send arg-less calls.
-		std::vector<Record> Delimited(std::string start, std::string stop, std::function<void()> separator, std::function<Record()> func)
+		std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::function<void()> separator, std::function<Record()> func)
 		{
 			//std::function<ParseFunc> _b = nullptr;
 

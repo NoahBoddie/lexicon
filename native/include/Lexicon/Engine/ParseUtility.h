@@ -20,9 +20,11 @@ namespace LEX
 				return nullptr;
 			}
 
-			auto left = a_this->FindChild(parse_strings::lhs);
-			
-			return left ? &left->GetFront() : &a_this->GetFront();
+			auto identifier = a_this->FindChild(parse_strings::identifier);
+
+			assert(identifier);
+
+			return identifier ? &identifier->GetFront() : nullptr;
 		}
 
 		static SyntaxRecord* PeekCurrentExpressionImpl(SyntaxRecord*& a_this)
@@ -56,6 +58,8 @@ namespace LEX
 		}
 
 
+
+
 		static SyntaxRecord& GetFrontExpression(SyntaxRecord& a_this)
 		{
 			switch (a_this.GetSyntax().type)
@@ -74,7 +78,7 @@ namespace LEX
 		{
 			auto current = PeekCurrentPathImpl(a_this);
 
-			a_this = a_this->FindChild(parse_strings::rhs);
+			a_this = a_this->FindChild(parse_strings::path);
 
 			return current;
 		}

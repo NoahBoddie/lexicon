@@ -246,6 +246,8 @@ namespace LEX
 
 		std::array<RuntimeVariable, Register::Total> _registers;
 
+		uint32_t varadicCount = 0;
+
 		RuntimeFlag _flags{};
 		//Free 7 bytes. or more flags who knows. I could make a set of user defined flags, but I wouldn't know what to use them for that a variable wouldn't suffice
 		// so I'll drop it.

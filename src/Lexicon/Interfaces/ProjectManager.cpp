@@ -55,44 +55,6 @@ namespace LEX
 
 
 
-	//Move this to some  one off junk folder.
-	struct PathParser : public LEX::ParseModule, public LEX::IdenDeclBoilerPlate
-	{
-		//The idea of this is it's a simple parser that acts like the identifier parser, but will handle this in a way that can handle
-		bool CanHandle(ParsingStream* parser, Record* target, LEX::ParseFlag flag) const override
-		{
-			return true;
-		}
-
-		bool IsAtomic() const override
-		{
-			return true;
-		}
-
-
-		Record _HandleThis(ParsingStream* parser)
-		{
-			RecordData next = parser->next();
-			next.GetTag() = parse_strings::this_word;
-			return ParsingStream::CreateExpression(next, SyntaxType::Field);
-		}
-
-
-		Record HandleToken(ParsingStream* parser, Record*) override
-		{
-
-			return _HandlePath(parser, SyntaxType::ProjectName);
-
-		}
-		
-		bool ContextAllowed(ParseModule*, ModuleChain*) override
-		{
-			//This prevents anything from following it up for the most part. This shit is a one man show!
-			// If this causes any issues with parsers I may use later, feel free to make a variable to help handle when this is allowed be handled.
-			return false;
-		}
-	};
-
 
 
 

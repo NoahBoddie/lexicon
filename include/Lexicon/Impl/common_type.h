@@ -3,6 +3,7 @@
 #include "Lexicon/Number.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
+#include "Lexicon/ITypeInfo.hpp"
 namespace LEX
 {
 	struct common_type
