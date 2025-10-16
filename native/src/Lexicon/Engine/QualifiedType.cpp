@@ -77,6 +77,7 @@ namespace LEX
 
 	ConvertResult QualifiedType::IsQualified(const QualifiedType& to_left, ConversionFlag flags, Conversion** out) const
 	{
+		//TODO: Split this functino up into different pieces.
 		//TODO: I don't know why this shit is reversed like this but fix it. I know it doesn't work the other way around, but fix it.
 
 		auto result = ConversionEnum::Exact;
@@ -125,6 +126,8 @@ namespace LEX
 		
 		if (init || param || ret)
 		{
+			if (IsVariadic() && !param)
+				return ConversionResult::IneligibleQuals;
 			
 			if (out && IsReference(false) == true) {
 				//No conversions allowed with references

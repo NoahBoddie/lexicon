@@ -14,6 +14,7 @@
 namespace LEX
 {
 	struct Solution;
+	struct ExpressionCompiler;
 
 	struct QualifiedField : public Field
 	{
@@ -108,7 +109,7 @@ namespace LEX
 			return _target;
 		}
 
-		Solution AsSolution();
+		Solution AsSolution(ExpressionCompiler* compiler);
 
 		operator bool() const
 		{

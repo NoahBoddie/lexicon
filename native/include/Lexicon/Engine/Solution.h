@@ -37,7 +37,7 @@ namespace LEX
 		bool IsReadOnly() const
 		{
 			//TODO: Literals should be qualified as const. If they are not please address this.
-			return type == OperandType::Literal || !IsAssignable();
+			return type() == OperandType::Literal || !IsAssignable();
 		}
 
 		
@@ -49,6 +49,11 @@ namespace LEX
 
 
 		constexpr Solution(const QualifiedType& a_type, OperandType a_opType, Target a_target) noexcept :  Operand{ a_target, a_opType }, QualifiedType { a_type }
+		{
+		}
+
+
+		constexpr Solution(const QualifiedType& a_type, Operand a_op) noexcept : Operand{ a_op }, QualifiedType{ a_type }
 		{
 		}
 

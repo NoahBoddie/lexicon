@@ -7,6 +7,8 @@
 #include "Lexicon/Engine/Register.h"
 #include "Lexicon/IRuntime.h"
 //To be in impl probably.
+
+#include "Lexicon/Function.h"
 namespace LEX
 {
 
@@ -75,6 +77,16 @@ namespace LEX
 		Runtime
 	};
 	
+	enum struct RuntimeData
+	{
+		VariableIndex,
+		ArgumentIndex,
+		RuntimeIndex,
+		ParameterCount,
+		VariadicLength
+	};
+
+
 	class Runtime : public IRuntime, public ITemplateBody
 	{
 		//TODO:Make sure RoutineProcess can be copied for testing the return value.
@@ -209,21 +221,29 @@ namespace LEX
 			, _caller{ caller }
 		{
 			//because this is temp, no resolution is fired.
+			auto argCount = _psp = _vsp = args.size();
 
-			_varStack.resize(_data.GetVarCapacity());
-			_argStack.resize(_data.GetArgCapacity());
+			assert(argCount >= _data.GetParamCapacity());
+
+			variadicCount = argCount - _data.GetParamCapacity();
+			logger::critical("XAYAX; {}: vars: {}, args:{}", _function->FetchName(), _data.GetVarCapacity(variadicCount), _data.GetArgCapacity(variadicCount));
+
+			_varStack.resize(_data.GetVarCapacity(variadicCount));
+			_argStack.resize(_data.GetArgCapacity(variadicCount));
 
 			_varStack.shrink_to_fit();
 			_argStack.shrink_to_fit();
 			
 			
 
-			if (args.size() != 0)
+			if (argCount != 0)
 			{
+
 				if (_varStack.size() < args.size())
-					report::fault::critical("the size of the var stack is less tha the size of the arguments given.");
+					report::fault::critical("the size of the var stack is less than the size of the arguments given. {} {}", _varStack.size(), args.size());
 
 
+				//TODO: if varadic isn't used make a cut off at the compiled parameter count
 				//std::copy(_varStack.begin(), _varStack.begin(), args.begin());
 				for (int i = 0; i < args.size(); i++)
 				{
@@ -231,11 +251,18 @@ namespace LEX
 					_varStack[i] = args[i];
 				}
 			}
-
-			_psp = _vsp = args.size();
 		}
 	
 
+		size_t GetParameterCount() const
+		{
+			return _data.GetParamCapacity() + variadicCount;
+		}
+
+		size_t GetVariadicLength(size_t index) const
+		{
+			return (GetParameterCount() - index - 1) + variadicCount;
+		}
 
 		//
 		Function* _function = nullptr;
@@ -246,7 +273,7 @@ namespace LEX
 
 		std::array<RuntimeVariable, Register::Total> _registers;
 
-		uint32_t varadicCount = 0;
+		uint32_t variadicCount = 0;
 
 		RuntimeFlag _flags{};
 		//Free 7 bytes. or more flags who knows. I could make a set of user defined flags, but I wouldn't know what to use them for that a variable wouldn't suffice
@@ -321,6 +348,12 @@ namespace LEX
 				//	_argStack[i].Clear();
 				//}
 				//return _asp += step;
+
+				//TODO: If we use variadic
+				if (1 && _argStack.size() <= _asp + step) {
+					_argStack.resize(_asp + step);
+				}
+
 				for (auto i = _asp + step; i < _asp; i++) {
 					//_argStack[i]->Clear();
 					_argStack[i].Clear();
@@ -378,13 +411,22 @@ namespace LEX
 		}
 
 		//May be replaced in the coming times.
-		RuntimeVariable& GetVariable(size_t i)
+		RuntimeVariable& GetVariable(size_t i, bool add_param_count = false)
 		{
+			if (add_param_count)
+				i += GetParameterCount();
+
 			if (i >= _vsp) {
 				report::runtime::critical("Variable stack index larger than current stack size. ({}/{})", i, _vsp);
 			}
 
 			return _varStack[i];
+		}
+
+
+		RuntimeVariable& GetParameter(size_t i)
+		{
+			return GetVariable(i, false);
 		}
 
 		RuntimeVariable& GetArgument(size_t i)

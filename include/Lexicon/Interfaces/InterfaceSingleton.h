@@ -59,7 +59,7 @@ namespace LEX
 					break;//Engine is out of date, user fault.
 
 				case Update::Match:
-					assert_if_not (!_interface)
+					assert_if(!_interface)
 						report::message::critical("interface not returned despite success.");
 					else
 						report::message::trace("interface {} success.", TypeName<T>::value);

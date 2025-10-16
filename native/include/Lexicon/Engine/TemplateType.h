@@ -150,7 +150,7 @@ namespace LEX
 				if (flags & ConversionFlag::Template)//This requires compliance from all
 				{
 
-					static_assert(false, "This doesn't work as expected because it's empty and thus will not fail");
+					//TODO:This doesn't work as expected because it's empty and thus will not fail
 					
 					//If this inherits nothing it literally cannot be used for anything
 					for (auto& inherit : inheritance)

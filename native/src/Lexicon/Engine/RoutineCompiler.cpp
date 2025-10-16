@@ -128,7 +128,7 @@ namespace LEX
 
 				bool method = false;
 
-				Solution solution{ GetTargetType(), OperandType::Index, 0 };
+				Solution solution{ GetTargetType(), OperandType::Parameter, 0 };
 
 
 				//Assign const here.
@@ -141,6 +141,7 @@ namespace LEX
 
 				//TODO: Here's where parameter allocation actually happens seemingly. While I don't want to change that, this needs to define params.
 				//varCount[0] = varCount[1] = GetParamAllocSize();
+				paramCount = GetParamAllocSize();
 
 
 				auto end = operations.end();
@@ -239,7 +240,7 @@ namespace LEX
 
 			operations.shrink_to_fit();
 			
-			routine.Set(RoutineBase{std::move(operations), _instructRecords, varCount[1], argCount[1]});
+			routine.Set(RoutineBase{std::move(operations), _instructRecords, varCount[1], argCount[1], paramCount, routineFlags });
 			return _success;
 		}
 		catch (CompileError& error)

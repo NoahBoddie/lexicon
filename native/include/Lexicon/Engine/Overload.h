@@ -95,7 +95,16 @@ namespace LEX
 		}
 
 
+		OverloadEntry& GetImplied(size_t index, size_t offset)
+		{
+			if (index >= implied.size()) {
+				if (implied.empty() == false && implied.back().type.IsVariadic()) {
+					index = implied.size() - 1;
+				}
+			}
 
+			return implied[index];
+		}
 
 		//Returns if there are any missing elements unfulfilled. Templates in particular.
 		bool IsValid() const
@@ -225,10 +234,13 @@ namespace LEX
 				}
 				auto& slot = implied[index];
 
-				if (slot.type) {
+				bool is_vard = slot.type.IsVariadic();
+
+				if (slot.type && !is_vard) {
 					return false;
 				}
-
+			
+				//query here?
 				slot = entry;
 			}
 

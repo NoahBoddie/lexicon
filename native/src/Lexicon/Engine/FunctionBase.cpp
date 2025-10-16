@@ -151,8 +151,14 @@ namespace LEX
             }
 
 
-            for (int64_t i = 0; auto & node : target.FindChild(parse_strings::parameters)->children())
+            for (int64_t i = 0; auto& node : target.FindChild(parse_strings::parameters)->children())
             {
+                
+
+                if (HasVadiadic() == true) {
+                    node.error<IssueType::Compile>("Additional parameters cannot be placed after a variadic parameter. '{}'", node.GetTag());
+                }
+
                 SyntaxRecord* node_head = node.FindChild(parse_strings::header);
 
                 if (!node_head)
@@ -168,7 +174,11 @@ namespace LEX
 				//	report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
                 //}
 
-                QualifiedType type = QualifiedType{ header };
+                QualifiedType type = header;
+
+                if (type.IsVariadic() == true) {
+                    vardIndex = i;
+                }
 
                 //auto& tag = node.FindChild("type")->GetFront().GetTag();
 

@@ -50,6 +50,7 @@ namespace LEX
 
 	struct CompilerBase : public ITemplatePart
 	{
+		friend CompUtil;
 
 		using InstructRecord = std::pair<SyntaxRecord*, uint32_t>;
 
@@ -248,8 +249,11 @@ namespace LEX
 		void ShiftArgCount(int64_t i)
 		{
 			//I'm thinking of undoing the bit once I get out of the parameter.
-			if ((argCount[0] += i) > argCount[1])
+			if ((argCount[0] += i) > argCount[1]) {
 				argCount[1] = argCount[0];
+			}
+
+			assert(argCount[0] >= 0);
 		}
 
 		size_t ModArgCount(int64_t x, int64_t y, bool append = true)
@@ -267,13 +271,13 @@ namespace LEX
 				delayDec[1] += x;
 			}
 
+			//TODO: this doesn't really implement any grouping does it? It might be neat if it did, similar to the variable system.
 			if (x && append) {
 				EmplaceInstruction(InstructionType::ModArgStack, Operand{ x , OperandType::Differ });
 			}
 
 			return count;
 		}
-
 
 		void DelayArgDecrement()
 		{
@@ -349,7 +353,7 @@ namespace LEX
 			//auto& op_list = GetInstructionList();
 
 			auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
-
+			auto op_type = param ? OperandType::Parameter : OperandType::Variable;
 			for (auto i = 0; i < size; i++)
 			{
 				//for each policy, starting at count and increasing by i, each policy needs to be loaded into
@@ -359,7 +363,7 @@ namespace LEX
 				size_t index = count + i;
 				ITypeInfo* policy = types[i];
 				
-				EmplaceInstruction(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+				EmplaceInstruction(instruct, Operand{ index , op_type }, Operand{ policy, OperandType::Type });
 				//op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
 			}
 
@@ -413,10 +417,10 @@ namespace LEX
 		//First is current, second is largest.
 
 		std::array<int64_t, 2> delayDec{ 0, 0 };//Decrements delayed due to functions. Want something that handles this better
-		std::array<size_t, 2> argCount{ 0, 0 };
-		std::array<size_t, 2> varCount{ 0, 0 };
-
-
+		std::array<uint32_t, 2> argCount{ 0, 0 };
+		std::array<uint32_t, 2> varCount{ 0, 0 };
+		uint32_t paramCount = 0;
+		RoutineFlag routineFlags = RoutineFlag::None;
 		//Remember to have this record it's most arguments possible.
 
 
@@ -440,7 +444,7 @@ namespace LEX
 
 		size_t GetParamAllocSize() const
 		{
-			return  _callData ? _callData->GetParamCount() : 0;
+			return  _callData ? _callData->GetParamCountReq() : 0;
 		}
 
 
@@ -455,7 +459,7 @@ namespace LEX
 		}
 
 
-		ParameterInfo* FindParameter(std::string a_name)
+		ParameterInfo* FindParameter(const std::string_view& a_name)
 		{
 			return _callData ? _callData->FindParameter(a_name) : nullptr;
 		}
@@ -463,7 +467,10 @@ namespace LEX
 
 	public:
 
-
+		void AddRoutineFlag(RoutineFlag flag)
+		{
+			routineFlags |= flag;
+		}
 
 		uint32_t GetRecordIndex(SyntaxRecord* record)
 		{
@@ -716,7 +723,48 @@ namespace LEX
 		// are expected. Differed by simply expecting or not execting a solution.
 
 		//TODO: Unvirtual CompileExpression, just private some of the important functions.
-		virtual Solution CompileExpression(SyntaxRecord& node, Register pref) = 0;
+	protected:
+		virtual Solution CompileExpressionImpl(SyntaxRecord& node, Register pref) = 0;
+	
+	public:
+		Solution CompileExpression(SyntaxRecord& node, Register pref)
+		{
+			Solution result = CompileExpressionImpl(node, pref);
+
+			if (result.IsVariadic() == true) {
+				node.error<IssueType::Compile>("Non-variadic expression expected");
+			}
+			return result;
+		}
+
+		Solution CompileVariadicExpression(SyntaxRecord& node, Register pref)
+		{
+
+			Solution result = CompileExpressionImpl(node, pref);
+
+			if (result.IsVariadic() == false) {
+				node.error<IssueType::Compile>("Variadic expression expected");
+			}
+			return result;
+		}
+
+		//I can't think of a better name for this so I'm just not trying.
+		Solution CompileExpressionFree(SyntaxRecord& node, Register pref)
+		{
+
+			Solution result = CompileExpressionImpl(node, pref);
+
+			return result;
+		}
+		
+		Solution CompileExpressionFree(SyntaxRecord& node, Register pref, std::vector<Instruction>& out)
+		{
+			TempListHandle handle{ out, _current };
+
+			auto result = CompileExpressionFree(node, pref);
+			return result;
+
+		}
 
 
 		Solution CompileExpression(SyntaxRecord& node, Register pref, std::vector<Instruction>& out)
@@ -749,7 +797,7 @@ namespace LEX
 			Solution result = CompileExpression(node, pref);
 
 
-			if (result.type != OperandType::Register) {
+			if (result.type() != OperandType::Register) {
 				//TODO: this should use Mutate, Scratch, it will want to use Load, maybe a combo of the 2
 
 				
@@ -787,7 +835,7 @@ namespace LEX
 
 		//Put all information from this into a Base with routine compiler just being the highest level
 		friend class Scope;
-
+		friend class CompUtil;
 
 		//There's one thing I need last. One where it explicitly tries to compile as a statement, and another where it tries to compile as an
 		// statement. Compile as statement can basically be CompileLine. But CompileExpression on the other hand can't be what process wrap is, because process statement uses that
@@ -800,8 +848,8 @@ namespace LEX
 
 		//TODO: I would like try versions of these, mainly for an if statement that could take an statement
 		// in its first part, then expect an expression after. Maybe. Idk
-
-		Solution CompileExpression(SyntaxRecord& node, Register pref) override
+	protected:
+		Solution CompileExpressionImpl(SyntaxRecord& node, Register pref) override
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -836,7 +884,8 @@ namespace LEX
 
 			return result;
 		}
-		using ExpressionCompiler::CompileExpression;
+	
+	public:
 		
 		/*
 		Solution CompileExpression(SyntaxRecord& node, Register pref)

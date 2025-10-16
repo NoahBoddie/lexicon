@@ -565,6 +565,9 @@ namespace LEX
 		if (!focus) {
 			auto name = ParseUtility::SeekNextPath(rec);
 
+			if (!name)
+				return false;
+
 			auto project = ProjectManager::instance->GetProject(name->GetView());
 
 			if (!project)
@@ -661,6 +664,11 @@ namespace LEX
 	{
 		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
 
+		if (a_this && a_this->GetName() == "__Legacy__")
+		{
+			logger::info("Doing legacy");
+		}
+		
 		SyntaxRecord* path = rec.FindChild(parse_strings::path);
 
 		//Identifier is searched for directly, it won't search up or to it's associates.
@@ -668,7 +676,6 @@ namespace LEX
 
 		auto first = ParseUtility::PeekCurrentPath(rec);
 
-		
 
 		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
 		// path is.
@@ -680,6 +687,7 @@ namespace LEX
 		std::set<Element*> full_search{};
 		std::set<Element*> find_search{};
 
+		bool mulligan = !is_direct;//allows the target to not exist just once if not direct
 		do
 		{
 			auto _focus = first;
@@ -741,6 +749,10 @@ namespace LEX
 					//case "__type"_ih:
 				}
 			}
+
+			if (!target)
+				mulligan = false;
+
 			bool success = a_this->HandlePath(target, path, func, *searched, !is_direct);
 
 			if (success)
@@ -755,13 +767,8 @@ namespace LEX
 				break;
 			}
 
-			//if (target)
-			//	state--;
-
-
-			continue;
 		}
-		while (target);
+		while (target || mulligan);
 		//ProjectManager::
 
 

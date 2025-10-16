@@ -58,6 +58,10 @@ namespace LEX
 
 			switch (Hash(name))
 			{
+			case "..."_h:
+				qualifiers.flags |= QualifierFlag::Varadic;
+				break;
+
 			case "readonly"_h:
 				qualifiers.MakeReadonly(false);
 				break;

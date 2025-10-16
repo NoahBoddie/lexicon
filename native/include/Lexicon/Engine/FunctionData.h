@@ -43,7 +43,8 @@ namespace LEX
 	public:
 
 		RoutineBase _routine;  //actually needs to be a pointer
-
+		uint32_t vardIndex = (uint32_t)-1;
+		uint32_t defaultIndex = (uint32_t)-1;
 
 		void VisitParameters(std::function<void(ParameterInfo&)> func)
 		{
@@ -77,31 +78,74 @@ namespace LEX
 
 		uint32_t GetParamCount() const
 		{
-			return (uint32_t)GetArgCount() + !!_thisInfo;
+			return GetArgCount() + HasTarget();
 		}
 
-		size_t GetArgCount() const
+		uint32_t GetArgCount() const
 		{
 			return parameters.size();
 		}
 
 
-		//For now, the maximum and minimum is both the same. Later, defaults will exist, so they don't have to
-		//be exact, and params keyword will hopefully exist at some point.
-		size_t GetArgCountReq()
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+		bool HasVadiadic() const
 		{
+			return vardIndex != -1;
+		}
+
+		ParameterInfo* GetVariadicParameter()
+		{
+			if (vardIndex != -1) {
+				return &parameters[vardIndex];
+			}
+
+			return nullptr;
+		}
+
+	public:
+
+
+		uint32_t GetArgCountReq() const
+		{
+			if (vardIndex != -1)
+				return vardIndex;
+
 			return GetArgCount();
 		}
-		size_t GetArgCountMax()
+		uint32_t GetArgCountMax() const
 		{
+			if (vardIndex != -1)
+				return -1;
+
 			return GetArgCount();
 		}
 
 
-		std::array<size_t, 2> GetArgRange()
+		std::array<uint32_t, 2> GetArgRange() const
 		{
 			return { GetArgCountReq(), GetArgCountMax() };
 		}
+
+		uint32_t GetParamCountReq() const
+		{
+			return GetArgCountReq() + HasTarget();
+		}
+
+		uint32_t GetParamCountMax() const
+		{
+			return GetArgCountMax() + HasTarget();
+		}
+
+		std::array<uint32_t, 2> GetParamRange() const
+		{
+			return { GetParamCountReq(), GetParamCountMax() };
+		}
+
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 
 		//Needs to be moved into IFunction/Function.
 		QualifiedType GetReturnType() const
@@ -183,13 +227,12 @@ namespace LEX
 		//TODO: Please move Overload functionality back to base. Instead, give this a generic base
 		GenericBase* base = nullptr;
 		
+		uint32_t defaultIndex = (uint32_t)-1;  //max_value<size_t>;//basically whenever the defaults start.
 
 
 
 
 
-		size_t defaultIndex = (size_t)-1;  //max_value<size_t>;//basically whenever the defaults start.
-		size_t paramsIndex = (size_t)-1;
 		//
 		std::optional<Procedure> _procedure = std::nullopt;
 
@@ -211,31 +254,22 @@ namespace LEX
 		{
 			return _name;
 		}
+
 	public:
 
-
-		size_t GetArgCountReq()
+		uint32_t GetArgCountReq() const
 		{
 			if (defaultIndex != -1)
 				return defaultIndex;
 
-			return GetArgCount();
-		}
-		size_t GetArgCountMax()
-		{
-			if (paramsIndex != -1)
-				return -1;
-
-			return GetArgCount();
+			return __super::GetArgCountReq();
 		}
 
 
-		std::array<size_t, 2> GetArgRange()
+		std::array<uint32_t, 2> GetArgRange()
 		{
 			return { GetArgCountReq(), GetArgCountMax() };
 		}
-
-
 
 
 		void CheckDefault(size_t index, size_t offset, OverloadFlag& flags)
@@ -246,6 +280,14 @@ namespace LEX
 			}
 		}
 		
+		void CheckVariadic(size_t& index, size_t offset)
+		{
+			if (vardIndex <= index && !offset) {
+
+				index = vardIndex;
+			}
+		}
+
 
 		bool MatchImpliedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
 

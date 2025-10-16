@@ -2,6 +2,7 @@
 
 #include "Lexicon/Engine/SyntaxRecord.h"
 #include "Lexicon/Engine/parse_strings.h"
+#include "Lexicon/Engine/HeaderSettings.h"
 
 namespace LEX
 {
@@ -43,7 +44,38 @@ namespace LEX
 			return left ? &left->GetFront() : &a_this->GetFront();
 		}
 
+		static bool AddHeaderKeywordImpl(KeywordType type, Record& parent, Record& record, bool move)
+		{
+			auto header = parent.FindChild(parse_strings::header);
+
+			assert_if(!header) {
+				return false;
+			}
+
+			auto& branch = header->GetChild(type);
+
+
+			if (move){
+				branch.EmplaceChild(std::move(record));
+			}
+			else {
+				branch.EmplaceChild(record);
+			}
+
+			return true;
+		}
+
 	public:
+
+		static bool AddHeaderKeyword(KeywordType type, Record& parent, const Record& record)
+		{
+			return AddHeaderKeywordImpl(type, parent, unconst(record), false);
+		}
+
+		static bool AddHeaderKeyword(KeywordType type, Record& parent, Record&& record)
+		{
+			return AddHeaderKeywordImpl(type, parent, record, true);
+		}
 
 
 		static SyntaxRecord* PeekCurrentPath(SyntaxRecord* a_this)

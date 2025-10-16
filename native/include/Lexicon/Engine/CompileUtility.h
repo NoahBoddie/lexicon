@@ -8,7 +8,8 @@ namespace LEX
 {
 	struct RoutineCompiler;
 	struct ExpressionCompiler;
-	
+	struct ParameterInfo;
+
 	using InstructList = std::vector<Instruction>;
 
 	struct CompUtil
@@ -276,7 +277,6 @@ namespace LEX
 
 
 
-
 		static Instruction Transfer(Register reg, const Solution& right)
 		{
 			return Transfer(Operand{ reg, OperandType::Register }, right);
@@ -370,8 +370,10 @@ namespace LEX
 		{
 			return MutateLoad(sol, to, to.IsReference());
 		}
-		
-		
+
+
+		static void LoadParameter(ExpressionCompiler* compiler, SyntaxRecord& record, Solution from, Index index,
+			std::optional<bool> is_ref, std::vector<Instruction> express_instructs, std::function<Solution(Solution)> func);
 
 
 		static Instruction RemoveOperation(std::vector<Instruction>& ops, InstructList::iterator it)

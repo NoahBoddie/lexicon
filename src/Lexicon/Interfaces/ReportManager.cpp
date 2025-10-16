@@ -381,8 +381,20 @@ namespace LEX
 	};
 
 
-	std::unordered_map<thread_hash, std::vector<LogEditorEntry>> newList;
+	//std::unordered_map<thread_hash, std::vector<LogEditorEntry>> newList;
 
+	thread_local std::unique_ptr<std::vector<LogEditorEntry>> newList2;
+
+	std::vector<LogEditorEntry>& GetList()
+	{
+		auto& space = newList2;
+
+		if (!space) {
+			space = std::make_unique<std::vector<LogEditorEntry>>();
+		}
+
+		return *space;
+	}
 
 
 
@@ -390,23 +402,25 @@ namespace LEX
 	{
 		EditorHandle handle{ ++nextId };
 
-		std::hash<std::thread::id> hasher{};
-
-		thread_hash hash = hasher(std::this_thread::get_id());
-
-		newList[hash].emplace_back(handle._id, std::move(editor));
+		//std::hash<std::thread::id> hasher{};
+		//thread_hash hash = hasher(std::this_thread::get_id());
+		//newList[hash].emplace_back(handle._id, std::move(editor));
+		
+		GetList().emplace_back(handle._id, std::move(editor));
 
 		return handle;
 	}
 
 	void ReportManager::RemoveEditor(EditorHandle& handle)
 	{
-		std::hash<std::thread::id> hasher{};
+		auto& vector = GetList();
 
-		size_t hash = hasher(std::this_thread::get_id());
+		//std::hash<std::thread::id> hasher{};
+		//size_t hash = hasher(std::this_thread::get_id());
 
-		if (auto _it = newList.find(hash); newList.end() != _it) {
-			auto& vector = _it->second;
+		//if (auto _it = newList.find(hash); newList.end() != _it) 
+		{
+			//auto& vector = _it->second;
 
 			auto end = vector.rend();
 
@@ -415,16 +429,7 @@ namespace LEX
 			auto it = std::find_if(vector.rbegin(), vector.rend(), [&handle](auto& it) { return it.id == handle._id; });
 
 			if (it != end) {
-				if (vector.size() == 1) {
-					//If this is the last one, remove entry
-					newList.erase(hash);
-				}
-				else {
-					//If this isn't remove the function.
-					vector.erase(std::next(it).base());
-					//remove entry
-				}
-
+				vector.erase(std::next(it).base());
 			}
 		}
 	}
@@ -438,21 +443,18 @@ namespace LEX
 		//Look, I'm keeping it a buck fifty. This shit is terrible and it does not fucking work right. Specifically when it comes to appending stuff.
 		// It things can override each other, but for now, I'm just going to say I don't care.
 		
-		std::hash<std::thread::id> hasher{};
+		auto& vector = GetList();
 
-		thread_hash hash = hasher(std::this_thread::get_id());
 
 		LogResult out = LogResult::Show;
 
-		if (auto it = newList.find(hash); newList.end() != it) {
-			for (auto& [id, func] : it->second) {
-					func(params, state, out);
-					//Will only care to stop if it's not an exception.
+		for (auto& [id, func] : vector) {
+				func(params, state, out);
+				//Will only care to stop if it's not an exception.
 
 #pragma warning(suppress: 26813)
-					if (out == LogResult::Stop && state != LogState::Except)
-						return false;
-			}
+				if (out == LogResult::Stop && state != LogState::Except)
+					return false;
 		}
 	
 		return out == LogResult::Show;

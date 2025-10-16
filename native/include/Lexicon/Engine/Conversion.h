@@ -124,6 +124,41 @@ namespace LEX
 
 		};
 
+		//Creates an operand based on the conversion type if any.
+		/*
+		//Operand uses this by proxy, so it needs to be in a source file
+		//#include "Lexicon/Engine/Operand.h"
+		std::vector<Operand> CreateOperand(ConvertResult res)
+		{
+			//Steal from compile util more pls
+			bool fall = false;
+
+			switch (res.data)
+			{
+			case ConversionEnum::ImplDefined:
+				compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
+				break;
+
+			case ConversionEnum::UserDefined:
+
+				compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
+
+
+				if (!fall)
+					break;
+
+				[[fallthrough]];
+
+			case ConversionEnum::UserToImplDefined:
+				return Operand{ userToImpl, OperandType::Callable };
+
+			default:
+				return {};
+			}
+
+
+		}
+		//*/
 		//Merge convert results with this shit btw.
 
 		//This should tell how you jumped from one value to the next. Approx 3 pointers long.

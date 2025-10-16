@@ -27,6 +27,7 @@ namespace LEX
 		}
 
 		CheckDefault(index, offset, flags);
+		CheckVariadic(index, offset);
 
 		ParameterInfo* subject = FindParameterByPos(index);
 
@@ -382,8 +383,9 @@ namespace LEX
 	RuntimeVariable BasicCallableData::BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, std::optional<Procedure> prod)
 	{
 
-		if (args.size() != GetParamCount())
-			report::apply::critical("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
+		//if (args.size() != GetParamCount())
+		if (auto [min, max] = GetParamRange(); args.size() < min || args.size() > max)
+			report::apply::error("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
 		
 		//TODO: Make this debug
 		logger::info("Preparing Execute for: {}", self ? self->GetName() : "Nameless function"sv);

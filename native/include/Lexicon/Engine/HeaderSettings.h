@@ -69,6 +69,7 @@ namespace LEX
 		headerGuide[KeywordType::TypeQual]["maybe"] = { HeaderFlag::Reference, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["scoped"] = { HeaderFlag::Reference, HeaderFlag::None };
 	
+		headerGuide[KeywordType::TypeQual]["..."] = { HeaderFlag::None, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["mutable"] = { HeaderFlag::Mutable, HeaderFlag::None };
 		headerGuide[KeywordType::TypeQual]["const"] = { HeaderFlag::Constness, HeaderFlag::Mutable };
 		headerGuide[KeywordType::TypeQual]["readonly"] = { HeaderFlag::Constness, HeaderFlag::Mutable };

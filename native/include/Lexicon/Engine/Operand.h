@@ -10,9 +10,17 @@ namespace LEX
 {
 	class Runtime;
 
+	enum struct DynamicIndex
+	{
+		None,
+		Argument,
+		Variable,
+		Parameter,
+	};
+
 	struct Operand : public Target
 	{
-		
+
 
 		//private;
 		Target& data()
@@ -20,7 +28,22 @@ namespace LEX
 			return *this;
 		}
 
-		OperandType type{ OperandType::Total };
+		OperandType opType{ OperandType::Total };
+
+		constexpr OperandType type() const noexcept
+		{
+			return opType & ~OperandType::DynamicIndex;
+		}
+
+		bool IsVariable() const
+		{
+			return type() == OperandType::Variable;//Account for the index type?
+		}
+
+		bool IsParameter() const
+		{
+			return type() == OperandType::Parameter;//Account for the index type?
+		}
 
 
 		template <typename T, OperandType Type>
@@ -29,18 +52,18 @@ namespace LEX
 			//This entire thing needs
 			if constexpr ((uint8_t)Type < (uint8_t)OperandType::Invalid)
 			{
-				if (Type == type)
+				if (Type == type())
 				{
 					T result{};
 					//Error message should probably be different here.
-					if (data().Get<Type>(result) == false) {	
-						report::runtime::critical("Failure to get Target, OperandType {}", (uint8_t)Type);
+					if (data().Get<Type>(result) == false) {
+						report::runtime::critical("Failure to get Target, OperandType {}", magic_enum::enum_name(Type));
 					}
 
 					return result;
 
 				}
-				else 
+				else
 				{
 					return _InternalGet<T, OperandType((uint8_t)Type + 1)>();
 				}
@@ -59,11 +82,11 @@ namespace LEX
 			//This entire thing needs
 			if constexpr ((uint8_t)Type < (uint8_t)OperandType::Invalid)
 			{
-				if (Type == type)
+				if (Type == type())
 				{
 					//Error message should probably be different here.
 					return data().Get<Type>(result);
-					
+
 				}
 				else
 				{
@@ -95,18 +118,49 @@ namespace LEX
 		template <OperandType Type, typename T>
 		bool Equals(T value)
 		{
-			if (Type != type)
+			if (Type != type())
 				return false;
 
 			T result{};
-			
+
 			if (data().Get<Type>(result) == false)
 				return false;
 
 			return result == value;
 		}
 
+		Index GetIndex(Runtime* runtime);
 
+		Differ GetDiffer(Runtime* runtime);
+
+		Number GetConstant();
+		
+		//I'd like to rework some of the names, GetValueNumber gives a number, get value the runtime var. same idea for getNumber, where it's GetSubjectNumber
+
+
+		
+		RuntimeVariable GetValue(Runtime* runtime);
+		RuntimeVariable& AsValue(Runtime* runtime);
+
+		Number GetValueNumber(Runtime* runtime)
+		{
+			return GetValue(runtime)->AsNumber();
+		}
+		Number GetSubjectNumber(Runtime* runtime)
+		{
+			return GetSubject(runtime)->AsNumber();
+		}
+
+
+		RuntimeVariable& AsSubject(Runtime* runtime);
+		RuntimeVariable GetSubject(Runtime* runtime);
+
+		constexpr OperandType GetDynamicIndex() const noexcept
+		{
+			return opType & OperandType::DynamicIndex;
+		}
+
+		RuntimeVariable& CheckDynamicSubject(Runtime* runtime, RuntimeVariable& subject);
 		Variable CopyVariable(Runtime* runtime);
 
 
@@ -126,16 +180,18 @@ namespace LEX
 
 		constexpr bool IsTemporary() const noexcept
 		{
-			switch (type)
+			switch (type())
 			{
 			case OperandType::Register:
 			case OperandType::Literal:
-			//case OperandType::Argument://Argument is pretty temporary
-				return true;
+				//case OperandType::Argument://Argument is pretty temporary
+				return GetDynamicIndex();
 			default:
 				return false;
 			}
 		}
+
+		constexpr bool IsEmpty() const noexcept { return type() == OperandType::None; }
 
 
 		constexpr static Operand None()
@@ -143,10 +199,43 @@ namespace LEX
 			return Operand{ 0, OperandType::None };
 		}
 
-		constexpr Operand() = default;
-		constexpr Operand(Target d, OperandType t) : Target{ d }, type{ t }
+		constexpr Operand AsDynamic(DynamicIndex type) const noexcept
 		{
+			Operand copy = *this;
 
+			//If not a constexpr should be able to report an incompatible type if used with something like a literal
+
+			switch (type)
+			{
+			case DynamicIndex::Variable:
+				copy.opType |= OperandType::VariableIndex;
+				break;
+			case DynamicIndex::Argument:
+				copy.opType |= OperandType::ArgumentIndex;
+				break;
+			case DynamicIndex::Parameter:
+				copy.opType |= OperandType::ParameterIndex;
+				break;
+			}
+
+			return copy;
+		}
+
+		constexpr Operand() = default;
+		constexpr Operand(Target d, OperandType t, DynamicIndex ind = DynamicIndex::None) : Target{ d }, opType{ t }
+		{
+			switch (ind)
+			{
+			case DynamicIndex::Variable:
+				opType |= OperandType::VariableIndex;
+				break;
+			case DynamicIndex::Argument:
+				opType |= OperandType::ArgumentIndex;
+				break;
+			case DynamicIndex::Parameter:
+				opType |= OperandType::ParameterIndex;
+				break;
+			}
 		}
 	};
 

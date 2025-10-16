@@ -58,8 +58,8 @@ namespace LEX
 		//switch order, reg last
 		constexpr Instruction(InstructionType it, Register reg = Register::Invalid, Operand left = {}, Operand right = {}, uint32_t i = -1) :
 			_instruct{ it }, _out{ reg },
-			_lhs{ left }, _ltype{ left.type },
-			_rhs{ right }, _rtype{ right.type },
+			_lhs{ left }, _ltype{ left.opType },
+			_rhs{ right }, _rtype{ right.opType },
 			index{ i }
 		{}
 
@@ -77,8 +77,8 @@ namespace LEX
 		//remove when above is fixed
 		constexpr Instruction(InstructionType it, Operand left, Operand right = {}, uint32_t i = -1) :
 			_instruct{ it },
-			_lhs{ left }, _ltype{ left.type },
-			_rhs{ right }, _rtype{ right.type },
+			_lhs{ left }, _ltype{ left.opType },
+			_rhs{ right }, _rtype{ right.opType },
 			index { i }
 
 		{

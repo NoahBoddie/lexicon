@@ -34,6 +34,9 @@ namespace LEX
 			if (IsReadonly() == true)
 				return false;
 
+			if (IsVariadic() == true)
+				return false;
+
 			if (IsConst() && policy->IsValueType() == true)
 				return false;
 

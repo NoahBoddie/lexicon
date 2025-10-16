@@ -168,7 +168,20 @@ namespace LEX
 
 			Function* func = itfc->GetFunction(runtime);
 
-			Index count = a_rhs.Get<Index>();
+			Differ count = a_rhs.GetDiffer(runtime);
+			
+			if (a_rhs.type() == OperandType::Value) {
+				logger::debug("NEW COUNT {} - {} = {}", runtime->GetStackPointer(StackPointer::Argument), count, runtime->GetStackPointer(StackPointer::Argument) - count);
+				count = runtime->GetStackPointer(StackPointer::Argument) - count;
+			}
+			else
+			{
+				logger::debug("NEW COUNT = {}", count);
+			}
+			
+			
+
+
 
 			
 			{//Needs to be scoped for now so args don't maintain references longer than they should
@@ -195,7 +208,7 @@ namespace LEX
 			//For Convert, once when I start using spans, please put it in a single sized array.Just to save space and to not have to allocate.
 			std::vector<RuntimeVariable> from { a_rhs.GetVariable(runtime) };
 
-			get_switch (a_lhs.type)
+			get_switch (a_lhs.type())
 			{
 				case OperandType::Function:
 				{
@@ -242,7 +255,7 @@ namespace LEX
 				//If it's a type it will check if it's current type can be converted into the given thing. if not, it will return it as a null.
 
 				default:
-					report::runtime::critical("Invalid operand type detected. {}", magic_enum::enum_name(a_lhs.type));
+					report::runtime::critical("Invalid operand type detected. {}", magic_enum::enum_name(a_lhs.type()));
 					break;
 
 			}
@@ -250,6 +263,7 @@ namespace LEX
 			if (func)
 				ret = func->Execute(from, runtime, nullptr);
 		}
+
 
 
 		static void AssertConvert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
@@ -321,8 +335,11 @@ namespace LEX
 
 		static void ModArgStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
+			//TODO: I'd like to have an input on the right hand side that can increase size if need be.
+
+
 			//Pretty simple honestly. Increase by the amount.
-			runtime->AdjustStackPointer(StackPointer::Argument, a_lhs.Get<Differ>());
+			runtime->AdjustStackPointer(StackPointer::Argument, a_lhs.GetDiffer(runtime));
 		}
 
 		static void ModVarStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
@@ -382,7 +399,7 @@ namespace LEX
 		{
 			//Moves the right hand into the left hand.
 
-			if (a_lhs.type == OperandType::Literal) {
+			if (a_lhs.type() == OperandType::Literal) {
 				//This is hard enforced because this will impact so much more than this function.
 				report::fault::critical("Transfer attempted to set literal value.");
 			}
@@ -426,9 +443,50 @@ namespace LEX
 				a_lhs.ObtainVariable(runtime)->Assign(a_rhs.GetVariable(runtime).Ref());//Trying it this way because it doesn't need to copy
 				break;
 
+
+			case InstructType::Transfer:
+				//A raw transfer without any extra assign rules, merely takes the variable from the right hand side 
+				// and places it in the subject on the left
+				a_lhs.AsSubject(runtime) = a_rhs.GetSubject(runtime);
+				break;
 			default:
 				report::runtime::critical("Instruct type {} not accounted for.", magic_enum::enum_name(instruct));
 				break;
+			}
+		}
+		//This is also vard convert
+		[[deprecated("This is no longer used, just used an an example of what should be represented code wise")]]
+		static void VardTransfer_DEPRECATED(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			//This is old and I forget how it's done.
+			constexpr auto sign_bit = ((size_t)1 << (sizeof(Index) * 8 - 1));
+
+			Index index = a_lhs.Get<Index>();
+
+			bool no_transfer = index & sign_bit;
+			
+			index &= ~sign_bit;
+
+			//Index to = a_rhs.Get<Index>();
+
+
+			auto budget = runtime->GetVariadicLength(index);
+
+
+			runtime->AdjustStackPointer(StackPointer::Argument, static_cast<int64_t>(budget));
+
+			for (auto i = 0; i < budget; i++)
+			{
+				Index back = budget - (i + 1);
+
+				//TODO: need some synchronized function to call on to do this, so it fits with the intent normally conducted where it not varadic
+				auto& lhs = runtime->GetArgumentFromBack(back);
+				auto& rhs = runtime->GetParameter(index + i);
+
+
+				if (a_rhs.type() != OperandType::None) {
+					Convert(lhs, a_rhs, Operand{ back, OperandType::Argument }, InstructType::Convert, runtime);
+				}
 			}
 		}
 
@@ -452,12 +510,91 @@ namespace LEX
 			report::runtime::trace("Routine returned");
 		}
 
+
+
+		static void ExpressConstant(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		{
+			//If I could merge express constant with express data, that would be ideal
+			auto result = a_rhs.GetConstant();
+			
+			if (a_lhs.IsEmpty() == false)
+				a_lhs.AsVariable(runtime) = result;
+
+			ret = result;
+		}
+
+
+		static void VardAllocate(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			//TODO: instead of this benig the allocate, I'd like to make an instruction or operand type to load that value, and the regular instruction to do this
+			//this should allocate space and move the value into the right hand size, usually a hidden variable created when a variadic argument is used
+
+			Index index = a_rhs.Get<Index>();
+
+
+			auto budget = runtime->GetVariadicLength(index);
+
+
+			runtime->AdjustStackPointer(StackPointer::Argument, static_cast<int64_t>(budget));
+
+			if (a_lhs.IsEmpty() == false)
+				a_lhs.AsVariable(runtime) = budget;
+		}
+
+
+		static void ExpressData(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			//TODO: instead of this benig the allocate, I'd like to make an instruction or operand type to load that value, and the regular instruction to do this
+			//this should allocate space and move the value into the right hand size, usually a hidden variable created when a variadic argument is used
+
+			RuntimeData type = a_lhs.Get<RuntimeData>();
+
+			switch (type)
+			{
+			case RuntimeData::VariadicLength:
+				ret = runtime->GetVariadicLength(a_rhs.Get<Index>());
+				break;
+
+			case RuntimeData::ParameterCount:
+				ret = runtime->GetParameterCount();
+				break;
+
+			case RuntimeData::VariableIndex:
+				ret = runtime->GetStackPointer(StackPointer::Variable);
+				break;
+
+			case RuntimeData::ArgumentIndex:
+				ret = runtime->GetStackPointer(StackPointer::Argument);
+				break;
+			case RuntimeData::RuntimeIndex:
+				ret = runtime->GetStackPointer(StackPointer::Runtime);
+				break;
+			}
+		}
+
+
+
+		static void ModifyValue(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType type, Runtime* runtime)
+		{
+			bool assign = type == InstructType::AssignModValue;
+
+			auto result = a_lhs.GetValueNumber(runtime) + a_rhs.GetSubjectNumber(runtime);
+
+			if (assign)
+				a_lhs.AsValue(runtime) = result;
+
+			ret = result;
+		}
+
+
+
+
 		static void DropStack(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType type, Runtime* runtime)
 		{
 			//Drop should converge with a climb as well.
 
-			if (a_rhs.type != OperandType::None) {
-				Number num = a_rhs.GetVariable(runtime)->AsNumber();
+			if (a_rhs.type() != OperandType::None) {
+				Number num = a_rhs.GetSubjectNumber(runtime);
 				
 				bool be_true;
 
@@ -469,13 +606,13 @@ namespace LEX
 				case InstructType::DropStackN:
 					be_true = false; break;
 				}
-
+				//Please rewrite this it's confusing
 				if (num.Visit([be_true](auto it) { return be_true ? it == 0 : it != 0; }) == true)
 					return;
 			}
 
 			//Rename to drop runtime pointer
-			int64_t move = a_lhs.Get<Differ>();
+			int64_t move = a_lhs.Get<Differ>();//This remains hardcoded because of obvious reasons
 
 
 			runtime->AdjustStackPointer(StackPointer::Runtime, move);
@@ -548,7 +685,7 @@ namespace LEX
 
 		static void DetachRef(RuntimeVariable& result, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
 		{
-			if (a_lhs.type == OperandType::Literal || a_rhs.type == OperandType::Literal) {
+			if (a_lhs.type() == OperandType::Literal || a_rhs.type() == OperandType::Literal) {
 				//This is hard enforced because this will impact so much more than this function.
 				report::runtime::critical("DetachRef attempted to set literal value.");
 			}
@@ -560,7 +697,7 @@ namespace LEX
 			{
 				decltype(auto) out = variable.Detach();
 
-				if (a_rhs.type != OperandType::None) {
+				if (a_rhs.type() != OperandType::None) {
 					
 					a_rhs.AsVariable(runtime) = std::move(out);
 				}
@@ -959,7 +1096,6 @@ namespace LEX
 					lhs = compiler->CompileExpression(left, reg1);
 					
 
-
 					//TODO: If left and right are 2 literals register moving isn't super required.
 					if (prefered == Register::Result && lhs.Equals<OperandType::Register>(Register::Left) == true)
 					{
@@ -1321,7 +1457,7 @@ namespace LEX
 				report::compile::error("Cannot find variable '{}'.", target.GetTag());
 			}
 
-			Solution result = var.AsSolution();
+			Solution result = var.AsSolution(compiler);
 
 
 
@@ -1365,6 +1501,8 @@ namespace LEX
 			int64_t alloc_size = arg_record->size();
 			int64_t sub_alloc = 0;
 
+			bool is_vard_call = false;
+
 			args.resize(alloc_size);
 			operations.resize(alloc_size);
 			
@@ -1388,11 +1526,17 @@ namespace LEX
 				compiler->DelayArgDecrement();
 
 				//Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
-				Solution result = compiler->CompileExpression(arg, Register::Right, operations[i]);//, ops);
+				Solution result = compiler->CompileExpressionFree(arg, Register::Right, operations[i]);//, ops);
 
 				if (auto buf = compiler->ResumeArgDecrement(); buf > sub_alloc) {
 					sub_alloc = buf;
 				}
+
+				if (!is_vard_call && result.IsVariadic() == true) {
+					compiler->AddRoutineFlag(RoutineFlag::ForwardsVariadic);
+					is_vard_call = true;
+				}
+
 
 				//compiler->GetInstructionList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
 
@@ -1470,48 +1614,114 @@ namespace LEX
 			bool has_tar = func->GetTargetType();
 
 			//alloc_size = instructions.implied.size() + has_tar;
-			alloc_size = instructions.implied.size();
+			alloc_size = std::max<size_t>(instructions.implied.size(), alloc_size);//TODO: If I ever use params this will have issues
+			alloc_size += instructions.statedEntries.size();
 			alloc_size += has_tar;
 
 			auto& list = compiler->GetInstructionList();
 
+			//Need to figure out where to move this
 
-			auto start = compiler->ModArgCount(alloc_size, sub_alloc);
+			Operand function;
+			Operand param;
 
-			
+			constexpr bool do_new = false;
+
+			//if (alloc_size && (do_new || is_vard_call))
+			if (is_vard_call)
+			{
+				//TODO: Make a compile utility function for this
+				
+				//TODO: This has some issues, I think it shifts the positions. Some how. I believe the issue is possibly the creation of
+				// the variable. accounting for alloc size fixes it????
+				
+				auto tmp = compiler->GetScope()->ObtainLocalVariable(parse_strings::arg_count_buffer);
+				auto reg = compiler->GetPrefered();
+				Operand buffer{ tmp->GetFieldIndex(), OperandType::Value };
+				Operand pref{ reg, OperandType::Register };
+				compiler->PushInstruction(Instruction{ InstructType::ExpressData, reg,
+					Operand{ RuntimeData::ArgumentIndex, OperandType::Enum}, 
+					Operand::None()});
+				compiler->PushInstruction(Instruction{ InstructType::Transfer, buffer, pref });
+
+				param = buffer;
+			}
+			else {
+				param = Operand{ alloc_size, OperandType::Differ };
+			}
+
+
+			if (!is_vard_call)
+				compiler->ModArgCount(alloc_size, sub_alloc);
+
+
 
 			if (func->GetTargetType().policy != nullptr) {
 				//This will push itself into the arguments, but it will only be used under certain situations.
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
-				assert(self->target->type != OperandType::Argument);
+				assert(self->target->type() != OperandType::Argument);
 				compiler->PushInstruction(Instruction{ InstructType::Reference, Operand{ alloc_size, OperandType::Argument }, *self->target });
 			}
+
+
+			auto full_size = alloc_size;
+			auto full_sub = sub_alloc;
+
+			auto early_alloc = [&](Differ i)
+				{
+					compiler->ModArgCount(i, sub_alloc);
+					alloc_size -= i;
+					sub_alloc = 0;
+
+					auto reg = compiler->GetPrefered();
+					Operand pref{ reg, OperandType::Register };
+					compiler->PushInstruction(Instruction{ InstructType::ExpressData, reg,
+						Operand{ RuntimeData::VariadicLength, OperandType::Enum},
+						Operand{ i, OperandType::Index} });
+					compiler->PushInstruction(Instruction{ InstructType::ModArgStack, pref });
+
+				};
 
 			{
 				auto temp = compiler->ReadyNoRecord();
 				for (size_t i = 0; i < args.size(); i++)
 				{
-					auto& o_entry = instructions.implied[i];
+					//auto& o_entry = instructions.implied[i];
+					auto& o_entry = instructions.GetImplied(i, args[i].second);
 					auto& arg = args[i].first;
 					auto& ops = operations[i];
 					auto& record = arg_record->GetChild(i);
-					list.append_range(std::move(ops));
-
-
-
-					//This should basically already be successful, no real need for checks
-					CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, record, Register::Right);
+					//list.append_range(std::move(ops));
 
 					auto index = i + has_tar;
 
-					//list.append_range(CompUtil::MutateLoad(arg, Operand{ start + i + has_tar, OperandType::Argument }, o_entry.type.IsReference()));
-					compiler->AppendInstructions(record, CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
-				}
-			}
-			//default is dealt with here.
+					//This should basically already be successful, no real need for checks
+					//CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, record, Register::Right);
+					//compiler->AppendInstructions(record, CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
+					
+					if (arg.IsVariadic() == true)
+						early_alloc(index);
 
-			Operand function;
+					CompUtil::LoadParameter(compiler, record, arg, full_size - index, o_entry.type.IsReference(), ops, [&](Solution from) -> Solution
+					{
+						CompUtil::HandleConversion(compiler, o_entry.convert, from, o_entry.type, o_entry.convertType, record, Register::Right);
+						
+						return from;
+					});
+				}
+
+			}
+
+			if (is_vard_call)
+				compiler->ModArgCount(alloc_size, sub_alloc);
+
+
+
+
+
+
+			//default is dealt with here.
 
 
 			auto generic = node.GetFunction();
@@ -1521,12 +1731,12 @@ namespace LEX
 			case FunctionNode::kFunction:
 				compiler->EmplaceInstruction(InstructType::Call, compiler->GetPrefered(),
 					Operand{ node.GetFunction(), OperandType::Function },
-					Operand{ alloc_size, OperandType::Index });
+					param);
 				break;
 			case FunctionNode::kMethod:
 				compiler->EmplaceInstruction(InstructType::Call, compiler->GetPrefered(),
 					Operand{ node.GetMethod(), OperandType::Member },
-					Operand{ alloc_size, OperandType::Index });
+					param);
 				break;
 
 			default:
@@ -1534,7 +1744,7 @@ namespace LEX
 				break;
 			}
 
-			compiler->ModArgCount(-alloc_size, -sub_alloc, false);
+			compiler->ModArgCount(-full_size, -full_sub, false);
 
 			//TODO: The return of call should probably handled by whatever generic element it has, the proposed plan that could handle members
 			return Solution{ func->GetReturnType(generic->GetTemplatePart()), OperandType::Register, compiler->GetPrefered() };
@@ -1617,7 +1827,8 @@ namespace LEX
 
 				
 				//compiler->GetInstructionList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
-				compiler->AppendInstructions(def, CompUtil::Load(Operand{ loc_index, OperandType::Index }, result, loc->GetQualifiers().IsReference()));
+				//TODO: Create the below via solution instead.
+				compiler->AppendInstructions(def, CompUtil::Load(Operand{ loc_index, OperandType::Variable }, result, loc->GetQualifiers().IsReference()));
 			}
 
 
@@ -2172,6 +2383,7 @@ namespace LEX
 
 
 			instructList[InstructType::Call] = InstructWorkShop::Call;
+
 			instructList[InstructType::Convert] = InstructWorkShop::Convert;
 			instructList[InstructType::AssertConvert] = InstructWorkShop::AssertConvert;
 			instructList[InstructType::Construct] = InstructWorkShop::Construct;
@@ -2183,6 +2395,7 @@ namespace LEX
 			instructList[InstructType::Reference] = InstructWorkShop::Transfer;
 			instructList[InstructType::Forward] = InstructWorkShop::Transfer;
 			instructList[InstructType::ForwardMove] = InstructWorkShop::Transfer;
+			instructList[InstructType::Transfer] = InstructWorkShop::Transfer;
 
 
 			instructList[InstructType::Return] = InstructWorkShop::Ret;
@@ -2193,6 +2406,8 @@ namespace LEX
 			instructList[InstructType::DefineParameter] = InstructWorkShop::DefineParam;
 			instructList[InstructType::DropStack] = InstructWorkShop::DropStack;
 			instructList[InstructType::DropStackN] = InstructWorkShop::DropStack;
+			instructList[InstructType::ExpressData] = InstructWorkShop::ExpressData;
+			instructList[InstructType::ExpressConstant] = InstructWorkShop::ExpressConstant;
 
 
 			instructList[InstructType::Addition] = InstructWorkShop::BinaryMath<std::plus<>, false>;

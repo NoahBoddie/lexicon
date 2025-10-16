@@ -805,6 +805,10 @@ namespace LEX
 
 		Number Convert(Settings settings) const
 		{
+            if (settings == _setting) {
+                return *this;
+            }
+
 			//This is a really lazy and also incorrect way to do this.
 
 			Number copy = settings;

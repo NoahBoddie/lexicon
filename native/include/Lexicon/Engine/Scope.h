@@ -196,6 +196,32 @@ namespace LEX
 
 		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadArgument* key = nullptr);
 
+		LocalInfo* FindLocalVariable(const std::string& name)
+		{
+			auto end = vars.end();
+
+			if (auto it = vars.find(name); it != end) {
+				return &it->second;
+			}
+			
+			if (_parent) {
+				return _parent->FindLocalVariable(name);
+			}
+			return nullptr;
+		}
+
+		
+		LocalInfo* ObtainLocalVariable(const std::string& name, QualifiedType type = QualifiedType{common_type::object() })
+		{
+			//The type usually doesn't matter due to these usually being spaces to place numbers.
+			auto result = FindLocalVariable(name);
+
+			if (!result) {
+				result = CreateVariable(name, type);
+			}
+
+			return result;
+		}
 
 		Scope* parent() { return _parent; }
 

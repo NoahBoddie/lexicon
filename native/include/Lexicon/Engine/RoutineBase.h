@@ -93,6 +93,14 @@ namespace LEX
 	};
 	//*/
 	
+	ENUM(RoutineFlag, uint8_t)
+	{
+		None = 0,
+		ForwardsVariadic = 1 << 0,//This basically unhooks the allocations. THough, this may not really be that useful in general I think
+		ForwardsParameters = 1 << 1,
+	};
+
+
 	//Needs to be named RoutineData, as there is no routine class to derive from this.
 	struct RoutineBase : public RecordHolder
 	{
@@ -104,10 +112,12 @@ namespace LEX
 
 
 		//Doesn't actually need to take vector could be list.
-		RoutineBase(std::vector<Instruction>&& op, const RecordList& recs, size_t var, size_t arg) :
+		RoutineBase(std::vector<Instruction>&& op, const RecordList& recs, uint32_t var, uint32_t arg, uint32_t param, RoutineFlag flag = RoutineFlag::None) :
 			instructions{ std::forward<std::vector<Instruction>>(op) }
 			, varCapacity{ var }
 			, argCapacity{ arg }
+			, paramCapacity{ param }
+			, flags { flag }
 			, RecordHolder{ recs }
 		{
 			for (int i = 0; i < instructions.size(); i++)
@@ -143,14 +153,22 @@ namespace LEX
 			name = hold2;
 
 		}
+		uint32_t paramCapacity = 0;
+		uint32_t varCapacity = 0;		//The maximum amount of variables to allocate for
+		uint32_t argCapacity = 0;		//The maximum amount of arguments the stack will ever need to allocate.
+		RoutineFlag flags = RoutineFlag::None;
 
-		size_t varCapacity = 0;		//The maximum amount of variables to allocate for
-		size_t argCapacity = 0;		//The maximum amount of arguments the stack will ever need to allocate.
 
+		bool ForwardsVaradic() const
+		{
+			return flags & RoutineFlag::ForwardsVariadic;
+		}
 
+		//Add numbers here
+		size_t GetParamCapacity() const { return paramCapacity; }
+		size_t GetVarCapacity(uint32_t vard) const { return  paramCapacity + varCapacity + vard; }
+		size_t GetArgCapacity(uint32_t vard) const { return argCapacity + (ForwardsVaradic() ? vard : 0); }
 
-		size_t GetVarCapacity() const { return varCapacity; }
-		size_t GetArgCapacity() const { return argCapacity; }
 
 		size_t GetInstructCapacity() const { return instructions.size(); }
 

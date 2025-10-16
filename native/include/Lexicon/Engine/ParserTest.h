@@ -6,8 +6,23 @@
 
 #include "Lexicon/Engine/OperatorSetting.h"
 
+//TMP
+#include "RoutineCompiler.h"
+
 namespace LEX
 {
+
+	//TODO: Move this shit and make it proper
+	inline bool IsExpressionTMP(SyntaxType type)
+	{
+		auto it = generatorList.find(type);
+
+		if (generatorList.end() != it)
+			return it->second.index() == 2;
+
+		return false;
+	}
+
 	//ENCHAIN::ABACCCAA
 
 
@@ -1225,6 +1240,11 @@ namespace LEX
 					if (stream->SkipIfType(TokenType::Operator, "=") == true) {
 						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::extends, SyntaxType::None, { stream->ParseSyntax() }));
 					}
+					else if (stream->IsType(TokenType::Punctuation, "...") == true)
+					{
+						ParseUtility::AddHeaderKeyword(KeywordType::TypeQual, result, ParsingStream::CreateExpression(stream->next(), SyntaxType::None));
+					}
+
 
 					return result;
 				};
@@ -2125,7 +2145,7 @@ namespace LEX
 
 			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
 			{
-				return target && stream->IsType(TokenType::Keyword, "as");
+				return target && IsExpressionTMP(target->SYNTAX().type) && stream->IsType(TokenType::Keyword, "as");
 			}
 
 

@@ -13,6 +13,19 @@ namespace LEX
 
 	using Index = uint64_t;
 	using Differ = int64_t;
+	
+	struct IndexSplit
+	{
+		uint32_t first;
+		uint32_t second;
+	};
+	
+	struct DifferSplit
+	{
+		int32_t first;
+		int32_t second;
+	};
+
 
 	struct IGlobal;
 
@@ -21,6 +34,11 @@ namespace LEX
 		//Needs to be able to handle literals, which are not variable pointers.
 		constexpr Target() {}
 		constexpr Target(int arg) : raw{ arg } {}//doesn't matter which it is.
+		template<typename T>
+		constexpr Target(T arg) requires (std::is_enum<T>::value) : raw{(uint64_t)arg} {}//doesn't matter which it is.
+		constexpr Target(uint32_t arg) : raw{ arg } {}//doesn't matter which it is.
+		constexpr Target(IndexSplit arg) : inSplit{ arg } {}
+		constexpr Target(DifferSplit arg) : difSplit{ arg } {}
 		constexpr Target(Differ arg) : differ{ arg } {}
 		constexpr Target(Index arg) : index{ arg } {}
 		constexpr Target(Register arg) : reg{ arg } {}
@@ -34,13 +52,12 @@ namespace LEX
 		template <OperandType Type, typename T>
 		bool Get(T& out)
 		{
-			if constexpr (Type == OperandType::None) {
+			if constexpr (Type == OperandType::None || Type == OperandType::Enum && std::is_enum_v<T>) {
 				out = reinterpret_cast<T&>(raw);
 				return true;
 			}
 			else {
 				return false;
-
 			}
 
 		}
@@ -66,6 +83,30 @@ namespace LEX
 			return true;
 		}
 
+
+
+		template <>
+		bool Get<OperandType::Variable, Index>(Index& out)
+		{
+			out = index;
+			return true;
+		}
+
+		template <>
+		bool Get<OperandType::Value, Index>(Index& out)
+		{
+			out = index;
+			return true;
+		}
+
+		template <>
+		bool Get<OperandType::Parameter, Index>(Index& out)
+		{
+			out = index;
+			return true;
+		}
+
+
 		template <>
 		bool Get<OperandType::Argument, Index>(Index& out)
 		{
@@ -81,6 +122,20 @@ namespace LEX
 			return true;
 		}
 
+		template <>
+		bool Get<OperandType::IndexSplit, IndexSplit>(IndexSplit& out)
+		{
+			out = inSplit;
+			return true;
+		}
+
+
+		template <>
+		bool Get<OperandType::DifferSplit, DifferSplit>(DifferSplit& out)
+		{
+			out = difSplit;
+			return true;
+		}
 
 
 		template <>
@@ -124,6 +179,8 @@ namespace LEX
 		union
 		{
 			int64_t raw = static_cast<int64_t>(-1);
+			DifferSplit difSplit;
+			IndexSplit inSplit;
 			Differ differ;
 			Index index;
 			Register reg;
