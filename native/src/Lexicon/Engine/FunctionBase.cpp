@@ -177,7 +177,8 @@ namespace LEX
                 QualifiedType type = header;
 
                 if (type.IsVariadic() == true) {
-                    vardIndex = i;
+                    //vardIndex = i;
+                    vardIndex = GetArgCount();
                 }
 
                 //auto& tag = node.FindChild("type")->GetFront().GetTag();
@@ -194,6 +195,8 @@ namespace LEX
                 auto& param = parameters.emplace_back(type, node.GetTag(), GetParamCount());
                 
                 assert(param.GetType());
+
+                i++;
             }
 
             break;

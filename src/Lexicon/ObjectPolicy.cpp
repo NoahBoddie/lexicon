@@ -13,6 +13,11 @@ namespace LEX
 
 		ObjectDataType type = ObjectDataType::kNone;
 
+		//auto offset = GetTypeOffset(data);
+		//if (offset < (uint16_t)-1) {
+		//	offset = 0;
+		//}
+
 		if (IsPooled(data) == true) {
 			data = InitializePool(data, GetStorageType());
 			type = ObjectDataType::kRef;
@@ -22,6 +27,7 @@ namespace LEX
 		}
 
 
+		//return Object{ data, index, type, (uint16_t)offset };
 		return Object{ data, index, type };
 	};
 }

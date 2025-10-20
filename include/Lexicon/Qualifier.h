@@ -86,7 +86,7 @@ namespace LEX
 
 		//Please note QualifierFlags aren't to be observed in an official capacity, they're mostly used for compiling. They also may be subject to change.
 		None = 0,
-		Varadic = 1 << 0,
+		Variadic = 1 << 0,
 		ImplicitReadonly = 1 << 1,
 //#ifdef LEX_SOURCE
 		
@@ -271,7 +271,7 @@ namespace LEX
 
 		constexpr bool IsVariadic() const
 		{
-			return flags & QualifierFlag::Varadic;
+			return flags & QualifierFlag::Variadic;
 		}
 
 

@@ -356,7 +356,7 @@ namespace LEX
 		{ 
 			//logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
 			
-		
+			
 			//RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);
 			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
@@ -1477,7 +1477,7 @@ namespace LEX
 
 
 
-		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target, TargetObject* self)
 		{
 
 			//The argument check has to happen first.
@@ -1493,7 +1493,7 @@ namespace LEX
 			//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
 			//std::vector<Instruction> ops{1};
 
-			TargetObject* self = compiler->GetTarget();
+			//TargetObject* self = compiler->GetTarget();
 
 			std::vector<std::pair<Solution, size_t>> args;
 			std::vector<std::vector<Instruction>> operations;
@@ -1858,7 +1858,7 @@ namespace LEX
 			if (target.size() != 0)
 			{
 				auto& ret = target.GetChild(0);
-
+				
 				Solution result = compiler->PushExpression(target.GetChild(0), Register::Result, compiler->IsReturnReference());
 
 				//Right here the solutions given type should be evaluated to see if a correct type is being returned.

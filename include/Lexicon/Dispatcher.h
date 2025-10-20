@@ -3,11 +3,13 @@
 #include "Lexicon/Variable.h"
 #include "Lexicon/Unvariable.h"
 #include "Lexicon/Revariable.h"
+
 #include "Lexicon/RuntimeVariable.h"
 
 #include "Lexicon/Impl/ref_wrapper.h"
 
 //*src
+#include "Lexicon/variadic.h"
 #include "Lexicon/Function.h"
 
 namespace LEX
@@ -59,11 +61,25 @@ namespace LEX
 	template <class R, class T, class... Args>
 	struct BasicDispatcher : public Dispatcher  //<R(Args...)>
 	{
+
+		static constexpr bool has_args = sizeof...(Args);
+
+
 		using Self = BasicDispatcher<R, T, Args...>;
 		using Signature = std::tuple<R, T, Args...>;
 		using Function = R (*)(T, Args...);
 	private:
-
+		consteval static bool IsVariadic() noexcept
+		{
+			if constexpr (has_args)
+			{
+				return is_specialization_of<std::tuple_element_t<sizeof...(Args) - 1, std::tuple<Args...>>, variadic>::value;
+			}
+			else
+			{
+				return false;
+			}
+		}
 		
 	public:
 		static bool Create(Function func, IFunction* dispatchee) 
@@ -79,16 +95,46 @@ namespace LEX
 		}
 
 		Function _callback = nullptr;
-
+		/*
+		template <typename Guide, typename Elem>
+		decltype(auto) load_tuple_arg(Elem& elem) 
+		{
+			if constexpr (std::is_same_v<std::remove_cvref_t<Guide>, std::remove_cvref_t<Elem>>) {
+				return std::forward<Guide>(elem);
+			}
+			else {
+				static_assert(!std::is_lvalue_reference_v<Guide>);
+				return Guide{ elem };
+			}
+		}
+		//*/
+		
+		template <typename Guide, typename Elem>
+		static Guide load_tuple_arg(Elem& elem) requires (!std::is_same_v<std::remove_cvref_t<Guide>, std::remove_cvref_t<Elem>>)
+		{
+			return Guide{ elem };
+		}
+		template <typename Guide, typename Elem>
+		static decltype(auto) load_tuple_arg(Elem& elem) requires (std::is_same_v<std::remove_cvref_t<Guide>, std::remove_cvref_t<Elem>>)
+		{
+			return std::forward<Guide>(elem);
+		}
 
 		template <typename GuideType, typename TupleType, std::size_t... Indices>
-		auto tie_as_tuple(TupleType& t, std::index_sequence<Indices...>) {
+		static auto tie_as_tuple(TupleType& t, std::index_sequence<Indices...>) {
 			//std::forward_as_tuple<std::tuple_element_t<Indices, TupleType>...>
-			return std::forward_as_tuple(std::forward<std::tuple_element_t<Indices, GuideType>>(std::get<Indices>(t))...);
+			//return std::forward_as_tuple(std::forward<std::tuple_element_t<Indices, GuideType>>(std::get<Indices>(t))...);
+			
+			//static_assert(false, "The issue below");
+			//The problem is with no proper home, the thing that's to be forwarded for apply is a reference to no where
+
+#define LOAD_ARG load_tuple_arg<std::tuple_element_t<Indices, GuideType>>(std::get<Indices>(t))
+			return std::tuple<decltype(LOAD_ARG)...>(LOAD_ARG...);
+#undef LOAD_ARG
 		}
 
 		template <typename... GuideTypes, typename TupleType>
-		auto tie_as_tuple(TupleType& t) {
+		static auto tie_as_tuple(TupleType& t) {
 			return tie_as_tuple<std::tuple<GuideTypes...>>(t, std::make_index_sequence<std::tuple_size_v<TupleType>>{});
 		}
 
@@ -146,6 +192,33 @@ namespace LEX
 			}
 		}
 		
+		template<typename Ty>
+		auto ImportTarget(std::span<Variable*>& args, size_t index)
+		{
+			if constexpr (std::same_as<StaticTargetTag, Ty>)
+			{
+				return StaticTargetTag{};
+			}
+			else {
+				constexpr bool can_use_index = requires(Variable * var, size_t i)
+				{
+					Unvariable<Ty>{}(var, i);
+				};
+
+				if constexpr (can_use_index)
+				{
+					Variable* empty = nullptr;//This is a buffer since we're going to be using a reference
+
+					//Must be variadic to do this I feel I should make it say
+					return Unvariable<Ty>{}(index < args.size() ? args[index] : empty, args.size() - index);
+				}
+				else {
+					return Unvariable<Ty>{}(args[index]);
+				}
+
+			}
+		}
+
 
 		
 		template<size_t T, size_t ... Ts>
@@ -275,7 +348,7 @@ namespace LEX
 		};
 
 
-		//*
+		
 		//If I can find a way to put the onus of this on the type perhaps? Would debugging be easier?
 		template<size_t... Indices>
 		inline void DispatchImpl(RuntimeVariable& out, Variable* target, std::span<Variable*>& args, ProcedureData& data, std::index_sequence<Indices...>) 
@@ -285,14 +358,20 @@ namespace LEX
 			using TArgs = std::tuple<detail::try_wrap_param_t<Args>...>;
 
 
-			constexpr size_t arg_size = std::tuple_size_v<std::tuple<Args...>>;
-
-			if (auto list_size = args.size(); list_size != arg_size) {
-				//Shit isn't the same fucking size I'm losing my mind.
-				report::apply::error("Dispatch args and expected args do not match.");
+			//constexpr size_t arg_size = std::tuple_size_v<std::tuple<Args...>>;
+			constexpr size_t min_size = sizeof...(Args) - IsVariadic();
+			constexpr size_t max_size = IsVariadic() ? -1 : min_size;
+			
+			//if (auto list_size = args.size(); list_size != arg_size) {
+			if (auto list_size = args.size(); list_size < min_size || list_size > max_size) {
+					//Shit isn't the same fucking size I'm losing my mind.
+				report::apply::error("Dispatch args and expected args do not match. min: {} max: {}, current: {}", min_size, max_size, list_size);
 			}
 
-			Param tuple{ ImportTarget<detail::try_wrap_param_t<T>>(target), Unvariable<std::tuple_element_t<Indices, TArgs>>{}(args[Indices])...};
+			//Param tuple{ ImportTarget<detail::try_wrap_param_t<T>>(target), Unvariable<std::tuple_element_t<Indices, TArgs>>{}(args[Indices])... };
+			//I'm experimenting with a concept where I allow unvariable to return a type it normally wouldn't, provided it can turn into the expected one
+			//std::tuple tuple{ ImportTarget<detail::try_wrap_param_t<T>>(target), Unvariable<std::tuple_element_t<Indices, TArgs>>{}(args[Indices])... };
+			std::tuple tuple{ ImportTarget<detail::try_wrap_param_t<T>>(target), ImportTarget<std::tuple_element_t<Indices, TArgs>>(args, Indices)...};
 
 			decltype(auto) result = LaunderDispatch(tuple);
 
@@ -362,47 +441,6 @@ namespace LEX
 #endif
 		}
 		//*/
-
-
-		void Dispatch_Old(RuntimeVariable& result, Variable* target, std::vector<Variable*>& args, ProcedureData& data)
-		{
-			//Unload that shit.
-			//using Arg1 = std::tuple_element_t<0, std::tuple<Args...>>;
-
-			constexpr size_t arg_size = std::tuple_size_v<std::tuple<Args...>>;
-
-			if (auto list_size = args.size(); list_size != arg_size) {
-				//Shit isn't the same fucking size I'm losing my mind.
-				report::apply::error("Dispatch args and expected args do not match.");
-			}
-
-			//typename function_traits<std::remove_pointer_t<decltype(T)>>::arguments args;
-
-			//I'll want to remove the references due to being unable to load them like this.
-			std::tuple<T, std::remove_reference_t<Args>...> tuple;
-			//static_assert(std::is_same_v<std::tuple<Target, int, int, int>,
-			//	function_traits<std::remove_pointer_t<decltype(T)>>::arguments>, "GN  NE NIP");
-
-			if constexpr (!std::is_same_v<T, StaticTargetTag>)
-			{
-				std::get<0>(tuple) = Unvariable<T>{}(target);
-			}
-
-			ValueImport(tuple, args);
-			//Here we get the return type and switch up on it.
-
-			//Confirm if the types are correct.
-
-			if constexpr (std::is_same_v<R, void>) {
-				std::apply(_callback, tuple);
-			} else {
-				R to_result = std::apply(_callback, tuple);
-
-				//under more normal situations, vary this by whether it's a ref or not.
-
-				result = Variable{ to_result, GetVariableType<R>() };
-			}
-		}
 
 		constexpr BasicDispatcher(Function func) :
 			_callback{ func }

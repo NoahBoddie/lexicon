@@ -18,7 +18,7 @@ namespace LEX
 		auto it = generatorList.find(type);
 
 		if (generatorList.end() != it)
-			return it->second.index() == 2;
+			return it->second.index() >= 2;
 
 		return false;
 	}

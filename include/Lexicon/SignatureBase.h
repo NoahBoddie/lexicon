@@ -2,7 +2,7 @@
 
 #include "Lexicon/Impl/ref_wrapper.h"
 #include "Lexicon/AnnotatedType.h"
-
+#include "Lexicon/variadic.h"
 namespace LEX
 {
 	enum struct SignatureEnum
@@ -97,6 +97,11 @@ namespace LEX
 						entry.reference = Refness::Auto;
 					}
 				}
+			}
+
+			if constexpr (is_specialization_of<_Refless, variadic>::value) {
+				static_assert(!next_size, "The last parameter cannot be variadic");
+				entry.flags |= QualifierFlag::Variadic;
 			}
 			
 

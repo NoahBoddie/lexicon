@@ -10,6 +10,8 @@ namespace LEX
 	struct TargetObject : public ITemplateBodyPart
 	{
 		//TODO: Award TargetObject the ability to get RoutineCompiler's target object.
+		//TODO: This has less needs than it used to. Please scale TargetObject's set up back a bit
+
 
 		enum Flag : uint8_t
 		{
@@ -22,7 +24,7 @@ namespace LEX
 
 		Solution* target = nullptr;
 		TargetObject* const prev = nullptr;
-		TargetObject*& slot;
+		TargetObject** slot = nullptr;
 		Flag			flag = Flag::None;
 		
 		//The compiler would have it's hand on who stores incompletes. So, use that instead of the target
@@ -65,14 +67,24 @@ namespace LEX
 			return this ? target : nullptr;
 		}
 
-		TargetObject(Solution* t, TargetObject*& p, Flag f = Flag::None) : target{ t }, slot {p}, prev{p}, flag{f}
+		TargetObject(Solution* t, Flag f = Flag::None) : target{ t }, flag{ f }
 		{
-			slot = this;
+			if (slot)
+				*slot = this;
 		}
+
+		TargetObject(Solution* t, TargetObject*& p, Flag f = Flag::None) : target{ t }, slot {&p}, prev{p}, flag{f}
+		{
+			if (slot)
+				*slot = this;
+		}
+
+
 
 		~TargetObject()
 		{
-			slot = prev;
+			if (slot)
+				*slot = prev;
 		}
 	};
 }

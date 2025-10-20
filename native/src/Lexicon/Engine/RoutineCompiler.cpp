@@ -18,27 +18,30 @@
 #include "Lexicon/Impl/common_type.h"
 namespace LEX
 {
-	Solution Generator::GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& target)
+	Solution Generator::GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& record, TargetObject* target)
 	{
 		//The factory pieces seem like they need something to plug into
 
-		auto temp = compiler->ReadyRecord(target);
+		auto temp = compiler->ReadyRecord(record);
 
 		get_switch(index())
 		{
 			case 0:
-				target.critical<IssueType::Fault>("Code Generator is neither a statement nor expression.", switch_value); break;
+				record.critical<IssueType::Fault>("Code Generator is neither a statement nor expression.", switch_value); break;
 
 			case 1:
-				std::get<StatementProcessor>(*this)(reinterpret_cast<RoutineCompiler*>(compiler), target); break;
+				std::get<StatementProcessor>(*this)(reinterpret_cast<RoutineCompiler*>(compiler), record); break;
 
 			case 2:
-				return std::get<ExpressionProcessor>(*this)(reinterpret_cast<ExpressionCompiler*>(compiler), target);
+				return std::get<ExpressionProcessor>(*this)(reinterpret_cast<ExpressionCompiler*>(compiler), record);
 
+
+			case 3:
+				return std::get<TargetExpressionProcessor>(*this)(reinterpret_cast<ExpressionCompiler*>(compiler), record, target);
 
 
 			default:
-				target.critical<IssueType::Fault>("Code Generator is unknown. (type {})", switch_value); break;
+				record.critical<IssueType::Fault>("Code Generator is unknown. (type {})", switch_value); break;
 		}
 
 		return {};

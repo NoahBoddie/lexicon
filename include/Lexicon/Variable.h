@@ -193,7 +193,7 @@ namespace LEX
 
 		auto Inc() const
 		{
-			logger::info("inc {:X}", (uintptr_t)this);
+			logger::trace("inc {:X}", (uintptr_t)this);
 			return ++GetData().refs;
 		}
 
@@ -205,7 +205,7 @@ namespace LEX
 			if (!refs)
 				report::fault::critical("Decrementing refs below 0.");
 
-			logger::info("dec {:X}", (uintptr_t)this);
+			logger::trace("dec {:X}", (uintptr_t)this);
 			return --refs;
 		}
 
@@ -337,7 +337,7 @@ namespace LEX
 
 		VariableEnum GetVariableEnum() const
 		{
-			return GetVariableEnum();
+			return (VariableEnum)index();
 		}
 
 		bool IsVariableEnum(VariableEnum type) const

@@ -135,7 +135,8 @@ namespace LEX
 
 		uint32_t GetParamCountMax() const
 		{
-			return GetArgCountMax() + HasTarget();
+			auto res = GetArgCountMax();
+			return std::max(res + HasTarget(), res);
 		}
 
 		std::array<uint32_t, 2> GetParamRange() const

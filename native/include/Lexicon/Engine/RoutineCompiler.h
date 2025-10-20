@@ -31,15 +31,17 @@ namespace LEX
 
 	//TODO: Statement generator uses RoutineCompiler. If there's something statement compiler does not have, please address.
 	using StatementProcessor = void(*)(RoutineCompiler*, SyntaxRecord&);
+	//using StatementProcessor = void(*)(RoutineCompiler*, SyntaxRecord&);
 	using ExpressionProcessor = Solution(*)(ExpressionCompiler*, SyntaxRecord&);//, Solution, Solution);//, Register);
+	using TargetExpressionProcessor = Solution(*)(ExpressionCompiler*, SyntaxRecord&, TargetObject*);//, Solution, Solution);//, Register);
 	
 	
-	struct Generator : public ConstClassAlias<std::variant<std::monostate, StatementProcessor, ExpressionProcessor>>
+	struct Generator : public ConstClassAlias<std::variant<std::monostate, StatementProcessor, ExpressionProcessor, TargetExpressionProcessor>>
 	{
 		//I don't quite have the word for this yet, so I'm going to leave it. Module might be it, but dunno.
 		ALIAS_HEADER;
 
-		Solution GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& target);
+		Solution GenerateSolution(RoutineCompiler* compiler, SyntaxRecord& target, TargetObject*);
 	};
 
 	//I would like to rewrite this so that 1 factory can take up multiple expressions, and additionally that there would be a bit flag to control which places have an entry automatically
@@ -724,12 +726,12 @@ namespace LEX
 
 		//TODO: Unvirtual CompileExpression, just private some of the important functions.
 	protected:
-		virtual Solution CompileExpressionImpl(SyntaxRecord& node, Register pref) = 0;
+		virtual Solution CompileExpressionImpl(SyntaxRecord& node, Register pref, TargetObject* target) = 0;
 	
 	public:
 		Solution CompileExpression(SyntaxRecord& node, Register pref)
 		{
-			Solution result = CompileExpressionImpl(node, pref);
+			Solution result = CompileExpressionImpl(node, pref, nullptr);
 
 			if (result.IsVariadic() == true) {
 				node.error<IssueType::Compile>("Non-variadic expression expected");
@@ -737,10 +739,21 @@ namespace LEX
 			return result;
 		}
 
+		Solution CompileExpression(SyntaxRecord& node, Register pref, TargetObject* target)
+		{
+			Solution result = CompileExpressionImpl(node, pref, target);
+
+			if (result.IsVariadic() == true) {
+				node.error<IssueType::Compile>("Non-variadic expression expected");
+			}
+			return result;
+		}
+
+
 		Solution CompileVariadicExpression(SyntaxRecord& node, Register pref)
 		{
 
-			Solution result = CompileExpressionImpl(node, pref);
+			Solution result = CompileExpressionImpl(node, pref, nullptr);
 
 			if (result.IsVariadic() == false) {
 				node.error<IssueType::Compile>("Variadic expression expected");
@@ -752,7 +765,7 @@ namespace LEX
 		Solution CompileExpressionFree(SyntaxRecord& node, Register pref)
 		{
 
-			Solution result = CompileExpressionImpl(node, pref);
+			Solution result = CompileExpressionImpl(node, pref, nullptr);
 
 			return result;
 		}
@@ -781,20 +794,20 @@ namespace LEX
 		{
 			//Consider making this self managing like how scope does.
 
-			TargetObject target{ &tar, _object, flags };
+			TargetObject target{ &tar, flags };
 
-			Solution result = CompileExpression(node, pref);
+			Solution result = CompileExpression(node, pref, &target);
 
 			return result;
 		}
 
 
 
-		Solution PushExpression(SyntaxRecord& node, Register pref, std::optional<bool> is_ref)//is_ref is false by default I guess??
+		Solution PushExpression(SyntaxRecord& node, Register pref, std::optional<bool> is_ref, TargetObject* target = nullptr)//is_ref is false by default I guess??
 		{
 			//A convinience function that checks if a solution is in a register and if not, will use move to place it into
 			// one.
-			Solution result = CompileExpression(node, pref);
+			Solution result = CompileExpression(node, pref, target);
 
 
 			if (result.type() != OperandType::Register) {
@@ -815,9 +828,9 @@ namespace LEX
 		Solution PushExpression(SyntaxRecord& node, Register pref, Solution tar, TargetObject::Flag flags = TargetObject::None)
 		{
 
-			TargetObject target{ &tar, _object, flags };
+			TargetObject target{ &tar, flags };
 
-			Solution result = PushExpression(node, pref, false);
+			Solution result = PushExpression(node, pref, false, &target);
 
 			return result;
 		}
@@ -849,7 +862,7 @@ namespace LEX
 		//TODO: I would like try versions of these, mainly for an if statement that could take an statement
 		// in its first part, then expect an expression after. Maybe. Idk
 	protected:
-		Solution CompileExpressionImpl(SyntaxRecord& node, Register pref) override
+		Solution CompileExpressionImpl(SyntaxRecord& node, Register pref, TargetObject* target) override
 		{
 			//This and process line are basically the same function, maybe make 1 function to rule them both?
 
@@ -878,7 +891,7 @@ namespace LEX
 			//result from expressions are discarded
 			//result = _InteralProcess(it->second, node);
 			
-			result = it->second.GenerateSolution(this, node);
+			result = it->second.GenerateSolution(this, node, !target ? GetTarget() : target);
 			
 			_prefered = prev;
 
@@ -937,14 +950,14 @@ namespace LEX
 			//result from expressions are discarded
 			//_InteralProcess(it->second, node);
 
-			it->second.GenerateSolution(this, node);
+			it->second.GenerateSolution(this, node, GetTarget());
 
 			_prefered = prev;
 		}
 
 		void CompileStatement(SyntaxRecord& node, Register pref, Solution tar)
 		{
-			TargetObject target{ &tar, _object };
+			TargetObject target{ &tar };
 
 			CompileStatement(node, pref);
 		}
@@ -975,7 +988,7 @@ namespace LEX
 
 			//result from expressions are discarded
 			//out = _InteralProcess(it->second, node, result);
-			Solution result = it->second.GenerateSolution(this, node);
+			Solution result = it->second.GenerateSolution(this, node, GetTarget());
 
 			_prefered = prev;
 

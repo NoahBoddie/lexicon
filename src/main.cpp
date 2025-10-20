@@ -669,3 +669,45 @@ int main(int argc, char** argv) {
     std::system("pause");
 	return 0;
 }
+
+
+
+
+void KillMe()
+{
+    int i = 1;
+    //std::vector<int&> test;
+    //test.push_back(i);
+    //std::span<int&> test2;
+}
+
+
+//*
+namespace LEX
+{
+    void TestSomething(StaticTargetTag, variadic<int> params)
+    {
+        logger::info("Testing something (Vards)");
+        int i = 0;
+        for (auto& arg : params)
+        {
+            logger::info("{}: {}", ++i, arg);
+        }
+    }
+
+
+    INITIALIZE("function_register")
+    {
+
+        int num = 1;
+        logger::info("success(TestSomething) => {}", num++, ProcedureHandler::instance->RegisterFunction(TestSomething, "Shared::Commons::TestSomething"));
+        std::system("pause");
+
+        std::tuple<StaticTargetTag, std::vector<int>> tups;
+
+        auto result = BasicDispatcher<int, StaticTargetTag, variadic<int>>::tie_as_tuple<StaticTargetTag, variadic<int>>(tups);
+
+    }
+
+}
+//*/

@@ -59,7 +59,7 @@ namespace LEX
 			switch (Hash(name))
 			{
 			case "..."_h:
-				qualifiers.flags |= QualifierFlag::Varadic;
+				qualifiers.flags |= QualifierFlag::Variadic;
 				break;
 
 			case "readonly"_h:

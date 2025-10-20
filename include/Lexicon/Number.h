@@ -586,13 +586,13 @@ namespace LEX
             //*/
 
 
-            bool IsFloat() const { return type == NumeralType::Floating; }
-            bool IsInteger() const { return type == NumeralType::Integral; }
+            constexpr bool IsFloat() const { return type == NumeralType::Floating; }
+            constexpr bool IsInteger() const { return type == NumeralType::Integral; }
 
-            bool IsBoolean() const { return type == NumeralType::Integral && size == Size::Bit; }
+            constexpr bool IsBoolean() const { return type == NumeralType::Integral && size == Size::Bit; }
 
-            bool IsUnsigned() const { return sign == Signage::Unsigned; }
-            bool IsSigned() const { return sign == Signage::Signed; }
+            constexpr bool IsUnsigned() const { return sign == Signage::Unsigned; }
+            constexpr bool IsSigned() const { return sign == Signage::Signed; }
 
 
             double MaxF()
@@ -728,6 +728,17 @@ namespace LEX
 		{
 			return infinite != InfiniteState::Finite;
 		}
+
+        constexpr bool IsFloat() const
+        {
+            return _setting.IsFloat();
+        }
+
+        constexpr bool IsInteger() const
+        {
+            return _setting.IsInteger();
+        }
+
 
 		NumberDataType GetNumberType() const
 		{

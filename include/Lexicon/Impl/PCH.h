@@ -98,13 +98,10 @@
 #include <vector>
 #include <version>
 #include <codecvt>
-#include <shlwapi.h>
 #include <ShlObj_core.h>
-#include <Windows.h>
 #include <Psapi.h>
 //*/
 #undef cdecl // Workaround for Clang 14 CMake configure error.
-
 
 #define RGL_LOG(mc_level, mc_text, ...) logger::mc_level(mc_text __VA_OPT__(,)__VA_ARGS__)
 

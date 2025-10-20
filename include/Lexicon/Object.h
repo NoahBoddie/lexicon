@@ -195,7 +195,7 @@ namespace LEX
 		Object() = default;
 
 
-		Object(ObjectData d, uint32_t i, ObjectDataType t)
+		Object(ObjectData d, uint32_t i, ObjectDataType t)//, uint16_t offset)
 		{
 			//Make this intrinsic or whatever.
 			_data = d;
@@ -458,6 +458,8 @@ namespace LEX
 
 		TypeInfo* GetType()
 		{
+			//TODO: This needs filling out, please define GetType for Object
+
 			//The concept of get type should be getting the object info, and submitting this to it. The base version should 
 			return nullptr;
 		}
@@ -640,7 +642,7 @@ namespace LEX
 
 		ObjectPolicyHandle policy{};
 		int16_t always_zero = 0;
-
+		uint8_t also_empty = 0;
 		ObjectDataType type = ObjectDataType::kNone;
 
 	};
