@@ -167,7 +167,6 @@ namespace LEX
 	bool FunctionData::CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags)
 	{
 		if (target) {
-			logger::debug("Names {} vs {}", target->GetName(), _returnType->GetName());
 
 			if (target != _returnType)
 				return false;
@@ -182,21 +181,21 @@ namespace LEX
 
 		if (flags & OverloadFlag::StatesArgument && defaultIndex == -1)// || tempArgs.second
 		{
-			logger::debug("uses optionals");
+			logger::trace("uses optionals");
 			return false;
 		}
 
 		auto required = GetArgCountReq();
 
 		if (required > callArgs) {
-			logger::debug("uses param diff {} vs {}", required, callArgs);
+			logger::trace("uses param diff {} vs {}", required, callArgs);
 			return false;
 		}
 
 		auto max = GetArgCountMax();
 
 		if (max < callArgs) {
-			logger::debug("uses more than max {} vs {}", max, callArgs);
+			logger::trace("uses more than max {} vs {}", max, callArgs);
 			return false;
 		}
 
@@ -213,7 +212,7 @@ namespace LEX
 		else if (tempArgs)
 		{
 			
-			report::debug("Templates used on a non-template overload");
+			report::trace("Templates used on a non-template overload");
 			return false;
 		}
 
@@ -387,8 +386,7 @@ namespace LEX
 		if (auto [min, max] = GetParamRange(); args.size() < min || args.size() > max)
 			report::apply::error("Arg size not compatible with param size ({}/{})", args.size(), parameters.size());
 		
-		//TODO: Make this debug
-		logger::info("Preparing Execute for: {}", self ? self->GetName() : "Nameless function"sv);
+		report::apply::debug("Preparing Execute for: {}", self ? self->GetName() : "Nameless function"sv);
 
 
 		VisitParameters([&](ParameterInfo& param)

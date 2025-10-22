@@ -112,7 +112,17 @@ namespace LEX
 			};
 		}
 
-		CURRENT_VERSION(ReportManager, 1);
+		namespace _2
+		{
+			struct INTERFACE_VERSION(ReportManager)
+			{
+			public:
+
+				virtual bool CanReport(IssueLevel level, IssueType type) = 0;
+			};
+		}
+
+		CURRENT_VERSION(ReportManager, 2);
 	}
 
 	struct IMPL_SINGLETON(ReportManager)
@@ -127,6 +137,9 @@ namespace LEX
 		void SendReport(IssueType type, IssueLevel level, ReportType to, IssueCode code,
 			std::string_view main_view, std::string_view trans_view, spdlog::source_loc& loc, Outlogger* = detail::OutLog) override;
 	
+		bool CanReport(IssueLevel level, IssueType type) override;
+
+
 	INTERNAL:
 		//I would like some versions of these that target specific functions, as a form of ease of use.
 		EditorHandle AddEditor(std::function<LogEditor> editor) override;

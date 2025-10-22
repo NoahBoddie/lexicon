@@ -124,7 +124,6 @@ namespace LEX
 		AddOperator("pow", OperatorType::Binary, 22);
 		AddOperator("*", OperatorType::Unary, 23);
 		AddOperator(".", OperatorType::Binary, 25);
-		logger::critical("*%* opSettings set, size {}", opSettings.size());
 	};
 
 

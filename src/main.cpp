@@ -685,6 +685,55 @@ void KillMe()
 //*
 namespace LEX
 {
+    struct Test1
+    {
+        //int operator+(int)
+        //{
+        //    return 0;
+        //}
+        int operator+(Test1)
+        {
+            return 0;
+        }
+        operator int()
+        {
+            return {};
+        }
+
+    };
+    struct Test
+    {
+        //int operator+(int)
+        //{
+        //    return 0;
+        //}
+        int operator+(String)
+        {
+            return 0;
+        }
+
+        operator Test1()
+        {
+            return {};
+        }
+    };
+
+    void Destroy()
+    {
+        Number other;
+        std::string lhs;
+        String rhs;
+        
+        Test test;
+
+        //test + 1;
+        //test + other;
+        //test + rhs;
+
+        //1 + test;
+        //test + test;
+    }
+
     void TestSomething(StaticTargetTag, variadic<int> params)
     {
         logger::info("Testing something (Vards)");
@@ -698,7 +747,7 @@ namespace LEX
 
     INITIALIZE("function_register")
     {
-
+        return;
         int num = 1;
         logger::info("success(TestSomething) => {}", num++, ProcedureHandler::instance->RegisterFunction(TestSomething, "Shared::Commons::TestSomething"));
         std::system("pause");

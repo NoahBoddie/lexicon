@@ -15,6 +15,7 @@ namespace LEX
 		Object,
 		Boolean,
 		Field,
+		Constant,
 		Variable, 
 		
 

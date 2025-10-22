@@ -45,6 +45,8 @@
 #include "Lexicon/Number.h"
 
 #include "Lexicon/Engine/ParseUtility.h"
+#include "Lexicon/Interfaces/ObjectPolicyManager.h"
+#include "Lexicon/Array.h"
 
 void TestFunction()
 {
@@ -171,12 +173,12 @@ namespace LEX
 			Differ count = a_rhs.GetDiffer(runtime);
 			
 			if (a_rhs.type() == OperandType::Value) {
-				logger::debug("NEW COUNT {} - {} = {}", runtime->GetStackPointer(StackPointer::Argument), count, runtime->GetStackPointer(StackPointer::Argument) - count);
+				//logger::debug("NEW COUNT {} - {} = {}", runtime->GetStackPointer(StackPointer::Argument), count, runtime->GetStackPointer(StackPointer::Argument) - count);
 				count = runtime->GetStackPointer(StackPointer::Argument) - count;
 			}
 			else
 			{
-				logger::debug("NEW COUNT = {}", count);
+				//logger::debug("NEW COUNT = {}", count);
 			}
 			
 			
@@ -507,7 +509,6 @@ namespace LEX
 		{
 			//This is going to have to have an official function to handle this
 			runtime->_flags.Set(RuntimeFlag::RetBit, true);
-			report::runtime::trace("Routine returned");
 		}
 
 
@@ -770,98 +771,79 @@ namespace LEX
 
 		InstructType GetOperatorType(SyntaxRecord& target)
 		{
+			//TODO: At some point I seek to unite these perhaps. Only have Binary and Unary operator instructions and have the rest be functions
+
 			bool binary = target.SYNTAX().type == SyntaxType::Binary;
 
 			switch (Hash(target.GetTag()))
 			{
 			case "|"_h:
 			case "OR"_h:
-				logger::debug("construct symbol '|' / 'OR'");
 				return InstructType::BitwiseOR;
 
 			case "or"_h:
 			case "||"_h:
-				logger::debug("construct symbol '|' / 'or'");
 				return InstructType::LogicalOR;
 
 			case "&"_h:
 			case "AND"_h:
-				logger::debug("construct symbol '&' / 'AND'");
 				return InstructType::BitwiseAND;
 
 			case"&&"_h:
 			case "and"_h:
-				logger::debug("construct symbol '&&' / 'and'");
 				return InstructType::LogicalAND;
 
 			case ">>"_h:
-				logger::debug("construct symbol '>>'");
 				return InstructType::RightShift;
 
 			case "<<"_h:
-				logger::debug("construct symbol '<<'");
 				return InstructType::LeftShift;
 
 			case "!="_h:
-				logger::debug("construct symbol '!='");
 				return InstructType::NotEqualTo;
 
 			case "!=="_h:
-				logger::debug("construct symbol '!=='");
 				return InstructType::NotEqualAbsTo;
 
 
 			case "<"_h:
-				logger::debug("construct symbol '<'");
 				return InstructType::LesserThan;
 				break;
 
 			case ">"_h:
-				logger::debug("construct symbol '>'");
 				return InstructType::GreaterThan;
 
 			case "<="_h:
-				logger::debug("construct symbol '<='");
 				return InstructType::LesserOrEqual;
 
 			case ">="_h:
-				logger::debug("construct symbol '>='");
 				return InstructType::GreaterOrEqual;
 
 			case "=="_h:
-				target.Note("construct symbol '=='");
-				logger::debug("construct symbol '=='");
 				return InstructType::EqualTo;
 
 			case "==="_h:
-				logger::debug("construct symbol '==='");
 				return InstructType::EqualAbsTo;
 
 			case "^"_h:
 			case "XOR"_h:
-				logger::debug("construct symbol '^' / 'OR'");
 				return InstructType::BitwiseXOR;
 
 
 			case "^^"_h:
 			case "pow"_h:
-				logger::debug("construct symbol '^' / 'pow'");
 				return InstructType::Exponent;
 
 			case "*"_h:
-				logger::debug("construct symbol \'*\'");
 				return binary ? InstructType::Multiply : InstructType::Promote;
 
 			case "+"_h:
-				logger::trace("construct symbol '+' ({})", binary ? "binary" : "unary");
 				return binary ? InstructType::Addition : InstructType::UnaryPlus;
 
 			case "-"_h:
-				logger::trace("construct symbol \'-\'");
 				return binary ? InstructType::Subtract : InstructType::UnaryMinus;
 
 			case "/"_h:
-				logger::trace("construct symbol \'/\'");
 				return InstructType::Division;
 
 			//case "**"_h:
@@ -869,20 +851,16 @@ namespace LEX
 			//	return InstructType::Exponent;
 
 			case "%"_h:
-				logger::trace("construct symbol \'%\'");
 				return InstructType::Modulo;
 
 			case "."_h:
-				logger::trace("construct symbol \'.\'");
 				return InstructType::Access;
 
 			case "="_h:
-				logger::trace("construct symbol \'=\'");
 				return InstructType::Assign;//Assign is not a real instruction as it turns out, transfer gets used in it. But it works 2 jobs ig
 
 			case "=>"_h:
 			case "then"_h:
-				logger::trace("construct symbol \'then/=>\'");
 				return InstructType::Then;
 
 			default:
@@ -1420,6 +1398,25 @@ namespace LEX
 
 
 
+		Solution ConstantProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+		{
+			switch (Hash(target.GetView()))
+			{
+			case "default"_h:
+			case "null"_h:
+			case "none"_h:
+				throw "shit ain't used or whatever";
+			}
+			
+
+
+			//Combine with the use of variables.
+			Literal result = LiteralManager::ObtainLiteral(target);
+
+			Solution sol{ QualifiedType{ result->GetTypeInfo(), Constness::Const }, OperandType::Literal, result };
+
+			return sol;
+		}
 
 
 
@@ -1435,6 +1432,7 @@ namespace LEX
 			
 			return sol;
 		}
+
 
 
 		Solution TypeofProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
@@ -2511,6 +2509,12 @@ namespace LEX
 
 			string8->EmplaceDefault("");
 			
+
+			RegisterObjectType<Array>("ARRAY", 1);
+			static ConcreteType* basicArray = new ConcreteType{ "ARRAY", 0 };
+			static ConcreteType* complexArray = new ConcreteType{ "ARRAY", 1 };
+
+
 			//Read some shit here.
 		};
 

@@ -92,9 +92,6 @@ namespace LEX
 			if (entry) {
 				result.push_back(entry);
 			}
-			else {
-				report::parse::trace("empty record discared");
-			}
 		}
 
 		SkipType(TokenType::Invalid, stop);

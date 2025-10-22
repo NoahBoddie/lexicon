@@ -11,12 +11,15 @@ namespace LEX
 	{
 		//TODO: Award TargetObject the ability to get RoutineCompiler's target object.
 		//TODO: This has less needs than it used to. Please scale TargetObject's set up back a bit
+		
+
 
 
 		enum Flag : uint8_t
 		{
 			None = 0 << 0,
 			Implicit = 1 << 0,
+			Assign = 1 << 1,//There's never a time where this AND a regular target coincide. So this should be fine.
 		};
 
 		//This should be the ITemplatePart/Body that is used in the MergeTemplate. The array it uses should come from the target

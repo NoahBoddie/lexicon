@@ -1600,6 +1600,9 @@ namespace LEX
 
 	INITIALIZE()
 	{
+
+
+		return;
 		{
 			
 			const RuntimeVariable test1{};
@@ -1621,10 +1624,7 @@ namespace LEX
 		//This surprisingly, actually fucking works.
 		//constexpr auto TEST = convertible_variant_index_v<VariableValue, std::vector<int>>;
 		//constexpr auto TEST = std::convertible_to<std::vector<int>, Object>;
-		RegisterObjectType<Array>("ARRAY", 1);
-		static ConcreteType* basicArray = new ConcreteType{ "ARRAY", 0 };
-		static ConcreteType* complexArray = new ConcreteType{ "ARRAY", 1 };
-
+		
 		std::vector<int> vars{ 1, 2, 3, 4, 5, 6, 7 };
 
 

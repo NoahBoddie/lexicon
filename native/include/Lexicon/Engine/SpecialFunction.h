@@ -22,7 +22,7 @@ namespace LEX
 
 		SpecialFunction(GenericFunction* base, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ base }
 		{
-			report::info("NewBodyPart {}", (uintptr_t)this);
+			report::trace("NewBodyPart {}", (uintptr_t)this);
 		}
 
 

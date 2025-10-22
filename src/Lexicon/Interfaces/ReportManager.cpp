@@ -560,6 +560,10 @@ namespace LEX
 
 	}
 
+	bool ReportManager::CanReport(IssueLevel level, IssueType type)
+	{
+		return get_spdlog_level(level) >= SettingManager::GetSingleton()->level;
+	}
 
 	//Look, I'm keeping it a buck fifty. This shit is terrible and it does not fucking work right. Specifically when it comes to appending stuff.
 	// It things can override each other, but for now, I'm just going to say I don't care.

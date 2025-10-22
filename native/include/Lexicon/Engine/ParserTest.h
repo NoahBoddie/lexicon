@@ -427,8 +427,6 @@ namespace LEX
 
 						if (result)
 							script.EmplaceChild(result);
-						else
-							report::parse::trace("disarding empty record");
 					}
 					catch (ParseError error)
 					{
@@ -1555,6 +1553,33 @@ namespace LEX
 			//Atomic due to object literal stream
 			bool IsAtomic() const override { return true; }
 		};
+
+
+
+		struct ConstantParser : public AutoParser<ConstantParser>
+		{
+			uint32_t GetPriority() const override
+			{
+				return ModulePriority::High;
+			}
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
+			{
+				if (target)
+					return false;
+
+				return stream->IsType(TokenType::Keyword, "default") ||
+					stream->IsType(TokenType::Keyword, "none") ||
+					stream->IsType(TokenType::Keyword, "null") ||
+					stream->IsType(TokenType::Keyword, "undefined");
+			}
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				return stream->CreateExpression(stream->next(), SyntaxType::Constant);
+			}
+		};
+
 
 	
 		

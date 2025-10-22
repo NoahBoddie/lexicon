@@ -136,7 +136,7 @@ namespace LEX
 
 				//Assign const here.
 
-				TargetObject target{ &solution, _object, TargetObject::Implicit };
+				TargetObject target{ &solution, this->_target, TargetObject::Implicit };
 
 				if (solution.policy) {
 					method = true;

@@ -92,11 +92,9 @@ namespace LEX
 				{
 					//If data returned as a pointer
 					if (load) {
-						logger::debug("Load by value");
 						ptrVal = *load;
 					}
 					else {
-						logger::debug("Init by value");
 						ptrVal = _Type{};
 					}
 				}
@@ -105,11 +103,9 @@ namespace LEX
 					//This is basically assuming it's not a pointer already. Deal with that.
 
 					if (load) {
-						logger::debug("Load by ptr");
 						ptrVal = new _Type{ *load };
 					}
 					else {
-						logger::debug("Init by ptr");
 						ptrVal = new _Type{};
 					}
 				}
@@ -248,11 +244,9 @@ namespace LEX
 			{
 				//If data returned as a pointer
 				if (load) {
-					logger::debug("Load by value");
 					data.ptrVal = *load;
 				}
 				else {
-					logger::debug("Init by value");
 					data.ptrVal = _Type{};
 				}
 			}
@@ -261,11 +255,9 @@ namespace LEX
 				//This is basically assuming it's not a pointer already. Deal with that.
 
 				if (load) {
-					logger::debug("Load by ptr");
 					data.ptrVal = new _Type{ *load };
 				}
 				else {
-					logger::debug("Init by ptr");
 					data.ptrVal = new _Type{};
 				}
 			}

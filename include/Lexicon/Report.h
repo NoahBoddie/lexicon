@@ -202,6 +202,8 @@ namespace LEX
 		}
 
 		static void LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, const std::source_location& loc);
+		
+		static bool ShouldLog(IssueLevel level, IssueType type);
 
 		static std::string_view GetIssueMessage(IssueCode code, bool translation);
 
@@ -211,6 +213,9 @@ namespace LEX
 		template <is_not<std::source_location>... Ts>
 		static void log(const std::string& message, const std::string& affix, const std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
+			if (ShouldLog(level, type) == false)
+				return;
+
 			ValidateMessage(const_cast<std::string&>(message), affix, args...);
 
 			return LogBase(0, message, message, type, level, loc);
@@ -275,6 +280,9 @@ namespace LEX
 		template <is_not<std::source_location>... Ts>
 		static void log(IssueCode code, const std::string& affix, std::source_location& loc, IssueType type, IssueLevel level, Ts&... args)
 		{
+			if (ShouldLog(level, type) == false)
+				return;
+
 			std::string main = HandleCodeMessage(GetIssueMessage(code, false), affix, args...);
 			std::string trans = HandleCodeMessage(GetIssueMessage(code, true), affix, args...);
 

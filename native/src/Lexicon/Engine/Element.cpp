@@ -333,11 +333,6 @@ namespace LEX
 
 			Overload buffer;
 
-			if (clause->GetFieldName() == "TestGeneric")
-			{
-				logger::info("im in");
-			}
-
 			auto bias = input.Match(clauses[i], nullptr, buffer, last);
 				
 			switch (bias)

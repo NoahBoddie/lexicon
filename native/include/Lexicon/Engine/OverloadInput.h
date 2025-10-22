@@ -36,7 +36,6 @@ namespace LEX
 			}
 
 			if (param->CanMatch(nullptr, implied.size(), specialImplied.size(), flags) == false) {
-				logger::info("pre-eval fail");
 				return OverloadBias::kFailure;
 			}
 
@@ -185,16 +184,13 @@ namespace LEX
 
 
 			if (winner > 0) {
-				logger::trace("right winner");
 				//This is just failure tbh, doing so means I don't need to use move or set the pointer.
 				return OverloadBias::kPrevious;
 			}
 			else if (winner < 0) {
-				logger::trace("left winner");
 				return OverloadBias::kCurrent;
 			}
 			else {
-				logger::trace("no winner {}", prev != nullptr);
 				return OverloadBias::kAmbiguous;
 			}
 

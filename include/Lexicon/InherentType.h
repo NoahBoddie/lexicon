@@ -14,9 +14,9 @@ namespace LEX
 		//kTrival,
 		//kTuple,
 		_1,
-			_4,
-			_2,
-			_3,
+		_2,
+		_3,
+		_4,//Null,//Simply a representative type
 		kTotal,
 	};
 }

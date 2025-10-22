@@ -4,6 +4,11 @@
 
 namespace LEX
 {
+	bool report::ShouldLog(IssueLevel level, IssueType type)
+	{
+		return ReportManager::instance->CanReport(level, type);
+	}
+
 	void report::LogBase(IssueCode code, std::string_view main, std::string_view trans, IssueType type, IssueLevel level, const std::source_location& loc)
 	{
 		//HeaderMessage(message, type, level, code);

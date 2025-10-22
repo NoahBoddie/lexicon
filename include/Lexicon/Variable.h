@@ -193,7 +193,8 @@ namespace LEX
 
 		auto Inc() const
 		{
-			logger::trace("inc {:X}", (uintptr_t)this);
+			//These logs can be useful, but a bit much even with trace on. If I could make something with settings to turn them off and on
+			//logger::trace("inc {:X}", (uintptr_t)this);
 			return ++GetData().refs;
 		}
 
@@ -205,7 +206,7 @@ namespace LEX
 			if (!refs)
 				report::fault::critical("Decrementing refs below 0.");
 
-			logger::trace("dec {:X}", (uintptr_t)this);
+			//logger::trace("dec {:X}", (uintptr_t)this);
 			return --refs;
 		}
 

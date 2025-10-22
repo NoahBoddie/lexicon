@@ -221,16 +221,14 @@ namespace LEX
 		{
 			if constexpr (std::is_pointer_v<T>)
 			{
-				logger::debug("destroying {} pointer", GetTypeName<T>());
+
 			}
 			else if constexpr (object_storage_v<T> == value_storage) {
 				//Value types simply need to unhandle their values.
-				logger::debug("destroying {} value", GetTypeName<T>());
 				self.get<T>().~T();
 			}
 			else{
 				//while pointer types will need to deallocate
-				logger::debug("destroying {} reference", GetTypeName<T>());
 				delete self.ptr<T>();
 			}
 		}

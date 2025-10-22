@@ -92,8 +92,6 @@ namespace LEX
 			SetValue(runtimeBreakpoint, ini, "Debug", "bRuntimeBreakpoint");
 			SetValue(level, ini, "Debug", "sDefaultLogLevel");
 
-			logger::info("somthing {}", magic_enum::enum_name(level));
-			
 			_initialized = true;
 		}
 	

@@ -262,7 +262,6 @@ namespace LEX
 
 			if (other._container) {
 				_container = std::make_unique<Helper>(other._container->data());
-				logger::info("This is a copy");
 			}
 		}
 
@@ -355,7 +354,6 @@ namespace LEX
 		template <specialization_of<std::vector> Vec>
 		static Array ToObject(const Vec& obj)
 		{
-			logger::info("hitting");
 			std::vector<Variable> buff;
 			buff.reserve(obj.size());
 			//const std::vector<void*> test;

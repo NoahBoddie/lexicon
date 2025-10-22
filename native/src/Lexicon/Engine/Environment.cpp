@@ -193,7 +193,7 @@ namespace LEX
 				throw nullptr;
 			}
 			else {
-				report::compile::info("type {} added to {}", name, GetName());
+				report::compile::trace("type {} added to {}", name, GetName());
 				typeMap[name] = policy;
 				DeclareParentTo(policy);
 			}

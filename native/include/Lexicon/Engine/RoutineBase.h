@@ -39,7 +39,7 @@ namespace LEX
 				auto& syntax = records[i]->GetSyntax();
 				auto& location = locations[i];
 
-				logger::info("{} - {} : {} vs {} : {}", i, syntax.column, syntax.line, location.column, location.line);
+				report::trace("{} - {} : {} vs {} : {}", i, syntax.column, syntax.line, location.column, location.line);
 			}
 		}
 
@@ -126,7 +126,7 @@ namespace LEX
 
 				auto location = instruct.index == -1 ? SourceLocation{} : locations[instruct.index];
 
-				logger::info("i:{}, index:{}, ({}:{})", i, *instruct.index, location.column, location.line);
+				report::trace("i:{}, index:{}, ({}:{})", i, *instruct.index, location.column, location.line);
 			}
 		}
 

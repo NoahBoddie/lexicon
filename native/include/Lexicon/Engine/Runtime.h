@@ -226,7 +226,8 @@ namespace LEX
 			assert(argCount >= _data.GetParamCapacity());
 
 			variadicCount = argCount - _data.GetParamCapacity();
-			logger::critical("XAYAX; {}: vars: {}, args:{}", _function->FetchName(), _data.GetVarCapacity(variadicCount), _data.GetArgCapacity(variadicCount));
+
+			report::apply::trace("Func: {}, vars: {}, args:{}", _function->FetchName(), _data.GetVarCapacity(variadicCount), _data.GetArgCapacity(variadicCount));
 
 			_varStack.resize(_data.GetVarCapacity(variadicCount));
 			_argStack.resize(_data.GetArgCapacity(variadicCount));
@@ -566,7 +567,7 @@ namespace LEX
 					//Probably want to do a try catch around here.
 					//Operate(_data[_rsp]);
 					//TODO: I want to make a break point here to simulate walking through the system, but enable and disable it somehow.
-					Debug("Logging");
+					Trace("Logging");
 					_data[_rsp].Execute(this);
 					
 

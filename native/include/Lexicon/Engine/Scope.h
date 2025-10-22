@@ -169,8 +169,6 @@ namespace LEX
 			auto index = process->InitLocal(type.policy);
 
 
-			RGL_LOG(debug, "Attempting to create {} at index {}", name, index);
-
 			LocalInfo& result = vars[name] = LocalInfo{ type, (uint32_t)index };
 
 

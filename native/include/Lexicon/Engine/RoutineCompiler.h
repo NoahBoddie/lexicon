@@ -327,9 +327,13 @@ namespace LEX
 
 		TargetObject* GetTarget()
 		{
-			return _object;
+			return _target;
 		}
 
+		TargetObject* GetAssign()
+		{
+			return _assign;
+		}
 
 		Element* GetElement()
 		{
@@ -706,7 +710,8 @@ namespace LEX
 		// as well as the concept of memory being freed.
 
 		//Solution* _target = nullptr;//to be deprecated
-		TargetObject* _object = nullptr;
+		TargetObject* _target = nullptr;
+		TargetObject* _assign = nullptr;
 
 		bool implicitReturn = false;
 		

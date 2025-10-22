@@ -333,7 +333,7 @@ namespace LEX
 			name = type->GetName();
 		}
 
-		logger::debug("Class: {}: Ranged: (0/{}), Members: ({}/{})", name, hashRange, memberCount, members.size());
+		logger::trace("Class: {}: Ranged: (0/{}), Members: ({}/{})", name, hashRange, memberCount, members.size());
 
 		for (auto& basis : inheritance) {
 			std::string access;
@@ -367,7 +367,7 @@ namespace LEX
 			}
 
 			//I'm going to leave this because it needs a source file
-			logger::debug("|	Name: {}, Hash: {}/{}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{}), postfix: {}",
+			logger::trace("|	Name: {}, Hash: {}/{}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{}), postfix: {}",
 				basis.type->GetName(), basis.hash[0], basis.hash[1], basis.distance, basis.ownerIndex, basis.IsInternal(), 
 				access, basis.memberIndex, basis.type->GetHierarchyData()->members.size(), basis.IsAffixed());
 		}

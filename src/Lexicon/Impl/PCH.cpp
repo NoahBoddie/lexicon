@@ -117,6 +117,8 @@ void logger::InitializeLogging()
         
     }
 
+    //Just for easy future reference
+    LEX::SettingManager::GetSingleton()->level = level;
 #else
 
     if (auto def = spdlog::default_logger(); def)
