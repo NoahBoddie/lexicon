@@ -1571,6 +1571,18 @@ namespace LEX
 	}
 
 
+
+	float ObjFail1(Array& a_this, std::string_view first, float second)
+	{
+		return 0;
+	}
+
+	float ObjFail2(Variable& a_this, float second)
+	{
+		return 0;
+	}
+
+
 	INITIALIZE("function_register")
 	{
 		//Array t;
@@ -1590,6 +1602,8 @@ namespace LEX
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(CreateOne, "CreateOne"));
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(resize, "resize"));
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(size, "size"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(ObjFail1, "Shared::Commons::ObjFail"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(ObjFail2, "Shared::Commons::ObjFail"));
 
 		std::system("pause");
 	}

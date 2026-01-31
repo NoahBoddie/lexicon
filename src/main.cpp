@@ -299,7 +299,8 @@ ADD_TYPE_QUALIFIERS(std::string_view, funct, readonly);
 
 void LexTesting(std::string formula)
 {
-    
+    Variable Test;
+
     
     ProjectManager::instance->InitMain();
  
@@ -621,11 +622,7 @@ void VATest(int test...)
 using TestVA = decltype(VATest);
 
 int main(int argc, char** argv) {
-    assert_if(true)
-    {
-        report::info("test");
-    }
-
+    
 
     //logger::InitializeLogging(true);
 #ifdef _DEBUG

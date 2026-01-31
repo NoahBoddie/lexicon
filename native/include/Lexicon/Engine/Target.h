@@ -26,6 +26,8 @@ namespace LEX
 		int32_t second;
 	};
 
+	using Convert_ = RuntimeVariable(*)(const RuntimeVariable&);
+
 
 	struct IGlobal;
 
@@ -46,6 +48,7 @@ namespace LEX
 		constexpr Target(IGlobal* arg) : glob{ arg } {}
 		constexpr Target(ITypeInfo* arg) : type{ arg } {}
 		constexpr Target(IFunction* arg) : func{ arg } {}
+		constexpr Target(Convert_ arg) : convert{ arg } {}
 		constexpr Target(ICallableUnit* arg) : call{ arg } {}
 		constexpr Target(MemberPointer arg) : member{ arg } {}
 	
@@ -66,6 +69,13 @@ namespace LEX
 		bool Get<OperandType::Function, IFunction*>(IFunction*& out)
 		{
 			out = func;
+			return true;
+		}
+
+		template <>
+		bool Get<OperandType::Convert, Convert_>(Convert_& out)
+		{
+			out = convert;
 			return true;
 		}
 
@@ -188,6 +198,7 @@ namespace LEX
 			IGlobal* glob;
 			ITypeInfo* type;
 			IFunction* func;
+			Convert_ convert;
 			ICallableUnit* call;
 			MemberPointer member;
 

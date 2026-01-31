@@ -43,6 +43,10 @@ namespace LEX
                     }                                                                                           \
                 });                                                                                             \
             return result;                                                                                      \
+        }                                                                                                       \
+        Number& operator mc_symbol##=(const Number& other)                                                      \
+        {                                                                                                       \
+            return (*this) = operator mc_symbol(other);                                                        \
         }
 
 
@@ -423,7 +427,7 @@ namespace LEX
 
 	struct Number
 	{
-
+        Number(int test) {}
         struct Settings
         {
 
@@ -587,7 +591,8 @@ namespace LEX
 
 
             constexpr bool IsFloat() const { return type == NumeralType::Floating; }
-            constexpr bool IsInteger() const { return type == NumeralType::Integral; }
+            constexpr bool IsInteger() const { return type == NumeralType::Integral && size != Size::Bit; }
+            constexpr bool IsIntegral() const { return type == NumeralType::Integral; }
 
             constexpr bool IsBoolean() const { return type == NumeralType::Integral && size == Size::Bit; }
 
@@ -682,6 +687,8 @@ namespace LEX
         Number BINARY_OPERATOR(%, std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>);
         Number PRE_UNARY_OPERATOR(-);
         
+
+
         Number pow(const Number& other) {
             Number result = Operator(other, [](auto lhs, auto rhs) { 
                 return std::pow(lhs, rhs);
@@ -740,13 +747,24 @@ namespace LEX
         }
 
 
+        constexpr bool IsIntegral() const
+        {
+            return _setting.IsIntegral();
+        }
+
+
+        constexpr bool IsBoolean() const
+        {
+            return _setting.IsBoolean();
+        }
+
 		NumberDataType GetNumberType() const
 		{
 			if (_setting.IsFloat() == true)
 			{
 				return NumberDataType::Float;
 			}
-			else if (_setting.IsInteger() == true)
+			else if (_setting.IsIntegral() == true)
 			{
 				if (_setting.IsSigned() == true)
 				{

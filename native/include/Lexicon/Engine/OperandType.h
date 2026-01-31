@@ -21,6 +21,7 @@ namespace LEX
 		Global,		//This is a hard variable pointer.
 		Type,
 		Function,	//This is an IFunction pointer, and must be specialized before use
+		Convert,	//A conversion function. Used to turn a runtime variable into another one.
 		Callable,	//This is a callable unit, it comes specialized and may not actually be a function with a routine.
 		Member,
 		Review,

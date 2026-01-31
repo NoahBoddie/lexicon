@@ -326,7 +326,7 @@ struct Initializer
         if (executeList.empty() == true)
             return;
 
-        logger::debug("executing {}", key);
+        logger::debug("sending '{}' initializing event", key.empty() ? "generic" : key);
 
 
         executeList.erase(std::remove_if(executeList.begin(), executeList.end(),

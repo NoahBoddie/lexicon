@@ -538,7 +538,7 @@ namespace LEX
 
 		//This needs the ability to get a pointer of the given type as well, something that should be used often with pooling types.
 		template <has_object_info T>
-		T& get()
+		const T& get() const
 		{
 			//TODO: Object::get() has no guard rails at all. Please implement some.
 
@@ -564,6 +564,13 @@ namespace LEX
 					report::error("object data type not found");
 			}
 		}
+
+		template <has_object_info T>
+		T& get()
+		{
+			return const_cast<T&>(make_const(this)->get<T>());
+		}
+
 
 
 		template <has_object_info T>
@@ -637,9 +644,8 @@ namespace LEX
 
 		ObjectPolicyHandle policy{};
 		int16_t always_zero = 0;
-		uint8_t also_empty = 0;
 		ObjectDataType type = ObjectDataType::kNone;
-
+		uint8_t also_empty = 0;
 	};
 	REQUIRED_SIZE(Object, 0x10);
 

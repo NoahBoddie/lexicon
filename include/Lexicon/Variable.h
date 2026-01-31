@@ -356,10 +356,13 @@ namespace LEX
 
 
 		Number& AsNumber() { return std::get<Number>(value()); }
-
-		String& AsString() { return std::get<String>(value()); }
-
+		String& AsString() { return std::get<String>(value()); }		
 		Object& AsObject() { return std::get<Object>(value()); }
+		
+		const Number& AsNumber() const { return std::get<Number>(value()); }
+		const String& AsString() const { return std::get<String>(value()); }
+		const Object& AsObject() const { return std::get<Object>(value()); }
+
 		//Array AsArray() { throw nullptr; }
 
 		Object* FetchObject()

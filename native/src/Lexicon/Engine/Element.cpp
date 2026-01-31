@@ -659,11 +659,6 @@ namespace LEX
 	{
 		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
 
-		if (a_this && a_this->GetName() == "__Legacy__")
-		{
-			logger::info("Doing legacy");
-		}
-		
 		SyntaxRecord* path = rec.FindChild(parse_strings::path);
 
 		//Identifier is searched for directly, it won't search up or to it's associates.

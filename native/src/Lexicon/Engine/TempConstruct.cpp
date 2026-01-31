@@ -212,6 +212,14 @@ namespace LEX
 
 			get_switch (a_lhs.type())
 			{
+				case OperandType::Convert: 
+				{
+					Convert_ convert = a_lhs.Get<Convert_>();
+
+					ret = convert(from[0]);
+				}
+				break;
+										 
 				case OperandType::Function:
 				{
 					IFunction* itfc = a_lhs.Get<IFunction*>();
@@ -1658,8 +1666,14 @@ namespace LEX
 				//This will push itself into the arguments, but it will only be used under certain situations.
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
-				assert(self->target->type() != OperandType::Argument);
-				compiler->PushInstruction(Instruction{ InstructType::Reference, Operand{ alloc_size, OperandType::Argument }, *self->target });
+				
+				OperandType self_type = self->target->type();
+				assert(self_type != OperandType::Argument);
+
+
+
+				compiler->PushInstruction(Instruction{ self_type != OperandType::Register ? 
+					InstructType::Reference : InstructType::Forward, Operand{ alloc_size, OperandType::Argument }, *self->target });
 			}
 
 
@@ -2341,6 +2355,33 @@ namespace LEX
 		};
 
 
+
+
+		struct NullType : public ConcreteType
+		{
+			using ConcreteType::ConcreteType;
+
+			static RuntimeVariable ToNullptr(RuntimeVariable& other)
+			{
+				return other->IsValueZero() ? Variable{} : other.Ref();
+			}
+
+			static RuntimeVariable FromNullptr(RuntimeVariable other)
+			{
+				//Going to need something like convert to handle this. Will probably try to create it myself. Maybe it'll be something that takes
+				// an entry for a type and spits out an ICallable that creates a version of that type.
+				return other->IsValueZero() ? Variable{} : other.Ref();
+			}
+
+
+			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
+			{
+				
+			}
+		};
+
+
+
 		struct exponent {
 			//TODO: constexpr the exponent function when you can.
 			Number operator()(Number& lhs, Number& rhs) const {
@@ -2353,6 +2394,8 @@ namespace LEX
 
 		INITIALIZE()
 		{
+			logger::info("test");
+
 			//I would like something to make this assign a fuck ton easier
 
 			generatorList[SyntaxType::Return] = ReturnProcess;

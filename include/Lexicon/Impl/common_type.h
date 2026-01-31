@@ -53,17 +53,42 @@ namespace LEX
 
 		static TypeInfo* integer64()
 		{
-			constexpr auto int_settings = Number::Settings::CreateFromType<int32_t>();
+			constexpr auto settings = Number::Settings::CreateFromType<int64_t>();
 
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("NUMBER", int_settings.GetOffset())->FetchTypePolicy(nullptr);
+				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
 			}
 
 			return type;
 		}
 
+		static TypeInfo* integer32()
+		{
+			constexpr auto settings = Number::Settings::CreateFromType<int32_t>();
+
+			static TypeInfo* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
+			}
+
+			return type;
+		}
+
+		static TypeInfo* floating()
+		{
+			constexpr auto settings = Number::Settings::CreateFromType<float>();
+
+			static TypeInfo* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
+			}
+
+			return type;
+		}
 
 
 		static TypeInfo* void_t()

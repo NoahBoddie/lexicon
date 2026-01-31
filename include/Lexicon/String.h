@@ -49,6 +49,11 @@ namespace LEX
 			SetData(other._ptr, other._size);
 		}
 
+		explicit String(size_t length)
+		{
+			CreateData(length);
+		}
+
 		String(String&& other)
 		{
 			std::swap(_ptr, other._ptr);
@@ -88,6 +93,30 @@ namespace LEX
 			return *this;
 		}
 
+		String operator+(const String& other)
+		{
+			if (size() == 0)
+				return other;
+			else if (other.size() == 0)
+				return *this;
+
+			//If either is 0, just return one or the other.
+			String buffer{ size() + other.size() };
+			//buffer._ptr
+			char* dest_ptr = buffer._ptr;
+
+			dest_ptr = std::strncpy(dest_ptr, _ptr, _size);
+			std::strncpy(dest_ptr, other._ptr, other._size);
+
+			return buffer;
+		}
+
+		String& operator+=(const String& other)
+		{
+			//I'd like to do this better
+			return *this = operator+(other);
+		}
+
 
 
 		std::string string() const
@@ -111,8 +140,27 @@ namespace LEX
 			return view();
 		}
 
+	private:
 
+		void Clear()
+		{
+			if (_ptr) {
+				delete[] _ptr;
+				_ptr = nullptr;
+				_size = 0;
+			}
+		}
 
+		
+
+		void CreateData(size_t length)
+		{
+			Clear();
+			
+			_ptr = new char[length + 1];
+			_ptr[length] = '\0';
+			_size = length;
+		}
 
 		void SetData(const char* str, size_t length)
 		{
@@ -122,25 +170,20 @@ namespace LEX
 			if (length == -1)
 				length = std::strlen(str);
 
-			if (!str || !length)
+			if (!str || !length) {
+				Clear();
 				return;
+			}
 
-			_ptr = new char[length + 1];
+			CreateData(length);
 			std::strncpy(_ptr, str, length);
-			_ptr[length] = '\0';
-
-			//_ptr = new char[length + 1];
-			//strncpy_s(_ptr, length, str);
-			//_ptr[length] = '\0';
-			
-			_size = length;
 		}
 
 
 		//I could get away with using a variant for this.
 		char* _ptr = nullptr;
 		size_t _size = 0;
-
+	public:
 
 		[[nodiscard]] inline const char* data() const noexcept { return _ptr; }
 		[[nodiscard]] inline const char* c_str() const noexcept { return data(); }

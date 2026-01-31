@@ -218,8 +218,10 @@ namespace LEX
 		//virtual void OnInit(Record& rec)
 		static void Link(LinkFlag flags) 
 		{
+			bool should_message = (_linkCheckFlags & flags) == LinkFlag::None;
 
-			report::link::debug("Starting link stage: {} ", magic_enum::enum_name(flags));
+			if (should_message)
+				report::link::info("Starting link stage: {} ", magic_enum::enum_name(flags));
 
 
 			//Make sure to remove the linkCheckFlags
@@ -296,8 +298,8 @@ namespace LEX
 				target->OnLinkComplete();
 			}
 
-
-			report::link::debug("Finalized link stage: {}", magic_enum::enum_name(flags));
+			if (should_message)
+				report::link::info("Finalized link stage: {}", magic_enum::enum_name(flags));
 
 			//Should it have processed everything it should remove it all.
 		}
@@ -306,8 +308,6 @@ namespace LEX
 		{
 			if (HasLinked(LinkFlag::Any) == false)
 				return;
-
-			logger::info("Refreshing linkage. . .");
 
 
 			//At a later point, link should just be able to & out the given flags and run all the stuff it wants.

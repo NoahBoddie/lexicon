@@ -53,6 +53,23 @@ namespace LEX
 
 
 
+		static uintptr_t GetVersion()
+		{
+			uintptr_t client = LEX_VERSION;
+			uintptr_t server;
+
+			if (SafeInvoke<RequestError>([&]()
+				{
+					ExternCall<decltype(PullVersion_Impl), RequestError>(FILE_FORMAT(LEX_BINARY_MODULE),
+						"PullVersion_Impl", client, server);
+				}))
+			{
+				server = 0;
+			}
+
+			return server;
+		}
+
 		//change name to validate version.
 		static void ValidateVersion(bool missingOk = true)
 		{

@@ -798,6 +798,14 @@ namespace LEX
 		//Shared has no client, mainly because without a client errors are sent here, and there's never a situation where it will want to use format.
 		auto result = CreateProject("Shared", DefaultClient::GetInstance(), project);
 
+		assert_if(!project) {
+			report::compile::critical("Couldn't generate shared project: {}", magic_enum::enum_name(result));
+		}
+
+		assert_if(!project->GetCommons()) {
+			report::compile::critical("Shared project couldn't generate commons script");
+		}
+
 		_shared = project;
 
 
