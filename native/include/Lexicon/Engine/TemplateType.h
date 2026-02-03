@@ -58,7 +58,10 @@ namespace LEX
 
 		virtual std::string_view GetName() const { return name; }
 
-
+		ObjectPolicy* GetObjectPolicy() const
+		{
+			return nullptr;
+		}
 
 		ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out, ConversionFlag flags) const override
 		{

@@ -1010,7 +1010,7 @@ namespace LEX
 
 			}
 
-
+			[[fallthrough]];
 			default:
 				
 
@@ -1406,39 +1406,68 @@ namespace LEX
 
 
 
-		Solution ConstantProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+
+		namespace
 		{
-			switch (Hash(target.GetView()))
+			//These 2 need to share some functionality.
+
+			Solution ConstantProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 			{
-			case "default"_h:
-			case "null"_h:
-			case "none"_h:
-				throw "shit ain't used or whatever";
+				switch (Hash(target.GetView()))
+				{
+				case "default"_h:
+				case "null"_h:
+				case "none"_h:
+					throw "shit ain't used or whatever";
+				}
+
+
+
+				//Combine with the use of variables.
+				std::pair<Solution, ITypeInfo*> result = LiteralManager::ObtainLiteral(target, compiler->GetElement());
+
+				if (result.second && result.second != result.first) {
+					CompUtil::HandleConversion(compiler, result.first, QualifiedType{ result.second, result.first }, target, ConversionFlag::IgnoreAccess);
+				}
+
+				return result.first;
 			}
-			
-
-
-			//Combine with the use of variables.
-			Literal result = LiteralManager::ObtainLiteral(target);
-
-			Solution sol{ QualifiedType{ result->GetTypeInfo(), Constness::Const }, OperandType::Literal, result };
-
-			return sol;
-		}
 
 
 
 
 
 
-		Solution LiteralProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
-		{
-			//Combine with the use of variables.
-			Literal result = LiteralManager::ObtainLiteral(target);
+			Solution LiteralProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+			{
 
-			Solution sol{ QualifiedType{ result->GetTypeInfo(), Constness::Const }, OperandType::Literal, result };
-			
-			return sol;
+				//Combine with the use of variables.
+				std::pair<Solution, ITypeInfo*> result = LiteralManager::ObtainLiteral(target, compiler->GetElement());
+
+
+				if (result.second && result.second != result.first) {
+					//So I don't forget, this set up is so that one can see if the from type derives from the to type so
+					auto& from = result.first;
+					auto& to = result.second;
+					
+					if (auto convert_result = to->GetConvertTo(result.first, nullptr, nullptr, ConversionFlag::Explicit);
+						convert_result && convert_result != ConversionEnum::Exact)
+					{
+
+						compiler->EmplaceInstruction(
+							InstructionType::Convert,
+							compiler->GetPrefered(),
+							Operand{ to, OperandType::Type },
+							from);
+						
+						from = Solution{ QualifiedType{to}, OperandType::Register, compiler->GetPrefered() };
+					}
+					
+					CompUtil::HandleConversion(compiler, result.first, QualifiedType{ result.second, result.first }, target, ConversionFlag::IgnoreAccess);
+				}
+
+				return result.first;
+			}
 		}
 
 
@@ -1959,6 +1988,7 @@ namespace LEX
 				as:
 				if (auto convert_result = from.IsConvertToQualified(to, nullptr, &out, ConversionFlag::Explicit); convert_result)
 				{
+
 					//If this can convert, it's basically going to be something automatic.
 					//No idea what this was supposed to be
 					CompUtil::HandleConversion(compiler, out, from, to, convert_result, target);
@@ -1966,13 +1996,15 @@ namespace LEX
 				//if the type we're trying to go to can convert into ours with only type conversions
 				else if (auto convert_result = to.IsConvertToQualified(from, nullptr, nullptr, ConversionFlag::Explicit); convert_result)
 				{
-					from = Solution{ to, OperandType::Register, compiler->GetPrefered() };
 
 					compiler->EmplaceInstruction(
 						InstructionType::Convert,
 						compiler->GetPrefered(),
 						Operand{ to.policy, OperandType::Type },
 						from);
+
+					//This was moved, I'm making note of this in case using as causes problems later
+					from = Solution{ to, OperandType::Register, compiler->GetPrefered() };
 				}
 				else
 				{

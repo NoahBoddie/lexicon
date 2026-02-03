@@ -54,17 +54,11 @@ namespace LEX
 
 
 
-		ObjectPolicy* GetObjectPolicyFromName(std::string_view category)
+		ObjectPolicy* GetObjectPolicyFromName(const std::string_view& category)
 		{
 			auto index = GetIndexFromCategory(category);
 
 			return GetObjectPolicy(index);
-		}
-
-		ObjectPolicy* GetObjectPolicyFromName(std::string& category)
-		{
-			auto result = GetObjectPolicyFromName(std::string_view{ category });
-			return result;
 		}
 
 

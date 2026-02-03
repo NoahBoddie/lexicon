@@ -62,7 +62,7 @@ namespace LEX
 	struct BasicDispatcher : public Dispatcher  //<R(Args...)>
 	{
 
-		static constexpr bool has_args = sizeof...(Args);
+		static constexpr bool has_args = sizeof...(Args) != 0;
 
 
 		using Self = BasicDispatcher<R, T, Args...>;

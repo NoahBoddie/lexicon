@@ -405,6 +405,25 @@ namespace LEX
 			return a_self.get<Array>().PrintString(context);
 		}
 
+		/*
+		//This was mere test data
+		bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) override
+		{
+			auto func = [](std::string_view lit) -> Object 
+				{
+				
+					std::vector<Variable> result { std::string(lit)};
+					return Array{ result };
+					//No idea why this doesn't work
+					//return ObjectTranslator<decltype(result)>{}(result);
+				};
+
+
+			hash = std::hash<std::string_view>{}(literal);
+			ctor = func;
+			return true;
+		}
+		//*/
 	};
 
 

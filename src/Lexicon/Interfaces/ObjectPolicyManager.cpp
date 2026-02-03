@@ -48,6 +48,10 @@ namespace LEX
 
 	ObjectPolicy* ObjectPolicyManager::GetObjectPolicy(uint32_t index)
 	{
+		if (index == -1) {
+			return nullptr;
+		}
+
 		auto& policyList = GetPolicyList();
 
 		assert(policyList.size() > index);

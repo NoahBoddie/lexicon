@@ -78,7 +78,7 @@ namespace LEX
 		bool is_internal = convert_data->IsInternal();//convert_data->access & Access::Internal;
 
 		if (is_internal) {
-			logger::info("Owner should be 0 => {}", convert_data->ownerIndex);
+			logger::debug("Owner should be 0 => {}", convert_data->ownerIndex);
 		}
 
 

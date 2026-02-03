@@ -231,57 +231,58 @@ namespace LEX
 			//std::vector <Component*> linkAfter{};
 			std::vector <Component*> finished{};
 
-			for (auto it = _linkerContainer.begin(); it != _linkerContainer.end();)
-			{
-				LinkFlag& tasks = it->second;
-
-				LinkFlag flag = flags & tasks;
-
-				Component* target = it->first;
-
-				bool invalid = false;
-
-				if (flag)
+			if (flags) {
+				for (auto it = _linkerContainer.begin(); it != _linkerContainer.end();)
 				{
-					LinkResult result = LinkResult::Failure;
+					LinkFlag& tasks = it->second;
 
+					LinkFlag flag = flags & tasks;
 
-					if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
+					Component* target = it->first;
+
+					bool invalid = false;
+
+					if (flag)
 					{
-						report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+						LinkResult result = LinkResult::Failure;
+
+
+						if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
+						{
+							report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+						}
+
+						//Its also possible the impl version of the call can do this for me.
+						if (result == LinkResult::Success) {
+							target->FlagAsValid();
+							//linkAfter.push_back(target);
+						}
+						else {
+							target->FlagAsInvalid();
+						}
+
+
+						//If the validation has failed, it will cease to attempt to validate it.
+						invalid = target->InvalidFlag();
 					}
 
-					//Its also possible the impl version of the call can do this for me.
-					if (result == LinkResult::Success) {
-						target->FlagAsValid();
-						//linkAfter.push_back(target);
+					if ((tasks &= ~flag) && !invalid)
+					{
+					_continue:
+						it++;
 					}
-					else {
-						target->FlagAsInvalid();
-					}
-
-
-					//If the validation has failed, it will cease to attempt to validate it.
-					invalid = target->InvalidFlag();
-				}
-
-				if ((tasks &= ~flag) && !invalid)
-				{
-				_continue:
-					it++;
-				}
-				else
-				{
-					auto del = it;
-					it++;
-					finished.push_back(target);
-					//if (can_validate)
+					else
+					{
+						auto del = it;
+						it++;
+						finished.push_back(target);
+						//if (can_validate)
 						target->TryValidate();
-					//_linkerContainer.erase(del);
-					_linkerContainer.erase(del);
+						//_linkerContainer.erase(del);
+						_linkerContainer.erase(del);
+					}
 				}
 			}
-
 			//This removes messages for stuff we already sent.
 			auto message_flags = ~_linkCheckFlags & flags;
 
@@ -302,6 +303,16 @@ namespace LEX
 				report::link::info("Finalized link stage: {}", magic_enum::enum_name(flags));
 
 			//Should it have processed everything it should remove it all.
+		}
+
+
+		static void Init()
+		{
+			if (_initialized) {
+				report::link::info("Starting link stage: Initialize");
+				LinkMessenger::instance->Dispatch(LinkFlag::Init);
+				report::link::info("Finalized link stage: Initialize");
+			}
 		}
 
 		static void RefreshLinkage()
@@ -326,6 +337,11 @@ namespace LEX
 		static bool HasLinked(LinkFlag flag)
 		{
 			return flag & _linkCheckFlags;
+		}
+
+		static bool HasInit()
+		{
+			return _initialized;
 		}
 
 		static LinkFlag FlagsLinked()
@@ -538,8 +554,9 @@ public:
 			return reinterpret_cast<T&>(_data);
 		}
 
-		private:
+	private:
 
+		inline static bool _initialized = false;
 		//This is used later on to signify that if All flags have been done, linkage doesn't have to wait.
 		inline static LinkFlag _linkCheckFlags = LinkFlag::None;
 

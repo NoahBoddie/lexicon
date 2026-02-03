@@ -72,11 +72,13 @@ namespace LEX
 
 
 
-	//This is
+	
 	struct __declspec(novtable) IMPL_VERSION_DERIVES(IObjectPolicy, ObjectPolicy), public ObjectVTable
 	{
 		//Make const plz
 		Object CreateObject(uint32_t);
+
+		ITypeInfo* GetTypeInfo(uint32_t offset = 0);
 	};
 
 #ifndef LEX_SOURCE

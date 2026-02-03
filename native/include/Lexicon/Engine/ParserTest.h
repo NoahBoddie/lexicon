@@ -1058,8 +1058,6 @@ namespace LEX
 				if (target->SYNTAX().type == SyntaxType::Identifier) {
 					header = ParseModule::UseModule<HeaderParser>(stream, target);
 					target = &header;
-
-					
 				}
 			
 				
@@ -1419,7 +1417,10 @@ namespace LEX
 					return !target;
 
 				case TokenType::Object:
-					return false;
+					if (!target)
+						return false;
+					
+					return target->SYNTAX().type == SyntaxType::Identifier;
 					//return target && (target->SYNTAX().type == SyntaxType::Identifier || target->SYNTAX().type == SyntaxType::Scopename) && stream->IsType(TokenType::Object);
 
 				default:
@@ -1520,17 +1521,19 @@ namespace LEX
 				case TokenType::Object:
 					{
 						//Clears the object markers (that aren't even currently used).
-
-						target->SYNTAX().type = SyntaxType::Scopename;
-
-						auto next = stream->next();
+						target->SYNTAX().type = SyntaxType::Typename;
 
 						auto& tag = next.GetTag();
+						
+				
+						if (tag.back() != '}') {
+							stream->croak("Object literal is unclosed.");
+						}
 
 						//Clears the ":{" and "}" items.
-						ClipString(tag, 2, 1);
+						ClipString(tag, parse_strings::object_lit_open.size(), parse_strings::object_lit_shut.size());
 
-						return stream->CreateExpression(next, SyntaxType::Object, *target);
+						return stream->CreateExpression(next, SyntaxType::Object, std::move(*target));
 					}
 
 				case TokenType::String:

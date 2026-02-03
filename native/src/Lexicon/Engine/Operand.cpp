@@ -212,7 +212,7 @@ namespace LEX
 		case OperandType::Review:
 			break;
 		case OperandType::Literal:
-			return *Get<Literal>();
+			return Get<LiteralPtr>()->GetVariable();
 
 		default:
 			//something.

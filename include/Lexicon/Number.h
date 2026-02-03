@@ -427,7 +427,6 @@ namespace LEX
 
 	struct Number
 	{
-        Number(int test) {}
         struct Settings
         {
 

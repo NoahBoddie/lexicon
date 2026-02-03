@@ -48,7 +48,7 @@ namespace LEX
 
 
 	private:
-		static T RunImpl(std::string_view routine, std::optional<IScript*> from, std::optional<Ty> def)
+		static T RunImpl(std::string_view routine, std::optional<IScript*> from, std::optional<Ty> def, const std::source_location& loc)
 		{
 
 			FormulaHandler self;
@@ -63,7 +63,7 @@ namespace LEX
 			if (processed)
 			{
 
-				auto result = FormulaManager::instance->RequestFormula(base, {}, routine, self, from);
+				auto result = FormulaManager::instance->RequestFormula(base, {}, routine, self, from, loc);
 
 				//Send out a message here.
 				temp_cmp_res = result;
@@ -112,32 +112,32 @@ namespace LEX
 		}
 
 	public:
-		static T Run(std::string_view routine)
+		static T Run(std::string_view routine, const std::source_location& loc = std::source_location::current())
 		{
-			return RunImpl(routine, std::nullopt, std::nullopt);
+			return RunImpl(routine, std::nullopt, std::nullopt, loc);
 		}
 
 		//T needs to be able to be inited by default
-		static T RunDefault(std::string_view routine)
+		static T RunDefault(std::string_view routine, const std::source_location& loc = std::source_location::current())
 		{
-			return RunImpl(routine, std::nullopt, Ty{});
+			return RunImpl(routine, std::nullopt, Ty{}, loc);
 		}
 
 
 
-		static T Run(std::string_view routine, Ty def)
+		static T Run(std::string_view routine, Ty def, const std::source_location& loc = std::source_location::current())
 		{
-			return RunImpl(routine, std::nullopt, def);
+			return RunImpl(routine, std::nullopt, def, loc);
 		}
 
-		static T Run(std::string_view routine, IScript* from)
+		static T Run(std::string_view routine, IScript* from, const std::source_location& loc = std::source_location::current())
 		{
-			return RunImpl(routine, from, std::nullopt);
+			return RunImpl(routine, from, std::nullopt, loc);
 		}
 
-		static T Run(std::string_view routine, IScript* from, Ty def)
+		static T Run(std::string_view routine, IScript* from, Ty def, const std::source_location& loc = std::source_location::current())
 		{
-			return RunImpl(routine, from, def);
+			return RunImpl(routine, from, def, loc);
 		}
 
 	};
@@ -189,7 +189,8 @@ namespace LEX
 			}
 		}
 
-		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt)
+		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt, 
+			const std::source_location& loc = std::source_location::current())
 		{
 			Self self;
 
@@ -202,7 +203,7 @@ namespace LEX
 			{
 				std::vector<std::string_view> params{ parameters... };
 
-				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from);
+				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from, loc);
 
 				if (result) {
 					report::failure("Formula '{}' failed to resolve. Error value {}", routine, result);
@@ -403,7 +404,8 @@ public:
 		//This version should have a special operator where using -> will yield a helper class that will be able to be called in order to handle the function
 		// So something like formula(target)->Call();  or formula(target)(); Or, I'll just allow the target to be one with the calls. Seems better that way.
 
-		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt)
+		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt, 
+			const std::source_location& loc = std::source_location::current())
 		{
 
 			Self self;
@@ -418,7 +420,7 @@ public:
 
 				std::vector<std::string_view> params{ parameters... };
 
-				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from);
+				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from, loc);
 
 
 			}

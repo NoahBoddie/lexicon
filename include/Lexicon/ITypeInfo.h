@@ -32,7 +32,7 @@ namespace LEX
 	struct ITemplateBody;
 
 	struct ITypeInfo;
-
+	struct ObjectPolicy;
 	
 
 	namespace Version
@@ -166,7 +166,15 @@ namespace LEX
 			};
 		}
 
-		CURRENT_VERSION(ITypeInfo, 1);
+		namespace _2
+		{
+			struct INTERFACE_VERSION(ITypeInfo)
+			{
+				virtual ObjectPolicy* GetObjectPolicy() const = 0;
+			};
+		}
+
+		CURRENT_VERSION(ITypeInfo, 2);
 	}
 
 #ifndef LEX_SOURCE

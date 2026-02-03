@@ -25,8 +25,93 @@ namespace LEX
 		//Used for specific handling of versions. Say a function has to change functionality and the expectation is no longer valid.
 
 		virtual bool CanHandle(uintptr_t) const { return true; }
+
+		
 	};
 
+
+	template <typename T>
+	concept statically_versioned_interface = std::derived_from<T, Interface>&& requires() { { T::version } -> std::convertible_to<uintptr_t>; };
+
+
+	//Need a concept to assert that the interface types are statically versioned
+
+	template <statically_versioned_interface... Intfs>
+	struct InterfaceLayerImpl;
+
+	template <>
+	struct InterfaceLayerImpl <>
+	{
+		static constexpr uintptr_t totalVersion = 0;
+
+		constexpr uintptr_t GetVersion() const noexcept { return 0; }
+
+		constexpr bool CanUseVersion() const noexcept { return true; }
+
+		constexpr bool CanHandle(uintptr_t version) const noexcept { return true; }
+	};
+
+	template <typename T, typename... Intfs>
+	struct __declspec(novtable) InterfaceLayerImpl<T, Intfs...> : public T, InterfaceLayerImpl<Intfs...>
+	{
+		using Self = InterfaceLayerImpl<T, Intfs...>;
+		using Base = InterfaceLayerImpl<Intfs...>;
+
+		static constexpr uintptr_t totalVersion = Base::totalVersion + T::version;
+
+		//Used for specific handling of versions. Say a function has to change functionality and the expectation is no longer valid.
+
+
+		uintptr_t GetVersion() const { return Base::GetVersion() + T::Version(); }
+
+
+		bool CanUseVersion() const
+		{
+			//Versioning should be solved, so now we simply want to test CanHandle
+			// Though, can handle is highly likely to have overrides
+			return T::CanHandle(T::version) && Base::CanUseVersion();
+		}
+
+
+		
+	};
+
+	template <statically_versioned_interface... Intfs>
+	struct  __declspec(novtable) InterfaceLayer : public InterfaceLayerImpl<Intfs...>
+	{
+		using Self = InterfaceLayer<Intfs...>;
+		using Base = InterfaceLayerImpl<Intfs...>;
+		using Current = std::tuple_element_t<0, std::tuple<Intfs...>>;
+		//This aint a vtable, instead the centralized version simply has to count them.
+		uintptr_t GetVersion() const { return Base::GetVersion(); }
+
+		
+		template<typename T> requires(std::derived_from<Self, typename T::Current>)
+		bool CheckVersion(uintptr_t version) const
+		{
+			using Type = T::Current;
+			//I think I can use deducing this to make this easier
+			return Type::Version() <= version;
+		}
+		
+
+		//use Update enum
+		bool CanUseVersion() const
+		{
+			return GetVersion() >= Base::totalVersion && Base::CanUseVersion();
+		}
+	};
+	
+	
+
+
+	struct VInterface : public Interface
+	{
+		constexpr static uintptr_t version = 0;
+	};
+
+	using TypeTestV = InterfaceLayer<VInterface>;
+	
 	struct UnmovableInterface : public Interface
 	{
 	protected:
@@ -39,7 +124,9 @@ namespace LEX
 		UnmovableInterface& operator=(const UnmovableInterface&) = delete;
 	};
 
+
 }
+
 
 
 //TODO:I'm storing this idea here for now, but please, move it later.

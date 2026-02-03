@@ -34,7 +34,7 @@ namespace LEX
 	struct Qualifier;
 	//struct QualifiedType;
 
-	struct IMPL_VERSION(ITypeInfo)
+	struct ITypeInfo : public InterfaceLayer<Version::Current::IV_ITypeInfo >
 	{
 		
 		

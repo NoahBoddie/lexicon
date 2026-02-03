@@ -44,7 +44,7 @@ namespace LEX
 		constexpr Target(Differ arg) : differ{ arg } {}
 		constexpr Target(Index arg) : index{ arg } {}
 		constexpr Target(Register arg) : reg{ arg } {}
-		constexpr Target(Literal arg) : lit{ arg } {}
+		constexpr Target(const Literal* arg) : lit{ arg } {}
 		constexpr Target(IGlobal* arg) : glob{ arg } {}
 		constexpr Target(ITypeInfo* arg) : type{ arg } {}
 		constexpr Target(IFunction* arg) : func{ arg } {}
@@ -157,9 +157,9 @@ namespace LEX
 
 
 		template <>
-		bool Get<OperandType::Literal, Literal>(Literal& out)
+		bool Get<OperandType::Literal, const Literal*>(const Literal*& out)
 		{
-			out = reg;
+			out = lit;
 			return true;
 		}
 
@@ -194,7 +194,7 @@ namespace LEX
 			Differ differ;
 			Index index;
 			Register reg;
-			Literal lit;
+			const Literal* lit;
 			IGlobal* glob;
 			ITypeInfo* type;
 			IFunction* func;

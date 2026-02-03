@@ -113,20 +113,20 @@ namespace Version
 
 
 
-#define IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type) mc_name : public Version::Current::mc_type
-#define IMPL_VERSION_DERIVES(mc_name, mc_type) IMPL_VERSION_DERIVES_NO_SFX(mc_name, CONCAT(IV_,mc_type))
+#define IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type,...) mc_name : public InterfaceLayer<Version::Current::mc_type __VA_OPT__(,)__VA_ARGS__>
+#define IMPL_VERSION_DERIVES(mc_name, mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_name, CONCAT(IV_,mc_type), __VA_ARGS__)
 
-#define IMPL_VERSION_NO_SFX(mc_type) IMPL_VERSION_DERIVES_NO_SFX(mc_type,mc_type)
-#define IMPL_VERSION(mc_type) IMPL_VERSION_DERIVES(mc_type,mc_type)
-
-
-
-#define IMPL_SINGLETON_DERIVES_NO_SFX(mc_name, mc_type) IMPL_VERSION_DERIVES_NO_SFX(mc_name,mc_type), public InterfaceSingleton<mc_name>
-#define IMPL_SINGLETON_DERIVES(mc_name,mc_type) IMPL_VERSION_DERIVES(mc_name,mc_type), public InterfaceSingleton<mc_name>
+#define IMPL_VERSION_NO_SFX(mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_type,mc_type,__VA_ARGS__)
+#define IMPL_VERSION(mc_type,...) IMPL_VERSION_DERIVES(mc_type, mc_type,__VA_ARGS__)
 
 
-#define IMPL_SINGLETON_NO_SFX(mc_type) IMPL_SINGLETON_DERIVES_NO_SFX(mc_type,mc_type)
-#define IMPL_SINGLETON(mc_type) IMPL_SINGLETON_DERIVES(mc_type,mc_type)
+
+#define IMPL_SINGLETON_DERIVES_NO_SFX(mc_name, mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_name,mc_type,__VA_ARGS__), public InterfaceSingleton<mc_name>
+#define IMPL_SINGLETON_DERIVES(mc_name,mc_type,...) IMPL_VERSION_DERIVES(mc_name,mc_type,__VA_ARGS__), public InterfaceSingleton<mc_name>
+
+
+#define IMPL_SINGLETON_NO_SFX(mc_type,...) IMPL_SINGLETON_DERIVES_NO_SFX(mc_type,mc_type,__VA_ARGS__)
+#define IMPL_SINGLETON(mc_type,...) IMPL_SINGLETON_DERIVES(mc_type,mc_type,__VA_ARGS__)
 
 
 

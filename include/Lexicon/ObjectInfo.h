@@ -21,6 +21,8 @@ namespace LEX
 
 	struct ObjectVTable;
 
+	using ObjLitCtor = Object(*)(std::string_view);
+
 	namespace Version
 	{
 		namespace _1
@@ -117,7 +119,16 @@ namespace LEX
 			};
 		}
 
-		CURRENT_VERSION(ObjectVTable, 1);
+		namespace _2
+		{
+			struct INTERFACE_VERSION(ObjectVTable)
+			{
+				virtual bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) = 0;
+
+			};
+		}
+
+		CURRENT_VERSION(ObjectVTable, 2);
 	}
 
 	struct IMPL_VERSION(ObjectVTable)
@@ -176,6 +187,11 @@ namespace LEX
 
 			//Later I'd like this to be able to get the name. Saving that for later though.
 			return std::format("{}::({:X})", context.empty() ? "Object" : context, self.fstVal);
+		}
+
+		bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) override
+		{
+			return false;
 		}
 
 

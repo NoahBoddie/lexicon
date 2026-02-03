@@ -5,7 +5,7 @@ namespace LEX
 
 	ENUM(LinkFlag, uint8_t)
 	{
-		None,
+		Init,
 		Loaded = 1 << 0,   //Used to tell when all scripts have loaded
 		Declaration = 1 << 1,	//Used when all functions have finished being declared, meaning their names exist.
 		Definition = 1 << 2,	//Used when all functions have finished being defined, meaning they can be called. Also links external funcs.
@@ -17,7 +17,7 @@ namespace LEX
 
 		Final = 1 << (sizeof(LinkFlag) * 8 - 1),
 
-
+		None = LinkFlag::Init,
 		All = LinkFlag::Loaded | LinkFlag::Object | LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External,
 		Any = LinkFlag::All,
 		//Final happens when all linking is done, notably, what also happens here is a bid for dependency.

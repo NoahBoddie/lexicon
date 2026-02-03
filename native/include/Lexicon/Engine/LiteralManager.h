@@ -8,7 +8,7 @@
 namespace LEX
 {
 	struct Literal;
-
+	struct Solution;
 
 	inline bool CreateNum(const std::string& value, bool is_int, Number& number) try
 	{
@@ -105,6 +105,7 @@ namespace LEX
 			break;
 
 			case SyntaxType::Object:
+				break;
 			case SyntaxType::String:
 				result = code;
 				//result = code;
@@ -118,17 +119,9 @@ namespace LEX
 		return result;
 	}
 
-
 	struct LiteralManager
 	{
-		//Whenever an object literal is used,
-		//static std::unordered_map<size_t, Record*> resolveMap;
-
-		//TODO: Ideally obtain literal, this returns const, will want to experiment with that later.
-		static Literal ObtainLiteral(SyntaxRecord& ast);
-
-		static Variable* GetLiteral(size_t index);
-	
+		static std::pair<Solution, ITypeInfo*> ObtainLiteral(SyntaxRecord& ast, Element* elem);
 	};
 
 }

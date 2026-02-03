@@ -652,7 +652,7 @@ namespace LEX
 		void unexpected(const std::string_view& expect = "");
 
 
-		ModuleChain GetChain();
+		
 
 
 		//I think the above works like this. 

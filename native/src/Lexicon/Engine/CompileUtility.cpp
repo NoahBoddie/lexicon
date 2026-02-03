@@ -181,7 +181,6 @@ namespace LEX
 		}
 
 		return CompUtil::HandleConversion(compiler, out, from, to, convert, target, reg);
-
 	}
 
 

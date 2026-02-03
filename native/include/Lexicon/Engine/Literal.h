@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Lexicon/Variable.h"
+#include "Lexicon/ObjectInfo.h"
 
 namespace LEX
 {
@@ -7,28 +9,88 @@ namespace LEX
 
 	//TODO: Revise literal to take a literal holder, an interface that can store Literals, including temporary formulas.
 
-	class Literal final
+
+
+	struct Literal
 	{
-	public:
-		constexpr Literal() = default;
-		constexpr Literal(size_t i) : _id{ i } {}
-
-
-		Variable* operator->();
-
-		const Variable* operator->() const;
-
-		Variable& operator*();
-		const Variable& operator*() const;
-
-
-		operator bool() const
+		Literal(bool object)
 		{
-			//rename this value to something specific plz
-			return _id == max_value<size_t>;
+			if (object) {
+				value = Object{};
+				data = std::make_unique<ObjectLiteralData>();
+			}
+			
 		}
-	private:
-		size_t _id{ max_value<size_t> };
+		struct ObjectLiteralData
+		{
+			std::string code;
+			ObjLitCtor ctor;
+		};
 
+		mutable Variable value;
+
+		union
+		{
+			size_t _hash{};
+			TypeInfo* _info;
+		};
+		mutable std::unique_ptr<ObjectLiteralData> data;
+
+		const Literal* ptr() const
+		{
+			return this;
+		}
+
+		size_t hash() const
+		{
+			return value.IsObject() ? _hash : 0;
+		}
+
+		TypeInfo* info() const
+		{
+			return !value.IsObject() ? _info : nullptr;
+		}
+
+		Variable& GetVariable() const
+		{
+			if (data) {
+				value = data->ctor(data->code);
+				data.reset();
+			}
+
+			return value;
+		}
+
+
+		//Here's a question, what do I do if the type is generic? We can load whatever core type it is, but having some method that'll allow
+		// for the actual declared type would be good. Maybe a conversion?
+		//I think what I'll do there is just do a conversion into whatever register is demanded of it.
+		//Actually, check that, I'll return a solution. A type it's supo
+
+
+		auto operator <=>(const Literal& other) const
+		{
+			//I'm actually kinda sure sets can't handle what I intend to do here. I think hash should serve as a complete override
+			// and data should be unaccounted for entirely. That if hash is present, even the value is completely irrelevant.
+
+			auto self_hash = hash();
+			auto other_hash = other.hash();
+
+			if (!!self_hash != !!other_hash || self_hash) {
+				return self_hash <=> other_hash;
+			}
+
+			auto self_type = info();
+			auto other_type = other.info();
+
+			if (self_type != other_type) {
+				return self_type <=> other_type;
+			}
+
+			return value <=> other.value;
+		}
 	};
+
+	using LiteralPtr = const Literal*;
+
 }

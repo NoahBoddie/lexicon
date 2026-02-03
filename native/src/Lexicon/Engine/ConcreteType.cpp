@@ -119,29 +119,8 @@ namespace LEX
 			case "external"_h:
 				{
 					//Should clash with intrinsic.
-					MarkLinkExtern(); 
-
+					MarkLinkLater(); 
 					break;
-					if (attach.size() == 0) {
-						report::compile::critical("external type requires some type.");
-					}
-
-					//unique_type.size()
-
-					//save this shit til after linkage.
-					//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
-
-					SyntaxRecord& cat_name = attach.GetFront();
-
-					category = cat_name.GetTag();
-
-					//category name is completely optional.
-					offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
-
-					logger::info("searching {}, our location {}", category, offset);
-
-					//this shouldn't be done yet, but I really just want to send this shit.
-					policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
 				}
 				break;
 
@@ -155,7 +134,6 @@ namespace LEX
 				report::compile::critical("PLACEHOLDER don't know how to handle unique type.");
 				break;
 			}
-
 		}
 
 
@@ -212,7 +190,7 @@ namespace LEX
 		}
 
 
-		case LinkFlag::External:
+		case LinkFlag::Definition:
 		{
 			SyntaxRecord& attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach)->GetFront();
 
@@ -258,11 +236,6 @@ namespace LEX
 			//category name is completely optional.
 			//offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
 
-			logger::info("searching {}, our location {}", category, offset);
-
-			//this shouldn't be done yet, but I really just want to send this shit.
-			policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
-
 			break;
 		}
 		
@@ -281,8 +254,8 @@ namespace LEX
 		//Needs to handle linking once when declaration happens 
 		auto result = LinkFlag::Declaration;
 
-		if (IsLinkExtern() == true)
-			result |= LinkFlag::External;
+		//if (IsLinkedLater() == true)
+		//	result |= LinkFlag::Definition;
 
 		return  result;
     }

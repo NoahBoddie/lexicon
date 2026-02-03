@@ -32,7 +32,7 @@ namespace LEX
 		enum Flag
 		{
 			None = 0,
-			LinkExtern = 1 << (Prev::_next + 0),
+			LinkLater = 1 << (Prev::_next + 0),
 			InheritHandled = 1 << (Prev::_next + 1),
 
 
@@ -125,9 +125,9 @@ namespace LEX
 			return GetComponentData<Flag>();
 		}
 
-		bool IsLinkExtern() const
+		bool IsLinkedLater() const
 		{
-			return GetFlags() & Flag::LinkExtern;
+			return GetFlags() & Flag::LinkLater;
 		}
 
 		
@@ -143,10 +143,22 @@ namespace LEX
 		}
 
 		
-		void MarkLinkExtern() const
+		void MarkLinkLater() const
 		{
-			GetFlags() |= Flag::LinkExtern;
+			GetFlags() |= Flag::LinkLater;
 		}
+
+	////////////////////////
+	//TypeInfo Virtuals   //
+	////////////////////////
+	protected:
+		ObjectPolicy* GetObjectPolicyImpl() const noexcept
+		{
+			return policy;
+		}
+
+
+
 
 
 	public:
@@ -200,7 +212,10 @@ namespace LEX
 		DataType GetDataType() const override { return TypeBase::GetDataType(); }
 
 
-
+		ObjectPolicy* GetObjectPolicy() const override
+		{
+			return GetObjectPolicyImpl();
+		}
 
 
 		void SetSelfQualifiers(Qualifier& qualifiers) const override
@@ -208,7 +223,7 @@ namespace LEX
 			//TODO: If a struct is the only one of it's kind, it shouldn't have to make itself readonly.
 			// This is the reason C# structs are the way they are, and if I can make that promise that there is nothing else and will be nothing else it's good
 			// Also, if the struct is final, it's also good.
-			if (!this->IsValueType() || IsLinkExtern() == true)
+			if (!this->IsValueType() || IsLinkedLater() == true)
 				qualifiers.MakeReadonly(true);
 		}
 

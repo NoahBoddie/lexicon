@@ -30,4 +30,11 @@ namespace LEX
 		//return Object{ data, index, type, (uint16_t)offset };
 		return Object{ data, index, type };
 	};
+
+	ITypeInfo* IObjectPolicy::GetTypeInfo(TypeOffset offset)
+	{
+		auto id = GetTypeIDFromOffset(offset);
+		return IdentityManager::instance->GetTypeByID(id);
+
+	}
 }

@@ -5,6 +5,7 @@
 
 #include "Lexicon/Engine/Declaration.h"
 #include "Lexicon/Engine/parse_strings.h"
+#include "Lexicon/Interfaces/ObjectPolicyManager.h"
 
 namespace LEX
 {
@@ -23,10 +24,12 @@ namespace LEX
 		IdentityManager::instance->ClaimID(this, i);
 	}
 
-	TypeBase::TypeBase(std::string_view name, TypeOffset offset)
+	TypeBase::TypeBase(std::string_view name, TypeOffset off)
 	{
-		//SetTypeID(0); return;
-		IdentityManager::instance->ClaimID(this, name, offset);
+		policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(name);
+		category = name;
+		offset = off;
+		IdentityManager::instance->ClaimID(this, name, off);
 	}
 
 

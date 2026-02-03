@@ -55,7 +55,7 @@ namespace LEX
 		//Try module will try to use use try module, and if it's unsuccessful, it will croak.
 		// Basically a checked ParseAtomic for specific modules.
 		if (TryModule(mdl, parser, result, target) == false)
-			parser->croak("Cant.");
+			parser->croak("Cant use module.");
 
 		return result;
 	}

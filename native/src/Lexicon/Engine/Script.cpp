@@ -102,6 +102,11 @@ namespace LEX
 
 		if (auto attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach); attach)
 		{
+
+			if (attach->size() == 0) {
+				attach->critical("external type requires some type.");
+			}
+
 			SyntaxRecord& attach_data = attach->GetFront();
 			switch (Hash(attach_data.GetTag()))
 			{

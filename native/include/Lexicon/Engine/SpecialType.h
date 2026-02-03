@@ -110,6 +110,11 @@ namespace LEX
 		}
 
 
+		ObjectPolicy* GetObjectPolicy() const
+		{
+			return nullptr;
+		}
+
 		ITemplatePart* GetTemplatePart() override
 		{
 			//This exists so someone can get the part of a generic type, either before or after specializing.

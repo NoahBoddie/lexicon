@@ -127,6 +127,15 @@ namespace LEX
 			return base->PrintString(self, context);
 		}
 
+
+		bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) override
+		{
+			if (base->CheckVersion<ObjectVTable>(2) == false)
+				return false;
+
+			return base->CreateLiteralData(literal, hash, ctor);
+		}
+
 #pragma endregion
 
 

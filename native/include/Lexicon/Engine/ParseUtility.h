@@ -4,6 +4,10 @@
 #include "Lexicon/Engine/parse_strings.h"
 #include "Lexicon/Engine/HeaderSettings.h"
 
+
+//*src
+#include "Lexicon/Engine/Parser.h"
+
 namespace LEX
 {
 	struct ParseUtility
@@ -66,6 +70,19 @@ namespace LEX
 		}
 
 	public:
+
+		static Record MakeHeader()
+		{
+
+			Record it = ParsingStream::CreateExpression(parse_strings::header, SyntaxType::Header, std::vector<Record>{ 3 });
+
+			//Doing it like this ensures the order will not change.
+			it.GetChild(KeywordType::TypeQual) = ParsingStream::CreateExpression(parse_strings::type_qualifier, SyntaxType::Header);
+			it.GetChild(KeywordType::DeclSpec) = ParsingStream::CreateExpression(parse_strings::declare_specifier, SyntaxType::Header);
+			it.GetChild(KeywordType::TypeSpec) = ParsingStream::CreateExpression(parse_strings::type_specifier, SyntaxType::Header);
+
+			return it;
+		}
 
 		static bool AddHeaderKeyword(KeywordType type, Record& parent, const Record& record)
 		{

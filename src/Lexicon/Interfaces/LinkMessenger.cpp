@@ -15,14 +15,21 @@ namespace LEX
 
 		callbackList.push_back(callback);
 
-		auto linked = Component::FlagsLinked();
 
-		if (catch_up && linked)
+		if (catch_up)
 		{
-			for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
+			if (Component::HasInit())
 			{
-				if (linked & flag){
-					callback(flag);
+				callback(LinkFlag::Init);
+			}
+			
+			if (auto linked = Component::FlagsLinked())
+			{
+				for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
+				{
+					if (linked & flag) {
+						callback(flag);
+					}
 				}
 			}
 		}
@@ -33,6 +40,10 @@ namespace LEX
 
 	void LinkMessenger::Dispatch(LinkFlag a_flags)
 	{
+		if (!a_flags && Component::HasInit()) {
+			for (auto callback : callbackList)
+				callback(LinkFlag::Init);
+		}
 		for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
 		{
 			if (flag & a_flags)
