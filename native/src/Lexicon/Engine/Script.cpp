@@ -88,8 +88,10 @@ namespace LEX
 			{
 				TypeBase* result = nullptr;
 
-				if (lookup)
+				if (lookup) {
+					
 					result = IdentityManager::instance->GetBaseByOffset(name, offset);
+				}
 				else
 					result = is_generic ? static_cast<TypeBase*>(new GenericType{ name, offset }) : new ConcreteType{ name, offset };
 
@@ -225,6 +227,7 @@ namespace LEX
 		if (IsDefined() == true)
 			return;
 		//This ast likely has no interest, move resources.
+
 		_syntaxTree = std::move(rec);
 		
 	}
@@ -232,7 +235,7 @@ namespace LEX
 
 	void Script::LoadFromSyntaxTree(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end)
 	{
-
+		
 
 		//for (auto& node : target.children())
 		while (begin != end)
@@ -447,7 +450,7 @@ namespace LEX
 
 		auto& children = GetSyntaxTree()->children();
 
-
+		logger::info("Loading script: {}", GetName());
 
 		LoadFromSyntaxTree(children.begin(), children.end());
 

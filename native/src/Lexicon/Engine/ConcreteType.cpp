@@ -89,6 +89,8 @@ namespace LEX
 	{
 		_name = ast.GetTag();
 
+		logger::info("Loading: {}", _name);
+
 		SyntaxRecord* settings = ast.FindChild(parse_strings::settings);
 
 		if (!settings) {

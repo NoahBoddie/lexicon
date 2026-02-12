@@ -211,7 +211,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 		TypeBase*& slot = policyList[index];
 
 		if (slot) {
-			report::compile::critical("Slot for {} (id {}) already taken.", index, id);
+			report::compile::critical("Slot for {} (id {}) already taken. {}", index, id, slot->GetFullName());
 		}
 
 		//check here 
@@ -284,7 +284,8 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 	
 	ITypeInfo* IdentityManager::GetTypeByID(TypeID id)
 	{
-		return GetBaseByID(id)->AsType();
+		auto base = GetBaseByID(id);
+		return base ? base->AsType() : nullptr;
 	}
 	//This too is used often.(What does this mean?)
 	TypeBase* IdentityManager::GetBaseByID(TypeID id)

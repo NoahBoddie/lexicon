@@ -657,6 +657,13 @@ namespace LEX
 		{
 			std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi", "Commons.lsi");
 
+			auto last = std::unique(scripts.begin(), scripts.end());
+			
+			if (auto end = scripts.end(); last != end) {
+				logger::warn("Copies of scripts present in file search");
+				scripts.erase(last, scripts.end());
+			}
+			
 			for (auto full_path : scripts)
 			{
 				std::string path = full_path.first;
@@ -738,6 +745,13 @@ namespace LEX
 
 		//This doesn't work if not searched from core.
 		std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi");
+
+		auto last = std::unique(scripts.begin(), scripts.end());
+
+		if (auto end = scripts.end(); last != end) {
+			logger::warn("Copies of scripts present in file search");
+			scripts.erase(last, scripts.end());
+		}
 
 		for (auto full_path : scripts)
 		{
