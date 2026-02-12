@@ -1222,6 +1222,44 @@ namespace LEX
 
 				return result;
 			}
+
+			static Solution LogicalProcess(ExpressionCompiler* compiler, SyntaxRecord& target, bool skip_on_true)
+			{
+				Register prefered = compiler->GetPrefered();
+
+				
+				SyntaxRecord& left = target.FindChild(parse_strings::lhs)->GetFront();
+				SyntaxRecord& right = target.FindChild(parse_strings::rhs)->GetFront();
+
+				Solution lhs = compiler->CompileExpression(left, prefered);
+					
+				CompUtil::HandleConversion(compiler, lhs, QualifiedType{ common_type::boolean() }, target, prefered);
+
+				if (lhs.type() != OperandType::Register) {
+					compiler->InsertInstruction(target, CompUtil::Mutate(lhs, Operand{ prefered, OperandType::Register }));
+				}
+
+				InstructList next;
+
+				Solution rhs = compiler->CompileExpression(right, prefered, next);
+
+
+				CompUtil::HandleConversion(compiler, rhs, QualifiedType{ common_type::boolean() }, target, prefered);
+
+
+				if (rhs.type() != OperandType::Register) {
+					next.push_back(CompUtil::Mutate(rhs, Operand{ prefered, OperandType::Register }));
+				}
+
+				
+				InstructType instruct = skip_on_true ? InstructType::DropStack : InstructType::DropStackN;
+
+				compiler->PushInstruction(target, { instruct, Operand{ (int64_t)next.size() + 1, OperandType::Differ}, lhs});
+
+				compiler->AppendInstructions(std::move(next));
+
+				return Solution{ QualifiedType{common_type::boolean()}, OperandType::Register, prefered };
+			}
 		};
 
 
@@ -1249,6 +1287,10 @@ namespace LEX
 				
 			case InstructType::Promote:
 				return OpProcessors::PromoteProcess(compiler, target);
+
+			case InstructType::LogicalAND:
+			case InstructType::LogicalOR:
+				return OpProcessors::LogicalProcess(compiler, target, op == InstructType::LogicalOR);
 
 			default:
 				return OpProcessors::GenericProcess(compiler, target, op);
