@@ -22,147 +22,6 @@
 
 namespace LEX
 {
-	//TODO: ObtainPolicy needs to be moved else where at some point.
-
-	template <typename T>
-	TypeBase* _PolicyMaker(std::string name, TypeOffset offset)
-	{//helps with generic or concrete divide
-		return new T{ std::string_view{name}, offset };
-	}
-
-	TypeOffset RecordToInt(SyntaxRecord& ast)
-	{//helps with generic or concrete divide
-		std::string tag = ast.GetTag();
-
-		if (std::strncmp(tag.c_str(), "0x", 2) == 0 || std::strncmp(tag.c_str(), "0X", 2) == 0)
-		{
-			return std::stoi(tag, nullptr, 16);
-		}
-		else
-		{
-			return std::stoi(tag, nullptr, 10);
-		}
-	}
-
-
-
-
-
-	inline TypeBase* Script::tempObtainPolicy(SyntaxRecord& ast, Element* parent)
-	{
-		SyntaxRecord& settings = ast.GetChild(0);
-
-
-
-
-		//This part can be done on the policy, what really needs to be done is figuring out which policy to create, 
-		// or to create at all. This relies on 1 setting. The rest can be fed verbatum later.
-
-		//NOTE, this also includes template arguments.
-
-
-		//Rules of obtaining
-		//Intrinsic, no creation, just pull a policy. Doesn't matter what else it is.
-		//ISpecial-Creates type policy from specific string and integer. Link error if not found.
-		//Data, Creates TypePolicy plain, claiming the next free space.
-		//Generic, a different TypePolicy has to be used, but otherwise it's fine.
-
-
-		SyntaxRecord* genericSet = settings.FindChild(parse_strings::generic);
-		bool is_generic = parent && parent->IsGenericElement() || genericSet && genericSet->size();
-
-
-		using PolicyCtor = TypeBase*(std::string, TypeOffset);
-
-		//using ConcreteType = ConcreteType;
-		using GenericPolicy = ConcreteType;
-		PolicyCtor* create_func = !is_generic ? _PolicyMaker<ConcreteType> : _PolicyMaker<GenericType>;
-
-
-
-
-		std::string name;
-		TypeOffset offset;
-
-		auto LookUpOrMake = [&](const std::string_view& name, TypeOffset offset, bool lookup) -> TypeBase*
-			{
-				TypeBase* result = nullptr;
-
-				if (lookup) {
-					
-					result = IdentityManager::instance->GetBaseByOffset(name, offset);
-				}
-				else
-					result = is_generic ? static_cast<TypeBase*>(new GenericType{ name, offset }) : new ConcreteType{ name, offset };
-
-				return result;
-			};
-
-		bool lookup = false;
-		
-		TypeBase* result;
-
-		if (auto attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach); attach)
-		{
-
-			if (attach->size() == 0) {
-				attach->critical("external type requires some type.");
-			}
-
-			SyntaxRecord& attach_data = attach->GetFront();
-			switch (Hash(attach_data.GetTag()))
-			{
-			case "intrinsic"_h:
-				//Look up
-				lookup = true;
-				__fallthrough;
-			case "external"_h:
-			{
-				//Handle error, I can't fucking be bothered.
-				SyntaxRecord& category = attach_data.GetFront();
-				TypeOffset index;
-
-				//this should more be if it's not number.
-				if (auto& args = category.GetFront(); args.GetView() == "args")
-				{
-					auto& children = args.children();
-
-					std::vector<std::string_view> string_args{ children.size() };
-
-					std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
-
-					index = GetProject()->client()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
-					//logger::trace("offset from args = {}", index);
-				}
-				else
-				{
-					index = RecordToInt(category.GetFront());
-				}
-
-				result = LookUpOrMake(category.GetTag(), index, lookup);
-
-				break;
-
-			}
-			break;//create
-
-			default:
-				report::apply::debug("Couldn't ObtainPolicy");
-				result = nullptr;
-				break;
-			}
-
-		}
-		else
-		{
-			result = is_generic ? new GenericPolicy{} : new ConcreteType{};
-		}
-
-		if (result)
-			result->Initialize(ast);
-
-		return result;
-	}
 
 
 
@@ -233,101 +92,61 @@ namespace LEX
 	}
 
 
-	void Script::LoadFromSyntaxTree(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end)
+	void Script::LoadFromSyntaxNode(SyntaxRecord& node)
 	{
-		
-
-		//for (auto& node : target.children())
-		while (begin != end)
+		get_switch(node.SYNTAX().type)
 		{
-			auto& node = *begin++;
 
-			//Turn this into a function
-			get_switch(node.SYNTAX().type)
-			{
-
-			case SyntaxType::Project://No fucking idea why this is even here.
-				break;
-
-			case SyntaxType::Format: {
-				Project* project = GetProject();
-				if (project)
-					project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
-			}
-			break;
-
-			case SyntaxType::Function:
-			{
-				//auto* function = new ConcreteFunction{};
-
-				//AddFunction(function);
-
-				//function->ConstructFromRecord(node);
-				//AddFunction(Component::Create<ConcreteFunction>(node));
-
-				CreateFunction(node);
-				break;
-
-			}
-			case SyntaxType::Type:
-			{
-				//auto* policy = ObtainPolicy(node);
-
-				//policy->ConstructFromRecord(node);
-
-				//AddType(policy);
-
-				AddType(tempObtainPolicy(node));
-				break;
-			}
-			case SyntaxType::Variable:
-			{
-				//This is very incorrect btw
-				AddVariable(Component::Create<ConcreteGlobal>(node));
-				break;
-			}
-			//These 2 are script exclusives
-			case SyntaxType::Directive:
-			{
-				//Directives should be ordered, namely that subdirectories should be made first.
-				Project* parent = GetProject();
-
-				for (auto& directive : node.children()) {
-					switch (directive.SYNTAX().type)
-					{
-					case SyntaxType::Relationship:
-					{
-						RelateType type;
-
-						switch (Hash(directive.GetTag()))
-						{
-						case "import"_h: type = RelateType::Imported; break;
-						case "include"_h: type = RelateType::Included; break;
-						default: report::compile::error("unknown relationship directive '{}' detected.", directive.GetView());
-						}
-
-						auto view = directive.GetFront().GetView();
-						Script* script = parent->FindScript(view);
-
-						if (!script) {
-							report::compile::error("Cannot find script '{}'.", view);
-						}
-
-						AddRelationship(script, type);
-					}
-					break;
-
-					}
-
+			case SyntaxType::Format: 
+				if constexpr (1)
+				{
+					Project* project = GetProject();
+					if (project)
+						project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
 				}
-			}
-			break;
-			default:
-				report::compile::critical("Syntax {} not valid for script", magic_enum::enum_name(switch_value)); break;
-			}
-		}
+				break;
 
+			case SyntaxType::Directive:
+				if constexpr (1)
+				{
+					//Directives should be ordered, namely that subdirectories should be made first.
+					Project* parent = GetProject();
+
+					for (auto& directive : node.children()) {
+						switch (directive.SYNTAX().type)
+						{
+						case SyntaxType::Relationship:
+						{
+							RelateType type;
+
+							switch (Hash(directive.GetTag()))
+							{
+							case "import"_h: type = RelateType::Imported; break;
+							case "include"_h: type = RelateType::Included; break;
+							default: report::compile::error("unknown relationship directive '{}' detected.", directive.GetView());
+							}
+
+							auto view = directive.GetFront().GetView();
+							Script* script = parent->FindScript(view);
+
+							if (!script) {
+								report::compile::error("Cannot find script '{}'.", view);
+							}
+
+							AddRelationship(script, type);
+						}
+						break;
+
+						}
+
+					}
+				}
+				break;
+			default:
+				return __super::LoadFromSyntaxNode(node);
+		}
 	}
+
 
 	void Script::OnAttach()
 	{
@@ -402,18 +221,22 @@ namespace LEX
 		}
 
 
+		auto content_body = content.FindChild(parse_strings::body);
+
 		//Nothing to add, no reason to care.
-		if (content.size() == 0)
+		if (!content_body)
 			return true;
 		//if (IsIncremental() == true)
 
 		if (auto* tree = GetSyntaxTree(); tree) {
-			auto& children = tree->children();
+			auto& body = tree->ObtainChild(parse_strings::body, SyntaxType::None);
+			auto& children = body.children();
 			
 			auto index = children.size();
 			//TODO: Right here, you'd want to rewrite every single syntax so it appends to the very end, instead of incorrectly being placed later.
 
-			tree->EmplaceChildren(std::move(content.children()));
+			
+			body.EmplaceChildren(std::move(content_body->children()));
 			auto begin = children.begin() + index;
 			auto end = children.end();
 
@@ -428,8 +251,17 @@ namespace LEX
 			if (HasLinked(LinkFlag::Loaded) == true)
 			{
 				//TODO: If this hasn't reached a certain level of linkage, it shouldn't add this. Notably, loaded must have passed.
-				LoadFromSyntaxTree(begin, end);
-				RefreshLinkage();
+				
+				try
+				{
+					LoadFromSyntaxTree(begin, end);
+					RefreshLinkage();
+
+				}
+				catch (CompileError& error)
+				{
+					report::compile::failure("Failed to append content to {}", GetName());
+				}
 			}
 			else
 			{
@@ -444,11 +276,19 @@ namespace LEX
 
 	LinkResult Script::OnLink(LinkFlag flags)
 	{
+		return __super::OnLink(flags);
 		if (flags != LinkFlag::Loaded)
-			return LinkResult::Failure;
+			return LinkResult::Success;
 
 
-		auto& children = GetSyntaxTree()->children();
+		auto body = GetSyntaxTree()->FindChild(parse_strings::body);
+
+		if (!body) {
+			logger::warn("script {} is empty", GetName());
+			return LinkResult::Success;
+		}
+
+		auto& children = body->children();
 
 		logger::info("Loading script: {}", GetName());
 
@@ -459,7 +299,7 @@ namespace LEX
 
 	LinkFlag Script::GetLinkFlags()
 	{
-		return  LinkFlag::Loaded;
+		return LinkFlag::Loaded;
 	}
 
 	Environment* Script::FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter)

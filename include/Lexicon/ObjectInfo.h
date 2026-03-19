@@ -30,7 +30,7 @@ namespace LEX
 			struct INTERFACE_VERSION(ObjectVTable)
 			{
 				//*
-
+				virtual ~IV_ObjectVTable() = default;
 
 
 				//The idea of this is that the policy stores it, and is accessed every single time an operator has to be used on an object.
@@ -313,8 +313,33 @@ namespace LEX
 		// and calling new ones. 
 	};
 
+	namespace detail
+	{
+		struct InternalObjectInfo : public ObjectVTable, LEX::detail::not_implemented
+		{
+			StaticStoreType GetStorageType() INTERFACE_METHOD;
 
-	
+			void Destroy(ObjectData& self) INTERFACE_METHOD;
+
+			void Copy(ObjectData& self, const ObjectData& other) INTERFACE_METHOD;
+
+			void Move(ObjectData& self, ObjectData& other) INTERFACE_METHOD;
+
+			std::partial_ordering Compare(ObjectData& self, ObjectData& other) INTERFACE_METHOD;
+
+
+			String PrintString(ObjectData& self, std::string_view context) INTERFACE_METHOD;
+
+
+			TypeOffset GetTypeOffset(ObjectData& data) INTERFACE_METHOD;
+
+		};
+	}
+#ifdef LEX_SOURCE
+#define INTERNAL_OBJECT_INFO(mc_typename) LEX::QualifiedObjectInfo<mc_typename>
+#else
+#define INTERNAL_OBJECT_INFO(mc_typename) LEX::detail::InternalObjectInfo
+#endif
 
 
 	template <typename T>
@@ -328,9 +353,23 @@ namespace LEX
 		//Having this not be loose is a good sign of warning.
 		//using PureT = std::remove_cvref_t<T>;
 
-		static ObjectVTable* vtable = new ObjectInfo<T>{};
+		struct ob_info_delete { // default deleter for unique_ptr
+			constexpr ob_info_delete() noexcept = default;
 
-		return vtable;
+			//template <class _Ty2, enable_if_t<is_convertible_v<_Ty2*, _Ty*>, int> = 0>
+			constexpr ob_info_delete(const ob_info_delete&) noexcept {}
+
+			constexpr void operator()(ObjectVTable* ptr) const noexcept  {
+				//If this is an unregistered object info, we're allowed to delete it here
+				if (ptr->GetObjectPolicy() == nullptr)
+					delete ptr;
+
+			
+			}
+		};
+		static std::unique_ptr<ObjectVTable, ob_info_delete> vtable{ new ObjectInfo<T> };
+
+		return vtable.get();
 	}
 
 }

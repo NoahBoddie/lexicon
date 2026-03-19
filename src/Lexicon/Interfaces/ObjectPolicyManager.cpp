@@ -5,14 +5,63 @@ namespace LEX
 	//inline static std::vector<ObjectPolicyImpl*> _policyList{};
 
 	//I actually may want these storing the pointers. Just need to access the index from there for the handles.
-	inline static std::map<std::string_view, uint32_t> aliasList{};
+	std::map<std::string_view, uint32_t> aliasList{};
+
+	std::vector<ObjectPolicy*> _policyList{};
+
+	//std::vector<ObjectPolicy*> ObjectPolicyManager::_policyList{};
 
 
-	std::vector<ObjectPolicy*>& GetPolicyList()
+	struct ObjectPolicyList
 	{
-		static std::vector<ObjectPolicy*> _policyList{};
-		return _policyList;
-	}
+		std::vector<ObjectPolicy*>* data = new std::vector<ObjectPolicy*>;
+		std::atomic<ptrdiff_t> refCount = 1;
+		bool destructed = false;
+
+
+
+		void TryDestroy()
+		{
+			if (!refCount) {
+				if (destructed) {
+					//logger::debug("successfully destructed ObjectPolicyList");
+				}
+				delete data;
+			}
+			
+		}
+
+		void ModRefCount(bool inc, bool destructing= false)
+		{
+			refCount += inc ? 1 : -1;
+
+			logger::trace("temp, {} to {}", inc ? "increment" : "decrement", refCount.load());
+			
+			assert(refCount >= 0);
+
+			if (refCount && destructed) {
+				//logger::debug("{} detected, {} refs remaining", inc ? "increment" : "decrement", refCount.load());
+			}
+			else assert_if(!refCount && !destructed && !destructing)
+			{
+				//report::fault::critical("ObjectPolicyManager ran out of uses outside of destruction, this should not happen");
+			}
+
+			TryDestroy();
+		}
+
+		~ObjectPolicyList()
+		{
+			ModRefCount(false, true);
+			destructed = true;
+
+			if (refCount) {
+				//logger::debug("Delaying destruction of ObjectPolicyList, {} refs remaining", refCount.load());
+			}
+		}
+
+	} singleton;
+
 
 	uint32_t ObjectPolicyManager::GetIndexFromName(std::string_view name)
 	{
@@ -22,7 +71,7 @@ namespace LEX
 		auto it = aliasList.find(name);
 
 		if (it == end) {
-			report::compile::critical("Object Policy '{}' not found.", name);
+			return -1;
 		}
 
 		return it->second;
@@ -31,14 +80,18 @@ namespace LEX
 
 	uint32_t ObjectPolicyManager::GetIndexFromCategory(std::string_view category)
 	{
-		auto& policyList = GetPolicyList();
+		//auto policyList = GetPolicyList();
+		auto policyList = &_policyList;
 
-		auto size = policyList.size();
-
-		for (int i = 0; i < size; i++)
+		if (policyList)
 		{
-			if (policyList[i]->category == category) {
-				return i;
+			auto size = policyList->size();
+
+			for (int i = 0; i < size; i++)
+			{
+				if (policyList->at(i)->category == category) {
+					return i;
+				}
 			}
 		}
 
@@ -52,15 +105,19 @@ namespace LEX
 			return nullptr;
 		}
 
-		auto& policyList = GetPolicyList();
+		//auto policyList = GetPolicyList();
+		auto policyList = &_policyList;
 
-		assert(policyList.size() > index);
+		if (policyList)
+		{
+			assert_if_not (policyList->size() > index) {
+				return policyList->at(index);
+			}
 
-		if (policyList.size() <= index) {
-			return nullptr;
+			
 		}
 
-		return policyList[index];
+		return nullptr;
 	}
 
 
@@ -73,14 +130,15 @@ namespace LEX
 		//Crashing is unlikely and most likely will want to be unhandled. So letting it through.
 		ObjectPolicy* policy = new ObjectPolicy;
 
-		auto& policyList = GetPolicyList();
+		//auto policyList = GetPolicyList();
+		auto policyList = &_policyList;
 		
-		auto policyID = policyList.size();
+		auto policyID = policyList->size();
 		
 
 
 
-		policyList.emplace_back(policy);
+		policyList->emplace_back(policy);
 
 		vtable->SetPolicy(policy);
 		policy->base = vtable;

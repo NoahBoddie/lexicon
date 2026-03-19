@@ -9,12 +9,15 @@
 
 #include "Lexicon/Interfaces/FormulaManager.h"
 
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/SyntaxRecord.h"
+#endif
+
 namespace LEX
 {
 	struct IScript;
 
-
-
+	
 	template <typename T>// requires(detail::reference_type_v<T, true> == detail::kNoRef)
 	struct Formula;
 	
@@ -28,12 +31,276 @@ namespace LEX
 	struct Formula<T> {};
 	//*/
 	
+	
+
+
+
+	//Note that if it's a const pointer (like this), it will check if the to type is a pointer, otherwise it will just be a const.
+
+
+	namespace detail
+	{
+		template <typename T1, typename T2>
+		concept same_as_extracted = std::same_as<std::remove_cvref_t<T1>, std::remove_cvref_t<T2>>;
+
+		//If it's a runtime type, it requires 2 strings, one for type, and the other for the name.
+		template <typename T>
+		using param_view_t = std::conditional_t<std::is_same_v<std::remove_cvref_t<T>, runtime_type>,
+			std::pair<std::string_view, std::string_view>, std::string_view>;
+
+		template<typename T, typename To = Variable>
+		using remove_runtype_t = std::conditional_t<std::is_same_v<std::remove_cvref_t<T>, runtime_type>, inherit_qualifier_t<To, T>, T>;
+
+
+		template<typename Handler, typename R, typename T, typename... Args>//This gets owned by the function btw.
+		struct FormulaBaseImpl
+		{
+			static constexpr bool uses_runtime = ((std::is_same_v<std::remove_cvref_t<Args>, runtime_type>) || ...);
+
+		private:
+
+			static auto get_view(const auto& v, bool first) -> std::string_view {
+				if constexpr (std::is_same_v<std::remove_cvref_t<decltype(v)>, std::string_view>) {
+					return v;
+				}
+				else {
+					return first ? v.first : v.second;
+				}
+			}
+
+
+			static bool PrepSignature(SignatureBase& base, std::string_view ret_type, std::string_view tar_type, param_view_t<Args>... parameters, std::optional<IScript*>& from = std::nullopt)
+			{
+				bool processed = base.Fill<SignatureEnum::Result, R, T, Args...>();
+
+				//Here have one that checks for R to have the runtime_type
+				//Here have a T check
+				//And here attempt to use a fold expression to fish out if there's one.
+
+				if (processed) {
+
+					IScript* script = from && from.value() ? from.value() : ProjectManager::instance->GetShared()->GetCommons();
+
+					if constexpr (std::is_same_v<std::remove_cvref_t<R>, runtime_type>) {
+						processed = base.SignatureBase::result.policy = script->GetTypeFromPath(ret_type);
+						if (!processed) return false;
+					}
+
+					if constexpr (std::is_same_v<std::remove_cvref_t<T>, runtime_type>) {
+						processed = base.SignatureBase::target.policy = script->GetTypeFromPath(tar_type);
+						if (!processed) return false;
+					}
+					//use uses_runtime
+					if constexpr (sizeof...(Args) && ((std::is_same_v<std::remove_cvref_t<Args>, runtime_type>) || ...))
+					{
+						size_t i = 0;
+
+						auto& params = base.SignatureBase::parameters;
+
+						processed = ((params[i++].policy = std::is_same_v<std::remove_cvref_t<Args>, runtime_type> ?
+							script->GetTypeFromPath(get_view(parameters, true)) : params[i - 1].policy) && ...);
+
+					}
+
+					return processed;
+				}
+
+			}
+
+			static Handler CompileFormula(ISignature& base, param_view_t<Args>... parameters, std::string_view routine,
+				std::optional<IScript*> from = std::nullopt, const std::source_location& loc = std::source_location::current())
+			{
+
+
+				Handler self;
+
+				std::vector<std::string_view> params{ get_view(parameters, false)... };
+
+				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from, loc);
+
+				if (result) {
+					report::failure("Formula '{}' failed to resolve. Error value {}", loc, routine, result);
+				}
+
+				return std::move(self);
+			}
+#ifdef LEX_SOURCE
+			static Handler CompileFormula(ISignature& base, param_view_t<Args>... parameters, std::string_view name, SyntaxRecord& ast,
+				std::optional<IScript*> from = std::nullopt, const std::source_location& loc = std::source_location::current())
+			{
+				Handler self;
+
+				std::vector<std::string_view> params{ get_view(parameters, false)... };
+
+				auto result = FormulaManager::instance->RequestFormulaFromRecord(base, params, name, ast, self, from, loc);
+
+				if (result) {
+					report::failure("Formula '{}' failed to resolve. Error value {}", loc, name, result);
+				}
+
+				return std::move(self);
+			}
+#endif
+		protected:
+
+			static Handler CreateImpl(std::string_view ret_type, std::string_view tar_type, param_view_t<Args>... parameters,
+				std::string_view routine, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current())
+			{
+				ISignature base;
+
+				if (PrepSignature(base, ret_type, tar_type, parameters..., from) == false) {
+					report::failure("signature not processed", loc);
+					return {};
+				}
+
+				return CompileFormula(base, parameters..., routine, from, loc);
+			}
+
+
+#ifdef LEX_SOURCE
+
+			static Handler CreateImpl(std::string_view ret_type, std::string_view tar_type, param_view_t<Args>... parameters,
+				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current())
+			{
+				ISignature base;
+
+				if (PrepSignature(base, ret_type, tar_type, parameters..., from) == false) {
+					report::failure("signature not processed", loc);
+					return {};
+				}
+
+				return CompileFormula(base, parameters..., name, ast, from, loc);
+			}
+
+#endif
+
+
+		};
+
+
+		template<typename Handler, typename R, typename T, typename... Args>//This gets owned by the function btw.
+		struct FormulaBase : private FormulaBaseImpl<Handler, R, T, Args...>
+		{
+			using Base = FormulaBaseImpl<Handler, R, T, Args...>;
+			using Self = FormulaBase<Handler, R, T, Args...>;
+
+			static Handler Create(param_view_t<Args>... parameters,
+				std::string_view routine, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl({}, {}, parameters..., routine, from, loc);
+			}
+#ifdef LEX_SOURCE
+			static Handler Create(param_view_t<Args>... parameters,
+				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl({}, {}, parameters..., name, ast, from, loc);
+			}
+#endif
+		};
+
+		template<typename Handler, stl::same_as_extracted<runtime_type> R, typename T, typename... Args>//This gets owned by the function btw.
+		struct FormulaBase<Handler, R, T, Args...> : private FormulaBaseImpl<Handler, R, T, Args...>
+		{
+			static constexpr bool uses_runtime = true;
+
+			using Base = FormulaBaseImpl<Handler, R, T, Args...>;
+			using Self = FormulaBase<Handler, R, T, Args...>;
+
+			static Handler Create(std::string_view return_type, param_view_t<Args>... parameters,
+				std::string_view routine, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl(return_type, {}, parameters..., routine, from, loc);
+			}
+
+#ifdef LEX_SOURCE
+			static Handler Create(std::string_view return_type, param_view_t<Args>... parameters,
+				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl(return_type, {}, parameters..., name, ast, from, loc);
+			}
+#endif
+		};
+
+		template<typename Handler, typename R, stl::same_as_extracted<runtime_type> T, typename... Args>//This gets owned by the function btw.
+		struct FormulaBase<Handler, R, T, Args...> : private FormulaBaseImpl<Handler, R, T, Args...>
+		{
+			static constexpr bool uses_runtime = true;
+
+			using Base = FormulaBaseImpl<Handler, R, T, Args...>;
+			using Self = FormulaBase<Handler, R, T, Args...>;
+
+			static Handler Create(std::string_view target_type, param_view_t<Args>... parameters,
+				std::string_view routine, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl({}, target_type, parameters..., routine, from, loc);
+			}
+
+#ifdef LEX_SOURCE
+			static Handler Create(std::string_view target_type, param_view_t<Args>... parameters,
+				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl({}, target_type, parameters..., name, ast, from, loc);
+			}
+#endif
+		};
+
+		template<typename Handler, stl::same_as_extracted<runtime_type> R, stl::same_as_extracted<runtime_type> T, typename... Args>//This gets owned by the function btw.
+		struct FormulaBase<Handler, R, T, Args...> : private FormulaBaseImpl<Handler, R, T, Args...>
+		{
+			static constexpr bool uses_runtime = true;
+
+			using Base = FormulaBaseImpl<Handler, R, T, Args...>;
+			using Self = FormulaBase<Handler, R, T, Args...>;
+			static Handler Create(std::string_view return_type, std::string_view target_type, param_view_t<Args>... parameters,
+				std::string_view routine, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl(return_type, target_type, parameters..., routine, from, loc);
+			}
+
+#ifdef LEX_SOURCE
+			static Handler Create(std::string_view return_type, std::string_view target_type, param_view_t<Args>... parameters,
+				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
+				const std::source_location& loc = std::source_location::current()
+			)
+			{
+				return Base::CreateImpl(return_type, target_type, parameters..., name, ast, from, loc);
+			}
+#endif
+		};
+
+
+	}
+
+	
+
+
+
 	//make summary later.
 	template <detail::function_has_var_type T>
-	struct Formula<T>
+	struct Formula<T> : private detail::FormulaBase<FormulaHandler, T, StaticTargetTag>
 	{
+		//TODO: Formula immediate return doesn't use runtime types, I'd like it to however.
+
 		//This version of formula is completely removed from play
 	private:
+		using Base = detail::FormulaBase<FormulaHandler, T, StaticTargetTag>;
+
 		Formula() = delete;
 		Formula(const Formula&) = delete;
 		Formula(Formula&&) = delete;
@@ -50,65 +317,27 @@ namespace LEX
 	private:
 		static T RunImpl(std::string_view routine, std::optional<IScript*> from, std::optional<Ty> def, const std::source_location& loc)
 		{
+			FormulaHandler handler = Base::Create(routine, from, loc);
 
-			FormulaHandler self;
-
-			ISignature base{};
-
-			//bool processed = FillSignature<true, R, Args...>(sign);
-			bool processed = base.Fill<SignatureEnum::Result, T, StaticTargetTag>();
-
-			uint64_t temp_cmp_res = 1;
-
-			if (processed)
-			{
-
-				auto result = FormulaManager::instance->RequestFormula(base, {}, routine, self, from, loc);
-
-				//Send out a message here.
-				temp_cmp_res = result;
-
-			}
-
-			if (temp_cmp_res) {
-				
-				bool def_value = def.has_value();
-
-				
-				report::log("Error occured creating formula '{}'. Error {}.", std::source_location::current(), 
-					IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error,
-					routine, temp_cmp_res);
-
-				if (def_value) {
-					if constexpr (std::is_void_v<T>) {
-						return;
-					}
-					else {
+			if (!handler) {
+				if constexpr (std::is_void_v<T>) {
+					return;
+				}
+				else {
+					if (def.has_value()) {
 						return def.value();
 					}
-				}
-					
-
-			}
-
-			
-			if (self) {
-				//For now, this shouldn't catch.
-				RuntimeVariable result = self.formula()->Call();
-				
-				if constexpr (!std::is_same_v<void, T>) {
-					return Unvariable<T>{}(result.Ptr());
+					else {
+						throw Error("Default value not given for formula execution");
+					}
 				}
 			}
 
-			//Send an exception. probably.
-			if constexpr (std::is_void_v<T>) {
-				return;
-			}
-			else {
-				return {};
-			}
+			RuntimeVariable result = handler.formula()->Call();
 
+			if constexpr (!std::is_same_v<void, T>) {
+				return Unvariable<T>{}(result.Ptr());
+			}
 		}
 
 	public:
@@ -145,12 +374,25 @@ namespace LEX
 
 
 	template <typename R, typename... Args>
-	struct Formula<R(Args...)> : public FormulaHandler
+	struct Formula<R(Args...)> : 
+		public detail::FormulaBase<Formula<detail::remove_runtype_t<R, Voidable>(detail::remove_runtype_t<Args>...)>, R, StaticTargetTag, Args...>,
+		public FormulaHandler
 	{
-		using Self = Formula<R(Args...)>;
+		using Ret = detail::remove_runtype_t<R, Voidable>;
+		using Self = Formula<Ret(detail::remove_runtype_t<Args>...)>;
+		using Base = detail::FormulaBase<Self, R, StaticTargetTag, Args...>;
+
+		//operator Self() { return *reinterpret_cast<Self*>(this); }
+		//operator const Self() const { return *reinterpret_cast<const Self*>(this); }
+		
+		constexpr Formula() noexcept = default;
+		inline Formula& operator=(const Self& self) { FormulaHandler::operator=(self); return *this; }
+		inline Formula& operator=(Self&& self) { FormulaHandler::operator=(std::move(self)); return *this; }
+		Formula(const Self& self) : FormulaHandler{ self } {}
+		Formula(Self&& self) : FormulaHandler{ std::move(self) } {}
 
 
-		using Ry = std::conditional_t<std::is_void_v<R>, Void, R>;
+		using Ry = std::conditional_t<std::is_void_v<R>, Void, detail::remove_runtype_t<R, Voidable>>;
 
 
 		//The idea of this is you cast an IFormula into this forcibly, and this type will then manage all of the function calls for the type.
@@ -159,7 +401,7 @@ namespace LEX
 		//Basically, this is a wrapper for a given IFormula.
 
 
-		R operator()(Args... args, std::optional<Ry> def = std::nullopt)
+		detail::remove_runtype_t<R, Voidable> operator()(detail::remove_runtype_t<Args>... args, std::optional<Ry> def = std::nullopt)
 		{
 			//What should I do if someone tries to call this and doesn't have the right stuff?
 			if (formula() == nullptr)
@@ -182,14 +424,14 @@ namespace LEX
 			}
 
 
-			RuntimeVariable result = formula()->Call(std::forward<Args>(args)...);
+			RuntimeVariable result = formula()->Call(std::forward<detail::remove_runtype_t<Args>>(args)...);
 
 			if constexpr (!std::is_same_v<void, R>) {
-				return Unvariable<R>{}(result.Ptr());
+				return Unvariable<Ret>{}(result.Ptr());
 			}
 		}
-
-		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt, 
+		/*
+		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt,
 			const std::source_location& loc = std::source_location::current())
 		{
 			Self self;
@@ -214,9 +456,11 @@ namespace LEX
 			}
 			return self;
 		}
-
+		//*/
 	};
 
+
+	
 	
 	namespace detail
 	{
@@ -245,15 +489,33 @@ namespace LEX
 	//using TEVE = void(std::string::*)() const;
 
 	template <typename R, typename T, typename... Args>
-	struct Formula<R(T::*)(Args...)> : public FormulaHandler
+	struct Formula<R(T::*)(Args...)> : 
+		public detail::FormulaBase<Formula<detail::remove_runtype_t<R, Voidable>(detail::remove_runtype_t<T>::*)(detail::remove_runtype_t<Args>...)>,
+		R, detail::expected_var_type_t<T>, Args...>,
+		public FormulaHandler
 	{
-		using Self = Formula<R(T::*)(Args...)>;
+		using Ret = detail::remove_runtype_t<R, Voidable>;
+		using Target = detail::expected_var_type_t<detail::remove_runtype_t<T>>;
 
-		using Type = detail::expected_var_type_t<T>;
+		using TrueSelf = Formula<R(T::*)(Args...)>;
+		using Self = Formula<Ret(detail::remove_runtype_t<T>::*)(detail::remove_runtype_t<Args>...)>;
 
-		using TarType = std::conditional_t<std::is_pointer_v<Type>,Type, Type&>;
+		using Base = detail::FormulaBase<Self, R, detail::expected_var_type_t<T>, Args...>;
 
-		using Ry = std::conditional_t<std::is_void_v<R>, Void, R>;
+
+		using TarType = std::conditional_t<std::is_pointer_v<Target>,Target, Target&>;
+
+		using Ry = std::conditional_t<std::is_void_v<R>, Void, Ret>;
+
+		//operator Self() { return *reinterpret_cast<Self*>(this); }
+		//operator const Self() const { return *reinterpret_cast<const Self*>(this); }
+
+		constexpr Formula() noexcept = default;
+		
+		inline Formula& operator=(const Self& self) { FormulaHandler::operator=(self); return *this; }
+		inline Formula& operator=(Self&& self) { FormulaHandler::operator=(std::move(self)); return *this; }
+		Formula(const Self& self) : FormulaHandler{ self } {}
+		Formula(Self&& self) : FormulaHandler{ std::move(self) } {}
 
 		//The concept of this is, if you have a type that's a pointer
 		// it will use the pointer helper, which then needs to make the this helper to call on.
@@ -263,6 +525,7 @@ namespace LEX
 		{
 		protected:
 			friend class Self;
+			friend class TrueSelf;
 
 			HelperBase(TarType tar, IFormula* form) : target{ tar }, call_unit{ form } {}
 
@@ -281,7 +544,7 @@ namespace LEX
 		
 			void* operator->() = delete;
 
-			R Call(Args... args, std::optional<Ry> def = std::nullopt)
+			Ret Call(detail::remove_runtype_t<Args>... args, std::optional<Ry> def = std::nullopt)
 			{
 				//What should I do if someone tries to call this and doesn't have the right stuff?
 				if (!this->call_unit)
@@ -304,7 +567,7 @@ namespace LEX
 				}
 
 
-				RuntimeVariable result = this->call_unit->Call(std::forward<TarType>(this->target), std::forward<Args>(args)...);
+				RuntimeVariable result = this->call_unit->Call(std::forward<TarType>(this->target), std::forward<detail::remove_runtype_t<Args>>(args)...);
 
 				if constexpr (!std::is_same_v<void, R>) {
 					return Unvariable<R>{}(result.Ptr());
@@ -395,7 +658,7 @@ public:
 			return GetHelper(target);
 		}
 
-		auto operator()(Type&& target) requires(!std::is_pointer_v<TarType>)
+		auto operator()(Target&& target) requires(!std::is_pointer_v<TarType>)
 		{
 			return GetHelper(target);
 		}
@@ -404,6 +667,7 @@ public:
 		//This version should have a special operator where using -> will yield a helper class that will be able to be called in order to handle the function
 		// So something like formula(target)->Call();  or formula(target)(); Or, I'll just allow the target to be one with the calls. Seems better that way.
 
+		/*
 		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt, 
 			const std::source_location& loc = std::source_location::current())
 		{
@@ -429,7 +693,7 @@ public:
 			}
 			return self;
 		}
-
+		//*/
 	};
 
 

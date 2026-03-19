@@ -144,7 +144,6 @@ namespace LEX
 
 
 
-
 	
 
 
@@ -2094,6 +2093,21 @@ namespace LEX
 
 	void TestRun()
 	{
+
+		Variable string_test = "string_test";
+		
+		auto test_type = common_type::boolean();
+
+		Variable out;
+
+		if (test_type->Convert(string_test, out) == true)
+		{
+			logger::info("before: {}, after: {}", string_test.PrintString(), out.PrintString());
+		}
+		else
+		{
+			logger::info("failed....");
+		}
 		
 		do
 		{

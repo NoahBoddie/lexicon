@@ -2,6 +2,10 @@
 
 #include "Interface.h"
 
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/SyntaxRecord.h"
+#endif
+
 namespace LEX
 {
 	struct IScript;
@@ -9,6 +13,7 @@ namespace LEX
 	struct ISignature;
 	struct SignatureBase;
 	struct FormulaHandler;
+	struct FormulaData;
 
 
 	namespace Version
@@ -31,10 +36,18 @@ namespace LEX
 
 	struct IMPL_SINGLETON(FormulaManager)
 	{
+#ifdef LEX_SOURCE
+		[[nodiscard]] uint64_t RequestFormulaFromRecord(const ISignature& base, std::span<std::string_view> params,
+			std::string_view name, SyntaxRecord& routine, FormulaHandler& out, std::optional<IScript*> from = std::nullopt,
+			const std::source_location& loc = std::source_location::current()) INTERFACE_FUNCTION;
+#endif
+
 		[[nodiscard]] uint64_t RequestFormula(const ISignature& base, std::span<std::string_view> params, 
 			std::string_view routine, FormulaHandler& out, std::optional<IScript*> from = std::nullopt, 
 			const std::source_location& loc = std::source_location::current()) override;
 		void IncrementForumula(LEX::IFormula* formula) override;
 		void DecrementForumula(LEX::IFormula*& formula) override;
+
+
 	};
 }

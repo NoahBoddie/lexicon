@@ -26,6 +26,6 @@ namespace LEX
 
 	struct IMPL_VERSION(IProject), public IElement
 	{
-	
+		//TODO: add find script, am I stupid?
 	};
 }

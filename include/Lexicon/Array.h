@@ -274,6 +274,9 @@ namespace LEX
 			if (other._container) {
 				_container = std::make_unique<Helper>(other._container->data());
 			}
+			else {
+				_container.reset();
+			}
 
 			return *this;
 		}
@@ -311,21 +314,26 @@ namespace LEX
 
 		std::string PrintString(std::string_view context) const
 		{
-			auto stuff = _container->data();
-
-			auto size = stuff.size();
-
 			//std::vector<std::string> entries{ size };
 			std::string result = "[";
 
-			for (int i = 0; i < size; i++)
+
+			if (_container)
 			{
-				if (i)
-					result += ", ";
+				auto stuff = _container->data();
 
-				result += stuff[i]->PrintString();
+				auto size = stuff.size();
 
 
+				for (int i = 0; i < size; i++)
+				{
+					if (i)
+						result += ", ";
+
+					result += stuff[i]->PrintString();
+
+
+				}
 			}
 			result += "]";
 

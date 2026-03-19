@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Dispatcher.h"
 
 #include "Lexicon/Interfaces/ProcedureHandler.h"

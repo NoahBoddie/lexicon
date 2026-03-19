@@ -336,6 +336,15 @@ namespace LEX
 			return operator<=>(other) == std::strong_ordering::equal;
 		}
 
+		std::strong_ordering Compare(const Variable& other) const
+		{
+			if (auto cmp = GetTypeInfo() <=> other.GetTypeInfo(); cmp != std::strong_ordering::equal) {
+				return cmp;
+			}
+
+			return operator<=>(other);
+		}
+
 		VariableEnum GetVariableEnum() const
 		{
 			return (VariableEnum)index();
@@ -578,6 +587,15 @@ namespace LEX
 	};
 	static_assert(sizeof(Variable) == (sizeof(VariableValue)), "Size of Variable Component and Value must be equal for data helper to work.");
 	
+	
+	struct var_cmp
+	{
+	
+		[[nodiscard]] auto operator()(const Variable& lhs, const Variable& rhs) const {
+			return lhs.Compare(rhs) == std::strong_ordering::less;;
+		}
+
+	};
 
 
 	struct Voidable : public Variable

@@ -51,8 +51,29 @@ namespace LEX
 		constexpr bool CanHandle(uintptr_t version) const noexcept { return true; }
 	};
 
+
+	template <typename T>
+	struct __declspec(novtable) InterfaceLayerImpl<T> : public T
+	{
+
+		static constexpr uintptr_t totalVersion = T::version;
+
+		//Used for specific handling of versions. Say a function has to change functionality and the expectation is no longer valid.
+
+
+		uintptr_t GetVersion() const { return T::Version(); }
+
+
+		bool CanUseVersion() const
+		{
+			return T::CanHandle(T::version);
+		}
+
+	};
+
+
 	template <typename T, typename... Intfs>
-	struct __declspec(novtable) InterfaceLayerImpl<T, Intfs...> : public T, InterfaceLayerImpl<Intfs...>
+	struct __declspec(novtable) InterfaceLayerImpl<T, Intfs...> : public InterfaceLayerImpl<T>, public InterfaceLayerImpl<Intfs...>
 	{
 		using Self = InterfaceLayerImpl<T, Intfs...>;
 		using Base = InterfaceLayerImpl<Intfs...>;
@@ -82,6 +103,9 @@ namespace LEX
 		using Self = InterfaceLayer<Intfs...>;
 		using Base = InterfaceLayerImpl<Intfs...>;
 		using Current = std::tuple_element_t<0, std::tuple<Intfs...>>;
+
+		//Static assert that the interface layer is equal in size to all of its interface layers
+
 		//This aint a vtable, instead the centralized version simply has to count them.
 		uintptr_t GetVersion() const { return Base::GetVersion(); }
 

@@ -12,7 +12,7 @@ namespace LEX
 	struct IRuntime;
 	struct Dispatcher;
 	struct ProcedureData;
-	struct RuntimeVariable;
+	class RuntimeVariable;
 
 	//This exists elsewhere, please move this some how.
 	using Procedure = void(*)(RuntimeVariable&, Variable* target, std::span<Variable*>, ProcedureData&);

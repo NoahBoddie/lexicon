@@ -21,6 +21,10 @@ namespace LEX
 	struct Operand : public Target
 	{
 
+		bool IsOperandEqual(const Operand& other) const
+		{
+			return opType == other.opType && raw == other.raw;
+		}
 
 		//private;
 		Target& data()

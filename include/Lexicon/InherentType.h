@@ -13,7 +13,7 @@ namespace LEX
 		//kObject,//No Object, it may have a name as well as other elements. (Then I could just name it.
 		//kTrival,
 		//kTuple,
-		_1,
+		kNull,
 		_2,
 		_3,
 		_4,//Null,//Simply a representative type

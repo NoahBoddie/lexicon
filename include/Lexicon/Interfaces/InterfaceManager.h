@@ -27,8 +27,10 @@ namespace LEX
 	//Attempts to pull an interface of a given version. If it's not a match, an interface will fail to be given
 	LEX_API Update RequestInterface_Impl(Interface*& out, std::string_view name, uintptr_t version);
 	
-	
 
+	LEX_API void ModInterfaceUseCount_Impl(bool inc);
+	
+#define TEST_INTERFACE
 
 
 	struct InterfaceManager
@@ -46,7 +48,7 @@ namespace LEX
 		inline static std::set<VersionChecker> checks;
 
 	public:
-		void AddVersionCheck(VersionChecker check)
+		static void AddVersionCheck(VersionChecker check)
 		{
 			checks.emplace(check);
 		}
@@ -55,25 +57,29 @@ namespace LEX
 
 		static uintptr_t GetVersion()
 		{
-			uintptr_t client = LEX_VERSION;
 			uintptr_t server;
+#if !defined(LEX_SOURCE) || defined(TEST_INTERFACE)
+
+			uintptr_t client = LEX_VERSION;
 
 			if (SafeInvoke<RequestError>([&]()
 				{
-					ExternCall<decltype(PullVersion_Impl), RequestError>(FILE_FORMAT(LEX_BINARY_MODULE),
+					ExternCall<PullVersion_Impl, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE),
 						"PullVersion_Impl", client, server);
 				}))
 			{
 				server = 0;
 			}
-
+#else
+			server = LEX_VERSION;
+#endif
 			return server;
 		}
 
 		//change name to validate version.
 		static void ValidateVersion(bool missingOk = true)
 		{
-#ifndef LEX_SOURCE
+#if !defined(LEX_SOURCE) || defined(TEST_INTERFACE)
 			static bool checked = false;
 			if (!checked)
 			{
@@ -85,7 +91,7 @@ namespace LEX
 
 				if (SafeInvoke<RequestError>([&]()
 					{
-						result = ExternCall<decltype(PullVersion_Impl), RequestError>(FILE_FORMAT(LEX_BINARY_MODULE), 
+						result = ExternCall<PullVersion_Impl, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE),
 							"PullVersion_Impl", client, server);
 					}))
 				{
@@ -143,12 +149,12 @@ namespace LEX
 
 		static bool RegisterInterface(Interface& ifc, std::string_view name)
 		{
-#ifdef LEX_SOURCE
-			return RegisterInterface_Impl(ifc, name);
-#else
+#if !defined(LEX_SOURCE) || defined(TEST_INTERFACE)
 			ValidateVersion();
 			using Self = decltype(RegisterInterface_Impl);
-			return ExternCall<Self, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE), "RegisterInterface_Impl", ifc, name);
+			return ExternCall<RegisterInterface_Impl, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE), "RegisterInterface_Impl", ifc, name);
+#else
+			return RegisterInterface_Impl(ifc, name);
 #endif
 
 		//If this is the source, it should just directly use the implemetation.
@@ -157,12 +163,13 @@ namespace LEX
 
 		static Update RequestInterface(Interface*& out, std::string_view name, uintptr_t version)
 		{
-#ifdef LEX_SOURCE
-			return RequestInterface_Impl(out, name, version);
-#else
+#if !defined(LEX_SOURCE) || defined(TEST_INTERFACE)
 			ValidateVersion();
 			using Self = decltype(RequestInterface_Impl);
-			return ExternCall<Self, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE), "RequestInterface_Impl", out, name, version);
+			return ExternCall<RequestInterface_Impl, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE), "RequestInterface_Impl", out, name, version);
+#else
+			
+			return RequestInterface_Impl(out, name, version);
 #endif
 
 			
@@ -172,7 +179,7 @@ namespace LEX
 		template<std::derived_from<Interface> T>
 		static bool RegisterInterface(T& ifc)
 		{
-			return RegisterInterface(ifc, typeid(T).name());
+			return RegisterInterface(ifc, GetTypeName<std::remove_cvref_t<T>>());
 		}
 
 
@@ -184,13 +191,30 @@ namespace LEX
 		{
 			Interface* buffer = nullptr;
 
-			auto result = RequestInterface(buffer, typeid(T).name(), version);
+			auto result = RequestInterface(buffer, GetTypeName<std::remove_cvref_t<T>>(), version);
 
 			if (buffer)//Have to reinterpret cast because the dynamic cast will NOT work for interfaces. Getting the shit is good enough.
 				out = reinterpret_cast<T*>(buffer);
 
 
 			return result;
+		}
+
+
+		static void ModInterfaceUseCount(bool inc)
+		{
+#if !defined(LEX_SOURCE) || defined(TEST_INTERFACE)
+			assert_if(SafeInvoke<RequestError>([&]()
+				{
+					ExternCall<ModInterfaceUseCount_Impl, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE),
+						"ModInterfaceUseCount_Impl", inc);
+				}))
+			{
+				//Do something idk
+			}
+#else
+			ModInterfaceUseCount_Impl(inc);
+#endif
 		}
 	};
 

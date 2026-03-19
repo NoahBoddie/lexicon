@@ -141,6 +141,7 @@ namespace LEX
 
 		}
 		
+
 		//Traits are non-blocking and shouldn't be the be end be all, rather used as a header
 
 		//I might just send these a hash code instead, and switch through it. I think for the many types this will save some time.

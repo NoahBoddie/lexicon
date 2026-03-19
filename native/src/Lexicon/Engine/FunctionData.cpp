@@ -493,4 +493,36 @@ namespace LEX
 		return result;
 	}
 
+	RuntimeVariable BasicCallableData::BasicInvoke(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, RuntimeVariable* def,
+		std::optional<Procedure> prod)
+	{
+		//This should ensure conversion
+		if constexpr (0)
+		VisitParameters([&](ParameterInfo& param)
+			{
+				int i = param.GetFieldIndex();
+
+				if (args.size() <= i)
+					return;
+
+				auto& arg = args[i];
+
+				TypeInfo* expected = param.GetType()->FetchTypePolicy(nullptr);
+
+
+				if (!expected)
+					report::apply::error("null parameter type in {}", param.GetFieldName());
+				//This should be done in Invoke, which has conversion checks.
+				Variable check = args[i]->Convert(expected);
+
+				if (check.IsVoid() == true)
+					report::apply::error("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
+
+				args[i].Ref() = std::move(check);
+			});
+
+		return BasicExecute(self, body, std::move(args), nullptr, def);
+	}
+
+
 }

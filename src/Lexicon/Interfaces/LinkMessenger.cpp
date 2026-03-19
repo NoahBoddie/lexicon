@@ -18,11 +18,6 @@ namespace LEX
 
 		if (catch_up)
 		{
-			if (Component::HasInit())
-			{
-				callback(LinkFlag::Init);
-			}
-			
 			if (auto linked = Component::FlagsLinked())
 			{
 				for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
@@ -40,10 +35,6 @@ namespace LEX
 
 	void LinkMessenger::Dispatch(LinkFlag a_flags)
 	{
-		if (!a_flags && Component::HasInit()) {
-			for (auto callback : callbackList)
-				callback(LinkFlag::Init);
-		}
 		for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
 		{
 			if (flag & a_flags)

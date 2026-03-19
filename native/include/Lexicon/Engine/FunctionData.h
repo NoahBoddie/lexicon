@@ -206,6 +206,9 @@ namespace LEX
 		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def, 
 			std::optional<Procedure> prod = std::nullopt);
 
+	
+		RuntimeVariable BasicInvoke(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, RuntimeVariable* def,
+			std::optional<Procedure> prod = std::nullopt);
 
 	};
 

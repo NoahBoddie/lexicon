@@ -221,11 +221,28 @@ namespace LEX
 		//I feel like searching for a general element should be reusing this.
 		SyntaxRecord path_record;
 		
-		if (auto result = LEX::Parser__::CreateSyntax<IdentifierParser>(path_record, path); !result){
-			//Error here.
-			return nullptr;
+		if (elem != ElementType::kTypeElement) {
+			if (auto result = LEX::Parser__::CreateSyntax<IdentifierParser>(path_record, path); !result) {
+				//Error here.
+				return nullptr;
+			}
 		}
+		else {
+			if (auto result = LEX::Parser__::CreateSyntax<HeaderParser>(path_record, path); !result) {
+				//Error here.
+				return nullptr;
+			}
 
+			if (path_record.GetChild(KeywordType::TypeQual).size() || path_record.GetChild(KeywordType::DeclSpec).size()) {
+				report::warn("type qualifiers and declaration specifiers are ignored. ({})", path);
+			}
+			if (auto& spec = path_record.GetChild(KeywordType::TypeSpec); spec.size() == 0) {
+				return nullptr;
+			}
+			else {
+				path_record = spec;
+			}
+		}
 		//if (path_record.error()) return nullptr;
 
 		
@@ -234,14 +251,19 @@ namespace LEX
 		//From here, use the path functions that are in environment.
 		// The project should be found from the first part, and from there we should just keep the environ search should finish it out.
 
+
+
+		//TODO: Nothing specializable will ever work on generics like this, so I'm going to just overhaul this at some point.
+
+
 		switch (elem)
 		{
 			//Do the search for each type here.
 
 		case kTypeElement:
-			//TODO: Types don't count as elements, neither do functions Only environments seem to matter
-			report::fault::critical("cant search for types currently");
-			return SearchTypePath(a_this, path_record).base;
+			//report::fault::critical("cant search for types currently");
+			return dynamic_cast<Element*>(GetPolicyFromSpecifiers(path_record, a_this));
+
 		case kFuncElement:
 		{
 			if (!sign) {
@@ -422,40 +444,6 @@ namespace LEX
 
 
 				return false;
-
-				for (int i = 0; i < query.size(); i++)
-				{
-					auto& env = query[i];
-
-					//this should compile and then run.
-					auto funcs = env->FindFunctions(path.GetView());
-
-					//FunctionBase* test = functions[0]->Get();
-
-					if (funcs.size() != 0)
-					{
-						//Maybe allow it to do this only if the out is to be tossed.
-						//if (funcs.size() == 1)
-						//{
-						//	result = funcs[0];
-						//	return true;
-						//}
-
-						if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
-						{
-							//result = static_cast<FunctionInfo*>(out.clause);
-
-							//Index will be useless right now
-							//result->CreateNode(env);
-							return true;
-						}
-
-						
-					}
-
-				}
-
-				return false;
 			});
 
 
@@ -612,6 +600,9 @@ namespace LEX
 		}
 
 		//I'm thinking that the above should be handled before we get here maybe.
+
+
+
 
 		do
 		{

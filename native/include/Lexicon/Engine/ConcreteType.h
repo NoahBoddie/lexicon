@@ -85,6 +85,8 @@ namespace LEX
 
 		void OnAttach() override;
 
+		void LoadFromSyntaxNode(SyntaxRecord& node) override;
+
 
 		void* Cast(std::string_view name) override
 		{

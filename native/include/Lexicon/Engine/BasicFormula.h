@@ -49,6 +49,12 @@ namespace LEX
 		{
 			return BasicExecute(nullptr, nullptr, args, caller, def);
 		}
+
+
+		RuntimeVariable Invoke(std::span<RuntimeVariable> args, RuntimeVariable* def) override
+		{
+			return BasicInvoke(nullptr, nullptr, args, def);
+		}
 	};
 
 }

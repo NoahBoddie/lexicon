@@ -8,7 +8,7 @@
 #include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/VoidPolicy.h"
-
+#include "Lexicon/Engine/NullType.h"
 #include "Lexicon/InherentType.h"
 
 namespace LEX
@@ -92,8 +92,9 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 	inline std::array<TypeBase*, InherentType::kTotal> inherentTypes
 	{
-		new VoidPolicy{}, 
-		new VoidablePolicy{}
+		new VoidPolicy{},
+		new VoidablePolicy{},
+		new NullType{}
 	};
 
 

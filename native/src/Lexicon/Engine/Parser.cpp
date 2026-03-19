@@ -4,14 +4,14 @@
 namespace LEX
 {
 
-	void ParsingStream::croak(std::string msg, Token* token)
+	void ParsingStream::croak(std::string msg, Token* token, bool recoverable)
 	{
 		//don't care so much about this.
 		//TODO:Include name and project in croak please
 		if (column() && line())
-			throw ParsingError(std::format("{}(at line {} : column {})", msg, token ? token->line : line(), token ? token->column : column()));
+			throw ParsingError(std::format("{}(at line {} : column {})", msg, token ? token->line : line(), token ? token->column : column()), recoverable);
 		else
-			throw ParsingError(std::format("{}", msg));
+			throw ParsingError(std::format("{}", msg), recoverable);
 
 	}
 
@@ -113,9 +113,9 @@ namespace LEX
 		//want this to look prettier at some point.
 		//TODO:Fix Format #2
 		if (expect.empty() == false)
-			croak(std::format("Expected a {}, recieved '{}' ({}).", peek().GetTag(), expect, magic_enum::enum_name(peek().TOKEN().type)));
+			croak(std::format("Expected a {}, recieved '{}' ({}).", peek().GetTag(), expect, magic_enum::enum_name(peek().TOKEN().type)), nullptr, false);
 		else
-			croak(std::format("Unexpected token: {} ({})", peek().GetTag(), magic_enum::enum_name(peek().TOKEN().type)));
+			croak(std::format("Unexpected token: {} ({})", peek().GetTag(), magic_enum::enum_name(peek().TOKEN().type)), nullptr, false);
 	}
 
 

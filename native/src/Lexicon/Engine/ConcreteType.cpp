@@ -139,12 +139,62 @@ namespace LEX
 		}
 
 
-		
+		return __super::LoadFromRecord(ast);
 	}
+
+
+
+	void ConcreteType::LoadFromSyntaxNode(SyntaxRecord& node)
+	{
+
+		/*
+
+		get_switch(node.SYNTAX().type)
+		{
+		case SyntaxType::Function:
+		{
+			//auto* function = new ConcreteFunction{};
+
+			//AddFunction(function);
+
+			//function->ConstructFromRecord(node);
+			//AddFunction(Component::Create<ConcreteFunction>(node));
+
+			CreateFunction(node);
+			break;
+
+		}
+		case SyntaxType::Type:
+		{
+			//auto* policy = ObtainPolicy(node);
+
+			//policy->ConstructFromRecord(node);
+
+			//AddType(policy);
+
+			AddType(tempObtainPolicy(node));
+			break;
+		}
+		case SyntaxType::Variable:
+		{
+			//This is very incorrect btw
+			AddVariable(Component::Create<ConcreteGlobal>(node));
+			break;
+		}
+
+		default:
+			report::compile::critical("Syntax {} not valid for environment", magic_enum::enum_name(switch_value)); break;
+		}
+
+		//*/
+
+		__super::LoadFromSyntaxNode(node);
+	}
+
 
 	void ConcreteType::OnAttach()
 	{
-		HandleInheritance();
+		//HandleInheritance();
 	}
 
 	void ConcreteType::CompileExpression_DEPRECATED(SyntaxRecord& ast)
@@ -185,6 +235,10 @@ namespace LEX
 		
 		switch (flags)
 		{
+		case LinkFlag::Loaded:
+			logger::info("Loading environment: {}", GetName());
+			break;
+
 		case LinkFlag::Declaration:
 		{
 			HandleInheritance();
@@ -241,12 +295,10 @@ namespace LEX
 			break;
 		}
 		
-		default:
-			return LinkResult::Failure;
 		}
 
 
-        return LinkResult::Success;
+        return __super::OnLink(flags);
     }
 
     LinkFlag ConcreteType::GetLinkFlags()
@@ -254,7 +306,7 @@ namespace LEX
 		//return LinkFlag::None;
 		
 		//Needs to handle linking once when declaration happens 
-		auto result = LinkFlag::Declaration;
+		auto result = __super::GetLinkFlags() | LinkFlag::Declaration;
 
 		//if (IsLinkedLater() == true)
 		//	result |= LinkFlag::Definition;

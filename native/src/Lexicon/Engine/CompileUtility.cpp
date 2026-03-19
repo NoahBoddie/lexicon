@@ -108,7 +108,7 @@ namespace LEX
 
 	bool CompUtil::HandleConversion(ExpressionCompiler* compiler, Conversion& out, Solution& value, const QualifiedType& to,ConvertResult res, SyntaxRecord& target, Register reg)
 	{
-
+		
 		if (out) {
 			//If out exists, this means there's something that can be used to convert it. 
 			// however, this does NOT work when this conversion needs to be baked into the function.
@@ -126,41 +126,8 @@ namespace LEX
 
 			}
 
-			switch (res.data)
-			{
-			case ConversionEnum::ImplDefined:
-				compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ out.implDefined, OperandType::Callable }, value);
-				break;
-
-			case ConversionEnum::UserDefined:
-			resume:
-
-				compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ out.userDefined, OperandType::Function }, value);
-
-
-				if (!fall)
-					break;
-
-				[[fallthrough]];
-
-			case ConversionEnum::UserToImplDefined:
-				if (!fall) {
-					fall = true;
-					goto resume;
-				}
-
-				compiler->EmplaceInstruction(target,
-					InstructionType::Convert,
-					reg,
-					Operand{ out.userToImpl, OperandType::Callable },
-					Operand{ reg, OperandType::Register });
-
-				break;
-
-			default:
+			if (out.HandleInstruction(compiler, target, value, res, reg) == false)
 				return false;
-			}
-
 
 			//This shouldn't really be using the previous policy, but I kinda don't care for now.
 			value = Solution{ to, OperandType::Register, reg };

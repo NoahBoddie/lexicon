@@ -8,7 +8,7 @@
 
 namespace LEX
 {
-	struct RuntimeVariable;
+	class RuntimeVariable;
 
 	struct Global : public IGlobal
 	{

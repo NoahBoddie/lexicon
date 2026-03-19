@@ -86,7 +86,7 @@ namespace LEX
             SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
 
             if (!head_rec)
-				report::compile::critical("No record named header.");
+                report::compile::critical("No record named header.");
             //LINK_AFTER
 
             //If function is seen as being static, it should not allow for 
@@ -96,7 +96,7 @@ namespace LEX
 
             //Declaration header{ *head_rec, this, Refness::Local };
             //if (header.Matches(DeclareMatches::Constness) == false) {
-			//	report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
+            //	report::compile::critical("Either unexpected qualifiers/specifiers or no type when type expected.");
             //}
 
             if (header.SpecifierFlags() & SpecifierFlag::External)
@@ -117,25 +117,33 @@ namespace LEX
 
             SetReturnType(type);
 
+            ITypeInfo* self_type = dynamic_cast<ITypeInfo*>(GetParent());
+
+            bool is_membered = self_type;
 
             //STATIC_CHECK
-
             bool method = false;
+
 
             if (auto extend = target.FindChild(parse_strings::extends); extend)
             {
-                method = true;
 
                 auto& tag = extend->GetFront().GetTag();
 
-                auto target_type = GetPolicyFromSpecifiers(*extend, this);
-                
+                if (self_type && !header.IsStatic() == false)
+                    report::compile::error("Non-static method {} function cannot extend {} as it already extends {}", GetName(), tag, self_type->GetName());
 
-                if (!target_type) {
+                self_type = GetPolicyFromSpecifiers(*extend, this);
+
+
+                if (!self_type) {
                     report::link::error("No type found with the name '{}' (tag not accurate anymore)", tag);
                 }
-                
+            }
 
+            if (self_type)
+            {
+                method = true;
 
                 //Qualifiers like const are put here depending on if the function is const. 
                 // We don't have those post declarations yet.
@@ -146,8 +154,8 @@ namespace LEX
                 //Include things like whether this is
 
                 
-                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ target_type }, parse_strings::this_word, 0);
-                target_type->SetSelfQualifiers(_thisInfo->qualifiers);
+                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ self_type }, parse_strings::this_word, 0);
+                self_type->SetSelfQualifiers(_thisInfo->qualifiers);
             }
 
 

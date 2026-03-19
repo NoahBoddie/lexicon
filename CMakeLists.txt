@@ -12,7 +12,7 @@ set(PARENT_VERSION_TWEAK "${PROJECT_VERSION_TWEAK}")
 project(
 	Lexicon
 	LANGUAGES CXX
-	VERSION 0.0.0.1
+	VERSION 0.0.0.2
 )
 
 if (NOT PARENT_NAME)
@@ -20,10 +20,6 @@ if (NOT PARENT_NAME)
 endif()
 
 if (NOT PARENT_VERSION)
-	set(PARENT_VERSION "${PROJECT_VERSION}")
-	set(PARENT_VERSION "${PROJECT_VERSION}")
-	set(PARENT_VERSION "${PROJECT_VERSION}")
-	set(PARENT_VERSION "${PROJECT_VERSION}")
 	set(PARENT_VERSION "${PROJECT_VERSION}")
 endif()
 
@@ -70,13 +66,124 @@ find_package(spdlog REQUIRED CONFIG)
 
 
 
+
+
+
+set(headers
+	include/Lexicon.h
+	"include/Lexicon/Global.h"
+	include/Lexicon/Formula.h
+	"include/Lexicon/Function.h"
+	include/Lexicon/TypeInfo.h
+	
+	include/Lexicon/Array.h
+	include/Lexicon/DataType.h
+	"include/Lexicon/Specifier.h"
+	include/Lexicon/Default.h
+	include/Lexicon/Dispatcher.h
+	include/Lexicon/Exception.h
+	
+	include/Lexicon/ICallableUnit.h
+	"include/Lexicon/IFunction.h"
+	
+	
+	include/Lexicon/ISpecial.h
+	"include/Lexicon/ITypeInfo.h"
+	"include/Lexicon/IGlobal.h"
+	
+	include/Lexicon/MemberPointer.h
+	include/Lexicon/Number.h
+	include/Lexicon/Object.h
+	include/Lexicon/ObjectData.h
+	include/Lexicon/ObjectInfo.h
+	include/Lexicon/ObjectPolicy.h
+	include/Lexicon/ObjectPolicyHandle.h
+	"include/Lexicon/Interfaces/ObjectPolicyManager.h"
+	include/Lexicon/ObjectPoolData.h
+	include/Lexicon/Qualifier.h
+	include/Lexicon/Report.h
+	include/Lexicon/RuntimeVariable.h
+	include/Lexicon/String.h
+	include/Lexicon/TypeAliases.h
+	include/Lexicon/TypeID.h
+	include/Lexicon/Unvariable.h
+	include/Lexicon/Variable.h
+	include/Lexicon/VariableType.h
+	
+	include/Lexicon/Versioning.h
+	include/Lexicon/Impl/PCH.h
+	include/Lexicon/Impl/ref_wrapper.h
+	include/Lexicon/Interfaces/IdentityManager.h
+	include/Lexicon/Interfaces/Interface.h
+	"include/Lexicon/Interfaces/InterfaceManager.h"
+	include/Lexicon/Interfaces/InterfaceSingleton.h
+	include/Lexicon/Interfaces/ProcedureHandler.h
+	include/Lexicon/Interfaces/ProjectManager.h
+	"include/Lexicon/Interfaces/IElement.h" 
+	"include/Lexicon/Interfaces/IEnvironment.h"
+	"include/Lexicon/Interfaces/IScript.h" 
+	"include/Lexicon/Interfaces/IProject.h"
+	"include/Lexicon/Interfaces/ProjectClient.h"
+	"include/Lexicon/SignatureBase.h" 
+	"include/Lexicon/IRuntime.h"
+	"include/Lexicon/ProcedureData.h" 
+	"include/Lexicon/InherentType.h"
+	"include/Lexicon/ElementType.h" 
+	"include/Lexicon/RelateType.h"
+	"include/Lexicon/IFormula.h"
+	"include/Lexicon/Interfaces/FormulaManager.h"
+	"include/Lexicon/FormulaHandler.h"
+	"include/Lexicon/Interfaces/ReportManager.h" 
+	"include/Lexicon/Impl/common_type.h" 
+	include/Lexicon/ITypeInfo.hpp
+	include/Lexicon/TypeInfo.hpp
+	include/Lexicon/IFunction.hpp
+	include/Lexicon/Function.hpp
+	include/Lexicon/IGlobal.hpp
+	include/Lexicon/Global.hpp
+	include/Lexicon/ObjectPolicy.hpp
+	 
+	
+	"include/Lexicon/IElementProxy.h"
+	"include/Lexicon/IElementProxy.h"
+	"include/Lexicon/Issue.h"
+	"include/Lexicon/Interfaces/LinkMessenger.h"
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h" "include/Lexicon/Impl/FiascoFinder.h" )
+
+
+set(sources
+	src/Lexicon/TypeInfo.cpp
+	src/Lexicon/Dispatcher.cpp
+
+	
+	src/Lexicon/ICallableUnit.cpp
+	"src/Lexicon/ITypeInfo.cpp"
+	src/Lexicon/ObjectPolicy.cpp
+	src/Lexicon/ObjectPolicyHandle.cpp
+	
+	src/Lexicon/TypeID.cpp
+	src/Lexicon/Variable.cpp
+	src/Lexicon/VariableType.cpp
+	src/Lexicon/ITemplatePart.cpp
+
+	"src/Lexicon/ObjectInfo.cpp"
+	"include/Lexicon/Report.cpp"#this is in the wrong place.
+
+	"src/Lexicon/FormulaHandler.cpp"
+	"src/Lexicon/Object.cpp"
+	"src/Lexicon/Impl/PCH.cpp"
+	  "src/Lexicon/Reflection.cpp")
+
+
 if(LEXICON_SOURCE)
-	set(master_headers
-		
+	set(headers
+		${headers}		
 
 		native/include/Lexicon/Engine.h
 		native/include/Lexicon/Engine/Impl/EngineEnum.h
-		
+		"native/include/Lexicon/Engine/SingletonManager.h"
+
+
 		native/include/Lexicon/Engine/TempConstruct.h
 		"native/include/Lexicon/Engine/TestField.h"
 		"native/include/Lexicon/Engine/TestFieldB.h"
@@ -176,11 +283,11 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/Conversion.h"
 		"native/include/Lexicon/Engine/Convert.h"
 
-	)
+	 "native/include/Lexicon/Engine/NullType.h")
 		
 
-	set(master_sources
-	
+	set(sources
+		${sources}
 		"native/src/Lexicon/Engine/QualifiedField.cpp"
 		native/src/Lexicon/Engine/CompileUtility.cpp
 		native/src/Lexicon/Engine/GenericBase.cpp
@@ -214,7 +321,7 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/Script.cpp
 		native/src/Lexicon/Engine/Element.cpp
 		native/src/Lexicon/Engine/Environment.cpp	
-		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
+		
 		"native/src/Lexicon/Engine/Component.cpp"
 		native/src/Lexicon/Engine/Project.cpp
 		src/Lexicon/Interfaces/IdentityManager.cpp
@@ -239,121 +346,9 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/ITypeInfoImpl.cpp"
 		"native/src/Lexicon/Engine/Conversion.cpp"
 		"native/src/Lexicon/Engine/GenericFunction.cpp"
+		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
 		)
-else()
-	set (master_headers )
-	set (master_sources )
 endif()
-
-set(headers
-	include/Lexicon.h
-	"include/Lexicon/Global.h"
-	include/Lexicon/Formula.h
-	"include/Lexicon/Function.h"
-	include/Lexicon/TypeInfo.h
-	
-	include/Lexicon/Array.h
-	include/Lexicon/DataType.h
-	"include/Lexicon/Specifier.h"
-	include/Lexicon/Default.h
-	include/Lexicon/Dispatcher.h
-	include/Lexicon/Exception.h
-	
-	include/Lexicon/ICallableUnit.h
-	"include/Lexicon/IFunction.h"
-	
-	
-	include/Lexicon/ISpecial.h
-	"include/Lexicon/ITypeInfo.h"
-	"include/Lexicon/IGlobal.h"
-	
-	include/Lexicon/MemberPointer.h
-	include/Lexicon/Number.h
-	include/Lexicon/Object.h
-	include/Lexicon/ObjectData.h
-	include/Lexicon/ObjectInfo.h
-	include/Lexicon/ObjectPolicy.h
-	include/Lexicon/ObjectPolicyHandle.h
-	"include/Lexicon/Interfaces/ObjectPolicyManager.h"
-	include/Lexicon/ObjectPoolData.h
-	include/Lexicon/Qualifier.h
-	include/Lexicon/Report.h
-	include/Lexicon/RuntimeVariable.h
-	include/Lexicon/String.h
-	include/Lexicon/TypeAliases.h
-	include/Lexicon/TypeID.h
-	include/Lexicon/Unvariable.h
-	include/Lexicon/Variable.h
-	include/Lexicon/VariableType.h
-	
-	include/Lexicon/Versioning.h
-	include/Lexicon/Impl/PCH.h
-	include/Lexicon/Impl/ref_wrapper.h
-	include/Lexicon/Interfaces/IdentityManager.h
-	include/Lexicon/Interfaces/Interface.h
-	"include/Lexicon/Interfaces/InterfaceManager.h"
-	include/Lexicon/Interfaces/InterfaceSingleton.h
-	include/Lexicon/Interfaces/ProcedureHandler.h
-	include/Lexicon/Interfaces/ProjectManager.h
-	"include/Lexicon/Interfaces/IElement.h" 
-	"include/Lexicon/Interfaces/IEnvironment.h"
-	"include/Lexicon/Interfaces/IScript.h" 
-	"include/Lexicon/Interfaces/IProject.h"
-	"include/Lexicon/Interfaces/ProjectClient.h"
-	"include/Lexicon/SignatureBase.h" 
-	"include/Lexicon/IRuntime.h"
-	"include/Lexicon/ProcedureData.h" 
-	"include/Lexicon/InherentType.h"
-	"include/Lexicon/ElementType.h" 
-	"include/Lexicon/RelateType.h"
-	"include/Lexicon/IFormula.h"
-	"include/Lexicon/Interfaces/FormulaManager.h"
-	"include/Lexicon/FormulaHandler.h"
-	"include/Lexicon/Interfaces/ReportManager.h" 
-	"include/Lexicon/Impl/common_type.h" 
-	include/Lexicon/ITypeInfo.hpp
-	include/Lexicon/TypeInfo.hpp
-	include/Lexicon/IFunction.hpp
-	include/Lexicon/Function.hpp
-	include/Lexicon/IGlobal.hpp
-	include/Lexicon/Global.hpp
-	include/Lexicon/ObjectPolicy.hpp
-	 
-	
-	"include/Lexicon/IElementProxy.h"
-	"include/Lexicon/IElementProxy.h"
-	"include/Lexicon/Issue.h"
-	"include/Lexicon/Interfaces/LinkMessenger.h"
-	${master_headers}
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h")
-
-
-set(sources
-	src/Lexicon/TypeInfo.cpp
-	src/Lexicon/Dispatcher.cpp
-
-	
-	src/Lexicon/ICallableUnit.cpp
-	"src/Lexicon/ITypeInfo.cpp"
-	src/Lexicon/ObjectPolicy.cpp
-	src/Lexicon/ObjectPolicyHandle.cpp
-	
-	src/Lexicon/TypeID.cpp
-	src/Lexicon/Variable.cpp
-	src/Lexicon/VariableType.cpp
-	src/Lexicon/ITemplatePart.cpp
-
-	"src/Lexicon/ObjectInfo.cpp"
-	"include/Lexicon/Report.cpp"#this is in the wrong place.
-
-	"src/Lexicon/FormulaHandler.cpp"
-	"src/Lexicon/Object.cpp"
-	"src/Lexicon/Impl/PCH.cpp"
-	${master_sources}
-	  "src/Lexicon/Reflection.cpp")
-
-
-
 
 source_group(
 	TREE
@@ -473,17 +468,18 @@ endif()
 #was explicit
 target_precompile_headers(${PROJECT_NAME}
         ${PRIVATE_ACCESS}
-        include/Lexicon/Impl/PCH.h)
+        include/Lexicon/Impl/PCH.h
+)
 
 
 
-if (NOT RoguePath)
+if (NOT TARGET RoguesGallery)
+	message("DDDDDDD ${RoguePath}")
 	cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH CMAKE_REPO_DIR)
 	set(RoguePath "${CMAKE_REPO_DIR}/rogues-gallery")
+	add_subdirectory(${RoguePath} RoguesGallery)
 endif()
 
-
-add_subdirectory(${RoguePath} RoguesGallery)
 add_dependencies(${PROJECT_NAME} RoguesGallery::RoguesGallery)
 
 #was explicit

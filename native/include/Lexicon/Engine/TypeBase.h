@@ -42,10 +42,10 @@ namespace LEX
 
 		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like
 		// a specialization ending up in there (Seeing as they must be kept as ITypeInfo)
-		
+
 	public:
 
-		TypeNode CreateNode(ITemplatePart* part) 
+		TypeNode CreateNode(ITemplatePart* part)
 		{
 			auto type = AsType();
 			return TypeNode{ this, part->GetSize() ? type->CheckTypePolicy(part) : type };
@@ -53,11 +53,11 @@ namespace LEX
 
 		//TODO: I would like have more information here telling the compiler what it can and can't do with it.
 
-		
+
 
 		virtual ITypeInfo* AsType() = 0;
 		virtual const ITypeInfo* AsType() const = 0;
-		
+
 
 		//Rename to ForceTypeID, and then make set type ID the public one.
 		void SetTypeID(TypeID id)
@@ -88,11 +88,17 @@ namespace LEX
 
 
 		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag) override
-		{return false;}
+		{
+			return false;
+		}
 		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
-		{return false;}
+		{
+			return false;
+		}
 		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType&, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags)override
-		{return false;}
+		{
+			return false;
+		}
 		void QualifyOverload(Overload& overload) override {}
 		bool ResolveOverload(Overload& entries, OverloadFlag& flags) override { return true; }
 		//*/
@@ -103,14 +109,14 @@ namespace LEX
 			return AsType();
 		}
 
-		
+
 		void* Cast(std::string_view name) override
 		{
 			switch (Hash(name))
 			{
 			case Hash(TypeName<ITypeInfo>::value):
 				return AsType();
-			
+
 			case Hash(TypeName<TypeBase>::value):
 				return this;
 			}
@@ -130,11 +136,28 @@ namespace LEX
 			return GetFlags() & Flag::LinkLater;
 		}
 
-		
+
 		bool IsInheritHandled() const
 		{
 			return GetFlags() & Flag::InheritHandled;
 		}
+
+
+
+		virtual std::vector<Environment*> GetAssociates(RelateType type) override
+		{
+
+			if (type != RelateType::Nested)
+				return {};
+
+			HierarchyData* data = GetHierarchyData();
+
+			data->GetInheritData(nullptr);
+
+			return {};
+		}
+
+
 
 	protected:
 		void MarkInheritHandled() const
@@ -180,11 +203,17 @@ namespace LEX
 		// Also replace ITypeInfo's use in IdentityManager, and move it over to this thing (Meaning more source files. Yay).
 		//For now, this works
 		TypeBase();
-
+		
+		
 		TypeBase(uint32_t i);
 
 		TypeBase(std::string_view name, TypeOffset offset);
-
+	
+	protected:
+		TypeBase(InherentType type)
+		{
+			_id = (uint32_t)type;
+		}
 	};
 
 	//For what it's worth, I really fucking loathe this system all together.

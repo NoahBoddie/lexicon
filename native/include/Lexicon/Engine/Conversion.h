@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lexicon/Engine/SyntaxRecord.h"
+#include "Lexicon/Engine/Register.h"
 
 namespace LEX
 {
@@ -8,6 +9,16 @@ namespace LEX
 	struct ICallableUnit;
 
 	struct QualifiedType;
+
+	struct ITypeInfo;
+	struct TypeInfo;
+	class Runtime;
+	struct Variable;
+	class RuntimeVariable;
+
+	struct Solution;
+	struct ExpressionCompiler;
+
 
 
 	enum struct ConversionEnum
@@ -45,6 +56,9 @@ namespace LEX
 		Failure = -1,
 		Transformative = ImplDefined,//Anything equal or greater than transformative is not valid to be used against something under said value.
 	};
+
+	using Converter_ = RuntimeVariable(*)(const RuntimeVariable&, Runtime*);
+
 
 
 	struct ConvertResult
@@ -105,24 +119,74 @@ namespace LEX
 	};
 
 	
+	//using ConvertFunc = RuntimeVariable(*)(RuntimeVariable);
 
+
+	struct NewConversion
+	{
+		using test = std::variant<IFunction*, ITypeInfo*, Converter_>;
+
+		union
+		{
+			uint64_t		raw = 0;
+
+			IFunction*		userDefined;
+			Converter_		implDefined;
+			ITypeInfo*		typeDefined;
+		};
+
+
+	};
 
 
 	struct Conversion
 	{
-		struct
+		enum Enum
 		{
-			union
-			{
-				uint64_t		raw = 0;
-				IFunction*		userDefined;
-				ICallableUnit*	implDefined;
-			};
-
-			//When a user defined conversion can be converted this is what is used.
-			ICallableUnit* userToImpl = nullptr;
-
+			None,
+			IsType1 = 1 << 0,
+			IsType2 = 1 << 1,
 		};
+
+		void SetUserImpl(IFunction* func)
+		{
+			userDefined = func;
+			usesType &= ~IsType1;
+
+		}
+
+		void SetUserImpl(Converter_ convert)
+		{
+			implDefined = convert;
+			usesType &= ~IsType1;
+		}
+
+
+		void SetUserImpl(ITypeInfo* type)
+		{
+			typeDefined = type;
+			usesType |= IsType1;
+		}
+
+		void SetUserTo(Converter_ convert)
+		{
+			userToImpl = convert;
+			usesType &= ~IsType2;
+		}
+
+
+		void SetUserTo(ITypeInfo* type)
+		{
+			userToType = type;
+			usesType |= IsType2;
+		}
+
+
+		//RuntimeVariable;
+		Variable Run(Variable from, ConvertResult result) const;
+
+
+		bool HandleInstruction(ExpressionCompiler* compiler, SyntaxRecord& target, Solution& value, ConvertResult result, Register reg);
 
 		//Creates an operand based on the conversion type if any.
 		/*
@@ -165,7 +229,30 @@ namespace LEX
 
 		operator bool() const
 		{
-			return raw;
+			return raw1 || raw2;
 		}
+
+	private:
+		struct
+		{
+			union
+			{
+				uint64_t		raw1 = 0;
+				IFunction*		userDefined;
+				Converter_		implDefined;
+				ITypeInfo*		typeDefined;
+			};
+
+			union
+			{
+				//When a user defined conversion can be converted this is what is used.
+				uint64_t		raw2 = 0;
+				Converter_		userToImpl;
+				ITypeInfo*		userToType;
+			};
+
+			Enum usesType = None;
+		};
+
 	};
 }

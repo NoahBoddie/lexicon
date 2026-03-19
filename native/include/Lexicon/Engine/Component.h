@@ -306,14 +306,6 @@ namespace LEX
 		}
 
 
-		static void Init()
-		{
-			if (_initialized) {
-				report::link::info("Starting link stage: Initialize");
-				LinkMessenger::instance->Dispatch(LinkFlag::Init);
-				report::link::info("Finalized link stage: Initialize");
-			}
-		}
 
 		static void RefreshLinkage()
 		{

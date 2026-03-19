@@ -12,65 +12,39 @@ namespace LEX
 	//I just realized that QualifiedType will have some isuses when it comes to che
 
 	template<Refness Ref, bool IsSigned>
-	struct ReferenceCheck final : public ICallableUnit
+	RuntimeVariable ReferenceCheck(const RuntimeVariable& a_this, Runtime* runtime)
 	{
-		using Self = ReferenceCheck<Ref, IsSigned>;
+		auto settings = Number::Settings::CreateFromType<bool>();
 
-		static constexpr auto Key = std::pair{ Ref, IsSigned };
-
-		static Self* GetSingleton()
-		{
-			static Self singleton{};
-
-			return std::addressof(singleton);
+		if constexpr (IsSigned) {
+			settings.sign = Signage::Signed;
 		}
 
-		virtual RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable*)
-		{
-			auto settings = Number::Settings::CreateFromType<bool>();
-			
-			if constexpr (IsSigned){
-				settings.sign = Signage::Signed;
-			}
-
-			Number result = settings;
+		Number result = settings;
 
 
-			result.Assign(RunUtil::CantPromote(args[0], runtime, Ref) == 0);
+		result.Assign(RunUtil::CantPromote(a_this, runtime, Ref) == 0);
 
-			return result;
-		}
-
-
-		
-
-	protected:
-		constexpr ReferenceCheck() = default;
-
-		ReferenceCheck(const ReferenceCheck&) = delete;
-		ReferenceCheck(ReferenceCheck&&) = delete;
-		ReferenceCheck& operator=(const ReferenceCheck&) = delete;
-		ReferenceCheck& operator=(ReferenceCheck&&) = delete;
-
-	};
-
-	inline std::map<std::pair<Refness, bool>, ICallableUnit*> refCheckList{};
-
-	template <typename T>
-	void RegisterRefChecker(T* singleton)
-	{
-		refCheckList[T::Key] = singleton;
+		return result;
 	}
+
+
+	//TODO: Make this just a function please
+	inline std::map<std::pair<Refness, bool>, Converter_> refCheckList{};
+
+	//TODO:This won't work unless I do this I'm unsure why.
 #define TEST_INIT() inline extern void __init_func_8(); volatile inline static Initializer __init_var_8 = { __init_func_8 }; inline extern void __init_func_8()
 	TEST_INIT()
 	{
-		//TODO:This won't work unless I do this I'm unsure why.
-		RegisterRefChecker(ReferenceCheck<Refness::Local, true>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Refness::Local, false>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Refness::Scoped, true>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Refness::Scoped, false>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Refness::Global, true>::GetSingleton());
-		RegisterRefChecker(ReferenceCheck<Refness::Global, false>::GetSingleton());
+		refCheckList[std::pair{ Refness::Local, true }] = ReferenceCheck<Refness::Local, true>;
+		refCheckList[std::pair{ Refness::Local, false }] = ReferenceCheck<Refness::Local, false>;
+		refCheckList[std::pair{ Refness::Scoped, true }] = ReferenceCheck<Refness::Scoped, true>;
+		refCheckList[std::pair{ Refness::Scoped, false }] = ReferenceCheck<Refness::Scoped, false>;
+		refCheckList[std::pair{ Refness::Global, true }] = ReferenceCheck<Refness::Global, true>;
+		refCheckList[std::pair{ Refness::Global, false }] = ReferenceCheck<Refness::Global, false>;
+
+		
+		
 
 	};
 #undef TEST_INIT
@@ -89,7 +63,7 @@ namespace LEX
 			}
 			//This needs more
 			else if (common_type::boolean() == to_left) {//Is a boolean
-				(*out)->implDefined = refCheckList[std::make_pair(reference, false)];
+				(*out)->SetUserImpl(refCheckList[std::make_pair(reference, false)]);
 				return ConversionEnum::ImplDefined;
 			}
 			else {
@@ -214,7 +188,7 @@ namespace LEX
 				if (r_comp == Constness::Const)
 				{
 					//If left is const, it must be a class type.
-					if (policy->IsReferType() == false)
+					if (policy->IsReferenceType() == false)
 						return ConversionResult::IneligibleQuals;
 				}
 			}

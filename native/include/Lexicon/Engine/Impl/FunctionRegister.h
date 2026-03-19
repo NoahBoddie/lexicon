@@ -8,14 +8,22 @@ namespace LEX
 {
 	struct RegisterDump
 	{
+		RegisterDump(std::string_view n = "") : name{n} 
+		{
+			if (!name.empty())
+				logger::info(">Registering {}:", name);
+		}
+
+		std::string_view name;
 		int no = 0;
 
 		RegisterDump& operator=(bool result)
 		{
-			logger::info("#{} = {}", ++no, result);
+			logger::info("#{}({}) = {}", name, ++no, result);
 			return *this;
 		}
 	};
+
 
 
 	inline bool IsNAN(Number a_this)

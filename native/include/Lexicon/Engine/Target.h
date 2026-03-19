@@ -4,16 +4,18 @@
 #include "Lexicon/Variable.h"
 #include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/IFunctionImpl.h"
+#include "Lexicon/Engine/Conversion.h"
 #include "Lexicon/MemberPointer.h"
 #include "OperandType.h"
 #include "Literal.h"
-
 namespace LEX
 {
 
 	using Index = uint64_t;
 	using Differ = int64_t;
 	
+	struct TypeInfo;
+
 	struct IndexSplit
 	{
 		uint32_t first;
@@ -25,8 +27,6 @@ namespace LEX
 		int32_t first;
 		int32_t second;
 	};
-
-	using Convert_ = RuntimeVariable(*)(const RuntimeVariable&);
 
 
 	struct IGlobal;
@@ -48,7 +48,7 @@ namespace LEX
 		constexpr Target(IGlobal* arg) : glob{ arg } {}
 		constexpr Target(ITypeInfo* arg) : type{ arg } {}
 		constexpr Target(IFunction* arg) : func{ arg } {}
-		constexpr Target(Convert_ arg) : convert{ arg } {}
+		constexpr Target(Converter_ arg) : convert{ arg } {}
 		constexpr Target(ICallableUnit* arg) : call{ arg } {}
 		constexpr Target(MemberPointer arg) : member{ arg } {}
 	
@@ -73,7 +73,7 @@ namespace LEX
 		}
 
 		template <>
-		bool Get<OperandType::Convert, Convert_>(Convert_& out)
+		bool Get<OperandType::Converter, Converter_>(Converter_& out)
 		{
 			out = convert;
 			return true;
@@ -198,7 +198,7 @@ namespace LEX
 			IGlobal* glob;
 			ITypeInfo* type;
 			IFunction* func;
-			Convert_ convert;
+			Converter_ convert;
 			ICallableUnit* call;
 			MemberPointer member;
 

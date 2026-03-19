@@ -1,31 +1,60 @@
 #pragma once
 
-
+#include "Lexicon/Interfaces/InterfaceManager.h"
 
 namespace LEX
 {
 	struct ObjectPolicy;
-
 
 	struct ObjectPolicyHandle
 	{
 		static constexpr uint32_t invalid_index = -1;
 
 	public:
-		ObjectPolicyHandle() = default;
+		constexpr ObjectPolicyHandle() noexcept = default;
 
 		ObjectPolicyHandle(uint32_t i) : _index{ i }
 		{
-
+			if (IsValid() == true)
+				InterfaceManager::ModInterfaceUseCount(true);
 		}
+
+		//The constructors need the permission of the other to start incrementing
+		ObjectPolicyHandle(const ObjectPolicyHandle& other) : ObjectPolicyHandle{ other._index }{}
+
+		~ObjectPolicyHandle()
+		{
+			if (IsValid() == true)
+				InterfaceManager::ModInterfaceUseCount(false);
+		}
+
+
+
 
 
 
 		ObjectPolicyHandle& operator=(uint32_t i)
 		{
+			bool was_valid = IsValid();
+
 			_index = i;
+
+			if (IsValid() != was_valid)
+				InterfaceManager::ModInterfaceUseCount(!was_valid);
+
 			return *this;
 		}
+
+
+
+		//Assignment needs to check if it already was first.
+		ObjectPolicyHandle& operator=(const ObjectPolicyHandle& other)
+		{
+			return operator=(other._index);
+		}
+
+
+
 
 
 		ObjectPolicy* get() const;
@@ -43,9 +72,13 @@ namespace LEX
 			return get();
 		}
 
-		operator bool() const
+		constexpr bool IsValid() const noexcept
 		{
 			return _index != invalid_index;
+		}
+		constexpr operator bool() const noexcept
+		{
+			return IsValid();
 		}
 
 		//Expand to 3 way operator.

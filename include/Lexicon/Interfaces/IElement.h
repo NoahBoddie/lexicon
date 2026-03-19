@@ -4,6 +4,9 @@
 
 #include "Lexicon/ElementType.h"
 
+//*src
+#include "Lexicon/SignatureBase.h"
+
 namespace LEX
 {
 	class Project;
@@ -88,6 +91,24 @@ namespace LEX
 			void* result = Cast(TypeName<T>::value);
 
 			return reinterpret_cast<T*>(result);
+		}
+
+
+
+		IFunction* GetFunctionFromPath(std::string_view path, ISignature& sign)
+		{
+			if (auto elem = GetElementFromPath(path, kFuncElement, &sign); elem)
+				return elem->As<IFunction>();
+
+			return nullptr;
+		}
+
+		ITypeInfo* GetTypeFromPath(std::string_view path)
+		{
+			if (auto elem = GetElementFromPath(path, kTypeElement); elem)
+				return elem->As<ITypeInfo>();
+
+			return nullptr;
 		}
 	};
 }

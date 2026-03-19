@@ -34,7 +34,7 @@ namespace LEX
 	struct Qualifier;
 	//struct QualifiedType;
 
-	struct ITypeInfo : public InterfaceLayer<Version::Current::IV_ITypeInfo >
+	struct IMPL_VERSION(ITypeInfo)
 	{
 		
 		
@@ -94,7 +94,7 @@ namespace LEX
 			return ConversionResult::Ineligible;
 		}
 
-		bool Convert(const Variable& from, Variable& to, const ITypeInfo* to_type) const override final;
+		bool Convert(const Variable& from, Variable& to) const override final;
 
 
 
@@ -132,7 +132,7 @@ namespace LEX
 
 		virtual void SetSelfQualifiers(Qualifier& qualifiers) const = 0;
 
-		bool IsReferType() const override
+		bool IsReferenceType() const override
 		{
 				get_switch (FetchDataType())
 				{

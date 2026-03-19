@@ -78,6 +78,11 @@ namespace LEX
 		return Update::Match;
 	}
 
+	void ModInterfaceUseCount_Impl(bool inc)
+	{
+		SingletonManager::ModRefCount(inc);
+	}
+
 
 	/*
 	bool InterfaceManager::RegisterInterface(Interface& ifc, std::string_view name)

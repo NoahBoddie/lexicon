@@ -276,6 +276,41 @@ namespace LEX
 
 
 
+		inline TypeBase* tempObtainPolicy(SyntaxRecord& ast, Element* parent = nullptr);
+
+		virtual void LoadFromSyntaxNode(SyntaxRecord& node);
+
+		void LoadFromSyntaxTree(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end);
+
+
+		LinkResult OnLink(LinkFlag flags) override
+		{
+
+			if (flags != LinkFlag::Loaded)
+				return LinkResult::Success;
+
+
+			auto body = GetSyntaxTree()->FindChild(parse_strings::body);
+
+			if (!body) {
+				return LinkResult::Success;
+			}
+
+			auto& children = body->children();
+
+			LoadFromSyntaxTree(children.begin(), children.end());
+
+			return LinkResult::Success;
+		}
+
+		LinkFlag GetLinkFlags() override
+		{
+			return LinkFlag::Loaded;
+		}
+
+
+
+
 	protected: //Some might be private, will address later.
 		Element* _parent = nullptr;//can be project or script/class
 

@@ -7,7 +7,7 @@ namespace LEX
 {
 
 	struct Function;
-	struct RuntimeVariable;
+	class RuntimeVariable;
 	class Runtime;
 	struct ITemplateBody;
 

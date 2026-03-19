@@ -6,10 +6,7 @@
 
 namespace LEX
 {
-	struct ITypePolicy;
-
-	class ConcretePolicy;
-
+	
 	struct ObjectPolicy;
 
 	//Give their own.

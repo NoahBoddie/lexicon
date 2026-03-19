@@ -101,7 +101,7 @@ namespace LEX
 					}
 
 					if (!type)  //I'd actually rather report.
-						report::critical("no type, I dont actually know where I am right now, please figure out what this means later thx");
+						inherit.error("Could not generate type from {}", inherit.GetTag());
 
 					SetDerivesTo(type, access);
 				}
@@ -114,4 +114,5 @@ namespace LEX
 		PrintInheritance();
 
 	}
+
 }

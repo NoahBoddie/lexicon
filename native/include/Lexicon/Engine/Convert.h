@@ -5,8 +5,10 @@
 
 namespace LEX
 {
-	using ConvertFunc = RuntimeVariable(*)(RuntimeVariable);
 
+#ifdef SLATED_FOR_DELTETE
+	using ConvertFunc = RuntimeVariable(*)(RuntimeVariable);
+	
 	template<ConvertFunc Func>
 	struct Convert final : public ICallableUnit
 	{
@@ -42,4 +44,5 @@ namespace LEX
 		Convert& operator=(Convert&&) = delete;
 
 	};
+#endif
 }

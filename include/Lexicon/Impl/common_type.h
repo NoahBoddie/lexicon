@@ -90,6 +90,20 @@ namespace LEX
 			return type;
 		}
 
+		static TypeInfo* double_t()
+		{
+			constexpr auto settings = Number::Settings::CreateFromType<double>();
+
+			static TypeInfo* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
+			}
+
+			return type;
+		}
+
+
 
 		static TypeInfo* void_t()
 		{
@@ -102,6 +116,19 @@ namespace LEX
 			return type;
 		}
 		
+
+		static TypeInfo* null_t()
+		{
+			static TypeInfo* type = nullptr;
+
+			if (!type) {
+				type = IdentityManager::instance->GetInherentType(InherentType::kNull)->FetchTypePolicy(nullptr);
+			}
+
+			return type;
+		}
+
+
 
 		static TypeInfo* object()
 		{

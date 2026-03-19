@@ -436,6 +436,9 @@ namespace LEX
 		scriptTokens.AddKeyword("as");
 		scriptTokens.AddKeyword("typeof");
 		scriptTokens.AddKeyword("generic");
+		scriptTokens.AddKeyword("undefined");
+		scriptTokens.AddKeyword("null");
+		scriptTokens.AddKeyword("none");
 
 		scriptTokens.AddConditional("maybe");
 

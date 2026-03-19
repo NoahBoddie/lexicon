@@ -13,6 +13,7 @@
 
 namespace LEX
 {
+	struct ObjectHelper;
 
 	//This should be hidden I think?
 	struct ObjectPolicy;
@@ -34,10 +35,18 @@ namespace LEX
 				virtual ObjectPolicy* RegisterObjectType(ObjectVTable* vtable, const std::span<std::string_view>& aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source) = 0;
 
 			};
+
+			
 		}
 
 		CURRENT_VERSION(ObjectPolicyManager, 1);
 	}
+
+
+
+	
+
+
 	//I would actually prefer all the above versions to be interface, and this here be the only valid version.
 	struct IMPL_SINGLETON(ObjectPolicyManager)
 	{
@@ -62,7 +71,11 @@ namespace LEX
 		}
 
 
+		
+
+		
 	};
+
 
 
 	//Put this in implementation. Shit doesn't need to be actively used.
@@ -75,8 +88,8 @@ namespace LEX
 	}
 
 
-	//No category has to be used if it has declared an object Typename
-	template <has_object_info T, typename... Ts>//T has to have an ObjectVTable
+	//Registers a class to a set of types. Not allowed on abstract object infos that are interface only.
+	template <has_object_info T, typename... Ts>requires(!std::derived_from<ObjectInfo<std::remove_cvref_t<T>>, LEX::detail::not_implemented>)
 	void RegisterObjectType(std::string_view category, TypeOffset range = 0)
 	{
 		constexpr size_t type_count = sizeof...(Ts) + 1;
@@ -95,10 +108,8 @@ namespace LEX
 	}
 
 
-
-
 	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
-	uint32_t GetObjectPolicyID()
+	uint32_t FetchObjectPolicyID()
 	{
 		constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
 		constexpr uint32_t invalid = -1;
@@ -109,17 +120,44 @@ namespace LEX
 
 			index = ObjectPolicyManager::instance->GetIndexFromName(name);
 		}
-		
+
 		return index;
+	}
+
+	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
+	uint32_t GetObjectPolicyID()
+	{
+		constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
+		constexpr uint32_t invalid = -1;
+		auto result = FetchObjectPolicyID<T>();
+
+		if (result == invalid) {
+			report::compile::critical("Object Policy '{}' not found.", name);
+		}
+		
+		return result;
+	}
+
+	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
+	ObjectPolicy* FetchObjectPolicy()
+	{
+		uint32_t index = FetchObjectPolicyID<T>();
+
+		return ObjectPolicyManager::instance->GetObjectPolicy(index);
 	}
 
 
 	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
 	ObjectPolicy* GetObjectPolicy()
 	{
-		uint32_t index = GetObjectPolicyID<T>();
+		auto result = FetchObjectPolicy<T>();
 
-		return ObjectPolicyManager::instance->GetObjectPolicy(index);
+		if (!result) {
+			constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
+			report::compile::critical("Object Policy '{}' not found.", name);
+		}
+
+		return result;
 	}
 
 

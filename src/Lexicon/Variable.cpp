@@ -7,8 +7,7 @@ namespace LEX
     bool Variable::Convert(TypeInfo* to, Variable& out)
     {
         //TODO: Needs cleaning.
-        TypeInfo* from = GetTypeInfo();
-        return from ? from->Convert(*this, out, to) : false;
+        return to ? to->Convert(*this, out) : false;
     }
     
     TypeInfo* Variable::GetTypeInfo() const

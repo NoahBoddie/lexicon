@@ -458,10 +458,23 @@ namespace LEX
 	//TODO:I'd like to make whatever this is seen as variable, definable via macro or something like that. Perhaps through settings.
 	struct StaticTargetTag {};
 
+	struct runtime_type {};
+
 	template <>
 	struct VariableType<StaticTargetTag>
 	{
 		TypeInfo* operator()(const StaticTargetTag*)
+		{
+			return nullptr;
+		}
+	};
+
+
+
+	template <>
+	struct VariableType<runtime_type>
+	{
+		TypeInfo* operator()(const runtime_type*)
 		{
 			return nullptr;
 		}

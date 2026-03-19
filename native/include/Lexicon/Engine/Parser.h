@@ -164,7 +164,7 @@ namespace LEX
 			return CalcColumnLine(current(), until, a_column, a_line);
 		}
 
-		void croak(std::string msg, Token* token = nullptr);
+		void croak(std::string msg, Token* token = nullptr, bool recoverable = true);
 
 
 		//Proper name would be nexttoken or producetoken
@@ -788,11 +788,9 @@ namespace LEX
 		template <std::derived_from<ParseModule> Module>
 		static bool CreateSyntax(RecordBase& out, std::string_view text, Line line = 1, Column column = 1)
 		{
-			std::unique_ptr<ParseModule> mdl;
+			Module mdl;
 
-			mdl = std::make_unique<Module>();
-
-			return CreateSyntax(out, text, mdl.get(), line, column);
+			return CreateSyntax(out, text, &mdl, line, column);
 		}
 
 

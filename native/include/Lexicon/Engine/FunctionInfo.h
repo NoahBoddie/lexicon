@@ -17,8 +17,8 @@ namespace LEX
 		struct {
 
 			FunctionData* signature = nullptr;
+			//uint64_t signatureCode = 0;
 			
-
 			struct
 			{
 				uint64_t _raw = 0;

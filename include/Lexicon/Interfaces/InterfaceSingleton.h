@@ -3,6 +3,10 @@
 #include "Interface.h"
 #include "InterfaceManager.h"
 
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/SingletonManager.h"
+#endif
+
 namespace LEX
 {
 	template <typename T>
@@ -47,27 +51,33 @@ namespace LEX
 				switch (result)
 				{
 				case Update::Invalid:
-					report::fault::critical("fix name mismatch");
+					logger::critical("Invalid interface request, name not found");
+					throw FatalError("invalid interface request");
 					break;//mention the name is probably wrong
 
 				case Update::Library:
-					report::message::critical("update library");
+					logger::critical("Requesting plugin is out of date with engine. Developer needs to update version.");
+					throw FatalError("client is out of date");
 					break;//Library is out of date, developer fault.
 
 				case Update::Engine:
-					report::message::critical("update engine");
+					logger::critical("Engine is out of date with requesting plugin version. Update Scripting engine.");
+					throw FatalError("engine out of date");
 					break;//Engine is out of date, user fault.
 
 				case Update::Match:
-					assert_if(!_interface)
-						report::message::critical("interface not returned despite success.");
-					else
-						report::message::trace("interface {} success.", TypeName<T>::value);
+					assert_if(!_interface) {
+						logger::critical("Interface missing despite request success");
+						throw FatalError("missing interface after successful query");
+					}
+
+					report::message::trace("interface {} success.", TypeName<T>::value);
 					break;//We're all gucci
 				case Update::Missing:
 					break;
 				default:
 					logger::info("unknown issue {}", magic_enum::enum_name(result));
+					throw FatalError("missing interface after successful query");
 					break;
 				}
 
@@ -77,10 +87,15 @@ namespace LEX
 			return Update::Match;
 		}
 
+		static T* RequestSingleton(bool catch_error)
+		{
+			CheckSingleton(catch_error);
+			return _interface;
+		}
+
 		static T* RequestSingleton()
 		{
-			CheckSingleton(false);
-			return _interface;
+			return RequestSingleton(true);
 		}
 #endif
 
@@ -91,12 +106,13 @@ namespace LEX
 		{
 
 #ifdef LEX_SOURCE
-			static _unprotect singleton{};
+			static _unprotect& singleton = make_singleton<_unprotect>();
+			//static _unprotect singleton{};
 
 			return singleton;
 
 #else			//If not the source, we go through the interface manager via request, instead of instantiating our own one.
-			return *RequestSingleton();
+			return *RequestSingleton(false);
 #endif
 
 		}
@@ -110,7 +126,7 @@ namespace LEX
 				return &GetSingleton();
 
 #else			
-				return RequestSingleton();
+				return RequestSingleton(false);
 #endif
 			}
 		

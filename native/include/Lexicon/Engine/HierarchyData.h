@@ -40,6 +40,8 @@ namespace LEX
 		virtual void HandleInheritance() {}
 
 		
+
+		
 		InheritData* _InheritData(InheritData& data);
 
 		const InheritData* GetInheritData(const ITypeInfo* type) const;

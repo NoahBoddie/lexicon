@@ -5,11 +5,15 @@
 #include "Lexicon/ObjectData.h"
 #include "Lexicon/ObjectPolicy.hpp"
 #include "Lexicon/ObjectPolicyHandle.h"
+#include "Lexicon/Interfaces/ObjectPolicyManager.h"
 namespace LEX
 {
 	struct TypeInfo;
 
 	struct Object;
+
+
+
 
 	inline Void temp_objectExcept{};
 
@@ -85,8 +89,6 @@ namespace LEX
 	template<typename T>
 	concept object_type = has_object_info<obj_trans_type<T>> && !std::is_same_v<obj_trans_type<T>, detail::not_implemented>;
 
-
-	
 
 
 	struct Object
@@ -603,7 +605,7 @@ namespace LEX
 			auto index = GetObjectPolicyID<T>();
 
 			if (policy.index() != index) {
-				logger::info("error, cannot convert, {} vs {}", policy.index(), index);
+				report::apply::error("error, cannot convert, {} vs {}", policy.index(), index);
 				throw temp_objectExcept;
 			}
 

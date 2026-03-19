@@ -131,11 +131,11 @@ namespace LEX
 					return this ? GetDataType() : DataType::Invalid;
 				}
 				//*
-				virtual bool IsReferType() const = 0;
+				virtual bool IsReferenceType() const = 0;
 
 				bool IsValueType() const
 				{
-					return !IsReferType();
+					return !IsReferenceType();
 				}
 				//*/
 
@@ -147,7 +147,7 @@ namespace LEX
 
 				virtual bool CanConvert(const ITypeInfo* other) const = 0;
 
-				virtual bool Convert(const Variable& from, Variable& to, const ITypeInfo* type) const = 0;
+				virtual bool Convert(const Variable& from, Variable& to) const = 0;
 
 				//Make a type that produces an error
 				//virtual bool Convert(const Variable& from, Variable& to, const ITypeInfo* type) = 0;

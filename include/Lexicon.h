@@ -3,6 +3,8 @@
 
 //Give to RGL
 
+#include "Lexicon/Impl/PCH.h"
+
 #include "RoguesGallery.hpp"
 
 /*
@@ -17,8 +19,6 @@ constexpr T max_value = std::numeric_limits<T>::max();
 //*/
 
 //I can do both of these at the same time.
-//#define LEX_SOURCE 1
-#define LEX_API_SOURCE "test.dll"
 
 //These don't really work for me, Id like some more order to these.
 #define LEX_NAMESPACE namespace LEX
@@ -38,11 +38,7 @@ constexpr T max_value = std::numeric_limits<T>::max();
 
 
 
-namespace LEX
-{
-	using namespace RGL_NAMESPACE;
-	using namespace RGL_INCLUDE_NAMESPACE;
-}
+
 
 //#include "spdlog/spdlog.h"
 //#include "spdlog/sinks/stdout_color_sinks.h"
@@ -50,8 +46,6 @@ namespace LEX
 //#include <spdlog/sinks/msvc_sink.h>
 //#include <spdlog/sinks/stdout_sinks.h>
 
-
-#include "Lexicon/Impl/PCH.h"
 
 #include "Lexicon/Function.h"
 #include "Lexicon/TypeInfo.h"
@@ -73,7 +67,6 @@ namespace LEX
 #include "Lexicon/ObjectInfo.h"
 #include "Lexicon/ObjectPolicy.h"
 #include "Lexicon/ObjectPolicyHandle.h"
-#include "Lexicon/Interfaces/ObjectPolicyManager.h"
 #include "Lexicon/ObjectPoolData.h"
 #include "Lexicon/AnnotatedType.h"
 #include "Lexicon/Qualifier.h"
@@ -87,6 +80,7 @@ namespace LEX
 #include "Lexicon/VariableType.h"
 
 #include "Lexicon/Interfaces/IdentityManager.h"
+#include "Lexicon/Interfaces/ObjectPolicyManager.h"
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceManager.h"
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
@@ -98,7 +92,6 @@ namespace LEX
 #include "Lexicon/ProcedureData.h"
 
 #include "Lexicon/Formula.h"
-
 
 #ifdef LEX_SOURCE
 #include "Lexicon/Engine.h"

@@ -413,7 +413,9 @@ namespace LEX
 			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				Record script = ParsingStream::CreateExpression(stream->name(), SyntaxType::Script);
-
+				
+				Record* body = nullptr;
+				
 				//script.EmplaceChild(ParsingStream::CreateExpression(stream->project(), SyntaxType::Project));
 				
 				while (stream->eof() == false) {
@@ -425,11 +427,17 @@ namespace LEX
 						//Make this a recursive function
 						Record result = stream->ParseSyntax();
 
-						if (result)
-							script.EmplaceChild(result);
+						if (result) {
+							if (!body) body = &script.EmplaceChild(ParsingStream::CreateExpression(parse_strings::body, SyntaxType::None));
+							body->EmplaceChild(result);
+						}
 					}
 					catch (ParseError error)
 					{
+
+						if (!error.recoverable)
+							throw;
+
 						ParseModule::ExecuteModule<ErrorParser>(stream, nullptr);
 
 					}
@@ -2079,42 +2087,55 @@ namespace LEX
 
 			void HandleBlock(Record& block, ParsingStream* stream)
 			{
+				bool should_lend = !stream->IsType(TokenType::Punctuation, "{") && !stream->IsType(TokenType::Keyword, "if");
+
+				Record body = stream->ParseSyntax();
+
+				if (body.SYNTAX().type == SyntaxType::StateBlock)
+					block.EmplaceChildren(std::move(body.children()));
+				else if (body)
+					block.EmplaceChildren(std::move(body));
+
+				if (should_lend)
+					ParseModule::UseModule<EndParser>(stream, nullptr);
 
 
-				if (auto is_if = stream->IsType(TokenType::Keyword, "if"); is_if || stream->SkipIfType(TokenType::Punctuation, ":") == true)
-				{
-					//This really shouldn't allow encasulate stream to go in. But for now this will handle.
-					Record body = stream->ParseSyntax();
-					
 
-					if (body.SYNTAX().type == SyntaxType::StateBlock)
-						block.EmplaceChildren(std::move(body.children()));
-					else if (body)
-						block.EmplaceChildren(std::move(body));
+				if constexpr (0) {
+					if (auto is_if = stream->IsType(TokenType::Keyword, "if"); is_if || stream->SkipIfType(TokenType::Punctuation, ":") == true)
+					{
+						//This really shouldn't allow encasulate stream to go in. But for now this will handle.
+						Record body = stream->ParseSyntax();
 
-					if (!is_if)
-						ParseModule::UseModule<EndParser>(stream, nullptr);
+
+						if (body.SYNTAX().type == SyntaxType::StateBlock)
+							block.EmplaceChildren(std::move(body.children()));
+						else if (body)
+							block.EmplaceChildren(std::move(body));
+
+						if (!is_if)
+							ParseModule::UseModule<EndParser>(stream, nullptr);
+					}
+					else if (stream->IsType(TokenType::Punctuation, "{") == true)
+					{
+						Record body = ParseModule::UseModule<EncapsulateParser>(stream, nullptr);
+
+						auto& children = body.children();
+
+
+						if (body.SYNTAX().type == SyntaxType::StateBlock)
+							block.EmplaceChildren(std::move(children));
+						else if (body)
+							block.EmplaceChildren(std::move(body));
+
+						//if it's empty the statement block remains empty.
+					}
+					else
+					{
+						//croak
+						stream->croak("invalid token found proceeding if statement.");
+					}
 				}
-				else if (stream->IsType(TokenType::Punctuation, "{") == true)
-				{
-					Record body = ParseModule::UseModule<EncapsulateParser>(stream, nullptr);
-
-					auto& children = body.children();
-
-
-					if (body.SYNTAX().type == SyntaxType::StateBlock)
-						block.EmplaceChildren(std::move(children));
-					else if (body)
-						block.EmplaceChildren(std::move(body));
-
-					//if it's empty the statement block remains empty.
-				}
-				else
-				{
-					//croak
-					stream->croak("invalid token found proceeding if statement.");
-				}
-
 			}
 
 

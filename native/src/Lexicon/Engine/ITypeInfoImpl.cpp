@@ -8,19 +8,29 @@
 
 namespace LEX
 {
-	bool ITypeInfo::Convert(const Variable& from, Variable& to, const ITypeInfo* to_type) const
+	bool ITypeInfo::Convert(const Variable& from, Variable& to) const
 	{
 		Conversion convert;
 
 		TypeInfo* from_type = from.GetTypeInfo();
 
 		//I want to make a variable vtable to handle this at a later point
-		bool success = from_type && from_type->IsConvertibleTo(to_type, to_type, convert, ConversionFlag::Explicit);
+		bool success = from_type;
 
-		if (success)
+		if (!from_type)
+			return false;
+
+		auto result = from_type->IsConvertibleTo(this, this, convert, ConversionFlag::Explicit);
+
+
+		if (!result)
+			return false;
+
+		to = convert.Run(from, result);
+
+
 		{
-			to = from;
-
+			
 			//TODO:I want IFunction to have a convert function here, where I can call upon convert for this.
 			/*
 			if (convert) {
@@ -32,7 +42,7 @@ namespace LEX
 			//*/
 		}
 
-		return success;
+		return true;
 	}
 
 
@@ -126,14 +136,14 @@ namespace LEX
 
 		if (out && exp) {
 			if (common_type::string() == other) {
-				constexpr auto func = [](RuntimeVariable var) -> RuntimeVariable {return var->PrintString(); };
-				out->implDefined = LEX::Convert<func>::instance;
+				constexpr auto func = [](const RuntimeVariable& var, Runtime*) -> RuntimeVariable {return var->PrintString(); };
+				out->SetUserImpl(func);
 				return true;
 			}
 
 			else if (common_type::boolean() == other) {
-				constexpr auto func = [](RuntimeVariable var) -> RuntimeVariable {return var->IsValueZero(); };
-				out->implDefined = LEX::Convert<func>::instance;
+				constexpr auto func = [](const RuntimeVariable& var, Runtime*) -> RuntimeVariable {return !var->IsValueZero(); };
+				out->SetUserImpl(func);
 				return true;
 			}
 

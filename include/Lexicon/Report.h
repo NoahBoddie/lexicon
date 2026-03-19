@@ -8,7 +8,7 @@ namespace LEX
 {
 	//TODO: Please relocate "is_not"
 	template <typename This, typename Not>
-	concept is_not = !std::is_same_v<std::remove_reference_t<std::remove_pointer_t<This>>, Not>;
+	concept is_not = !std::is_same_v<std::remove_cvref_t<std::remove_pointer_t<This>>, Not>;
 
 
 

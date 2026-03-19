@@ -24,7 +24,10 @@ namespace LEX
 		}
 
 		//Should do nothing.
-		VoidPolicy();
+		VoidPolicy() : ConcreteType{ InherentType::kVoid } 
+		{
+			_dataType = DataType::Invalid;
+		}
 
 	};
 
@@ -43,11 +46,8 @@ namespace LEX
 			return TypeRuleset::NoGlobal | TypeRuleset::ReturnOpt;
 		}
 
-		//Should do nothing.
-		VoidablePolicy()
+		VoidablePolicy() : ConcreteType{ InherentType::kVoidable } 
 		{
-			_id = (uint32_t)InherentType::kVoidable;
-
 			_dataType = DataType::Interface;
 		}
 	};

@@ -82,6 +82,7 @@ namespace LEX
 	//*/
 
 
+
 	ITypeInfo* GetPolicyFromSpecifiers(SyntaxRecord& node, Element* elem)
 	{
 		ITypeInfo* result = nullptr;

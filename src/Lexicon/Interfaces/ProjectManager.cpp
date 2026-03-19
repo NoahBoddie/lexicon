@@ -49,10 +49,15 @@ namespace LEX
 	constexpr std::string_view core_path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon";
 
 
-
-
-
-
+	//Concept behind this is once i'd like this to happen once when all plugins are properly loaded.
+	/*
+	INITIALIZE()
+	{
+		std::atexit([]() 
+			{ Component::Link(LinkFlag::Exit); }
+		);
+	}
+	//*/
 
 
 
@@ -512,7 +517,7 @@ namespace LEX
 			return APIResult::CreationFailed;
 		}
 
-		ast.EmplaceChild(std::move(tmp_directives));
+		ast.ObtainChild(parse_strings::body, SyntaxType::None).EmplaceChild(std::move(tmp_directives));
 
 		PrintAST(ast);
 
@@ -549,6 +554,9 @@ namespace LEX
 
 		bool made_from_script;
 
+		if (!a_project) {
+			return APIResult::FileMissing;
+		}
 		auto project = dynamic_cast<Project*>(a_project);
 
 		std::vector<std::string_view> options { a_options.begin(), a_options.end() };
@@ -683,9 +691,14 @@ namespace LEX
 	IElement* ProjectManager::GetElementFromPath(std::string_view path, ElementType elem, const ISignature* sign)
 	{
 		//right now, linking isn't really set up so you know.
+		
+		if (Component::HasLinked(LinkFlag::Loaded) == false) {
+			report::warn("All scripts haven't finished loading, search for {} cannot be completed.", path);
+			return nullptr;
+		}
+
 		if (Component::HasLinked(LinkFlag::Declaration) == false) {
 			report::warn("Declaration linkage hasn't occured, search for {} cannot be completed.", path);
-			return nullptr;
 		}
 
 

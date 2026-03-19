@@ -208,15 +208,17 @@ namespace LEX
 			ICallableUnit* func = nullptr;
 			
 			//For Convert, once when I start using spans, please put it in a single sized array.Just to save space and to not have to allocate.
-			std::vector<RuntimeVariable> from { a_rhs.GetVariable(runtime) };
+			//std::vector<RuntimeVariable> from { a_rhs.GetVariable(runtime) };
+
+			RuntimeVariable from = a_rhs.GetVariable(runtime);
 
 			get_switch (a_lhs.type())
 			{
-				case OperandType::Convert: 
+				case OperandType::Converter: 
 				{
-					Convert_ convert = a_lhs.Get<Convert_>();
+					Converter_ convert = a_lhs.Get<Converter_>();
 
-					ret = convert(from[0]);
+					ret = convert(from, runtime);
 				}
 				break;
 										 
@@ -236,10 +238,8 @@ namespace LEX
 
 				case OperandType::Type:
 				{
-					auto& var = from[0];
-					
 					//This is the real solution, I just want to check if I was right.
-					auto from_type = LEX::GetVariableType(var.Ref());
+					auto from_type = LEX::GetVariableType(from.Ref());
 					//auto from_type = var->Policy();
 
 					if (!from_type)
@@ -250,7 +250,7 @@ namespace LEX
 					
 					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result)
 					{
-						ret = var.Ref();
+						ret = from.Ref();
 						//ret->SetPolicy(to_type->FetchTypePolicy(runtime));
 					}
 					else
@@ -271,7 +271,7 @@ namespace LEX
 			}
 			
 			if (func)
-				ret = func->Execute(from, runtime, nullptr);
+				ret = func->Execute({ &from, 1 }, runtime, nullptr);
 		}
 
 
@@ -372,7 +372,7 @@ namespace LEX
 			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
 			
 			//if no policy, fatal fault
-			if (!policy){
+			assert_if (!policy){
 				report::runtime::critical("no policy found.");
 			}
 
@@ -1458,8 +1458,11 @@ namespace LEX
 				switch (Hash(target.GetView()))
 				{
 				case "default"_h:
+				case "undefined"_h:
 				case "null"_h:
 				case "none"_h:
+					break;
+				default:
 					throw "shit ain't used or whatever";
 				}
 
@@ -2174,29 +2177,6 @@ namespace LEX
 
 
 
-
-		struct StrConvert final : public ICallableUnit
-		{
-			using Self = StrConvert;
-
-			static Self& GetSingleton()
-			{
-				static Self singleton{};
-
-				return singleton;
-			}
-
-
-			inline static Self* instance = &GetSingleton();
-
-			RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime*, RuntimeVariable*) override
-			{
-				return (double)args[0]->AsString().size();
-			}
-		};
-
-
-
 		namespace
 		{
 			//Unsure if this should be using a reference to the runtime variable. I guess not? This doesn't intend to
@@ -2246,11 +2226,11 @@ namespace LEX
 			//struct NumberConvert : public ICallableUnit
 
 
-			std::array<ICallableUnit*, Number::Settings::length> convertMap;
+			std::array<Converter_, Number::Settings::length> convertMap;
 
 			//uint32_t is 0:1:1:0
 			template <NumeralType A, Signage B, Size C, Limit D>
-			RuntimeVariable ConvNum(RuntimeVariable var)
+			RuntimeVariable ConvNum(const RuntimeVariable& var, Runtime*)
 			{
 				Number number = var->AsNumber();
 
@@ -2267,7 +2247,7 @@ namespace LEX
 			inline void FillLimit(int& i)
 			{
 
-				convertMap[i++] = Convert<ConvNum<A, B, C, D>>::instance;
+				convertMap[i++] = ConvNum<A, B, C, D>;
 
 				constexpr auto _d = (Limit)(D + 1);
 
@@ -2335,12 +2315,16 @@ namespace LEX
 		{
 			using ConcreteType::ConcreteType;
 
+
+			static RuntimeVariable StrToDouble(const RuntimeVariable& a_this, Runtime*)
+			{
+				return (double)a_this->AsString().size();
+			}
+
 			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
 			{
 				//For now, this will be very specific. It won't even exist later. But for now, the idea is that this should be able to transfer into a string.
 				//Later, I'm going to just make a thing that manages conversions akin to a dispatcher.
-
-				static StrConvert converter{};
 
 				ConvertResult result = __super::GetConvertTo(other, scope, out, flags);
 
@@ -2351,7 +2335,7 @@ namespace LEX
 					
 					if (IdentityManager::instance->GetTypeByOffset("NUMBER", double_offset) == other)
 					{
-						out->implDefined = std::addressof(converter);
+						out->SetUserImpl(StrToDouble);
 						result = ConversionEnum::ImplDefined;
 					}
 				}
@@ -2401,7 +2385,7 @@ namespace LEX
 							if (identity.offset >= Number::Settings::length)
 								report::fault::critical("Offset greater than number type length.");
 
-							out->implDefined = convertMap[--identity.offset];
+							out->SetUserImpl(convertMap[--identity.offset]);
 
 							result = ConversionEnum::ImplDefined;
 						}
@@ -2487,6 +2471,7 @@ namespace LEX
 			generatorList[SyntaxType::String] = LiteralProcess;
 			generatorList[SyntaxType::Object] = LiteralProcess;
 			generatorList[SyntaxType::Typeof] = TypeofProcess;
+			generatorList[SyntaxType::Constant] = ConstantProcess;
 
 
 			generatorList[SyntaxType::Variable] = VariableProcess;

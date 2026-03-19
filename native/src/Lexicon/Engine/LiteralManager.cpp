@@ -6,8 +6,7 @@
 namespace LEX
 {
 
-
-	
+	//TODO: This method of handling literals as is will cause the assert to be hit because all the data destructs
 	std::set<Literal> literalList{};
 
 
@@ -98,6 +97,26 @@ namespace LEX
 				//result = code;
 				break;
 
+			case SyntaxType::Constant:
+				if constexpr (1)
+				{
+					switch (Hash(code))
+					{
+					case "none"_h:
+					case "null"_h:
+					case "default"_h:
+						literal._info = common_type::null_t();
+						break;
+
+					case "undefined"_h:
+						literal._info = common_type::voidable();
+						break;
+					default:
+						ast.critical("Not a literal expression."); break;
+					}
+				}
+				break;
+
 			default:
 				ast.critical("Not a literal expression."); break;
 		}
@@ -106,8 +125,15 @@ namespace LEX
 
 		if (syn != SyntaxType::Object)
 		{
-			assert(!literal.value.IsObject());
-			solution = literal._info = literal.value.GetTypeInfo();
+			if (!literal._info)
+			{
+				assert(!literal.value.IsObject());
+				solution = literal._info = literal.value.GetTypeInfo();
+			}
+			else
+			{
+				solution = literal._info;
+			}
 			
 		}
 

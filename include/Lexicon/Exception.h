@@ -78,12 +78,12 @@ namespace LEX
 
 	struct ParsingError : public Error
 	{
-		
+		bool recoverable = true;
 
 		//TODO: Consider what the fuck catches one of these.
 		//FIXITE: Replace with a string so proper formatting can be done.
-		ParsingError(std::string what) : Error{ what } { logger::error("{}", what); }
-		ParsingError(const char* what) : Error{ what } { logger::error("{}", what); }
+		ParsingError(std::string what, bool recover = true) : Error{ what }, recoverable{recover} { logger::error("{}", what); }
+		ParsingError(const char* what, bool recover = true) : Error{ what }, recoverable{ recover } { logger::error("{}", what); }
 	};
 	using ParseError = ParsingError;
 

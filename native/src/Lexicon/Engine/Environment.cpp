@@ -25,6 +25,10 @@
 #include "Lexicon/Engine/GlobalBase.h"
 
 
+#include"Lexicon/Engine/ConcreteGlobal.h"
+#include "Lexicon/Engine/GenericType.h"
+
+
 #include "Lexicon/Engine/OverloadInput.h"
 
 #include "Lexicon/Engine/QualifiedField.h"
@@ -37,6 +41,8 @@
 
 #include "Lexicon/Engine/Script.h"
 
+#include "Lexicon/Interfaces/ProjectClient.h"
+
 //SHOULD_NATIVE
 #include "Lexicon/Engine/FunctionInfo.h"
 #include "Lexicon/Engine/VariableInfo.h"
@@ -44,6 +50,30 @@
 
 namespace LEX
 {
+
+	template <typename T>
+	TypeBase* _PolicyMaker(std::string name, TypeOffset offset)
+	{//helps with generic or concrete divide
+		return new T{ std::string_view{name}, offset };
+	}
+
+	TypeOffset RecordToInt(SyntaxRecord& ast)
+	{//helps with generic or concrete divide
+		std::string tag = ast.GetTag();
+
+		if (std::strncmp(tag.c_str(), "0x", 2) == 0 || std::strncmp(tag.c_str(), "0X", 2) == 0)
+		{
+			return std::stoi(tag, nullptr, 16);
+		}
+		else
+		{
+			return std::stoi(tag, nullptr, 10);
+		}
+	}
+
+
+
+
 
 	Environment::~Environment()
 	{
@@ -54,7 +84,7 @@ namespace LEX
 		void Environment::AddFunction(FunctionBase* tar)
 		{
 			if (!tar) {
-				report::compile::critical("Non - FunctionData IFunction attempted to be added");
+				report::compile::error("Non - FunctionData IFunction attempted to be added");
 				throw nullptr;
 			}
 
@@ -85,7 +115,7 @@ namespace LEX
 			auto name = tar->GetName();
 
 			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
-				report::compile::critical("Variable already existed");
+				report::compile::error("Variable {} already existed", name);
 				throw nullptr;
 			}
 			else {
@@ -180,8 +210,7 @@ namespace LEX
 		void Environment::AddType(TypeBase* policy)
 		{
 			if (!policy) {
-				report::compile::critical("Null Policy attempted to be added");
-				throw nullptr;
+				report::compile::error("Null Policy attempted to be added");
 			}
 
 			auto end = typeMap.end();
@@ -189,8 +218,7 @@ namespace LEX
 			auto name = policy->GetName();
 
 			if (auto it = typeMap.find(name); end != it) {
-				report::compile::critical("Type already exists {}.", name);
-				throw nullptr;
+				report::compile::error("Type already exists {}.", name);;
 			}
 			else {
 				report::compile::trace("type {} added to {}", name, GetName());
@@ -217,6 +245,175 @@ namespace LEX
 		}
 
 
+		TypeBase* Environment::tempObtainPolicy(SyntaxRecord& ast, Element* parent)
+		{
+			SyntaxRecord& settings = ast.GetChild(0);
+
+
+
+
+			//This part can be done on the policy, what really needs to be done is figuring out which policy to create, 
+			// or to create at all. This relies on 1 setting. The rest can be fed verbatum later.
+
+			//NOTE, this also includes template arguments.
+
+
+			//Rules of obtaining
+			//Intrinsic, no creation, just pull a policy. Doesn't matter what else it is.
+			//ISpecial-Creates type policy from specific string and integer. Link error if not found.
+			//Data, Creates TypePolicy plain, claiming the next free space.
+			//Generic, a different TypePolicy has to be used, but otherwise it's fine.
+
+
+			SyntaxRecord* genericSet = settings.FindChild(parse_strings::generic);
+			bool is_generic = parent && parent->IsGenericElement() || genericSet && genericSet->size();
+
+
+			using PolicyCtor = TypeBase * (std::string, TypeOffset);
+
+			//using ConcreteType = ConcreteType;
+			using GenericPolicy = ConcreteType;
+			PolicyCtor* create_func = !is_generic ? _PolicyMaker<ConcreteType> : _PolicyMaker<GenericType>;
+
+
+
+
+			std::string name;
+			TypeOffset offset;
+
+			auto LookUpOrMake = [&](const std::string_view& name, TypeOffset offset, bool lookup) -> TypeBase*
+				{
+					TypeBase* result = nullptr;
+
+					if (lookup) {
+
+						result = IdentityManager::instance->GetBaseByOffset(name, offset);
+					}
+					else
+						result = is_generic ? static_cast<TypeBase*>(new GenericType{ name, offset }) : new ConcreteType{ name, offset };
+
+					return result;
+				};
+
+			bool lookup = false;
+
+			TypeBase* result;
+
+			if (auto attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach); attach)
+			{
+
+				if (attach->size() == 0) {
+					attach->critical("external type requires some type.");
+				}
+
+				SyntaxRecord& attach_data = attach->GetFront();
+				switch (Hash(attach_data.GetTag()))
+				{
+				case "intrinsic"_h:
+					//Look up
+					lookup = true;
+					__fallthrough;
+				case "external"_h:
+				{
+					//Handle error, I can't fucking be bothered.
+					SyntaxRecord& category = attach_data.GetFront();
+					TypeOffset index;
+
+					//this should more be if it's not number.
+					if (auto& args = category.GetFront(); args.GetView() == "args")
+					{
+						auto& children = args.children();
+
+						std::vector<std::string_view> string_args{ children.size() };
+
+						std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
+
+						index = GetProject()->client()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
+						//logger::trace("offset from args = {}", index);
+					}
+					else
+					{
+						index = RecordToInt(category.GetFront());
+					}
+
+					result = LookUpOrMake(category.GetTag(), index, lookup);
+
+					break;
+
+				}
+				break;//create
+
+				default:
+					report::apply::debug("Couldn't ObtainPolicy");
+					result = nullptr;
+					break;
+				}
+
+			}
+			else
+			{
+				result = is_generic ? new GenericPolicy{} : new ConcreteType{};
+			}
+
+			if (result)
+				result->Initialize(ast);
+
+			return result;
+		}
+
+
+		void Environment::LoadFromSyntaxNode(SyntaxRecord& node)
+		{
+			get_switch(node.SYNTAX().type)
+			{
+			case SyntaxType::Function:
+			{
+				//auto* function = new ConcreteFunction{};
+
+				//AddFunction(function);
+
+				//function->ConstructFromRecord(node);
+				//AddFunction(Component::Create<ConcreteFunction>(node));
+
+				CreateFunction(node);
+				break;
+
+			}
+			case SyntaxType::Type:
+			{
+				//auto* policy = ObtainPolicy(node);
+
+				//policy->ConstructFromRecord(node);
+
+				//AddType(policy);
+
+				AddType(tempObtainPolicy(node));
+				break;
+			}
+			case SyntaxType::Variable:
+			{
+				//This is very incorrect btw
+				AddVariable(Component::Create<ConcreteGlobal>(node));
+				break;
+			}
+			
+			default:
+				report::compile::critical("Syntax {} not valid for environment", magic_enum::enum_name(switch_value)); break;
+			}
+		}
+
+		void Environment::LoadFromSyntaxTree(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end)
+		{
+			//for (auto& node : target.children())
+			while (begin != end)
+			{
+				logger::debug("Loading: {}", begin->GetView());
+				LoadFromSyntaxNode(*begin++);
+			}
+		}
+
+
+
 
 		SyntaxRecord* SecondaryEnvironment::GetSyntaxTree()
 		{
@@ -228,4 +425,6 @@ namespace LEX
 			if (!_syntax)
 				_syntax = &rec;
 		}
+
+
 }

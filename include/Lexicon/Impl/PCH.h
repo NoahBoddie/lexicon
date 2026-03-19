@@ -1,8 +1,7 @@
 #pragma once
 #define __STOP_USING__ 1
 #ifdef __STOP_USING__
-//Need a way to turn this shit off.
-//*
+
 #include <cassert>
 #include <cctype>
 #include <cerrno>
@@ -103,7 +102,7 @@
 //*/
 #undef cdecl // Workaround for Clang 14 CMake configure error.
 
-#define RGL_LOG(mc_level, mc_text, ...) logger::mc_level(mc_text __VA_OPT__(,)__VA_ARGS__)
+
 
 
 #pragma warning(push)
@@ -271,8 +270,14 @@ namespace logger
 }
 
 
-
+#define RGL_LOG(mc_level, mc_text, ...) logger::mc_level(mc_text __VA_OPT__(,)__VA_ARGS__)
 #include "RoguesGallery.hpp"
+
+namespace LEX
+{
+    using namespace RGL_NAMESPACE;
+    using namespace RGL_INCLUDE_NAMESPACE;
+}
 
 //I'd really rather just move this
 #ifdef LEX_SOURCE
@@ -450,14 +455,26 @@ T ReturnDefaultOrFailure()
 
 
 template<typename T, typename Ex = std::exception, typename... Args>
-std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name, Args&&... args)
+std::invoke_result_t<T, Args...> ExternCall(void** cache, HINSTANCE a_module, LPCSTR func_name, Args&&... args)
 {
     using _Ret = std::invoke_result_t<T, Args...>;
 
     using _Func = T*;//_Ret(*)(Args...);
 
+    void* ptr = nullptr;
+
+    if (cache) {
+        ptr = *cache;
+    }
+
+    if (!ptr) {
+        ptr = GetProcAddress(a_module, func_name);
+        
+        if (cache)
+            *cache = ptr;
+    }
     
-    _Func func = (_Func)GetProcAddress(a_module, func_name);
+    _Func func = (_Func)ptr;
 
     
 
@@ -493,43 +510,63 @@ std::invoke_result_t<T, Args...> ExternCall(HINSTANCE a_module, LPCSTR func_name
 
 
 template<typename T, typename Ex = std::exception, typename... Args>
-std::invoke_result_t<T, Args...> ExternCall(FCSTR module_name, LPCSTR func_name, Args&&... args)
+std::invoke_result_t<T, Args...> ExternCall(void** cache, FCSTR module_name, LPCSTR func_name, Args&&... args)
 {
-	using _Ret = std::invoke_result_t<T, Args...>;
+    using _Ret = std::invoke_result_t<T, Args...>;
 
     using _Func = T*;//_Ret(*)(Args...);
 
-    HINSTANCE a_module = GetModuleHandle(module_name);
+    HINSTANCE a_module{};
+    
+    if (!cache || !*cache)
+    {
+        a_module = GetModuleHandle(module_name);
 
-    if (a_module == nullptr) {
-        static bool once = false;
+        if (a_module == nullptr) {
+            static bool once = false;
 
 #ifdef UNICODE
-        std::wstring_convert<std::codecvt_utf8<WCHAR>, WCHAR> converter;
-        std::string to_print = std::format("Extern Call failed. Module {} not found.", converter.to_bytes(module_name));
+            std::wstring_convert<std::codecvt_utf8<WCHAR>, WCHAR> converter;
+            std::string to_print = std::format("Extern Call failed. Module {} not found.", converter.to_bytes(module_name));
 #else
-        std::string to_print = std::format("Extern Call failed. Module {} not found.", module_name);
+            std::string to_print = std::format("Extern Call failed. Module {} not found.", module_name);
 #endif
-        once = true;
+            once = true;
 
-        if (!once) {
-            RGL_LOG(error, "{}", to_print);
+            if (!once) {
+                RGL_LOG(error, "{}", to_print);
+            }
+
+            throw Ex(to_print.c_str());
         }
-
-        throw Ex(to_print.c_str());
     }
 
+    return ExternCall<T, Ex, Args...>(cache, a_module, func_name, std::forward<Args>(args)...);
 
-    return ExternCall<T, Ex, Args...>(a_module, func_name, std::forward<Args>(args)...);
 
+}
 
+template<typename T, typename Ex = std::exception, typename... Args>
+std::invoke_result_t<T, Args...> ExternCall(void*& cache, FCSTR module_name, LPCSTR func_name, Args&&... args)
+{
+    return ExternCall<T, Ex, Args...>(&cache, module_name, func_name, std::forward<Args>(args)...);
+}
+
+template<typename T, typename Ex = std::exception, typename... Args>
+std::invoke_result_t<T, Args...> ExternCall(FCSTR module_name, LPCSTR func_name, Args&&... args)
+{
+    return ExternCall<T, Ex, Args...>(nullptr, module_name, func_name, std::forward<Args>(args)...);
 }
 
 template <auto T, typename Ex = std::exception, typename... Args> requires(std::is_function_v<std::remove_pointer_t<decltype(T)>>)
 std::invoke_result_t<decltype(T), Args...> ExternCall(FCSTR module_name, LPCSTR func_name, Args&&... args)
 {
-	return ExternCall<decltype(T), Ex, Args...>(module_name, func_name, std::forward<Args>(args)...);
+    static void* cache = nullptr;
+
+
+    return ExternCall<std::remove_pointer_t<decltype(T)>, Ex, Args...>(cache, module_name, func_name, std::forward<Args>(args)...);
 }
+
 
 namespace LEX
 {
@@ -549,6 +586,11 @@ namespace LEX
 
         template< class _To, class _From >
         concept castable_from = castable_to<_From, _To>;
+
+
+        template <typename T1, typename T2>
+        concept same_as_extracted = std::same_as<std::remove_cvref_t<T1>, std::remove_cvref_t<T2>>;
+
 
     }
 }
@@ -570,6 +612,22 @@ namespace LEX
 #endif
 
 
+
+
+//Source code macros
+#ifdef LEX_SOURCE
+#define SOURCE_CODE(...) __VA_ARGS__
+
+
+#define INTERN_METHOD(...) __VA_ARGS__
+
+#else
+
+#define SOURCE_CODE(...) 
+#define INTERN_METHOD(...) virtual void CONCAT(_intMethod, __LINE__)() = 0;
+
+
+#endif // LEX_SOURCE
 
 
 //Internal macro

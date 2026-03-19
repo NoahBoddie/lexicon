@@ -33,6 +33,15 @@ namespace logger
 }
 
 
+namespace std {
+    template <>
+    struct hash<std::source_location> {
+        std::size_t operator()(const std::source_location& loc) const noexcept {
+            
+        }
+    };
+}
+
 
 
 static void PrintAST(Record& tree, std::string indent = "")
@@ -307,7 +316,7 @@ void LexTesting(std::string formula)
     Script* script = ProjectManager::instance->GetShared()->GetCommons();
 
     TestParse(script);
-
+    
 
     Component::Link(LinkFlag::Loaded);
     Component::Link(LinkFlag::Declaration);
@@ -408,7 +417,7 @@ void LexTesting(std::string formula)
 
         if (function)
         {
-            Formula<int&(int)>;
+            
 
             Variable result = function->Call();
 
@@ -621,6 +630,54 @@ void VATest(int test...)
 
 using TestVA = decltype(VATest);
 
+
+
+template<typename T>
+using remove_runtype_t = std::conditional_t<std::is_same_v<std::remove_cvref_t<T>, runtime_type>, inherit_qualifier_t<Variable, T>, T>;
+
+
+
+void TestingQualis(const int * const test)
+{
+    using Type = remove_runtype_t<const runtime_type&>;
+    using Type1 = inherit_qualifier_t<Variable, const runtime_type*&>;
+    decltype(test) cop{};
+    inherit_qualifier<bool, decltype(test)>::type it{};
+}
+void TestingDumbness()
+{
+    return;
+    auto run_form1 = Formula<runtime_type()>::Create("int", "1 + 4");
+    auto run_form2 = Formula<runtime_type(runtime_type)>::Create("int", {"int", "param1"}, "1 + 4");
+    auto run_form3 = Formula<runtime_type(runtime_type::*)()>::Create("int", "object", "1 + 4");
+    auto run_form4 = Formula<runtime_type(runtime_type::*)(runtime_type&)>::Create("int", "object", { "int", "param1" }, "1 + 4");
+
+    //return;
+    logger::info("it {}", Formula<int>::RunDefault("4"));
+    return;
+
+    SyntaxRecord it;
+
+    Parser__::CreateSyntax<LineParser>(it, "20");
+
+    auto handler = LEX::detail::FormulaBase<Formula<int(Variable, Variable, int)>, int, StaticTargetTag, runtime_type, runtime_type, int>::Create(
+        { "int","a1" },
+        { "int", "a2" },
+        "a3",
+        "something",
+        it);
+
+
+    if (handler) {
+        int value = handler(1, 2, 3);
+        logger::info("it {}", value);
+    }
+    else {
+        logger::info("No it");
+    }
+
+}
+
 int main(int argc, char** argv) {
     
 
@@ -640,10 +697,11 @@ int main(int argc, char** argv) {
         } while (!IsDebuggerPresent() && input != IDCANCEL);
     }
 #endif
-   
+    
 
     Initializer::Execute("main_init");
     Initializer::Execute();
+    //return 0;
 
     //GetTest<int64_t>();
     //LEX::Report<LEX::IssueType::Compile>::debug("The numbers {} and {} are {}", 69, 420, "nice");
@@ -655,8 +713,8 @@ int main(int argc, char** argv) {
 
     SafeInvoke([&]() {
         //std::getline(std::cin >> std::ws, formula);
-
         LexTesting("GetValueTest");
+        TestingDumbness();
 
         //Formula<float>::Run("'something'.size()", "ActorValueGenerator::Commons");
 
@@ -742,6 +800,17 @@ namespace LEX
     }
 
 
+
+
+    struct __declspec(dllimport)TestImex
+    {
+        int test=1;
+        [[maybe_unused]] virtual void TestFunc()
+        {
+            test = 2;
+        }
+    };
+
     INITIALIZE("function_register")
     {
         return;
@@ -754,6 +823,553 @@ namespace LEX
         auto result = BasicDispatcher<int, StaticTargetTag, variadic<int>>::tie_as_tuple<StaticTargetTag, variadic<int>>(tups);
 
     }
+
+    struct DeepA
+    {
+        void foo() {}
+    };
+
+    struct ClassA : public virtual DeepA
+    {
+        
+    };
+
+    struct DeepB
+    {
+
+    };
+    struct ClassB : public virtual DeepA
+    {
+        void foo() {}
+    };
+
+    struct TestIdea : public ClassA, public ClassB
+    {
+
+    };
+
+
+    void TESTIDEA()
+    {
+        TestIdea test;
+        test.foo();
+    }
+
+
+
+
+    //Static res resolver
+
+    struct IExitDestructor
+    {
+        virtual ~IExitDestructor() noexcept = default;
+    };
+
+
+
+    template <typename T>
+    struct BasicExitDestructor : public IExitDestructor
+    {
+        T value;
+
+        template <typename...Args>requires(requires (Args... args) { T{ std::forward<Args>(args)... }; })
+        BasicExitDestructor(Args... args) : value{ std::forward<Args>(args)... }
+        {
+        }
+
+    };
+    
+
+    struct DestructorList
+    {
+        struct Entry
+        {
+            //Stores the const pointer type of the targeted object. Name is irrelevant, this is a personal object.
+            //const std::type_info* type = nullptr;
+
+            //This hash code is either based on the given file, or the pointer of the type id used.
+            size_t hash = 0;//This is based on the given location, this way you can have multiple
+            std::unique_ptr<IExitDestructor> destructor{};
+        };
+
+        //This increases with each confirmed initial use of 
+        //std::vector<std::pair< >>
+
+        auto Find(size_t hash)
+        {
+            return std::find_if(entries->begin(), entries->end(), [hash](Entry& it) {return it.hash == hash; });
+        }
+
+        auto Emplace(size_t hash)
+        {
+            auto it = Find(hash);
+
+            if (entries->end() != it) {
+                return it;
+            }
+
+            return entries->insert(it, { hash });
+        }
+
+
+        void Place(std::unique_ptr<IExitDestructor>&& dtor, size_t hash, std::span<size_t> dependencies)
+        {
+            //The placement will be as such, 
+            
+            
+            //Lazy bid to avoid iterator invalidation
+            if (entries->capacity() - entries->size() < dependencies.size() + entries->size()) {
+                entries->reserve(entries->size() + dependencies.size());
+            }
+
+
+            {
+                auto it = Find(hash);
+
+                if (entries->end() != it) {
+                    assert_if(!!it->destructor) {
+                        //Already taken, please report error
+                        throw std::exception("Hash was already taken");
+                    }
+                }
+                else {
+                    it = entries->insert(it, { hash });
+                }
+
+                it->destructor = std::move(dtor);
+
+
+                for (auto dep : dependencies)
+                {
+                    if (dep == hash)
+                        continue;
+
+                    auto cmp = Find(dep);
+
+                    if (entries->end() != cmp) {
+                        assert_if(cmp >= it) {
+                            //Already taken, please report error
+                            throw std::exception("Dependency was placed after");
+                        }
+                    }
+                    else {
+                        cmp = entries->insert(it, { hash });
+                        it = cmp + 1;
+                    }
+                }
+
+
+            }
+
+
+            return;
+
+
+
+
+
+            std::vector<std::vector<Entry>::iterator> lump;
+
+            for (auto dependency : dependencies)
+            {
+                if (dependency == hash)
+                    continue;
+
+                lump.push_back(Emplace(dependency));
+            }
+            auto it = Find(hash);
+
+            if (entries->end() != it) {
+                assert_if (!!it->destructor) {
+                    //Already taken, please report error
+                    throw std::exception("Hash was already taken");
+                }
+
+
+                //Here, we want to check for any of the active lumps to be ahead of this (signifies a dependent requires the current static).
+
+                for (auto cmp : lump)
+                {
+                    logger::info("{} vs {}", std::distance(entries->begin(), cmp), std::distance(entries->begin(), it));
+
+                    assert_if(cmp >= it) {
+
+
+                        throw std::exception("Dependency was placed after");
+                    }
+
+
+                }
+
+            }
+            else {
+                it = entries->insert(it, { hash });
+            }
+
+
+            it->destructor = std::move(dtor);
+
+        }
+
+
+        void TryDestroy()
+        {
+            if (!refCount) {
+                if (destructed) {
+                    //logger::debug("successfully destructed ObjectPolicyList");
+                }
+
+                for (size_t i = entries->size(); i; i--)
+                {
+                    auto& it = entries->at(i - 1);
+                    it.destructor.reset();
+                }
+                
+                delete entries;
+            }
+
+        }
+
+        void ModRefCount(bool inc, bool destructing)
+        {
+            refCount += inc ? 1 : -1;
+
+            //logger::trace("temp, {} to {}", inc ? "increment" : "decrement", refCount.load());
+
+            assert(refCount >= 0);
+
+            if (refCount && destructed) {
+                //logger::debug("{} detected, {} refs remaining", inc ? "increment" : "decrement", refCount.load());
+            }
+            else assert_if(!refCount && !destructed && !destructing)
+            {
+                //report::fault::critical("ObjectPolicyManager ran out of uses outside of destruction, this should not happen");
+            }
+
+            TryDestroy();
+        }
+
+        ~DestructorList()
+        {
+            ModRefCount(false, true);
+            destructed = true;
+
+            if (refCount) {
+                //logger::debug("Delaying destruction of ObjectPolicyList, {} refs remaining", refCount.load());
+            }
+        }
+        
+        std::vector<Entry>* entries = new std::vector<Entry>;
+
+        std::atomic<ptrdiff_t>  refCount = 1;
+        bool destructed = false;
+
+    } singleton;
+    
+
+    struct test_uns {};
+
+    //This is used if something isn't contained in a class
+    template<StringLiteral Key>
+    struct unscoped : public test_uns
+    {
+        static constexpr size_t hash = std::hash<std::string_view>{}(Key.view());
+    };
+
+
+    template <typename T, typename H = void>
+    struct safe_static
+    {
+
+    private:
+        template<typename T>
+        static size_t Hash()
+        {
+            if constexpr (std::derived_from<T, test_uns>) {
+                return T::hash;
+            }
+            else {
+                return std::hash<std::type_index>{}(std::type_index{ typeid(const T*) });
+            }
+        }
+        template<typename T>
+        static void AddHash(std::vector<size_t>& list)
+        {
+            
+            //if constexpr (specialization_of<T, std::tuple>)
+            //{
+            //    (list.push_back(Hash<T>()), ...);
+            //}
+            //else {
+                list.push_back(Hash<T>());
+            //}
+        }
+
+        static size_t Count()
+        {
+            if constexpr (std::is_same_v<H, void>) {
+                return 0;
+            }
+            else {
+                static size_t count = 1;
+                return count++;
+            }
+        }
+    public:
+        
+        
+        struct token
+        {
+        private:
+            ~token() = default;
+
+        public:
+
+            token(T& t) : result{ &t } {}
+
+            constexpr operator T& () noexcept
+            {
+                return *result;
+            }
+
+
+        private:
+            T* result = nullptr;
+        };
+
+        template<typename... Deps, typename... Args>
+        static token&& init(Args&&... args)
+        {
+            //Creates hash from the source location,
+
+            //Deps: are the type dependencies that T relies on
+            std::vector<size_t> dependencies{};
+            
+            (AddHash<Deps>(dependencies), ...);
+
+
+            size_t hash;
+
+            if constexpr (std::is_same_v<H, void>) {
+                size_t h1 = Hash<T>();
+                size_t h2 = Count();
+
+                // A simple way to combine hashes (boost::hash_combine is more robust)
+                hash = h1 ^ (h2 << 1);
+            }
+            else {
+                hash = Hash<H>();
+            }
+            //auto ptr = new ;
+
+            std::unique_ptr<BasicExitDestructor<T>> dtor = std::make_unique<BasicExitDestructor<T>>(std::forward<Args>(args)...);
+            token result{ dtor->value };
+
+            
+            singleton.Place(std::move(dtor), hash, dependencies);
+
+            return std::move(result);
+        }
+
+
+    };
+    template <typename T>
+    struct safe_singleton : public safe_static<T, T>
+    {
+
+    };
+
+
+    namespace
+    {
+        //Shared singleton is init'd both by meyers singleton, and also static initialization, attempting to
+        // be first in either.
+
+        //A singleton that manages other singletons, maintaining their lifetime until they're no longer required
+
+        namespace detail
+        {
+            struct SharedSingleton
+            {
+                struct IEntry
+                {
+                    virtual ~IEntry() noexcept = default;
+                };
+
+
+
+                template <typename T>
+                struct BasicEntry : public IEntry
+                {
+                    T value;
+
+                    template <typename...Args>requires(requires (Args... args) { T{ std::forward<Args>(args)... }; })
+                        BasicEntry(Args... args) : value{ std::forward<Args>(args)... }
+                    {
+                    }
+
+                };
+
+
+                static SharedSingleton* GetSingleton()
+                {
+                    static SharedSingleton singleton{};
+                    return &singleton;
+
+                }
+
+                inline static SharedSingleton* singleton = GetSingleton();
+
+
+
+                void Place(std::unique_ptr<IExitDestructor>&& dtor)
+                {
+                    entries->push_back(std::move(dtor));
+                }
+
+
+                void TryDestroy()
+                {
+                    if (!refCount) {
+                        if (destructed) {
+                            //logger::debug("successfully destructed ObjectPolicyList");
+                        }
+
+                        for (size_t i = entries->size(); i; i--)
+                        {
+                            auto& it = entries->at(i - 1);
+                            it.reset();
+                        }
+
+                        delete entries;
+                    }
+
+                }
+
+                void ModRefCount(bool inc, bool destructing)
+                {
+                    refCount += inc ? 1 : -1;
+
+                    //logger::trace("temp, {} to {}", inc ? "increment" : "decrement", refCount.load());
+
+                    assert(refCount >= 0);
+
+                    if (refCount && destructed) {
+                        //logger::debug("{} detected, {} refs remaining", inc ? "increment" : "decrement", refCount.load());
+                    }
+                    else assert_if(!refCount && !destructed && !destructing)
+                    {
+                        //report::fault::critical("ObjectPolicyManager ran out of uses outside of destruction, this should not happen");
+                    }
+
+                    TryDestroy();
+                }
+
+                ~SharedSingleton()
+                {
+                    ModRefCount(false, true);
+                    destructed = true;
+
+                    if (refCount) {
+                        //logger::debug("Delaying destruction of ObjectPolicyList, {} refs remaining", refCount.load());
+                    }
+                }
+
+                std::vector<std::unique_ptr<IExitDestructor>>* entries = new std::vector<std::unique_ptr<IExitDestructor>>;
+
+                std::atomic<ptrdiff_t>  refCount = 1;
+                bool destructed = false;
+
+            };
+
+        }
+
+        template<typename T, typename... Args>
+        static auto&& make_singleton(Args&&... args)
+        {
+            using detail::SharedSingleton;
+
+            struct token
+            {
+            private:
+                ~token() = default;
+
+            public:
+
+                token(T& t) : result{ &t } {}
+
+                constexpr operator T& () noexcept
+                {
+                    return *result;
+                }
+
+
+            private:
+                T* result = nullptr;
+            };
+
+            using Entry = SharedSingleton::BasicEntry<T>;
+
+
+
+            std::unique_ptr<Entry> dtor = std::make_unique<Entry>(std::forward<Args>(args)...);
+
+            token result{ dtor->value };
+
+
+            SharedSingleton::singleton->Place(std::move(dtor));
+
+            return std::move(result);
+        }
+
+    }
+
+
+    //Example:
+    // integer loads first, then "first", then "second"
+    // "first" should destruct first, then "second", then the integer
+
+    struct First {
+        ~First()
+        {
+            logger::info("first");
+        }
+    };
+
+
+    struct Second;
+
+
+    INITIALIZE_NOW()
+    {
+        logger::InitializeLogging();
+        //static int& test = safe_static<int>::init_<int>(1);
+        static int& test  = safe_static<int>::init<Second>(1);
+        //static int& test2 = make_singleton<int>();
+        logger::info("{} it", test);
+    }
+
+    struct Second
+    {
+        ~Second()
+        {
+            logger::info("second");
+        }
+    };
+
+    First& first = safe_singleton<First>::init();
+    //First first = {};
+
+    Second& second = safe_singleton<Second>::init<First>();
+    //Second second = {};
+
+    //There's the subscribing type, the type we're trying to export to 
+
+
+
+
+
+
 
 }
 //*/

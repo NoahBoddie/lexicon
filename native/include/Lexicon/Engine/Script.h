@@ -115,8 +115,8 @@ namespace LEX
 
 		void SetSyntaxTree(SyntaxRecord& rec) final override;
 
-		//A non-version of LoadFromRecord that is aimed for appending content. May move to environment.
-		void LoadFromSyntaxTree(SyntaxRecord::Iterator begin, SyntaxRecord::Iterator end);
+
+		void LoadFromSyntaxNode(SyntaxRecord& node) override;
 
 		void OnAttach() override;
 
@@ -135,9 +135,6 @@ namespace LEX
 
 		Environment* FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter) override;
 
-
-
-		TypeBase* tempObtainPolicy(SyntaxRecord& ast, Element* parent = nullptr);
 
 
 

@@ -23,6 +23,9 @@ namespace LEX
 	{
 		friend ProcedureHandler;
 
+		virtual ~Dispatcher() = default;
+
+
 		//This isn't really that important, the main use of it is to just keep track of all dispatchers. Instead though,
 		// I might make a thing where you can switch out registered external functions similar to that of changing states.
 		inline static std::vector<std::unique_ptr<Dispatcher>> _dispatchList{ 1 };

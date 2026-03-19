@@ -1,6 +1,11 @@
 #include "Lexicon/Engine/Conversion.h"
 
+
+#include "Lexicon/Engine/Operand.h"
+#include "Lexicon/Engine/Solution.h"
 #include "Lexicon/Engine/QualifiedType.h"
+#include "Lexicon/Engine/RoutineCompiler.h"
+
 
 namespace LEX
 {
@@ -92,6 +97,138 @@ namespace LEX
 		else {
 			record.error(message, loc, *first, *second);
 		}
+
+	}
+
+
+	Variable Conversion::Run(Variable from, ConvertResult result) const
+	{
+
+		bool fall = false;
+
+		switch (result.data)
+		{
+		case ConversionEnum::ImplDefined:
+			if constexpr (1)
+			{
+				if (usesType & IsType1) {
+					auto info = typeDefined->FetchTypePolicy(nullptr);
+					assert(info);
+					from = info->GetDefault();
+				}
+				else {
+
+					from = implDefined(from, nullptr);
+				}
+			}
+
+			break;
+
+		case ConversionEnum::UserDefined:
+		resume:
+			from = userDefined->GetFunction(nullptr)->Call(from);
+
+			if (!fall)
+				break;
+
+			[[fallthrough]];
+
+		case ConversionEnum::UserToImplDefined:
+			if (!fall && !(usesType & IsType2)) {
+				fall = true;
+				goto resume;
+			}
+
+			if constexpr (1)
+			{
+				if (usesType & IsType2) {
+					auto info = typeDefined->FetchTypePolicy(nullptr);
+					assert(info);
+					from = info->GetDefault();
+				}
+				else {
+					from = userDefined->GetFunction(nullptr)->Call(from);
+				}
+			}
+
+
+
+			break;
+
+		default:
+			report::apply::error("invalid convert result detected {}", magic_enum::enum_name(result.data));
+			break;
+		}
+
+		return from;
+	}
+
+
+	bool Conversion::HandleInstruction(ExpressionCompiler* compiler, SyntaxRecord& target, Solution& value, ConvertResult result, Register reg)
+	{
+
+		bool fall = false;
+
+		switch (result.data)
+		{
+		case ConversionEnum::ImplDefined:
+			if constexpr (1)
+			{
+				if (usesType & IsType1) {
+					compiler->EmplaceInstruction(target, InstructionType::DefineVariable, 
+						Operand{ reg, OperandType::Register }, 
+						Operand{ typeDefined, OperandType::Type });
+				}
+				else {
+					compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ implDefined, OperandType::Converter }, value);
+				}
+			}
+
+			break;
+
+		case ConversionEnum::UserDefined:
+		resume:
+
+			compiler->EmplaceInstruction(target, InstructionType::Convert, reg, Operand{ userDefined, OperandType::Function }, value);
+
+
+			if (!fall)
+				break;
+
+			[[fallthrough]];
+
+		case ConversionEnum::UserToImplDefined:
+			if (!fall) {
+				fall = true;
+				goto resume;
+			}
+
+			if constexpr (1)
+			{
+				if (usesType & IsType2) {
+					compiler->EmplaceInstruction(target, 
+						InstructionType::DefineVariable, 
+						Operand{ reg, OperandType::Register }, 
+						Operand{ userToType, OperandType::Type });
+				}
+				else {
+
+					compiler->EmplaceInstruction(target,
+						InstructionType::Convert, reg, 
+						Operand{ userToImpl, OperandType::Converter }, 
+						Operand{ reg, OperandType::Register });
+				}
+			}
+
+
+
+			break;
+
+		default:
+			return false;
+		}
+
+		return true;
 
 	}
 
