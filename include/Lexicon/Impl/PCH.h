@@ -617,15 +617,12 @@ namespace LEX
 //Source code macros
 #ifdef LEX_SOURCE
 #define SOURCE_CODE(...) __VA_ARGS__
-
-
-#define INTERN_METHOD(...) __VA_ARGS__
+#define INTERN_METHOD(...) __VA_ARGS__ 
 
 #else
 
 #define SOURCE_CODE(...) 
-#define INTERN_METHOD(...) virtual void CONCAT(_intMethod, __LINE__)() = 0;
-
+#define INTERN_METHOD(...) virtual void CONCAT(_intMethod, __COUNTER__)(void){};
 
 #endif // LEX_SOURCE
 

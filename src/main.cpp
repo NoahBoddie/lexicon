@@ -738,7 +738,7 @@ void KillMe()
 
 
 //*
-namespace LEX
+namespace LEX::Test
 {
     struct Test1
     {
@@ -855,521 +855,439 @@ namespace LEX
         test.foo();
     }
 
+    //Here's the structure idea, I have, the interface functions are introduced in a base class
+    // that can be attached to each respective thing, then there's an interface version
+    // that uses proper inheritance
+    //There's one problem with how this works, these base classes will be using the interface versions of these things, and the later ones
+    // will be using the actual ones (at least in terms of some of them.
+
+    //I could implement a similar thing to what I did before where I have a different name that I then override in a manner than prevents overlap 
+    // in reimplementation. I could have the overriden in the INTERFACE_VERSION, and have the set up removed in SOURCE_CODE
+
+    //An idea I had to get around the weirdness of declaring it later, is in the inheriting version if IProject and all those, it will cast itself into
+    // the version of itself (using type traits) and call the OTHER version of itself, and will this return that. The only problem is specification.
+    //^This procedure would only need to happen for the interface classes, like Element and Environment, because for the end of the line classes like 
+    // script, the implementations will be as one.
 
 
 
-    //Static res resolver
-
-    struct IExitDestructor
+    struct Base1Impl : public Interface
     {
-        virtual ~IExitDestructor() noexcept = default;
+        uintptr_t Version() const override { return 0; }
+    };
+
+    struct Base2Impl : public Base1Impl//INTERFACE_VERSION(IElement)
+    {
+        virtual void foo(bool = {}) = 0;
     };
 
 
+    struct TrueBase;
 
-    template <typename T>
-    struct BasicExitDestructor : public IExitDestructor
+    struct BaseImpl : public Base2Impl//IMPL_VERSION(IElement)
     {
-        T value;
-
-        template <typename...Args>requires(requires (Args... args) { T{ std::forward<Args>(args)... }; })
-        BasicExitDestructor(Args... args) : value{ std::forward<Args>(args)... }
-        {
-        }
-
-    };
-    
-
-    struct DestructorList
-    {
-        struct Entry
-        {
-            //Stores the const pointer type of the targeted object. Name is irrelevant, this is a personal object.
-            //const std::type_info* type = nullptr;
-
-            //This hash code is either based on the given file, or the pointer of the type id used.
-            size_t hash = 0;//This is based on the given location, this way you can have multiple
-            std::unique_ptr<IExitDestructor> destructor{};
-        };
-
-        //This increases with each confirmed initial use of 
-        //std::vector<std::pair< >>
-
-        auto Find(size_t hash)
-        {
-            return std::find_if(entries->begin(), entries->end(), [hash](Entry& it) {return it.hash == hash; });
-        }
-
-        auto Emplace(size_t hash)
-        {
-            auto it = Find(hash);
-
-            if (entries->end() != it) {
-                return it;
-            }
-
-            return entries->insert(it, { hash });
-        }
-
-
-        void Place(std::unique_ptr<IExitDestructor>&& dtor, size_t hash, std::span<size_t> dependencies)
-        {
-            //The placement will be as such, 
-            
-            
-            //Lazy bid to avoid iterator invalidation
-            if (entries->capacity() - entries->size() < dependencies.size() + entries->size()) {
-                entries->reserve(entries->size() + dependencies.size());
-            }
-
-
-            {
-                auto it = Find(hash);
-
-                if (entries->end() != it) {
-                    assert_if(!!it->destructor) {
-                        //Already taken, please report error
-                        throw std::exception("Hash was already taken");
-                    }
-                }
-                else {
-                    it = entries->insert(it, { hash });
-                }
-
-                it->destructor = std::move(dtor);
-
-
-                for (auto dep : dependencies)
-                {
-                    if (dep == hash)
-                        continue;
-
-                    auto cmp = Find(dep);
-
-                    if (entries->end() != cmp) {
-                        assert_if(cmp >= it) {
-                            //Already taken, please report error
-                            throw std::exception("Dependency was placed after");
-                        }
-                    }
-                    else {
-                        cmp = entries->insert(it, { hash });
-                        it = cmp + 1;
-                    }
-                }
-
-
-            }
-
-
-            return;
+        using BaseTarget = TrueBase;
 
 
 
 
-
-            std::vector<std::vector<Entry>::iterator> lump;
-
-            for (auto dependency : dependencies)
-            {
-                if (dependency == hash)
-                    continue;
-
-                lump.push_back(Emplace(dependency));
-            }
-            auto it = Find(hash);
-
-            if (entries->end() != it) {
-                assert_if (!!it->destructor) {
-                    //Already taken, please report error
-                    throw std::exception("Hash was already taken");
-                }
-
-
-                //Here, we want to check for any of the active lumps to be ahead of this (signifies a dependent requires the current static).
-
-                for (auto cmp : lump)
-                {
-                    logger::info("{} vs {}", std::distance(entries->begin(), cmp), std::distance(entries->begin(), it));
-
-                    assert_if(cmp >= it) {
-
-
-                        throw std::exception("Dependency was placed after");
-                    }
-
-
-                }
-
-            }
-            else {
-                it = entries->insert(it, { hash });
-            }
-
-
-            it->destructor = std::move(dtor);
-
-        }
-
-
-        void TryDestroy()
-        {
-            if (!refCount) {
-                if (destructed) {
-                    //logger::debug("successfully destructed ObjectPolicyList");
-                }
-
-                for (size_t i = entries->size(); i; i--)
-                {
-                    auto& it = entries->at(i - 1);
-                    it.destructor.reset();
-                }
-                
-                delete entries;
-            }
-
-        }
-
-        void ModRefCount(bool inc, bool destructing)
-        {
-            refCount += inc ? 1 : -1;
-
-            //logger::trace("temp, {} to {}", inc ? "increment" : "decrement", refCount.load());
-
-            assert(refCount >= 0);
-
-            if (refCount && destructed) {
-                //logger::debug("{} detected, {} refs remaining", inc ? "increment" : "decrement", refCount.load());
-            }
-            else assert_if(!refCount && !destructed && !destructing)
-            {
-                //report::fault::critical("ObjectPolicyManager ran out of uses outside of destruction, this should not happen");
-            }
-
-            TryDestroy();
-        }
-
-        ~DestructorList()
-        {
-            ModRefCount(false, true);
-            destructed = true;
-
-            if (refCount) {
-                //logger::debug("Delaying destruction of ObjectPolicyList, {} refs remaining", refCount.load());
-            }
-        }
-        
-        std::vector<Entry>* entries = new std::vector<Entry>;
-
-        std::atomic<ptrdiff_t>  refCount = 1;
-        bool destructed = false;
-
-    } singleton;
-    
-
-    struct test_uns {};
-
-    //This is used if something isn't contained in a class
-    template<StringLiteral Key>
-    struct unscoped : public test_uns
-    {
-        static constexpr size_t hash = std::hash<std::string_view>{}(Key.view());
-    };
-
-
-    template <typename T, typename H = void>
-    struct safe_static
-    {
 
     private:
-        template<typename T>
-        static size_t Hash()
-        {
-            if constexpr (std::derived_from<T, test_uns>) {
-                return T::hash;
-            }
-            else {
-                return std::hash<std::type_index>{}(std::type_index{ typeid(const T*) });
-            }
-        }
-        template<typename T>
-        static void AddHash(std::vector<size_t>& list)
-        {
-            
-            //if constexpr (specialization_of<T, std::tuple>)
-            //{
-            //    (list.push_back(Hash<T>()), ...);
-            //}
-            //else {
-                list.push_back(Hash<T>());
-            //}
-        }
-
-        static size_t Count()
-        {
-            if constexpr (std::is_same_v<H, void>) {
-                return 0;
-            }
-            else {
-                static size_t count = 1;
-                return count++;
-            }
-        }
+        void foo(bool = {}) override final {};
     public:
-        
-        
-        struct token
-        {
-        private:
-            ~token() = default;
-
-        public:
-
-            token(T& t) : result{ &t } {}
-
-            constexpr operator T& () noexcept
-            {
-                return *result;
-            }
+        virtual const TrueBase* GetSelf() const = 0;
+        TrueBase* GetSelf() { return unconst(make_const(this)->GetSelf()); }
 
 
-        private:
-            T* result = nullptr;
-        };
+        virtual void foo() = 0;
+    };
 
-        template<typename... Deps, typename... Args>
-        static token&& init(Args&&... args)
-        {
-            //Creates hash from the source location,
-
-            //Deps: are the type dependencies that T relies on
-            std::vector<size_t> dependencies{};
-            
-            (AddHash<Deps>(dependencies), ...);
+#define DECLARE_TRUE_BASE const TrueBase* GetSelf() const override { return this; }
 
 
-            size_t hash;
 
-            if constexpr (std::is_same_v<H, void>) {
-                size_t h1 = Hash<T>();
-                size_t h2 = Count();
-
-                // A simple way to combine hashes (boost::hash_combine is more robust)
-                hash = h1 ^ (h2 << 1);
-            }
-            else {
-                hash = Hash<H>();
-            }
-            //auto ptr = new ;
-
-            std::unique_ptr<BasicExitDestructor<T>> dtor = std::make_unique<BasicExitDestructor<T>>(std::forward<Args>(args)...);
-            token result{ dtor->value };
-
-            
-            singleton.Place(std::move(dtor), hash, dependencies);
-
-            return std::move(result);
-        }
-
+    struct Derived1Impl : public Interface
+    {
+        uintptr_t Version() const override { return 0; }
 
     };
-    template <typename T>
-    struct safe_singleton : public safe_static<T, T>
+
+    struct Derived2Impl : public Derived1Impl
     {
 
     };
 
 
-    namespace
+    struct Base : public BaseImpl//INHERITING_VERSION(
     {
-        //Shared singleton is init'd both by meyers singleton, and also static initialization, attempting to
-        // be first in either.
+        void foo() override;
+    };
 
-        //A singleton that manages other singletons, maintaining their lifetime until they're no longer required
 
-        namespace detail
+    struct Derived :  public Base,  public Derived2Impl 
+    {
+        
+    
+    };
+
+
+
+    struct TrueBase : public BaseImpl
+    {
+        void foo() override
         {
-            struct SharedSingleton
-            {
-                struct IEntry
-                {
-                    virtual ~IEntry() noexcept = default;
-                };
+            std::cout << "I'm the true foo baby\n";
+        }
+    };
+
+
+    struct TrueDerived : public TrueBase, public Derived
+    {
+        using BaseTarget::foo;
+        //Want to make a map to do this quicker.
+        DECLARE_TRUE_BASE;
+    };
+
+    void Base::foo()
+    {
+        //This issue happens because I'd be casting across vtables. SO I need a way to have this 
+        //auto self_bad = static_cast<TrueBase*>(this);
+        auto self = GetSelf();
+
+        return GetSelf()->foo();
+
+
+        //TrueBase* self = static_cast<TrueDerived*>(this);
+
+#define TEST_MC 1
+
+#define TEST_MC TEST_MC 1
+    }
+
+
+    INITIALIZE()
+    {
+        TrueDerived derived{};
+
+        derived.foo();
+    }
+
+    //I'll store this from it's created type, it'll be the component 
+    ENUM(ElementType, uint8_t)
+    {
+        IComponent,
+        IElement,
+            IDirectory,
+            IEnvironment,
+            //IRepository,  //I'm unsure of the necessity of this type.
+
+            IScript, 
+            
+            IProject,
+            
+            
+            
+            
+
+            //The harder stuff, specializables
+            IFunction,
+            Function,
+
+
+            ITypeInfo,
+            TypeInfo,
+            
+
+            IGlobal,
+            Global,
+            
+
+//#ifdef LEX_SOURCE
+            //Size manually adjusted to not cause overlap when id count grows.
+            Component = (255 / 2),
+            Project,
+            Directory,
+            Script,
+            Environment,
+            Element,
 
 
 
-                template <typename T>
-                struct BasicEntry : public IEntry
-                {
-                    T value;
+            FunctionBase,
+            ConcreteFunction,
+            GenericFunction,
+            SpecialFunction,
 
-                    template <typename...Args>requires(requires (Args... args) { T{ std::forward<Args>(args)... }; })
-                        BasicEntry(Args... args) : value{ std::forward<Args>(args)... }
-                    {
-                    }
+            TypeBase,
+            ConcreteType,
+            GenericType,
+            SpecialType,
 
-                };
+            GlobalBase,
+            ConcreteGlobal,
+            GenericGlobal,
+            SpecialGlobal,
+//#endif
+    };
+
+    enum struct CastingType
+    {
+        _1,
+        _2,
+    };
+
+    struct CastTest1
+    {
+        static constexpr auto COMPONENT_TYPE = CastingType::_1;
+
+        const CastingType type;
+
+        CastTest1(CastingType t) : type{ t } {}
+        CastTest1() : CastTest1{ COMPONENT_TYPE } {}
+
+    private:
+        template <typename From, typename To>
+        inline const To* CompCastRhs(const From* self) const;
+
+        template<typename T>
+        inline const void* CompCastLhs(const void* ptr, CastingType to) const;
+        //From in this case is the pointer it's being percieved as, to is the goal
+        virtual const void* Cast(const void* self, CastingType from, CastingType to) const final;
+    public:
+
+        template<typename T, typename Self>
+        const T* As(this Self&& a_this)
+        {
+            return reinterpret_cast<const T*>(a_this.Cast(std::addressof(a_this), std::remove_cvref_t<Self>::TYPE, T::TYPE));
+        }
+    };
+
+    struct NewVtable
+    {
+        virtual void spacetaker() {}
+    };
+
+    struct CastTest2 : public NewVtable, public CastTest1
+    {
+        static constexpr auto COMPONENT_TYPE = CastingType::_2;
+
+        CastTest2() : CastTest1{ COMPONENT_TYPE } {}
+
+    };
+
+    //case CastingType::_1:
+    //return ComponentCast1<CastTest1>(self, to);
+#define LHS_COMPONENT_TRAITS(mc_type) \
+    case mc_type::COMPONENT_TYPE:\
+        return CompCastLhs<mc_type>(self, to);
+
+#define RHS_COMPONENT_TRAITS(mc_type) \
+    case mc_type::COMPONENT_TYPE:\
+        return CompCastRhs<T, mc_type>(self);
 
 
-                static SharedSingleton* GetSingleton()
-                {
-                    static SharedSingleton singleton{};
-                    return &singleton;
+//case CastingType::_1:
+//    if constexpr (std::is_convertible_v<const CastTest1*, const To*>) {
+//        return static_cast<const CastTest1*>(this);
+//    }
+//    break;
 
-                }
+#define COMPONENT_TRAITS(mc_type) \
+    case mc_type::COMPONENT_TYPE:\
+        if constexpr (std::is_convertible_v<const mc_type*, const To*>){\
+            return static_cast<const mc_type*>(this);\
+        }\
+        break
+        
 
-                inline static SharedSingleton* singleton = GetSingleton();
-
-
-
-                void Place(std::unique_ptr<IExitDestructor>&& dtor)
-                {
-                    entries->push_back(std::move(dtor));
-                }
-
-
-                void TryDestroy()
-                {
-                    if (!refCount) {
-                        if (destructed) {
-                            //logger::debug("successfully destructed ObjectPolicyList");
-                        }
-
-                        for (size_t i = entries->size(); i; i--)
-                        {
-                            auto& it = entries->at(i - 1);
-                            it.reset();
-                        }
-
-                        delete entries;
-                    }
-
-                }
-
-                void ModRefCount(bool inc, bool destructing)
-                {
-                    refCount += inc ? 1 : -1;
-
-                    //logger::trace("temp, {} to {}", inc ? "increment" : "decrement", refCount.load());
-
-                    assert(refCount >= 0);
-
-                    if (refCount && destructed) {
-                        //logger::debug("{} detected, {} refs remaining", inc ? "increment" : "decrement", refCount.load());
-                    }
-                    else assert_if(!refCount && !destructed && !destructing)
-                    {
-                        //report::fault::critical("ObjectPolicyManager ran out of uses outside of destruction, this should not happen");
-                    }
-
-                    TryDestroy();
-                }
-
-                ~SharedSingleton()
-                {
-                    ModRefCount(false, true);
-                    destructed = true;
-
-                    if (refCount) {
-                        //logger::debug("Delaying destruction of ObjectPolicyList, {} refs remaining", refCount.load());
-                    }
-                }
-
-                std::vector<std::unique_ptr<IExitDestructor>>* entries = new std::vector<std::unique_ptr<IExitDestructor>>;
-
-                std::atomic<ptrdiff_t>  refCount = 1;
-                bool destructed = false;
-
-            };
-
+    template <typename From, typename To>
+    inline const To* CastTest1::CompCastRhs(const From* self) const
+    {
+        switch (type)
+        {
+        case CastTest1::COMPONENT_TYPE: if constexpr (std::is_convertible_v<const CastTest1, const To*>) {
+            return static_cast<const CastTest1*>(this);
+        } break;
+        case CastTest2::COMPONENT_TYPE: if constexpr (std::is_convertible_v<const CastTest2, const To*>) {
+            return static_cast<const CastTest2*>(this);
+        } break;
+            
+            default:
+                report::critical("Unknown ComponentType {} detected", magic_enum::enum_name(type));
         }
 
-        template<typename T, typename... Args>
-        static auto&& make_singleton(Args&&... args)
+        return nullptr;
+    }
+
+    template<typename T>
+    inline const void* CastTest1::CompCastLhs(const void* ptr, CastingType to) const
+    {
+        const T* self = reinterpret_cast<const T*>(ptr);
+
+        switch (to)
         {
-            using detail::SharedSingleton;
+            RHS_COMPONENT_TRAITS(CastTest1);
+            RHS_COMPONENT_TRAITS(CastTest2);
 
-            struct token
-            {
-            private:
-                ~token() = default;
-
-            public:
-
-                token(T& t) : result{ &t } {}
-
-                constexpr operator T& () noexcept
-                {
-                    return *result;
-                }
-
-
-            private:
-                T* result = nullptr;
-            };
-
-            using Entry = SharedSingleton::BasicEntry<T>;
-
-
-
-            std::unique_ptr<Entry> dtor = std::make_unique<Entry>(std::forward<Args>(args)...);
-
-            token result{ dtor->value };
-
-
-            SharedSingleton::singleton->Place(std::move(dtor));
-
-            return std::move(result);
+        default:
+            report::critical("Unknown ComponentType {} detected", magic_enum::enum_name(type));
         }
+
+        return nullptr;
+    }
+    //From in this case is the pointer it's being percieved as, to is the goal
+    const void* CastTest1::Cast(const void* self, CastingType from, CastingType to) const
+    {
+        switch (from)
+        {
+            LHS_COMPONENT_TRAITS(CastTest1);
+            LHS_COMPONENT_TRAITS(CastTest2);
+
+        default:
+            report::critical("Unknown ComponentType {} detected", magic_enum::enum_name(type));
+        }
+
+        return nullptr;
+    }
+
+    void TestingTheCastTest()
+    {
+        const CastTest2 it;
+        const CastTest1* test1 = &it;
+
+        const CastTest2* test2 = test1->As<CastTest2>();
 
     }
 
 
-    //Example:
-    // integer loads first, then "first", then "second"
-    // "first" should destruct first, then "second", then the integer
+#ifdef DISABLE_THIS_GUFF
 
-    struct First {
-        ~First()
-        {
-            logger::info("first");
-        }
+
+
+
+
+    struct Subproject
+    {
+        //Subproject is merely a struct that will be used to keep track of the scripts that are within it, maybe the folder?
+        //To access a subproject, one will have to go through the script (any script) that includes it.
+        // The reason for this is primarily because if I did it through the project, there could be ambiguity introduced from another user,
+        // script names could possibly clash with subprojects. If I go through the script there's no chance of that happening.
+        //Searching the subproject is treated at the similar rank of import, but also you should be able to specify the name to resolve it's ambiguity
+        // consequently, this means if nothing includes the scripts, you cannot register types or functions to the scripts. Of course though, this is by
+        // design, given the fact these do not exist or do anything if not included by them.
+
+
+        //Now, currently I cannot register for functions because it would need an environment to walk to do that. 
+
+        
+
+        std::vector<Script*> scripts;
+    };
+
+    struct Dum
+    {
+        virtual ~Dum() = default;
     };
 
 
-    struct Second;
-
-
-    INITIALIZE_NOW()
+    struct IElement : public Dum
     {
-        logger::InitializeLogging();
-        //static int& test = safe_static<int>::init_<int>(1);
-        static int& test  = safe_static<int>::init<Second>(1);
-        //static int& test2 = make_singleton<int>();
-        logger::info("{} it", test);
-    }
+    };
+   
 
-    struct Second
+
+
+
+
+    //An interface for a type that can access subprojects. (the only object that actually owns them is a project.
+    // I think this shouldn't be public, IE, it should attached to script, NOT to IScript.
+    struct IRepository : public Dum
     {
-        ~Second()
-        {
-            logger::info("second");
-        }
+        virtual Script* FindScript(const std::string_view& name) = 0;
+        virtual Subproject* FindSubproject(const std::string_view& name) = 0;
+
     };
 
-    First& first = safe_singleton<First>::init();
-    //First first = {};
-
-    Second& second = safe_singleton<Second>::init<First>();
-    //Second second = {};
-
-    //There's the subscribing type, the type we're trying to export to 
+    
+    
+    //repository and directories will explicitly be interfaces that do not have elements or environments attached to them.
+    //Directories are internal only, and don't need to have any versioning.
 
 
+    //I think regular repository doesn't need to exist. Given many things fulfill the idea of a repository, but fewer things actually are.
+    struct Repository
+    {
+        //This includes the same functions so they can be conjoined at a relevant point.
+        virtual Script* FindScript(const std::string_view& name) = 0;
+        virtual Subproject* FindSubproject(const std::string_view& name) = 0;
+
+
+        
+        virtual Script* AddScript(Script* script) = 0;
+        virtual bool CreateSubproject(const std::string_view& name) = 0;
+
+        std::unique_ptr<std::unordered_map<std::string, Subproject*>> subprojects = nullptr;
+        
+    };
+
+    //Real project and Environment derive from this. This is an internal only class. Directory is an interface for elements that contain
+    // environments
+    struct Directory : public Element
+    {
+        virtual void id() {}
+    };
+
+    struct IProject : public Dum, public IRepository
+    { };
+
+    struct Project_ : public Directory, public IProject
+    {
+
+        virtual Script* AddScript(Script* script) = 0;
+        virtual bool CreateSubproject(const std::string_view& name) = 0;
+
+        std::unique_ptr<std::unordered_map<std::string, Subproject*>> subprojects = nullptr;
+    };
 
 
 
+    struct IEnvironment : public Dum, public IElement {};
 
+    struct IScript : public Dum, public IEnvironment, public IRepository
+    {
+    };
+
+
+    struct Environment_ : public Directory
+    {
+
+    };
+
+    struct Script_ : public Environment_, public IScript
+    {
+
+    };
+
+    //TODO: rethink reflection, instead maybe incorporate it as an aspect of ALL elements, instead being something of an IComponent
+
+
+    //Subprojects will need to be housed someplace other than JUST projects, cause then there can be clash. Projects and scripts should share
+    // a type that acts as the object that holds subprojects. Repository will be this title. Repositories will derive from element, and will have 
+    // functions to access scripts and will have a function to add subprojects.
+
+    //Scripts are repositories, as well as projects. For projects, accessing it's scripts will lead the scripts it owns. Accessing scripts on
+    
+    
+    //Projects might also be treated as IEnvironments just as a point of convenience. However, I'd need to deal with how it handles now, where
+    // one an existing element not having an environment makes it a project, and thus in addition to searching itself for environments, it searches commons.
+    //I could now instead just ask if it's a project
+
+
+    //Biome is the temporary name of the thing that environments and projects. Directory, will be that name.
+    
+
+
+#endif
 
 }
 //*/

@@ -132,6 +132,16 @@ namespace Version
 
 
 
+#define ALT_IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type,...) mc_name : public InterfaceLayer<__VA_ARGS__ __VA_OPT__(,) Version::Current::mc_type >
+#define ALT_IMPL_VERSION_DERIVES(mc_name, mc_type,...) ALT_IMPL_VERSION_DERIVES_NO_SFX(mc_name, CONCAT(IV_,mc_type), __VA_ARGS__)
+
+#define ALT_IMPL_VERSION_NO_SFX(mc_type,...) ALT_IMPL_VERSION_DERIVES_NO_SFX(mc_type,mc_type,__VA_ARGS__)
+#define ALT_IMPL_VERSION(mc_type,...)ALT_IMPL_VERSION_DERIVES(mc_type, mc_type,__VA_ARGS__)
+
+
+
+
+
 #endif
 
 

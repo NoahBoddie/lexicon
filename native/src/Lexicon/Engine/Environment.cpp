@@ -200,7 +200,7 @@ namespace LEX
 
 			//if (par->FetchProject() != par && par->FetchEnvironment() != par) {
 			if (!dynamic_cast<Project*>(par) && !dynamic_cast<Environment*>(par)) {
-				report::compile::critical("parent set for Element was not an environment.");
+				report::fault::critical("parent set for Element was not an environment.");
 				throw nullptr;
 			}
 
