@@ -4,7 +4,7 @@
 
 namespace LEX
 {
-	struct IMPL_VERSION(IGlobal)
+	struct IGlobal : public IGlobalAbstract
 	{
 
 	};

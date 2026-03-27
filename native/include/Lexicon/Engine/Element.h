@@ -15,7 +15,7 @@
 //*src
 #include "Lexicon/Interfaces/IProject.h"
 #include "Lexicon/Interfaces/IScript.h"
-#include "Lexicon/Interfaces/IEnvironment.h"
+//#include "Lexicon/Interfaces/IEnvironment.h"
 #include "Lexicon/Engine/Overload.h"
 #include "Lexicon/Engine/OverloadKey.h"
 #include "Lexicon/Engine/QualifiedField.h"
@@ -42,10 +42,13 @@ namespace LEX
 
 	struct TypeNode;
 
-
+	struct Directory;
 	
-	struct Element : public Component, public IElementImpl
+	struct Element : public Component, public IElementBase
 	{
+		DEFINE_COMPONENT_OFFSET(ComponentType::Element)
+
+		using IElementBase::GetElementFromPath;
 
 		using ElementSearch = bool(std::vector<QualifiedElement>&);
 
@@ -78,13 +81,17 @@ namespace LEX
 		bool IsGenericElement() const override final { return const_cast<Element*>(this)->AsGenericElement(); }
 
 
-		Script* GetScript() override;
+	private:
+		Element* GetElementFromPathImpl(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
+		{
+			return GetElementFromPath(this, path, elem, sign);
+		}
 
-		Project* GetProject() override;
+		Script* GetScriptImpl() override;
 
-		Element* GetParent() = 0;
-		
-		Environment* GetEnvironment() = 0;
+		Project* GetProjectImpl() override;
+
+		Script* GetCommonsImpl() override;
 
 	public:
 
@@ -92,10 +99,6 @@ namespace LEX
 
 		static Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadArgument* sign = nullptr);
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
-		{ 
-			return GetElementFromPath(this, path, elem, sign);
-		}
 
 		
 	public:
@@ -194,30 +197,6 @@ namespace LEX
 		//Make pure to search for non implementers.
 		
 
-		//The safe version of GetScript
-		Script* FetchScript()
-		{
-			return this ? GetScript() : nullptr;
-		}
-
-		//The safe version of GetProject
-		Project* FetchProject()
-		{
-			return this ? GetProject() : nullptr;
-		}
-
-		//The safe version of GetEvironment
-		Environment* FetchEnvironment()
-		{
-			return this ? GetEnvironment() : nullptr;
-		}
-
-		//The safe version of GetParent
-		Element* FetchParent()
-		{
-			return this ? GetParent() : nullptr;
-		}
-
 
 
 
@@ -230,13 +209,6 @@ namespace LEX
 		}
 
 		static Project* GetShared();
-
-		Script* GetCommons() override;
-
-		Script* FetchCommons()
-		{
-			return this ? GetCommons() : nullptr;
-		}
 
 		virtual void SetSyntaxTree(SyntaxRecord&) = 0;//This is to be made on the abstract classes.
 
@@ -262,11 +234,28 @@ namespace LEX
 
 
 
+		auto FetchScript() { return this ? GetScript() : nullptr; }
+		auto FetchProject() { return this ? GetProject() : nullptr; }
+		auto FetchParent() { return this ? GetParent() : nullptr; }
+		auto FetchEnvironment() { return this ? GetEnvironment() : nullptr; }
+		auto FetchCommons() { return this ? GetScript() : nullptr; }
+
+
+		std::string_view FetchName(const std::string_view& str) const
+		{
+			return this ? GetName() : str;
+		}
+
+		std::string_view FetchName() const
+		{
+			return FetchName("<null>");
+		}
+
 
 		
 	protected:
 		
-		virtual void SetParent(Element*) = 0;
+		virtual void SetParent(Directory*) = 0;
 
 		void NoAttached()
 		{
@@ -290,13 +279,7 @@ namespace LEX
 		}
 		
 
-		void DeclareParentTo(Element* child)
-		{
-			child->SetParent(this);
-			child->GetFlags() |= Flag::Attached;
-			child->OnAttach();
-			
-		}
+		void DeclareParentTo(Element* child);
 
 	public:
 	};
@@ -306,16 +289,8 @@ namespace LEX
 	{
 		//Function and Global
 		//std::string name;//may include name later, depending.
-		SyntaxRecord* _syntax = nullptr;
-		Environment* _parent = nullptr;
+		
 	public:
-
-		Environment* GetEnvironment() override;
-
-
-		Element* GetParent() override;
-
-
 		SyntaxRecord* GetSyntaxTree() override
 		{
 			return _syntax;
@@ -331,9 +306,17 @@ namespace LEX
 
 	protected:
 
-		void SetParent(Element* par) override;
+		void SetParent(Directory* par) override;
 
 
+	private:
 
+		Environment* GetEnvironmentImpl() override;
+		Directory* GetParentImpl() override;
+
+
+	private:
+		SyntaxRecord* _syntax = nullptr;
+		Environment* _parent = nullptr;
 	};
 }

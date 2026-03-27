@@ -12,6 +12,10 @@ namespace LEX
 
 	struct GenericFunction : public GenericFuncBase, public GenericBase
 	{
+		DEFINE_COMPONENT_TYPE(ComponentType::GenericFunction)
+
+
+
 		GenericFunction()
 		{
 			base = this;
@@ -158,7 +162,9 @@ namespace LEX
 
 			return true;
 		}
-
+		
+		private:
+			const Component* AsComponent() const override final { return this; }
 	};
 
 

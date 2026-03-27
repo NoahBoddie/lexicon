@@ -37,8 +37,9 @@ namespace LEX
 		virtual ISpecializable* GetSpecializable() = 0;
 		ISpecializable* GetSpecializable() const
 		{
-			auto a_this = const_cast<ISpecial*>(this);
-			return a_this->GetSpecializable();
+			return unconst(this)->GetSpecializable();
+			//auto a_this = const_cast<ISpecial*>(this);
+			//return a_this->GetSpecializable();
 		}
 	};
 }

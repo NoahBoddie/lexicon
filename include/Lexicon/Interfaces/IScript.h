@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Interfaces/IElement.h"
+#include "Lexicon/Interfaces/IEnvironment.h"
 
 namespace LEX
 {
@@ -24,8 +24,8 @@ namespace LEX
 		CURRENT_VERSION(IScript, 1);
 	}
 
-	struct IMPL_VERSION(IScript), public IElement
+	struct IMPL_VERSION(IScript), public IEnvironment
 	{
-
+		DEFINE_COMPONENT_OFFSET(ComponentType::IScript)
 	};
 }

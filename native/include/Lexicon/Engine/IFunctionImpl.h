@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Lexicon/IFunction.h"
-
+#include "Lexicon/Interfaces/IElement.h"
 namespace LEX
 {
-	struct IMPL_VERSION(IFunction)
+	struct IFunction : public IFunctionAbstract
 	{
 
 	};

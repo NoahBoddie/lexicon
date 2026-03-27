@@ -10,7 +10,7 @@ namespace LEX
 	struct QualifiedType;
 	struct OverloadCode;
 
-	
+
 	struct HierarchyData
 	{
 		//TODO: I may split Hierarchy data to make template types a bit smaller.

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/IFunction.hpp"
+#include "Lexicon/IFunction.h"
 
 
 
@@ -14,6 +14,8 @@ namespace LEX
 
 	struct Function : public IFunction, public ICallableUnit
 	{
+		DEFINE_COMPONENT_OFFSET(ComponentType::Function)
+
 		//virtual size_t GetParameterCount() = 0;
 
 		//May make a GetAt by default but still allow overriding with virtual

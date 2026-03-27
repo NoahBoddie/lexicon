@@ -706,7 +706,7 @@ namespace LEX
 #endif
 
 #include "Lexicon/TypeAliases.h"
-
+#include "Lexicon/Impl/PCH.h"
 #define NULLCHECK(mc_condition) if (!mc_condition) report::critical("Condition '{}' is invalid, throwing fatal exception.", STRINGIZE(mc_condition))
 
 

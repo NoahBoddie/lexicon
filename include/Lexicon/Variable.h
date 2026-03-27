@@ -9,12 +9,12 @@
 //#include "Delegate.h"
 //#include "FunctionHandle.h"
 
-#include "Reflection.h"
 
 #include "TypeID.h"
 
 #include "VariableType.h"
 
+#include "Lexicon/Interfaces/IComponent.h"
 #include "Lexicon/Impl/common_type.h"
 
 
@@ -30,7 +30,7 @@ namespace LEX
 		Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
 		String,
 		Object,
-		Reflection*
+		IComponent*
 		>;
 
 

@@ -5,7 +5,6 @@
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Interfaces/InterfaceSingleton.h"
 
-#include"Lexicon/Versioning.h"
 
 //*src
 #include "Lexicon/ObjectPolicy.hpp"

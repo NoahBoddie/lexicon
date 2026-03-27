@@ -2193,7 +2193,7 @@ namespace LEX
 				path = path.substr(3);
 
 
-				result = element->GetElementFromPath(path, elem_type);
+				result = element->GetElementFromPath(path, elem_type)->As<IElement>();
 
 
 				path = std::format("{}::{}", element->GetFullName(), path);

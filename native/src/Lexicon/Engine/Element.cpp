@@ -21,12 +21,12 @@
 namespace LEX
 {
 
-	Script* Element::GetScript()
+	Script* Element::GetScriptImpl()
 	{
 		return GetParent()->FetchScript();
 	}
 
-	Project* Element::GetProject()
+	Project* Element::GetProjectImpl()
 	{
 		return GetParent()->FetchProject();
 	}
@@ -37,8 +37,17 @@ namespace LEX
 		return ProjectManager::instance->GetShared();
 	}
 	
-	Script* Element::GetCommons() { return GetScript()->FetchCommons(); }
+	Script* Element::GetCommonsImpl() { return GetScript()->FetchCommons(); }
 
+	void Element::DeclareParentTo(Element* child)
+	{
+		auto directory = As<Directory>();
+		assert(directory);
+		child->SetParent(directory);
+		child->GetFlags() |= Flag::Attached;
+		child->OnAttach();
+
+	}
 
 
 
@@ -759,22 +768,24 @@ namespace LEX
 	//*/
 
 
-	Environment* SecondaryElement::GetEnvironment()
+	Environment* SecondaryElement::GetEnvironmentImpl()
 	{
 		return _parent;
 	}
 
-	Element* SecondaryElement::GetParent()
+	Directory* SecondaryElement::GetParentImpl()
 	{
 		return _parent;
 	}
 
-	void SecondaryElement::SetParent(Element* par)
+	void SecondaryElement::SetParent(Directory* par)
 	{
 		if (_parent)
 			return;
 
-		Environment* env = dynamic_cast<Environment*>(par);
+		//Environment* env = dynamic_cast<Environment*>(par);
+		Environment* env = par->As<Environment>();
+
 
 		if (!env) {
 			report::compile::critical("parent set for Element was not an environment.");

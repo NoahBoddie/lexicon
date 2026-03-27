@@ -6,8 +6,5 @@
 
 namespace LEX
 {
-	struct IScriptImpl : public IElementBase<IScript>
-	{
 
-	};
 }

@@ -3,6 +3,7 @@
 #include "Lexicon/ITypeInfo.h"
 #include "Lexicon/Engine/Conversion.h"
 
+
 namespace LEX
 {
 	
@@ -34,11 +35,8 @@ namespace LEX
 	struct Qualifier;
 	//struct QualifiedType;
 
-	struct IMPL_VERSION(ITypeInfo)
+	struct ITypeInfo : public ITypeInfoAbstract
 	{
-		
-		
-		
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.
 		virtual HierarchyData* GetHierarchyData() const = 0;

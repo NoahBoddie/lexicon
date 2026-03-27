@@ -2,6 +2,7 @@
 
 namespace LEX
 {
+	//TODO: remove element type and use component type.
 	enum ElementType : uint8_t
 	{
 		kNoneElement,

@@ -28,17 +28,18 @@ namespace LEX
 
 
 
-	Script* Script::GetCommons()
+	Script* Script::GetCommonsImpl()
 	{
 		//This 
 		return _parent->FetchCommons();
 	}
 
-	void Script::SetParent(Element* elem)
+	void Script::SetParent(Directory* elem)
 	{
 		//TODO: Script::SetParent is actually supposed to ask if new parent isn't a project. Attend to that when enum is added.
 		//TODO: EnvironmentError in this situation is exclusively an error on my part, need a new exception for that.
 		
+		//TODO: use As
 		Project* project = elem->GetProject();
 		
 		//if (elem->IsComponentType<Project>() == false)
@@ -58,21 +59,11 @@ namespace LEX
 
 
 
-	Script* Script::GetScript()
+	Script* Script::GetScriptImpl()
 	{
 		return this;
 	}
 	
-	Project* Script::GetProject()
-	{
-		return Environment::GetProject();
-	}
-
-	ComponentType Script::GetComponentType()
-	{
-		return typeid(Script);
-	}
-
 	SyntaxRecord* Script::GetSyntaxTree()
 	{
 		if (IsDefined() == false)

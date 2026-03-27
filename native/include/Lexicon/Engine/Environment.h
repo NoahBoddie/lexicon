@@ -5,12 +5,13 @@
 #include "Lexicon/Exception.h"
 
 #include "Lexicon/Engine/Element.h"
+#include "Lexicon/Engine/Directory.h"
 
 #include "Lexicon/TypeID.h"
 #include "Lexicon/MemberPointer.h"
 
 
-#include "Lexicon/Interfaces/IEnvironment.h"
+#include "Lexicon/Engine/IEnvironmentImpl.h"
 
 
 //*src
@@ -170,10 +171,10 @@ namespace LEX
 
 
 
-	struct Environment : public Element, public IEnvironment
+	struct Environment : public Directory, public IEnvironmentBase
 	{
 	public:
-
+		DEFINE_COMPONENT_OFFSET(ComponentType::Environment)
 
 		//virtual names and fancy names. Virtuals are the ones that are implemented by class, fancy names are embelished ones that call the virtual ones and are safe on nullptrs.
 		// Add/Emplace
@@ -185,28 +186,7 @@ namespace LEX
 		//TODO:Add Get AccessModifier function. Operational by default, set to public. Likely, should derive from some pivot that can be shared with global and other components.
 
 	public:
-		ITypeInfo* FindTypePath(std::string_view path) override
-		{
-			
-			return nullptr;
-		}
-		IFunction* FindFunctionPath(std::string_view path) override
-		{
-			return nullptr;
-		}
-
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<IEnvironment>::value):
-				return static_cast<IEnvironment*>(this);
-			case Hash(TypeName<Environment>::value):
-				return this;
-			}
-			return nullptr;
-		}
-
+		
 
 		//virtual IGlobal* FindGlobalPath(std::string_view path) overide { return nullptr; }
 
@@ -260,13 +240,6 @@ namespace LEX
 
 
 
-		Environment* GetEnvironment() override;
-
-		//source file type shit
-		Element* GetParent() override;
-
-		void SetParent(Element* par) override;
-
 		void CreateFunction(SyntaxRecord& node);
 
 
@@ -310,9 +283,19 @@ namespace LEX
 
 
 
+	private:
+
+		Environment* GetEnvironmentImpl() override;
+
+		//source file type shit
+		Directory* GetParentImpl() override;
+
+		void SetParent(Directory* par) override;
+
+
 
 	protected: //Some might be private, will address later.
-		Element* _parent = nullptr;//can be project or script/class
+		Directory* _parent = nullptr;//can be project or script/class
 
 		//private:
 		//>-------------------------

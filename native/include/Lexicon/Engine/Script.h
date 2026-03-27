@@ -7,7 +7,7 @@
 
 
 #include "Lexicon/Engine/Environment.h"
-#include "Lexicon/Engine/IScriptImpl.h"
+#include "Lexicon/Interfaces/IScript.h"
 //
 #include "Lexicon/TypeInfo.h"
 #include "Lexicon/Function.h"
@@ -22,8 +22,13 @@ namespace LEX
 	struct TypeBase;
 
 
-	class Script : public Environment, public IScriptImpl
+	class Script : public Environment, public IScript
 	{
+	public:
+		DECL_IMPL_FUNC_ENVIRONMENT;
+		DEFINE_COMPONENT_OFFSET(ComponentType::Script)
+
+
 	protected:
 		//Scripts have functions/globals(vars)/types/(parents/projects)
 		
@@ -56,39 +61,7 @@ namespace LEX
 
 		bool IsDefined() const;
 
-		Script* GetCommons() override;
 
-
-		Script* GetScript() override;
-
-		Project* GetProject() override;
-
-		Element* GetParent() override
-		{
-			return Environment::GetParent();
-		}
-
-
-		Environment* GetEnvironment() override
-		{
-			return Environment::GetEnvironment();
-		}
-		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
-		{
-			return Environment::GetElementFromPath(path, elem, sign);
-		}
-
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<IScript>::value):
-				return static_cast<IScript*>(this);
-			case Hash(TypeName<Script>::value):
-				return this;
-			}
-			return nullptr;
-		}
 
 		bool IsIncremental() const
 		{
@@ -108,8 +81,6 @@ namespace LEX
 
 		bool AppendContent(SyntaxRecord& content);
 
-
-		ComponentType GetComponentType() override;
 
 		SyntaxRecord* GetSyntaxTree() override;
 
@@ -169,7 +140,14 @@ namespace LEX
 
 
 		virtual bool IsCommons() const { return false; }
-		void SetParent(Element* env) override;
+		void SetParent(Directory* env) override;
+
+	private:
+		Script* GetCommonsImpl() override;
+
+		Script* GetScriptImpl() override;
+
+		const Component* AsComponent() const override final { return this; }
 	};
 
 	

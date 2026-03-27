@@ -15,12 +15,14 @@ namespace LEX
 
 	struct SpecialType : public TypeInfo, public SpecialBase
 	{
+		DEFINE_COMPONENT_TYPE(ComponentType::SpecialType)
+
 		ITypeInfo* _self = nullptr;
 
-		SpecialType(GenericBase* base, ITypeInfo* type, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ type }
-		{
-			report::info("NewBodyPart {}", (uintptr_t)this);
-		}
+		//SpecialType(GenericBase* base, ITypeInfo* type, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ type }
+		//{
+		//	report::info("NewBodyPart {}", (uintptr_t)this);
+		//}
 
 		SpecialType(GenericType* type, ITemplatePart* spec) : SpecialBase{ type, spec }, _self{ type }
 		{
@@ -121,6 +123,12 @@ namespace LEX
 			return this;
 		}
 
-		
+		private:
+			const Component* AsComponent() const override final 
+			{ 
+				auto generic = GetGeneric();
+
+				return generic ? generic->AsComponent() : nullptr;
+			}
 	};
 }

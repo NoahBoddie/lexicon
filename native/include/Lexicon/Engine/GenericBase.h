@@ -11,7 +11,7 @@
 #include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/ITemplateBody.h"
 #include "Lexicon/Engine/Element.h"
-#include "Lexicon/Engine/Environment.h"
+
 namespace LEX
 {
 
@@ -119,42 +119,7 @@ namespace LEX
 
 		virtual void ClearTemporary() {}
 
-		bool TemplateMatches(ITemplatePart* args) override
-		{
-			//This expects a completed template btw.
-
-			auto size = _templates.size();
-
-
-
-			if (args->GetSize() != size)
-				return false;
-
-			for (int i = 0; i < size; i++)
-			{
-				TemplateType& param = _templates[i];
-				
-				//This would be the thing it should be trying to turn into
-				ITypeInfo* _param = &param;
-
-				ITypeInfo* arg = args->GetPartArgument(i);
-
-				Element* element = dynamic_cast<Element*>(this);
-
-				ITypeInfo* scope = element->FetchEnvironment()->As<ITypeInfo>();
-
-				if constexpr (0)
-				{//For now it accepts all, so no real reason to do this.
-					auto conv = arg->IsConvertibleTo(_param, scope, nullptr);
-
-					if (conv <= ConversionEnum::Failure) {
-						return false;
-					}
-				}
-			}
-
-			return true;
-		}
+		bool TemplateMatches(ITemplatePart* args) override;
 
 		//So try specialize is what you'll get when you try to specialize I guess?
 		//SpecialBase* TrySpecialize()
@@ -193,10 +158,16 @@ namespace LEX
 
 		void AddTemplate(const std::string_view& name)//Might have types later
 		{
-			auto& temp = _templates.emplace_back(name, _templates.size());
+			auto& temp = _templates.emplace_back(this, name, _templates.size());
 			temp.HandleInheritance();
 		}
+	
+	
+		//This will merge with the AsComponent of IComponent when set in generic classes
+		virtual const Component* AsComponent() const = 0;
 
+
+	public://Only public for now.
 		//For when something inherits from one and falls into the other?
 		//std::vector<uint32_t> inheritGroups{};
 

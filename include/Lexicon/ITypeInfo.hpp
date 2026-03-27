@@ -1,5 +1,7 @@
 #pragma once
 
+//TODO: delete me
+
 //A pivot file for ITypeInfo. Removes the hassle of knowing of which version to include.
 
 #ifdef LEX_SOURCE

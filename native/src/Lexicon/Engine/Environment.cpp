@@ -175,20 +175,20 @@ namespace LEX
 
 
 
-		Environment* Environment::GetEnvironment()
+		Environment* Environment::GetEnvironmentImpl()
 		{
 			return this;
 		}
 
 		//source file type shit
-		Element* Environment::GetParent()
+		Directory* Environment::GetParentImpl()
 		{
 			return _parent;
 		}
 
 
 
-		void Environment::SetParent(Element* par)
+		void Environment::SetParent(Directory* par)
 		{
 			if (_parent)
 				return;

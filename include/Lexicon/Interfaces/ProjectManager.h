@@ -82,7 +82,7 @@ namespace LEX
 		LEX::IScript* GetScriptFromPath(std::string_view path, EXTERN_NAME)
 		{
 			if (auto elem = GetElementFromPath(path, kScrpElement); elem)
-				return elem->As<IScript>();
+				return elem->As<IScript>(ComponentType::IScript);
 
 			return nullptr;
 		}
@@ -91,7 +91,7 @@ namespace LEX
 		IGlobal* GetGlobalFromPath(std::string_view path, EXTERN_NAME)
 		{
 			if (auto elem = GetElementFromPath(path, kGlobElement); elem)
-				return elem->As<IGlobal>();
+				return elem->As<IGlobal>(ComponentType::IGlobal);
 
 			return nullptr;
 		}
@@ -123,7 +123,7 @@ namespace LEX
 		IFunction* GetFunctionFromPath(std::string_view path, const ISignature& sign)
 		{
 			if (auto elem = GetElementFromPath(path, kFuncElement, &sign); elem)
-				return elem->As<IFunction>();
+				return elem->As<IFunction>(ComponentType::IFunction);
 
 			return nullptr;
 		}
@@ -131,7 +131,7 @@ namespace LEX
 		ITypeInfo* GetTypeFromPath(std::string_view path)
 		{
 			if (auto elem = GetElementFromPath(path, kTypeElement); elem)
-				return elem->As<ITypeInfo>();
+				return elem->As<ITypeInfo>(ComponentType::ITypeInfo);
 
 			return nullptr;
 		}
@@ -141,7 +141,7 @@ namespace LEX
 		GlobalBase* GetGlobalFromPath(std::string_view path, INTERN_NAME)
 		{
 			if (auto elem = GetElementFromPath(path, kGlobElement); elem)
-				return elem->As<GlobalBase>();
+				return elem->As<GlobalBase>(ComponentType::GlobalBase);
 
 			return nullptr;
 		}
@@ -151,7 +151,7 @@ namespace LEX
 		Script* GetScriptFromPath(std::string_view path, INTERN_NAME)
 		{
 			if (auto elem = GetElementFromPath(path, kScrpElement); elem)
-				return elem->As<Script>();
+				return elem->As<Script>(ComponentType::Script);
 
 			return nullptr;
 		}

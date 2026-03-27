@@ -7,8 +7,4 @@
 
 namespace LEX
 {
-	struct IProjectImpl : public IElementBase<IProject>
-	{
-	
-	};
 }

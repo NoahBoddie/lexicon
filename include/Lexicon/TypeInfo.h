@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/ITypeInfo.hpp"
+#include "Lexicon/ITypeInfo.h"
 
 namespace LEX
 {
@@ -36,6 +36,9 @@ namespace LEX
 
 	struct IMPL_VERSION(TypeInfo), public ITypeInfo
 	{	
+		DEFINE_COMPONENT_OFFSET(ComponentType::TypeInfo)
+
+
 		//This might come with hierarchy data automatically.
 
 

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Lexicon/LinkFlag.h"
-
+#include "Lexicon/ComponentType.h"
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
-
+#include "Lexicon/Engine/IComponentImpl.h"
 #include "Lexicon/Interfaces/LinkMessenger.h"
 
 namespace LEX
@@ -31,52 +31,28 @@ namespace LEX
 		Failure
 	};
 
-	struct ComponentType
-	{
-		ComponentType() = default;
-
-		ComponentType(const std::type_info& id){
-			info = &id;
-		}
-
-		constexpr bool operator==(const ComponentType& rhs) const{
-			return info == rhs.info;
-		}
-
-		constexpr bool operator==(const ComponentType&& rhs) const{
-			return info == rhs.info;
-		}
-
-		constexpr bool operator==(const std::type_info& rhs) const {
-			return info == &rhs;
-		}
-
-
-	private:
-		const std::type_info* info = nullptr;
-	};
 
 
 
-
-	class Component
+	class Component : public IComponentBase
 	{
 	public:
+		DEFINE_COMPONENT_OFFSET(ComponentType::Component)
 
 
-		virtual ComponentType GetComponentType()
-		{
-			return typeid(*this);
-		}
+		//virtual ComponentType GetComponentType()
+		//{
+		//	return typeid(*this);
+		//}
 
-		ComponentType FetchComponentType()
-		{
-			return this ? GetComponentType() : ComponentType{};
-		}
+		//ComponentType FetchComponentType()
+		//{
+		//	return this ? GetComponentType() : ComponentType{};
+		//}
 
 
 		template <std::derived_from<Component> T>
-		bool IsComponentType() { return this ? (GetComponentType() == typeid(T)) : false; }
+		bool IsComponentType() { return this ? (_type == T::COMPONENT_TYPE) : false; }
 
 	private:
 		//Limit the use of a recordless create by seeing if load from record has been implemented.
@@ -84,7 +60,9 @@ namespace LEX
 		static D* _Create(SyntaxRecord* rec = nullptr)
 		{
 			D* comp = new D();
-
+			
+			comp->_type = D::COMPONENT_TYPE;
+			
 			comp->Initialize(rec);
 
 			return comp;
@@ -410,7 +388,6 @@ namespace LEX
 		Component() = default;
 		Component(const Component&) = delete;
 		Component(const Component&&) = delete;
-		Component& operator= (Component) = delete;
 		Component& operator= (const Component&) = delete;
 		Component& operator= (const Component&&) = delete;
 		virtual ~Component() { _linkerContainer.erase(this); AbsolveDependency(); }
@@ -552,8 +529,8 @@ public:
 		//This is used later on to signify that if All flags have been done, linkage doesn't have to wait.
 		inline static LinkFlag _linkCheckFlags = LinkFlag::None;
 
-
-		//ComponentType _type = ComponentType::Invalid;
+		//TODO: Get rid of this any anything that uses it.
+		ComponentType _type = ComponentType::Invalid;
 		mutable ComponentFlag _flags = ComponentFlag::None;
 
 		//Data usable by any person to store personal data here. After all, it's free space.

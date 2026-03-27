@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ISpecial.h"
+#include "Lexicon/Interfaces/IElement.h"
+#include "Lexicon/Impl/ComponentDetails.h"
 
 namespace LEX
 {
@@ -16,21 +18,9 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION_DERIVES(IFunction, ISpecial)
 			{
-				std::string_view FetchName(const std::string_view& str) const
-				{
-					return this ? GetName() : str;
-				}
-
-				std::string_view FetchName() const
-				{
-					return FetchName("<null>");
-				}
-
-
 				virtual bool IsConversion() const { return false; }
 				virtual bool IsMethod() const { return false; }
 				bool IsResolved() const override { return false; }
-				virtual std::string_view GetName() const = 0;
 
 				//This should be hidden.
 				virtual IFunction* CheckFunction(ITemplatePart* args) = 0;
@@ -46,9 +36,22 @@ namespace LEX
 	}
 
 
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(IFunctionAbstract, IFunction, IElement)
+	{
+		DEFINE_COMPONENT_OFFSET(ComponentType::IFunction)
+
+	};
+
+
+
 #ifndef LEX_SOURCE
 	//Only accessible outside of the source.
-	struct IMPL_VERSION(IFunction) {};
+	struct IFunction : public IFunctionAbstract {};
 #endif
 
 }
+
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/IFunctionImpl.h"
+#endif

@@ -88,6 +88,10 @@ namespace Version
 #define INTERFACE_VERSION_NO_SFX(mc_name, ...) INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, UnmovableInterface, __VA_ARGS__)
 #define INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, UnmovableInterface, __VA_ARGS__)
 
+#define M_INTERFACE_VERSION_NO_SFX(mc_name, ...) INTERFACE_VERSION_DERIVES_NO_SFX(mc_name, Interface, __VA_ARGS__)
+#define M_INTERFACE_VERSION(mc_name, ...) INTERFACE_VERSION_DERIVES(mc_name, Interface, __VA_ARGS__)
+
+
 #define CURRENT_VERSION_NO_SFX(mc_type, mc_number, ...)								\
 	namespace Current																\
 	{																				\
@@ -111,7 +115,7 @@ namespace Version
 #define CHECK_INTERFACE_VERSION(...) if (Version() < version) { return __VA_ARGS__; }
 
 
-
+#define INTERFACE_DERIVES(...) __VA_OPT__(public InterfaceLayer<)__VA_ARGS__ __VA_OPT__(>)
 
 #define IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type,...) mc_name : public InterfaceLayer<Version::Current::mc_type __VA_OPT__(,)__VA_ARGS__>
 #define IMPL_VERSION_DERIVES(mc_name, mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_name, CONCAT(IV_,mc_type), __VA_ARGS__)
@@ -128,8 +132,24 @@ namespace Version
 #define IMPL_SINGLETON_NO_SFX(mc_type,...) IMPL_SINGLETON_DERIVES_NO_SFX(mc_type,mc_type,__VA_ARGS__)
 #define IMPL_SINGLETON(mc_type,...) IMPL_SINGLETON_DERIVES(mc_type,mc_type,__VA_ARGS__)
 
+/*
+#ifdef LEX_SOURCE
+#define INT_VERSION_DERIVES_NO_SFX(mc_name, mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type,__VA_ARGS__)
+#define INT_VERSION_DERIVES(mc_name, mc_type,...) IMPL_VERSION_DERIVES(mc_name, mc_type,__VA_ARGS__)
+
+#define INT_VERSION_NO_SFX(mc_type,...) IMPL_VERSION_NO_SFX(mc_type,__VA_ARGS__)
+#define INT_VERSION(mc_type,...) IMPL_VERSION(mc_type,__VA_ARGS__)
+
+#else
+#define INT_VERSION_DERIVES_NO_SFX(mc_name, mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type,__VA_ARGS__)
+#define INT_VERSION_DERIVES(mc_name, mc_type,...) IMPL_VERSION_DERIVES(mc_name, mc_type,__VA_ARGS__)
+
+#define INT_VERSION_NO_SFX(mc_type,...) IMPL_VERSION_NO_SFX(CONCAT(mc_type,_Intern),__VA_ARGS__)
+#define INT_VERSION(mc_type,...) IMPL_VERSION(CONCAT(mc_type,_Intern),__VA_ARGS__)
 
 
+#endif
+//*/
 
 
 #define ALT_IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type,...) mc_name : public InterfaceLayer<__VA_ARGS__ __VA_OPT__(,) Version::Current::mc_type >

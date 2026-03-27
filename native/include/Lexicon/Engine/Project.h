@@ -4,9 +4,10 @@
 #include "Lexicon/Exception.h"//May move to src
 
 #include "Lexicon/Engine/Component.h"
-#include "Lexicon/Engine/Element.h"
+#include "Lexicon/Engine/Directory.h"
 #include "Lexicon/Engine/IProjectImpl.h"
 
+#include "Lexicon/Interfaces/IProject.h"
 namespace LEX
 {
 	class Script;
@@ -22,33 +23,15 @@ namespace LEX
 
 
 
-	class Project : public Element, public IProjectImpl
+	class Project : public Directory, public IProject
 	{
 	public:
+		DECL_IMPL_FUNC_ENVIRONMENT;
+		DEFINE_COMPONENT_OFFSET(ComponentType::Project)
+
+
 		friend ProjectManager;
 
-
-		Script* GetCommons() override;
-
-
-		//Needs sourcing
-		void AddFormat(std::string_view name, std::string_view content, IScript* source) override;
-
-		void AddFormat(std::string_view name, std::string_view content, Script* source);
-
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<IProject>::value):
-				return static_cast<IProject*>(this);
-			case Hash(TypeName<Project>::value):
-				return this;
-			}
-			return nullptr;
-		}
-
-		//////////////////
 
 
 
@@ -94,44 +77,43 @@ namespace LEX
 		void AddScript(Script* script);
 		//*/
 
+	private:
+		void AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source) override;
 
-		Project* GetProject() override
+		Script* GetCommonsImpl() override;
+
+
+		Project* GetProjectImpl() override
 		{
 			return this;
 		}
 		
-		Element* GetParent() override
+		Directory* GetParentImpl() override
 		{
 			auto share = GetShared();
 			//Should return null on shared projects.
 			return share == this ? nullptr : share;
 		}
 
-		Script* GetScript() override
+		Script* GetScriptImpl() override
 		{
 			return nullptr;
 		}
 
+		const Component* AsComponent() const override final { return this; }
 
-		Element* GetElementFromPath(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override
-		{
-			return Element::GetElementFromPath(path, elem, sign);
-		}
-
-
-
-		Environment* GetEnvironment() override
+		Environment* GetEnvironmentImpl() override
 		{
 			//It has no environment.
 			return nullptr;
 		}
 
 
-		void SetParent(Element*) override
+		void SetParent(Directory*) override
 		{
 			//nothing. maybe an error?
 		}
-
+	public:
 
 		SyntaxRecord* GetSyntaxTree() override
 		{
@@ -141,16 +123,12 @@ namespace LEX
 
 		void SetSyntaxTree(SyntaxRecord& rec) final override {}
 
-		ComponentType GetComponentType() override
-		{
-			return typeid(Project);
-		}
-
 
 		Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) override;
 
+	private:
 
-		Script* FindScript(const std::string_view& name);
+		Script* FindScriptImpl(const std::string_view& name) override;
 	};
 
 

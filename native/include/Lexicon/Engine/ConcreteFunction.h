@@ -10,6 +10,9 @@ namespace LEX
 	class ConcreteFunction : public ConcreteFuncBase
 	{
 	public:
+		DEFINE_COMPONENT_TYPE(ComponentType::ConcreteFunction)
+
+
 		ISpecializable* GetSpecializable() override { return nullptr; }
 
 		//void LoadFromRecord(Record&)
@@ -21,23 +24,8 @@ namespace LEX
 		}
 
 		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override;
-
-
-
-	protected:
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<Function>::value):
-				return static_cast<Function*>(this);
-
-			case Hash(TypeName<ConcreteFunction>::value):
-				return this;
-			}
-
-			return __super::Cast(name);
-		}
-
+	
+	private:
+		const Component* AsComponent() const override final { return this; }
 	};
 }

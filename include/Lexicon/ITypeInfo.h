@@ -9,6 +9,7 @@
 
 #include "Lexicon/Reflection.h"
 
+#include "Lexicon/Interfaces/IEnvironment.h"
 
 namespace LEX
 {
@@ -39,48 +40,10 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct INTERFACE_VERSION_DERIVES(ITypeInfo, ISpecial), public Reflection
+			struct INTERFACE_VERSION_DERIVES(ITypeInfo, ISpecial)
 			{
-			private:
-				enum Offset
-				{
-					kBasic,
-					kGeneric,
-					kConcrete,
-				};
-
 			public:
 				constexpr static uint32_t NonGenericIndex = -1;
-
-				Reflect GetReflect() const override
-				{
-					return Reflect::Type;
-				}
-
-				size_t GetReflectOffset() const override
-				{
-					if (IsResolved() == true) {
-						return kConcrete;
-					}
-					else if (auto spec = GetSpecializable())
-					{
-						return kGeneric;
-					}
-					else
-					{
-						//This shouldn't actually be possible, but I'm just putting it here
-						return kBasic;
-					}
-				}
-				bool IsValidOffset(size_t offset) const override
-				{
-					auto self = GetReflectOffset();
-
-					if (offset == (size_t)kBasic)
-						return true;
-
-					return __super::IsValidOffset(offset);
-				}
 
 
 
@@ -114,11 +77,6 @@ namespace LEX
 				//This should be hidden.
 				virtual ITypeInfo* CheckTypePolicy(ITemplatePart* args) = 0;
 
-				TypeInfo* FetchTypePolicy(ITemplateBody* args)
-				{
-					return this ? GetTypePolicy(args) : nullptr;
-				}
-
 
 				virtual TypeID GetTypeID() const = 0;
 
@@ -126,24 +84,12 @@ namespace LEX
 				virtual DataType GetDataType() const = 0;
 
 
-				DataType FetchDataType() const
-				{
-					return this ? GetDataType() : DataType::Invalid;
-				}
 				//*
 				virtual bool IsReferenceType() const = 0;
 
-				bool IsValueType() const
-				{
-					return !IsReferenceType();
-				}
 				//*/
 
 				
-				TypeID FetchTypeID() const
-				{
-					return this ? GetTypeID() : TypeID{ 0 };
-				}
 
 				virtual bool CanConvert(const ITypeInfo* other) const = 0;
 
@@ -158,11 +104,29 @@ namespace LEX
 
 			public:
 				
-				virtual std::string_view GetName() const = 0;
-
 				virtual std::span<ITypeInfo*> GetTemplate() { return {}; }
 
 
+
+				TypeInfo* FetchTypePolicy(ITemplateBody* args)
+				{
+					return this ? GetTypePolicy(args) : nullptr;
+				}
+
+				DataType FetchDataType() const
+				{
+					return this ? GetDataType() : DataType::Invalid;
+				}
+
+				bool IsValueType() const
+				{
+					return !IsReferenceType();
+				}
+
+				TypeID FetchTypeID() const
+				{
+					return this ? GetTypeID() : TypeID{};
+				}
 			};
 		}
 
@@ -177,9 +141,21 @@ namespace LEX
 		CURRENT_VERSION(ITypeInfo, 2);
 	}
 
+
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(ITypeInfoAbstract, ITypeInfo, IEnvironment)
+	{
+		DEFINE_COMPONENT_OFFSET(ComponentType::ITypeInfo)
+	};
+
+
 #ifndef LEX_SOURCE
 	//Only accessible outside of the source.
-	struct IMPL_VERSION(ITypeInfo) {};
+	struct ITypeInfo : public ITypeInfoAbstract {};
 #endif
-	
+
+
 }
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/ITypeInfoImpl.h"
+#endif

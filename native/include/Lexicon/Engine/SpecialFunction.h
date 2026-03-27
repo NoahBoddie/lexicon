@@ -13,6 +13,8 @@ namespace LEX
 
 	struct SpecialFunction : public Function, public SpecialBase
 	{
+		DEFINE_COMPONENT_TYPE(ComponentType::SpecialFunction)
+
 		FunctionBase* _self = nullptr;
 
 		//SpecialFunction(GenericBase* base, IFunction* func, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ func }
@@ -91,6 +93,13 @@ namespace LEX
 
 
 
+	private:
+		const Component* AsComponent() const override final
+		{
+			auto generic = GetGeneric();
+
+			return generic ? generic->AsComponent() : nullptr;
+		}
 	};
 
 }

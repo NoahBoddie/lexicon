@@ -13,6 +13,10 @@ namespace LEX
 {
 	class ConcreteGlobal : public ConcreteGlobalBase
 	{
+	public:
+		DEFINE_COMPONENT_TYPE(ComponentType::ConcreteGlobal)
+
+
 		RuntimeVariable value{ std::in_place_type_t<Variable>{} };
 
 		ISpecializable* GetSpecializable() override { return nullptr; }
@@ -59,20 +63,8 @@ namespace LEX
 			return true;
 		}
 
+	private:
+		const Component* AsComponent() const override final { return this; }
 
-	protected:
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<Global>::value):
-				return static_cast<Global*>(this);
-
-			case Hash(TypeName<ConcreteGlobal>::value):
-				return this;
-			}
-
-			return __super::Cast(name);
-		}
 	};
 }

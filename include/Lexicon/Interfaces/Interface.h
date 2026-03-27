@@ -31,7 +31,7 @@ namespace LEX
 
 
 	template <typename T>
-	concept statically_versioned_interface = std::derived_from<T, Interface>&& requires() { { T::version } -> std::convertible_to<uintptr_t>; };
+	concept statically_versioned_interface = std::is_base_of_v<Interface, T> && requires() { { T::version } -> std::convertible_to<uintptr_t>; };
 
 
 	//Need a concept to assert that the interface types are statically versioned
@@ -103,6 +103,8 @@ namespace LEX
 		using Self = InterfaceLayer<Intfs...>;
 		using Base = InterfaceLayerImpl<Intfs...>;
 		using Current = std::tuple_element_t<0, std::tuple<Intfs...>>;
+
+		static constexpr uintptr_t version = Base::totalVersion;
 
 		//Static assert that the interface layer is equal in size to all of its interface layers
 

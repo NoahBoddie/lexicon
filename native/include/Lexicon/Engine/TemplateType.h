@@ -16,6 +16,7 @@ namespace LEX
 
 	struct TemplateType : public ITypeInfo, public HierarchyData
 	{
+		
 		//GenericType is an ITypeInfo that largely should not exist with any HierarchyData. It's from this fact
 		// plus the fact HierarchyData is a lot that I think I should split the function between 2 parts.
 		//This type will use a seperate HierarchyData having type in order to answer questions it's questions about it.
@@ -32,13 +33,12 @@ namespace LEX
 		}
 
 		std::string name;
+		GenericBase* _owner = nullptr;
 		size_t index = -1;
 		TemplateTuple* _tupleData = nullptr;
-		TemplateType(const std::string_view& n, size_t i) : name{ n }, index{ i } {};
+		TemplateType(GenericBase* o, const std::string_view& n, size_t i) : _owner{o}, name{n}, index{i} {};
 
-		//TODO: TemplateType needs it's fucking specializable I'm fucking off
-		ISpecializable* GetSpecializable() override { return nullptr; }
-
+		ISpecializable* GetSpecializable() override;
 
 		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override;
 
@@ -202,6 +202,10 @@ namespace LEX
 		{
 			qualifiers.MakeReadonly(true);
 		}
+
+	private:
+		//TODO: No component. Need to fix.
+		const Component* AsComponent() const override final;
 
 
 	};

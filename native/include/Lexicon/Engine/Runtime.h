@@ -226,8 +226,10 @@ namespace LEX
 			assert(argCount >= _data.GetParamCapacity());
 
 			variadicCount = argCount - _data.GetParamCapacity();
-
-			report::apply::trace("Func: {}, vars: {}, args:{}", _function->FetchName(), _data.GetVarCapacity(variadicCount), _data.GetArgCapacity(variadicCount));
+			unconst(_function);
+			//NEW_NULL_OP(NULL_Q(_function)->FetchName());
+			//report::apply::trace("Func: {}, vars: {}, args:{}", _function->FetchName(), _data.GetVarCapacity(variadicCount), _data.GetArgCapacity(variadicCount));
+			report::apply::trace("Func: {}, vars: {}, args:{}", NULL_OP(NULL_Q(_function)->GetName(), "NullName"), _data.GetVarCapacity(variadicCount), _data.GetArgCapacity(variadicCount));
 
 			_varStack.resize(_data.GetVarCapacity(variadicCount));
 			_argStack.resize(_data.GetArgCapacity(variadicCount));

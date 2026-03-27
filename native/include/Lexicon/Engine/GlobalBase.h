@@ -14,6 +14,7 @@ namespace LEX
 	struct GlobalBase : public SecondaryElement, public GlobalData, public Field
 	{
 	public:
+		DEFINE_COMPONENT_TYPE(ComponentType::GlobalBase)
 
 
 		virtual IGlobal* AsGlobal() = 0;
@@ -25,17 +26,6 @@ namespace LEX
 		// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
 		// information. Will not throw.
 		virtual bool Revert(bool just_default) = 0;
-
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<GlobalBase>::value):
-				return this;
-			}
-
-			return nullptr;
-		}
 
 
 		//I may need a new type of linker for this, so the very most default value can be set for globals, then I can use them
@@ -106,18 +96,6 @@ namespace LEX
 		std::string_view GetName() const override
 		{
 			return _name;
-		}
-
-
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<IGlobal>::value):
-				return static_cast<IGlobal*>(this);
-			}
-
-			return __super::Cast(name);
 		}
 	};
 

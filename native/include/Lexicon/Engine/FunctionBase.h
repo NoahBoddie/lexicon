@@ -12,6 +12,10 @@ namespace LEX
 	class FunctionBase : public SecondaryElement, public OverloadParameter, public FunctionData
 	{
 	public:
+		DEFINE_COMPONENT_TYPE(ComponentType::FunctionBase)
+
+
+
 		virtual IFunction* AsFunction() = 0;
 		virtual const IFunction* AsFunction() const = 0;
 
@@ -32,16 +36,7 @@ namespace LEX
 		LinkFlag GetLinkFlags() override;
 	
 	protected:
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<FunctionBase>::value):
-				return this;
-			}
 
-			return nullptr;
-		}
 
 	public://This public wasn't here before. I wish to understand why it needs to be here now.
 
@@ -336,17 +331,6 @@ namespace LEX
 		uint64_t GetProcedureData() const override
 		{
 			return procedureData;
-		}
-
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<IFunction>::value):
-				return static_cast<IFunction*>(this);
-			}
-
-			return __super::Cast(name);
 		}
 	};
 

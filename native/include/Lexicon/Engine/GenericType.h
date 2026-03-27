@@ -9,6 +9,9 @@ namespace LEX
 
 	struct GenericType : public GenericTypeBase, public GenericBase
 	{
+		DEFINE_COMPONENT_TYPE(ComponentType::GenericType)
+
+
 
 		GenericType() : GenericTypeBase{} {}
 
@@ -53,6 +56,9 @@ namespace LEX
 		}
 
 		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
+	
+	private:
+		const Component* AsComponent() const override final { return this; }
 	};
 
 

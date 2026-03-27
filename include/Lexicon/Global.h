@@ -12,6 +12,9 @@ namespace LEX
 
 	struct Global : public IGlobal
 	{
+		DEFINE_COMPONENT_OFFSET(ComponentType::Global)
+
+
 		//bool IsResolved() const override final { return true; }
 
 		//Global* GetGlobal(ITemplateBody* args) override { return this; };

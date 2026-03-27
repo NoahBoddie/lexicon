@@ -2,12 +2,13 @@
 
 namespace LEX
 {
-    ENUM(ComponentType, uint8_t)
+    ENUM(ComponentType, uint16_t)
     {
+        Invalid,
         IComponent,
-            IElement,
-            IDirectory,
-            IEnvironment,
+        IElement,
+        IDirectory,
+        IEnvironment,
             //IRepository,  //I'm unsure of the necessity of this type.
 
             IScript,
@@ -29,16 +30,25 @@ namespace LEX
 
             IGlobal,
             Global,
-
+            
 
 #ifdef LEX_SOURCE//Size manually adjusted to not cause overlap when id count grows.
-                        
-            Component = (255 / 2),
-            Project,
-            Directory,
-            Script,
-            Environment,
+                      
+            Component,
             Element,
+            Environment,
+            Directory,
+            Project,
+            Script,
+            
+            kScriptedMax,
+
+
+
+            IComponentImpl,
+            IElementImpl,
+            IEnvironmentImpl,
+            IDirectoryImpl,
 
 
 
@@ -56,7 +66,15 @@ namespace LEX
             ConcreteGlobal,
             GenericGlobal,
             SpecialGlobal,
+
+
+
+#else
+            kScriptedMax,
+
 #endif
+
+            kTotal,
     };
 
 }

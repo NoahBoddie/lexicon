@@ -15,7 +15,7 @@ namespace LEX
 			report::error("Invalid index given: {}", _index);
 			return nullptr;
 		}
-
+		
 		return ObjectPolicyManager::instance->GetObjectPolicy(_index);
 	}
 }

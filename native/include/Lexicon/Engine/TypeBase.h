@@ -24,6 +24,8 @@ namespace LEX
 
 	class TypeBase : public SecondaryEnvironment, public OverloadParameter, public PolicyData
 	{//TypeBase Might not even use clauses directly. We shall see.
+	public:
+		DEFINE_COMPONENT_TYPE(ComponentType::TypeBase)
 
 	private:
 
@@ -109,19 +111,6 @@ namespace LEX
 			return AsType();
 		}
 
-
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<ITypeInfo>::value):
-				return AsType();
-
-			case Hash(TypeName<TypeBase>::value):
-				return this;
-			}
-			return __super::Cast(name);
-		}
 
 
 		void CheckDeriveFrom(ITypeInfo* other) override;

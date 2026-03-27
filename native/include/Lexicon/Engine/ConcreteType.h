@@ -13,6 +13,11 @@ namespace LEX
 	class ConcreteType : public ConcreteTypeBase
 	{
 	public:
+		DECL_IMPL_FUNC_ENVIRONMENT;
+		DEFINE_COMPONENT_TYPE(ComponentType::ConcreteType)
+		
+
+
 		using ConcreteTypeBase::ConcreteTypeBase;
 
 		ISpecializable* GetSpecializable() override { return nullptr; }
@@ -88,22 +93,11 @@ namespace LEX
 		void LoadFromSyntaxNode(SyntaxRecord& node) override;
 
 
-		void* Cast(std::string_view name) override
-		{
-			switch (Hash(name))
-			{
-			case Hash(TypeName<TypeInfo>::value):
-				return static_cast<TypeInfo*>(this);
-
-			case Hash(TypeName<ConcreteType>::value):
-				return this;
-			}
-
-			return __super::Cast(name);
-		}
 
 	protected:
 		void SetDefault(Variable& var) override;
+
+		const Component* AsComponent() const override final { return this; }
 	public:
 
 		void LoadFromRecord(SyntaxRecord& ast) override;

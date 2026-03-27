@@ -1,114 +1,53 @@
 #pragma once
 
-#include "Interface.h"
+#include "Lexicon/Interfaces/Interface.h"
 
 #include "Lexicon/ElementType.h"
 
-//*src
-#include "Lexicon/SignatureBase.h"
+#include "Lexicon/Interfaces/IElementBase.h"
+
+#include "Lexicon/Interfaces/IComponent.h"
 
 namespace LEX
 {
-	class Project;
-	struct Element;
-	struct Environment;
-	
-	struct IScript;
-	struct IProject;
-	struct IEnvironment;
-	class Script;
-
-	struct ITypeInfo;
-	struct IFunction;
-	struct IGlobal;
 	struct SignatureBase;
-	
-	//This should not be in interfaces, it's never used.
+	struct IFunction;
+	struct ITypeInfo;
 
-	struct IElement;
-
-	namespace Version
+	struct IElement : INTERFACE_DERIVES(IElementBase, IComponent)
 	{
-		namespace _1
+		DEFINE_COMPONENT_OFFSET(ComponentType::IElement)
+	private:
+
+#ifdef LEX_SOURCE
+		Script* GetScriptImpl() override;
+		Project* GetProjectImpl() override;
+		Directory* GetParentImpl() override;
+		Environment* GetEnvironmentImpl() override;
+		Script* GetCommonsImpl() override;
+
+		Element* GetElementFromPathImpl(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override;
+
+#endif
+	public:
+		//*
+		IFunction* GetFunctionFromPath(const std::string_view& path, SignatureBase* sign)
 		{
-			struct INTERFACE_VERSION(IElement)
-			{
-				virtual std::string_view GetName() const = 0;
-				//virtual Record* GetSyntaxTree() = 0;//Do not use this, it won't be able to handle the request.
-				
-				virtual bool IsGenericElement() const = 0;
-
-				virtual IScript* GetScript(bool = {}) = 0;
-				virtual IProject* GetProject(bool = {}) = 0;
-				virtual LEX::IElement* GetParent(bool = {}) = 0;
-				virtual IElement* GetEnvironment(bool = {}) = 0;//I might delete this.
-				virtual LEX::IScript* GetCommons(bool = {}) = 0;
-				
-
-				//Will not need an interface name due to being able to be a covariant
-				virtual LEX::IElement* GetElementFromPath(std::string_view path, ElementType elem, SignatureBase* sign = nullptr, bool = {}) = 0;
-			protected:
-				virtual void* Cast(std::string_view name) = 0;
-
-
-			};
-
-		}
-
-		CURRENT_VERSION(IElement, 1);
-
-	}
-
-	struct IMPL_VERSION(IElement) 
-	{
-		bool IsGenericElement() const override { return false; }
-
-		std::string GetFullName() //const
-		{
-
-			std::string result = std::string{ GetName() };
-
-			IElement* element = GetParent();
-
-			while (element)
-			{
-				result = std::format("{}::{}", element->GetName(), result);
-				element = element->GetParent();
-			}
-
-			return result;
-		}
-
-
-
-		//Each of these muse derive from the same type that IElement does.
-		template<typename T>
-		T* As()
-		{
-			if (!this)
-				return nullptr;
-
-			void* result = Cast(TypeName<T>::value);
-
-			return reinterpret_cast<T*>(result);
-		}
-
-
-
-		IFunction* GetFunctionFromPath(std::string_view path, ISignature& sign)
-		{
-			if (auto elem = GetElementFromPath(path, kFuncElement, &sign); elem)
-				return elem->As<IFunction>();
+			if (auto elem = GetElementFromPathInfc(path, kFuncElement, sign); elem)
+				return elem->As<IFunction>(ComponentType::ITypeInfo);
 
 			return nullptr;
 		}
 
-		ITypeInfo* GetTypeFromPath(std::string_view path)
+		ITypeInfo* GetTypeFromPath(const std::string_view& path)
 		{
-			if (auto elem = GetElementFromPath(path, kTypeElement); elem)
-				return elem->As<ITypeInfo>();
+			if (auto elem = GetElementFromPathInfc(path, kTypeElement); elem)
+				return elem->As<ITypeInfo>(ComponentType::ITypeInfo);
 
 			return nullptr;
 		}
+		//*/
 	};
+
+
 }

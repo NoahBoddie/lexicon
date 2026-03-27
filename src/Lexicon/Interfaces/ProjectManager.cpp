@@ -725,7 +725,7 @@ namespace LEX
 			case kScrpElement:
 			{
 				Signature key = sign ? Signature{ *sign } : Signature{};
-				element = Element::GetElementFromPath(nullptr, path, elem, sign ? &key : nullptr);
+				element = Element::GetElementFromPath(nullptr, path, elem, sign ? &key : nullptr)->As<IElement>();
 				break;
 			}
 				

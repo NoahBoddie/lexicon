@@ -453,6 +453,7 @@ void LexTesting(std::string formula)
     //END OF THE CONTROLLED ENVIRONMENT
     return;
     //END OF THE CONTROLLED ENVIRONMENT
+   
 }
 
 
@@ -709,7 +710,7 @@ int main(int argc, char** argv) {
     //return 0;
 
     
-
+    
 
     SafeInvoke([&]() {
         //std::getline(std::cin >> std::ws, formula);
@@ -735,6 +736,14 @@ void KillMe()
     //test.push_back(i);
     //std::span<int&> test2;
 }
+
+#include "RGL/Impl/macro_map.h"
+
+#define VA_ARGALEAN "func1", "func2", "func2"
+
+#define DO_LEAN(mc_string) auto CONCAT(doLean_,__COUNTER__) = mc_string;
+
+MAP(DO_LEAN, VA_ARGALEAN)
 
 
 //*
@@ -849,11 +858,10 @@ namespace LEX::Test
     };
 
 
-    void TESTIDEA()
-    {
-        TestIdea test;
-        test.foo();
-    }
+
+
+
+
 
     //Here's the structure idea, I have, the interface functions are introduced in a base class
     // that can be attached to each respective thing, then there's an interface version
@@ -870,297 +878,7 @@ namespace LEX::Test
     // script, the implementations will be as one.
 
 
-
-    struct Base1Impl : public Interface
-    {
-        uintptr_t Version() const override { return 0; }
-    };
-
-    struct Base2Impl : public Base1Impl//INTERFACE_VERSION(IElement)
-    {
-        virtual void foo(bool = {}) = 0;
-    };
-
-
-    struct TrueBase;
-
-    struct BaseImpl : public Base2Impl//IMPL_VERSION(IElement)
-    {
-        using BaseTarget = TrueBase;
-
-
-
-
-
-    private:
-        void foo(bool = {}) override final {};
-    public:
-        virtual const TrueBase* GetSelf() const = 0;
-        TrueBase* GetSelf() { return unconst(make_const(this)->GetSelf()); }
-
-
-        virtual void foo() = 0;
-    };
-
-#define DECLARE_TRUE_BASE const TrueBase* GetSelf() const override { return this; }
-
-
-
-    struct Derived1Impl : public Interface
-    {
-        uintptr_t Version() const override { return 0; }
-
-    };
-
-    struct Derived2Impl : public Derived1Impl
-    {
-
-    };
-
-
-    struct Base : public BaseImpl//INHERITING_VERSION(
-    {
-        void foo() override;
-    };
-
-
-    struct Derived :  public Base,  public Derived2Impl 
-    {
-        
-    
-    };
-
-
-
-    struct TrueBase : public BaseImpl
-    {
-        void foo() override
-        {
-            std::cout << "I'm the true foo baby\n";
-        }
-    };
-
-
-    struct TrueDerived : public TrueBase, public Derived
-    {
-        using BaseTarget::foo;
-        //Want to make a map to do this quicker.
-        DECLARE_TRUE_BASE;
-    };
-
-    void Base::foo()
-    {
-        //This issue happens because I'd be casting across vtables. SO I need a way to have this 
-        //auto self_bad = static_cast<TrueBase*>(this);
-        auto self = GetSelf();
-
-        return GetSelf()->foo();
-
-
-        //TrueBase* self = static_cast<TrueDerived*>(this);
-
-#define TEST_MC 1
-
-#define TEST_MC TEST_MC 1
-    }
-
-
-    INITIALIZE()
-    {
-        TrueDerived derived{};
-
-        derived.foo();
-    }
-
-    //I'll store this from it's created type, it'll be the component 
-    ENUM(ElementType, uint8_t)
-    {
-        IComponent,
-        IElement,
-            IDirectory,
-            IEnvironment,
-            //IRepository,  //I'm unsure of the necessity of this type.
-
-            IScript, 
-            
-            IProject,
-            
-            
-            
-            
-
-            //The harder stuff, specializables
-            IFunction,
-            Function,
-
-
-            ITypeInfo,
-            TypeInfo,
-            
-
-            IGlobal,
-            Global,
-            
-
-//#ifdef LEX_SOURCE
-            //Size manually adjusted to not cause overlap when id count grows.
-            Component = (255 / 2),
-            Project,
-            Directory,
-            Script,
-            Environment,
-            Element,
-
-
-
-            FunctionBase,
-            ConcreteFunction,
-            GenericFunction,
-            SpecialFunction,
-
-            TypeBase,
-            ConcreteType,
-            GenericType,
-            SpecialType,
-
-            GlobalBase,
-            ConcreteGlobal,
-            GenericGlobal,
-            SpecialGlobal,
-//#endif
-    };
-
-    enum struct CastingType
-    {
-        _1,
-        _2,
-    };
-
-    struct CastTest1
-    {
-        static constexpr auto COMPONENT_TYPE = CastingType::_1;
-
-        const CastingType type;
-
-        CastTest1(CastingType t) : type{ t } {}
-        CastTest1() : CastTest1{ COMPONENT_TYPE } {}
-
-    private:
-        template <typename From, typename To>
-        inline const To* CompCastRhs(const From* self) const;
-
-        template<typename T>
-        inline const void* CompCastLhs(const void* ptr, CastingType to) const;
-        //From in this case is the pointer it's being percieved as, to is the goal
-        virtual const void* Cast(const void* self, CastingType from, CastingType to) const final;
-    public:
-
-        template<typename T, typename Self>
-        const T* As(this Self&& a_this)
-        {
-            return reinterpret_cast<const T*>(a_this.Cast(std::addressof(a_this), std::remove_cvref_t<Self>::TYPE, T::TYPE));
-        }
-    };
-
-    struct NewVtable
-    {
-        virtual void spacetaker() {}
-    };
-
-    struct CastTest2 : public NewVtable, public CastTest1
-    {
-        static constexpr auto COMPONENT_TYPE = CastingType::_2;
-
-        CastTest2() : CastTest1{ COMPONENT_TYPE } {}
-
-    };
-
-    //case CastingType::_1:
-    //return ComponentCast1<CastTest1>(self, to);
-#define LHS_COMPONENT_TRAITS(mc_type) \
-    case mc_type::COMPONENT_TYPE:\
-        return CompCastLhs<mc_type>(self, to);
-
-#define RHS_COMPONENT_TRAITS(mc_type) \
-    case mc_type::COMPONENT_TYPE:\
-        return CompCastRhs<T, mc_type>(self);
-
-
-//case CastingType::_1:
-//    if constexpr (std::is_convertible_v<const CastTest1*, const To*>) {
-//        return static_cast<const CastTest1*>(this);
-//    }
-//    break;
-
-#define COMPONENT_TRAITS(mc_type) \
-    case mc_type::COMPONENT_TYPE:\
-        if constexpr (std::is_convertible_v<const mc_type*, const To*>){\
-            return static_cast<const mc_type*>(this);\
-        }\
-        break
-        
-
-    template <typename From, typename To>
-    inline const To* CastTest1::CompCastRhs(const From* self) const
-    {
-        switch (type)
-        {
-        case CastTest1::COMPONENT_TYPE: if constexpr (std::is_convertible_v<const CastTest1, const To*>) {
-            return static_cast<const CastTest1*>(this);
-        } break;
-        case CastTest2::COMPONENT_TYPE: if constexpr (std::is_convertible_v<const CastTest2, const To*>) {
-            return static_cast<const CastTest2*>(this);
-        } break;
-            
-            default:
-                report::critical("Unknown ComponentType {} detected", magic_enum::enum_name(type));
-        }
-
-        return nullptr;
-    }
-
-    template<typename T>
-    inline const void* CastTest1::CompCastLhs(const void* ptr, CastingType to) const
-    {
-        const T* self = reinterpret_cast<const T*>(ptr);
-
-        switch (to)
-        {
-            RHS_COMPONENT_TRAITS(CastTest1);
-            RHS_COMPONENT_TRAITS(CastTest2);
-
-        default:
-            report::critical("Unknown ComponentType {} detected", magic_enum::enum_name(type));
-        }
-
-        return nullptr;
-    }
-    //From in this case is the pointer it's being percieved as, to is the goal
-    const void* CastTest1::Cast(const void* self, CastingType from, CastingType to) const
-    {
-        switch (from)
-        {
-            LHS_COMPONENT_TRAITS(CastTest1);
-            LHS_COMPONENT_TRAITS(CastTest2);
-
-        default:
-            report::critical("Unknown ComponentType {} detected", magic_enum::enum_name(type));
-        }
-
-        return nullptr;
-    }
-
-    void TestingTheCastTest()
-    {
-        const CastTest2 it;
-        const CastTest1* test1 = &it;
-
-        const CastTest2* test2 = test1->As<CastTest2>();
-
-    }
-
-
-#ifdef DISABLE_THIS_GUFF
+#ifndef DISABLE_THIS_GUFF
 
 
 
@@ -1237,10 +955,10 @@ namespace LEX::Test
         virtual void id() {}
     };
 
-    struct IProject : public Dum, public IRepository
+    struct IProject_ : public Dum, public IRepository
     { };
 
-    struct Project_ : public Directory, public IProject
+    struct Project_ : public Directory, public IProject_
     {
 
         virtual Script* AddScript(Script* script) = 0;
@@ -1253,7 +971,7 @@ namespace LEX::Test
 
     struct IEnvironment : public Dum, public IElement {};
 
-    struct IScript : public Dum, public IEnvironment, public IRepository
+    struct IScript_ : public Dum, public IEnvironment, public IRepository
     {
     };
 
@@ -1263,10 +981,40 @@ namespace LEX::Test
 
     };
 
-    struct Script_ : public Environment_, public IScript
+    struct Script_ : public Environment_, public IScript_
     {
 
     };
+
+
+
+    struct IComponent
+    {
+        static TypeInfo* GetVariableType(const IComponent* comp)
+        {
+
+        }
+
+        //This will only be on the heirarch
+        virtual uint16_t GetComponentOffset() const = 0;
+        virtual Reflect GetReflect() const = 0;
+        virtual size_t GetReflectOffset() const = 0;
+        
+        //virtual bool IsValidOffset(size_t offset) const
+        //{
+        //    //This can be used for abstract types that may not update right.
+        //    return GetReflectOffset() == offset;
+        //}
+
+
+        //bool IsValidOffset(auto offset) const requires (std::is_enum_v<decltype(offset)>)
+        //{
+        //	IsValidOffset(static_cast<size_t>(offset));
+        //}
+
+
+    };
+
 
     //TODO: rethink reflection, instead maybe incorporate it as an aspect of ALL elements, instead being something of an IComponent
 

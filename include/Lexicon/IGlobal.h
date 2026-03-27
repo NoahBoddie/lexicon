@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/ISpecial.h"
-
+#include "Lexicon/Interfaces/IElement.h"
 
 namespace LEX
 {
@@ -23,17 +23,11 @@ namespace LEX
 
 				virtual Global* GetGlobal(ITemplateBody* args) = 0;
 
-				virtual std::string_view GetName() const = 0;
-
 				//Attempts to revert value. If the global is const or a special part, it will fail to revert.
 				// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
 				// information. Will not throw.
 				virtual bool Revert(bool just_default) = 0;
 
-				Global* FetchGlobal(ITemplateBody* args)
-				{
-					return this ? GetGlobal(args) : nullptr;
-				}
 
 			};
 		}
@@ -41,11 +35,29 @@ namespace LEX
 		CURRENT_VERSION(IGlobal, 1);
 		
 	}
+	
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(IGlobalAbstract, IGlobal, IElement)
+	{
+		DEFINE_COMPONENT_OFFSET(ComponentType::IGlobal)
+
+
+
+		Global* FetchGlobal(ITemplateBody * args)
+		{
+			return this ? GetGlobal(args) : nullptr;
+		}
+	};
+
 
 
 
 #ifndef LEX_SOURCE
 	//Only accessible outside of the source.
-	struct IMPL_VERSION(IGlobal) {};
+	struct IGlobal : public IGlobalAbstract {};
 #endif
 }
+
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/IGlobalImpl.h"
+#endif
