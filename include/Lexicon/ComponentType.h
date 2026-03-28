@@ -4,70 +4,50 @@ namespace LEX
 {
     ENUM(ComponentType, uint16_t)
     {
-        Invalid,
+        Invalid = -1,
+        
+        Component,
+        Element,
+        Environment,
+        Directory,
+        Project,
+        Script,
+        IFunction,
+        Function,
+        ITypeInfo,
+        TypeInfo,
+        IGlobal,
+        Global,
+
+        kScriptedMax,
+
+                
         IComponent,
         IElement,
         IDirectory,
         IEnvironment,
-            //IRepository,  //I'm unsure of the necessity of this type.
+        IScript,
+        IProject,
+        //IRepository,  //I'm unsure of the necessity of this type.
 
-            IScript,
+        FunctionBase,
+        ConcreteFunction,
+        GenericFunction,
+        SpecialFunction,
 
-            IProject,
+        TypeBase,
+        ConcreteType,
+        GenericType,
+        SpecialType,
 
-
-
-
-
-            //The harder stuff, specializables
-            IFunction,
-            Function,
-
-
-            ITypeInfo,
-            TypeInfo,
-
-
-            IGlobal,
-            Global,
-            
-
-#ifdef LEX_SOURCE//Size manually adjusted to not cause overlap when id count grows.
-                      
-            Component,
-            Element,
-            Environment,
-            Directory,
-            Project,
-            Script,
-            
-            kScriptedMax,
+        GlobalBase,
+        ConcreteGlobal,
+        GenericGlobal,
+        SpecialGlobal,
 
 
 
-            FunctionBase,
-            ConcreteFunction,
-            GenericFunction,
-            SpecialFunction,
-
-            TypeBase,
-            ConcreteType,
-            GenericType,
-            SpecialType,
-
-            GlobalBase,
-            ConcreteGlobal,
-            GenericGlobal,
-            SpecialGlobal,
-
-
-
-#else
-            kScriptedMax,
-
-#endif
-
-            kTotal,
+       kTotal,
     };
 
 }

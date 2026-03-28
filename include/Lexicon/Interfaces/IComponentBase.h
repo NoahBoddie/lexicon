@@ -115,7 +115,7 @@ namespace LEX
         static TypeInfo* GetVariableType(const Comp* comp)
         {
             //TODO: I would like to have the rest of this done elsewhere.
-            uint16_t offset = comp ? comp->GetComponentOffset() : Comp::COMPONENT_TYPE;
+            uint16_t offset = comp ? comp->GetComponentOffset() : Comp::SCRIPT_TYPE;
             //ITypeInfo* type = IdentityManager::instance->GetTypeByOffset("REFLECT", offset);
             return GetTypeFromOffset(offset);
         }

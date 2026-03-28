@@ -8,6 +8,9 @@
 namespace LEX
 {
 
+	//TODO: instead of deriving from the default client, I'd like to have the default client be able to register
+	// messages and such.
+
 	struct DefaultClient : public ProjectClient
 	{
 		//Currently has an issue where failure is not descriptive if the location it failed in.
