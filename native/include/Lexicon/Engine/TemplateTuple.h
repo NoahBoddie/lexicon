@@ -102,12 +102,12 @@ namespace LEX
 
 
 
-		ITypeInfo* CheckTypePolicy(GenericBase* base, ITemplatePart* args) override
+		ITypeInfo* CheckTypeInfo(GenericBase* base, ITemplatePart* args) override
 		{
 			return dynamic_cast<ITypeInfo*>(ObtainSpecial(args));
 		}
 
-		TypeInfo* GetTypePolicy(ITemplateBody* args)// override
+		TypeInfo* GetTypeInfo(ITemplateBody* args)// override
 		{
 			return dynamic_cast<TypeInfo*>(ObtainBody(args));
 		}

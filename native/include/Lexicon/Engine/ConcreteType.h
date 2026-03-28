@@ -44,12 +44,12 @@ namespace LEX
 		}
 
 		//These 2 should largely be inherited from Type.
-		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override
+		ITypeInfo* CheckTypeInfo(ITemplatePart* args) override
 		{
 			return this;
 		}
 
-		TypeInfo* GetTypePolicy(ITemplateBody* args) override
+		TypeInfo* GetTypeInfo(ITemplateBody* args) override
 		{
 			return this;
 		}

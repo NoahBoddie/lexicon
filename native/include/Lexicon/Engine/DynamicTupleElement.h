@@ -24,7 +24,7 @@ namespace LEX
 		size_t index = -1;
 		Operand operand;
 
-		TypeInfo* GetTypePolicy(ITemplateBody* args) override
+		TypeInfo* GetTypeInfo(ITemplateBody* args) override
 		{
 			//This is basically how I would do it.
 
@@ -40,7 +40,7 @@ namespace LEX
 
 
 
-			return tuple->GetArgument(access)->GetTypePolicy((ITemplateBody*)nullptr);
+			return tuple->GetArgument(access)->GetTypeInfo((ITemplateBody*)nullptr);
 		}
 
 

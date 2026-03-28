@@ -16,7 +16,7 @@ namespace LEX
 		{
 			auto type = args->GetPartArgument(x);
 
-			result._types[x] = type->CheckTypePolicy(args);
+			result._types[x] = type->CheckTypeInfo(args);
 		}
 
 		return result;

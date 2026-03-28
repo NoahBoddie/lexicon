@@ -42,9 +42,12 @@ namespace LEX
 			if (just_default) {
 				Variable& a_this = value.Ref();//this shouldn't work
 				
+				assert(_declared);
 				//auto type = a_this.Policy();
-				auto type = _declared->GetTypePolicy(nullptr);
-
+				auto type = _declared->GetTypeInfo(nullptr);
+				
+				assert(type);
+				
 				a_this = type->GetDefault();
 			}
 			else

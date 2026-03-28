@@ -87,7 +87,10 @@ namespace LEX
 			//static_assert(false);
 			if (auto derives = settings->FindChild(parse_strings::derives)) {
 				for (auto& inherit : derives->children()) {
-					ITypeInfo* type = GetParent()->FetchEnvironment()->SearchTypePath(inherit).info;
+
+					Environment* env = NULL_OP(NULL_Q(GetParent())->GetEnvironment());
+
+					ITypeInfo* type = SearchTypePath(env, inherit).info;
 
 					Access access = Access::None;
 

@@ -369,7 +369,7 @@ namespace LEX
 			
 			//RuntimeVariable& var = runtime->GetVariable(a_lhs.Get<Index>());
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);
-			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = NULL_OP(NULL_Q(a_rhs.Get<ITypeInfo*>())->GetTypeInfo(runtime));
 			
 			//if no policy, fatal fault
 			assert_if (!policy){
@@ -390,7 +390,7 @@ namespace LEX
 			return;
 
 			RuntimeVariable& var = a_lhs.AsVariable(runtime);//s runtime->GetVariable(a_lhs.Get<Index>());
-			TypeInfo* policy = a_rhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = NULL_OP(NULL_Q(a_rhs.Get<ITypeInfo*>())->GetTypeInfo(runtime));
 
 			//if no policy, fatal fault
 			if (!policy) {
@@ -656,7 +656,7 @@ namespace LEX
 		{
 
 			RuntimeVariable from = a_rhs.GetVariable(runtime);
-			TypeInfo* to = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+			TypeInfo* to = NULL_OP(NULL_Q(a_lhs.Get<ITypeInfo*>())->GetTypeInfo(runtime));
 			//from->
 		}
 
@@ -680,7 +680,7 @@ namespace LEX
 		static void Construct(RuntimeVariable& result, Operand a_lhs, Operand, InstructType, Runtime* runtime)
 		{
 			
-			TypeInfo* policy = a_lhs.Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+			TypeInfo* policy = NULL_OP(NULL_Q(a_lhs.Get<ITypeInfo*>())->GetTypeInfo(runtime));
 
 			if (!policy)
 				report::runtime::critical("No policy could be fetched.");
@@ -2369,12 +2369,12 @@ namespace LEX
 				{
 					
 
-					auto identity = other->FetchTypeID().GetIdentity();
+					auto identity = NULL_OP(NULL_Q(other)->GetTypeID().GetIdentity());
 
 					auto index = IdentityManager::instance->GetIndexFromName("NUMBER");
 
 
-					if (identity.index == index )
+					if (identity.index == index)
 					{
 
 						//With this, I might as well just be able to convert it and ignore the rest of this shit innit?

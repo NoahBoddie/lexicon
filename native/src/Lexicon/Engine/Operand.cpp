@@ -198,7 +198,7 @@ namespace LEX
 
 		case OperandType::Type: {
 			auto type = Get<ITypeInfo*>();
-			return type->GetTypePolicy(runtime);
+			return type->GetTypeInfo(runtime);
 		}
 
 		case OperandType::Function: {
@@ -330,7 +330,7 @@ namespace LEX
 		switch (type())
 		{
 		case OperandType::Type:
-			return Get<ITypeInfo*>()->FetchTypePolicy(runtime);
+			return NULL_OP(NULL_Q(Get<ITypeInfo*>())->GetTypeInfo(runtime));
 
 		default:
 			report::fault::critical("Operand didn't exist. Fixer later. {} ", magic_enum::enum_name(type()));

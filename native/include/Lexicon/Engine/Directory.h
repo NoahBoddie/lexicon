@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Engine/IDirectoryImpl.h"
+#include "Lexicon/Interfaces/IDirectoryBase.h"
 
 #include "Lexicon/Engine/Element.h"
 

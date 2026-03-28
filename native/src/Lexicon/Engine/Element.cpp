@@ -23,12 +23,12 @@ namespace LEX
 
 	Script* Element::GetScriptImpl()
 	{
-		return GetParent()->FetchScript();
+		return NULL_OP(NULL_Q(GetParent())->GetScript());
 	}
 
 	Project* Element::GetProjectImpl()
 	{
-		return GetParent()->FetchProject();
+		return NULL_OP(NULL_Q(GetParent())->GetProject());
 	}
 
 	Project* Element::GetShared()
@@ -37,7 +37,7 @@ namespace LEX
 		return ProjectManager::instance->GetShared();
 	}
 	
-	Script* Element::GetCommonsImpl() { return GetScript()->FetchCommons(); }
+	Script* Element::GetCommonsImpl() { return NULL_OP(NULL_Q(GetScript())->GetCommons()); }
 
 	void Element::DeclareParentTo(Element* child)
 	{
@@ -111,7 +111,7 @@ namespace LEX
 			}
 		}
 
-		return a_this->FetchEnvironment();
+		return NULL_OP(NULL_Q(a_this)->GetEnvironment());
 
 	}
 
@@ -153,8 +153,8 @@ namespace LEX
 					continue;
 				}			
 				
-
-				GenericArray inserter{ FetchGenericElement(), };
+				//TODO: the use of this function in undefined behaviour and is liable for error.
+				GenericArray inserter{ NULL_OP(NULL_Q(this)->AsGenericElement()), };
 				Environment* env = step ? elem->WalkEnvironmentPath(step, inserter) : elem->GetEnvironment();
 				
 				if (env)
@@ -714,7 +714,7 @@ namespace LEX
 					break;
 
 				case SyntaxType::SpecifyScript:
-					target = a_this->FetchScript();
+					target = NULL_OP(NULL_Q(a_this)->GetScript());
 
 					if (!target)
 						target = ProjectManager::instance->GetShared()->GetCommons();
@@ -723,7 +723,7 @@ namespace LEX
 
 
 				case SyntaxType::SpecifyCommons:
-					target = a_this->FetchCommons();
+					target = NULL_OP(NULL_Q(a_this)->GetCommons());
 
 					if (!target)
 						target = ProjectManager::instance->GetShared()->GetCommons();
@@ -750,7 +750,7 @@ namespace LEX
 
 			if (!is_direct)
 			{
-					target = target->FetchParent();
+					target = NULL_OP(NULL_Q(target)->GetParent());
 			}
 			else
 			{

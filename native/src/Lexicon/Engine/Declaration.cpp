@@ -185,7 +185,7 @@ namespace LEX
 			}
 
 			if (type_name) {
-				result = elem->SearchTypePath(*type_name).info;
+				result = Element::SearchTypePath(elem, *type_name).info;
 			}
 			else {
 				settings.limit = settings.limit == Limit::Invalid ? Limit::Overflow : settings.limit;

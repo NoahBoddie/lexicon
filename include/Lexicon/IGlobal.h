@@ -38,14 +38,9 @@ namespace LEX
 	
 	struct __declspec(novtable) IMPL_VERSION_DERIVES(IGlobalAbstract, IGlobal, IElement)
 	{
-		DEFINE_COMPONENT_OFFSET(ComponentType::IGlobal)
+		DEFINE_COMPONENT_OFFSET(ComponentType::IGlobal);
 
 
-
-		Global* FetchGlobal(ITemplateBody * args)
-		{
-			return this ? GetGlobal(args) : nullptr;
-		}
 	};
 
 

@@ -22,11 +22,6 @@ namespace LEX
 		//TODO: make non-const version of GetGeneric
 		virtual GenericBase* GetGeneric() const = 0;
 
-		GenericBase* FetchBase() const
-		{
-			return this ? GetGeneric() : nullptr;
-		}
-
 
 		//virtual SpecialBase* GetPart(ITemplatePart* args) = 0;
 

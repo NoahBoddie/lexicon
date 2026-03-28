@@ -15,12 +15,6 @@
 #include "Lexicon/Function.h"
 #include "Lexicon/Global.h"
 
-//TODO: Delete impl versions, the engine type is literally that
-#include "Lexicon/Engine/IElementImpl.h"
-#include "Lexicon/Engine/IComponentImpl.h"
-#include "Lexicon/Engine/IDirectoryImpl.h"
-#include "Lexicon/Engine/IEnvironmentImpl.h"
-
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/Component.h"
 #include "Lexicon/Engine/Directory.h"

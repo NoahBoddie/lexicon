@@ -40,9 +40,9 @@ namespace LEX
 
 		ISpecializable* GetSpecializable() override;
 
-		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override;
+		ITypeInfo* CheckTypeInfo(ITemplatePart* args) override;
 
-		TypeInfo* GetTypePolicy(ITemplateBody* args) override;
+		TypeInfo* GetTypeInfo(ITemplateBody* args) override;
 
 
 		TemplateType* AsTemplate() override { return this; }

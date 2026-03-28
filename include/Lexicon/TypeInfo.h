@@ -48,7 +48,7 @@ namespace LEX
 		//TODO: ABSOLUTELY change the name "TypeInfo::IsAbstract". Perhaps "IsImplemented". Which this should never not be implemented.
 		// Also, probably base that off something like the interface this comes from.
 
-		TypeInfo* GetTypePolicy(ITemplateBody* args) override
+		TypeInfo* GetTypeInfo(ITemplateBody* args) override
 		{
 			return this;
 		}

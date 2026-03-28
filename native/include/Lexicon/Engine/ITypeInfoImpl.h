@@ -132,7 +132,7 @@ namespace LEX
 
 		bool IsReferenceType() const override
 		{
-				get_switch (FetchDataType())
+				get_switch (GetDataType())
 				{
 				case DataType::Class:
 				case DataType::Interface:

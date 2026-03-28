@@ -4,7 +4,7 @@
 #include "Lexicon/ComponentType.h"
 #include "Lexicon/Interfaces/Interface.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
-#include "Lexicon/Engine/IComponentImpl.h"
+#include "Lexicon/Interfaces/IComponentBase.h"
 #include "Lexicon/Interfaces/LinkMessenger.h"
 
 namespace LEX
@@ -51,8 +51,8 @@ namespace LEX
 		//}
 
 
-		template <std::derived_from<Component> T>
-		bool IsComponentType() { return this ? (_type == T::COMPONENT_TYPE) : false; }
+		//template <std::derived_from<Component> T>
+		//bool IsComponentType() { return this ? (_type == T::COMPONENT_TYPE) : false; }
 
 	private:
 		//Limit the use of a recordless create by seeing if load from record has been implemented.

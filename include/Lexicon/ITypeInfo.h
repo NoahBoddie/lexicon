@@ -6,9 +6,6 @@
 
 #include "Lexicon/DataType.h"
 
-
-#include "Lexicon/Reflection.h"
-
 #include "Lexicon/Interfaces/IEnvironment.h"
 
 namespace LEX
@@ -43,39 +40,8 @@ namespace LEX
 			struct INTERFACE_VERSION_DERIVES(ITypeInfo, ISpecial)
 			{
 			public:
-				constexpr static uint32_t NonGenericIndex = -1;
 
-
-
-
-				//ITypeInfo();
-
-				//ITypeInfo(uint32_t i);
-
-				//ITypeInfo(std::string_view name, TypeOffset offset);
-
-
-				//ITypeInfo(ISpecializable* tar) : _target{ tar } {}
-
-				//An interface of a type policy, which may or may not be a policy. Generally, one should use all the functions that this provides in order
-				// to use the type policy.
-
-
-				//Unsure of how this gets one however.
-
-
-				//Might require an ISpecializable target. Actually, move this shit.
-				//ISpecializable* _target = nullptr;
-
-				//This function basically expects a number of things to be submitted, but here, the full specialization of a calling function could be used in order to
-				// get a partially specialized function.
-				//I may still go with interface because I don't think I want something where I derive a specializaton from TypePolicy, it'd be a waste of space, literal repeat.
-				// I KNOW, instead, I could make an implementation policy
-				//TODO:Make second interface for "Type" which GetType returns, and what stores all the type policy info.
-				virtual TypeInfo* GetTypePolicy(ITemplateBody* args) = 0;
-
-				//This should be hidden.
-				virtual ITypeInfo* CheckTypePolicy(ITemplatePart* args) = 0;
+				virtual TypeInfo* GetTypeInfo(ITemplateBody* args) = 0;
 
 
 				virtual TypeID GetTypeID() const = 0;
@@ -95,38 +61,15 @@ namespace LEX
 
 				virtual bool Convert(const Variable& from, Variable& to) const = 0;
 
-				//Make a type that produces an error
-				//virtual bool Convert(const Variable& from, Variable& to, const ITypeInfo* type) = 0;
+				virtual std::span<ITypeInfo*> GetTemplate() = 0;
 
+				virtual ObjectPolicy* GetObjectPolicy() const = 0;
 
-				//Make some safe functions for these.
-
-
-			public:
+			INTERNAL:
 				
-				virtual std::span<ITypeInfo*> GetTemplate() { return {}; }
+				virtual ITypeInfo* CheckTypeInfo(ITemplatePart* args) = 0;
 
 
-
-				TypeInfo* FetchTypePolicy(ITemplateBody* args)
-				{
-					return this ? GetTypePolicy(args) : nullptr;
-				}
-
-				DataType FetchDataType() const
-				{
-					return this ? GetDataType() : DataType::Invalid;
-				}
-
-				bool IsValueType() const
-				{
-					return !IsReferenceType();
-				}
-
-				TypeID FetchTypeID() const
-				{
-					return this ? GetTypeID() : TypeID{};
-				}
 			};
 		}
 
@@ -134,7 +77,8 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION(ITypeInfo)
 			{
-				virtual ObjectPolicy* GetObjectPolicy() const = 0;
+
+
 			};
 		}
 
@@ -144,7 +88,14 @@ namespace LEX
 
 	struct __declspec(novtable) IMPL_VERSION_DERIVES(ITypeInfoAbstract, ITypeInfo, IEnvironment)
 	{
-		DEFINE_COMPONENT_OFFSET(ComponentType::ITypeInfo)
+		DEFINE_COMPONENT_OFFSET(ComponentType::ITypeInfo);
+
+		std::span<ITypeInfo*> GetTemplate() override { return {}; }
+
+		bool IsValueType() const
+		{
+			return !IsReferenceType();
+		}
 	};
 
 

@@ -4,7 +4,7 @@
 #include "RGL/Impl/Record.h"
 #include "Lexicon/Exception.h"//May move to src
 
-#include "Lexicon/Engine/IElementImpl.h"
+#include "Lexicon/Interfaces/IElementBase.h"
 
 
 #include "Lexicon/TypeAliases.h"
@@ -76,9 +76,7 @@ namespace LEX
 
 		virtual GenericBase* AsGenericElement() { return nullptr; }
 
-		GenericBase* FetchGenericElement() { return this ? AsGenericElement() : nullptr; }
-
-		bool IsGenericElement() const override final { return const_cast<Element*>(this)->AsGenericElement(); }
+		bool IsGenericElement() const override final { return unconst(this)->AsGenericElement(); }
 
 
 	private:
@@ -232,24 +230,6 @@ namespace LEX
 			node.SetParent(this);//Doing this last allows the base most ones to set their parent first.
 		}
 
-
-
-		auto FetchScript() { return this ? GetScript() : nullptr; }
-		auto FetchProject() { return this ? GetProject() : nullptr; }
-		auto FetchParent() { return this ? GetParent() : nullptr; }
-		auto FetchEnvironment() { return this ? GetEnvironment() : nullptr; }
-		auto FetchCommons() { return this ? GetScript() : nullptr; }
-
-
-		std::string_view FetchName(const std::string_view& str) const
-		{
-			return this ? GetName() : str;
-		}
-
-		std::string_view FetchName() const
-		{
-			return FetchName("<null>");
-		}
 
 
 		

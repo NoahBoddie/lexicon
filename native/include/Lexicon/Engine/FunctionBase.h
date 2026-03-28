@@ -117,7 +117,7 @@ namespace LEX
 
 
 
-			QualifiedType sub_type = subject->FetchQualifiedType();
+			QualifiedType sub_type = NULL_OP(NULL_Q(subject)->GetQualifiedType());
 
 
 
@@ -194,7 +194,7 @@ namespace LEX
 				return false;
 			}
 
-			QualifiedType sub_type = subject->FetchQualifiedType();
+			QualifiedType sub_type = NULL_OP(NULL_Q(subject)->GetQualifiedType());
 
 
 

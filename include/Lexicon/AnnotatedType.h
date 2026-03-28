@@ -62,7 +62,7 @@ namespace LEX
 		template<typename T>
 		T QualifySpecial(this const T& self, ITemplatePart* part)
 		{
-			return T{ self.policy->CheckTypePolicy(part), self };
+			return T{ self.policy->CheckTypeInfo(part), self };
 		}
 
 		auto operator <=>(const AnnotatedType&) const = default;

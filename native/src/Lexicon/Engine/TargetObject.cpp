@@ -7,7 +7,7 @@ namespace LEX
 {
 	GenericBase* TargetObject::GetClient() const
 	{
-		return target->policy->GetSpecializable()->FetchBase();
+		return NULL_OP(NULL_Q(target->policy->GetSpecializable())->GetGeneric());
 	}
 
 
@@ -27,7 +27,7 @@ namespace LEX
 	{
 		if (GetState())
 		{
-			return target->policy->GetTemplate()[i]->FetchTypePolicy(nullptr);;
+			return NULL_OP(NULL_Q(target->policy->GetTemplate()[i])->GetTypeInfo(nullptr));
 		}
 		return nullptr;
 	}

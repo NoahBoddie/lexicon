@@ -15,13 +15,4 @@ namespace LEX
 		return result;
 	}
 
-
-	QualifiedType Field::FetchQualifiedType() const
-	{
-		if (!this)
-			return {};
-
-		return GetQualifiedType();
-	}
-
 }

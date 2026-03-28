@@ -5,8 +5,6 @@
 
 #include "Lexicon/Engine/Component.h"
 #include "Lexicon/Engine/Directory.h"
-#include "Lexicon/Engine/IProjectImpl.h"
-
 #include "Lexicon/Interfaces/IProject.h"
 namespace LEX
 {

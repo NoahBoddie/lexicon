@@ -191,7 +191,7 @@ namespace LEX
 					report::fault::error("'ARRAY' at offset 0 is empty.");
 				}
 
-				return result->GetTypePolicy(nullptr);
+				return result->GetTypeInfo(nullptr);
 			}
 
 			auto type = IdentityManager::instance->GetTypeByOffset("ARRAY", 0);
@@ -199,7 +199,7 @@ namespace LEX
 			//TODO: Remove the boilerplate from using a GenericArray, it's common to want to do something like this
 			GenericArray array{ nullptr, {self->type() } };
 
-			auto result = type->GetTypePolicy(array.TryResolve());
+			auto result = type->GetTypeInfo(array.TryResolve());
 
 			if (!result) {
 				report::error("Failed to specialized 'ARRAY' offset of 1.");
@@ -391,7 +391,7 @@ namespace LEX
 
 				GenericArray array{ nullptr, {data.get<Array>().type()} };
 
-				auto result = type->GetTypePolicy(array.TryResolve());
+				auto result = type->GetTypeInfo(array.TryResolve());
 
 				if (!result) {
 					report::error("Failed to specialized 'ARRAY' offset of 1.");
@@ -399,7 +399,7 @@ namespace LEX
 
 			}
 			else {
-				result = type->GetTypePolicy(nullptr);
+				result = type->GetTypeInfo(nullptr);
 			}
 
 			return result;
@@ -442,7 +442,7 @@ namespace LEX
 
 		TypeInfo* VariableType(const std::vector<T>* vec)
 		{
-			return IdentityManager::instance->GetTypeByOffset("ARRAY", 0)->GetTypePolicy(nullptr);
+			return IdentityManager::instance->GetTypeByOffset("ARRAY", 0)->GetTypeInfo(nullptr);
 			//TODO: This literally does not work, please implement this properly.
 			//return Array::GetVariableType(vec);
 		}

@@ -12,7 +12,7 @@ namespace LEX
     TypeInfo* IComponentBase::GetTypeFromOffset(uint16_t offset)
     {
         ITypeInfo* type = IdentityManager::instance->GetTypeByOffset("REFLECT", offset);
-        return type->FetchTypePolicy(nullptr);
+        return NULL_OP(NULL_Q(type)->GetTypeInfo(nullptr));
     }
 
     const void* IComponentBase::Cast(const void* self, ComponentType from, ComponentType to) const

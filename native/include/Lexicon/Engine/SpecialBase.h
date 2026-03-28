@@ -137,8 +137,9 @@ namespace LEX
 			if (GetState())
 			{
 				auto& type = _types[i];
+				
 
-				return type->FetchTypePolicy(nullptr);;
+				return NULL_OP(NULL_Q(type)->GetTypeInfo(nullptr));
 			}
 
 			return nullptr;

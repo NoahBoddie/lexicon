@@ -175,7 +175,7 @@ namespace LEX
 			if (!type)
 				report::critical("Cannot specialize null type");
 
-			return type->GetTypePolicy((ITemplateBody*)nullptr);
+			return type->GetTypeInfo(nullptr);
 		}
 
 		

@@ -112,7 +112,7 @@ namespace LEX
 			if constexpr (1)
 			{
 				if (usesType & IsType1) {
-					auto info = typeDefined->FetchTypePolicy(nullptr);
+					auto info = NULL_OP(NULL_Q(typeDefined)->GetTypeInfo(nullptr));
 					assert(info);
 					from = info->GetDefault();
 				}
@@ -142,7 +142,7 @@ namespace LEX
 			if constexpr (1)
 			{
 				if (usesType & IsType2) {
-					auto info = typeDefined->FetchTypePolicy(nullptr);
+					auto info = NULL_OP(NULL_Q(typeDefined)->GetTypeInfo(nullptr));
 					assert(info);
 					from = info->GetDefault();
 				}

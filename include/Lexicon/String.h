@@ -216,7 +216,7 @@ namespace LEX
 			ITypeInfo* policy = IdentityManager::instance->GetTypeByOffset("STRING", 0);
 
 			//Should already be specialized, so just sending it.
-			return policy->FetchTypePolicy(nullptr);
+			return NULL_OP(NULL_Q(policy)->GetTypeInfo(nullptr));
 		}
 
 

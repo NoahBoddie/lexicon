@@ -49,7 +49,6 @@ namespace LEX
 		
 
 		QualifiedType GetQualifiedType() const;
-		QualifiedType FetchQualifiedType() const;
 		
 		bool IsLocal() const { return GetFieldType() == FieldType::Local; }
 	};

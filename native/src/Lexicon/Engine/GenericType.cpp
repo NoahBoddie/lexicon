@@ -6,11 +6,11 @@
 namespace LEX
 {
 
-	ITypeInfo* GenericType::CheckTypePolicy(ITemplatePart* args)
+	ITypeInfo* GenericType::CheckTypeInfo(ITemplatePart* args)
 	{
 		return dynamic_cast<ITypeInfo*>(ObtainSpecial(args));
 	}
-	TypeInfo* GenericType::GetTypePolicy(ITemplateBody* args)
+	TypeInfo* GenericType::GetTypeInfo(ITemplateBody* args)
 	{
 		return ObtainBody(args)->ToResolved<TypeInfo>();
 	}

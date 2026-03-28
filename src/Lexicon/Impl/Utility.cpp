@@ -6,6 +6,6 @@ namespace LEX
 {
 	TypeInfo* Utility::ResolveTypeInfo(ITypeInfo* type)
 	{
-		return type->FetchTypePolicy(nullptr);
+		return NULL_OP(NULL_Q(type)->GetTypeInfo(nullptr));
 	}
 }

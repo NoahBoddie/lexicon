@@ -11,7 +11,7 @@
 #include "Lexicon/MemberPointer.h"
 
 
-#include "Lexicon/Engine/IEnvironmentImpl.h"
+#include "Lexicon/Interfaces/IEnvironmentBase.h"
 
 
 //*src

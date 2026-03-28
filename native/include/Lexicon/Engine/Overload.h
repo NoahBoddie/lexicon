@@ -85,7 +85,7 @@ namespace LEX
 			if (!isResolved)
 				return nullptr;
 
-			return specialImplied[i].first->GetTypePolicy(nullptr);
+			return specialImplied[i].first->GetTypeInfo(nullptr);
 
 		}
 

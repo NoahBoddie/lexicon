@@ -148,7 +148,7 @@ set(headers
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h" "include/Lexicon/Reflection.h" "include/Lexicon/Reflect.h" "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h"   "include/Lexicon/ComponentType.h" "include/Lexicon/Interfaces/IComponentBase.h" "include/Lexicon/Interfaces/IComponent.h" "include/Lexicon/Interfaces/IElementBase.h" "include/Lexicon/Impl/ComponentDetails.h" "include/Lexicon/Impl/Utility.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IDirectoryBase.h" "include/Lexicon/Interfaces/IDirectory.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h"   "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h"   "include/Lexicon/ComponentType.h" "include/Lexicon/Interfaces/IComponentBase.h" "include/Lexicon/Interfaces/IComponent.h" "include/Lexicon/Interfaces/IElementBase.h" "include/Lexicon/Impl/ComponentDetails.h" "include/Lexicon/Impl/Utility.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IDirectoryBase.h" "include/Lexicon/Interfaces/IDirectory.h")
 
 
 set(sources
@@ -172,7 +172,7 @@ set(sources
 	"src/Lexicon/FormulaHandler.cpp"
 	"src/Lexicon/Object.cpp"
 	"src/Lexicon/Impl/PCH.cpp"
-	  "src/Lexicon/Reflection.cpp" "src/Lexicon/Impl/Utility.cpp"  "src/Lexicon/IComponent.cpp" "src/Lexicon/Impl/ComponentDetails.cpp")
+	   "src/Lexicon/Impl/Utility.cpp"  "src/Lexicon/IComponent.cpp" "src/Lexicon/Impl/ComponentDetails.cpp")
 
 
 if(LEXICON_SOURCE)
@@ -262,7 +262,7 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/Runtime.h"
 		native/include/Lexicon/Engine/OperatorSetting.h
 		native/include/Lexicon/Engine/Impl/FunctionRegister.h
-		native/include/Lexicon/Engine/IElementImpl.h
+		
 		native/include/Lexicon/Engine/Impl/IElementHeader.h
 		native/include/Lexicon/Engine/Impl/IElementSource.h
 		"native/include/Lexicon/Engine/IssueTable.h"
@@ -283,7 +283,7 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/Conversion.h"
 		"native/include/Lexicon/Engine/Convert.h"
 
-	 "native/include/Lexicon/Engine/NullType.h" "native/include/Lexicon/Engine/IComponentImpl.h" "native/include/Lexicon/Engine/IEnvironmentImpl.h" "native/include/Lexicon/Engine/IDirectoryImpl.h" "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h")
+	 "native/include/Lexicon/Engine/NullType.h"    "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h")
 		
 
 	set(sources
@@ -336,9 +336,9 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/SettingManager.cpp"
 		"native/src/Lexicon/Engine/FunctionData.cpp" 
 		"native/src/Lexicon/Engine/SyntaxRecord.cpp"
-		"native/src/Lexicon/Engine/IElementImpl.cpp"
-		"native/src/Lexicon/Engine/IProjectImpl.cpp" 
-		"native/src/Lexicon/Engine/IScriptImpl.cpp"
+		
+		 
+		
 		"native/src/Lexicon/Engine/TargetObject.cpp"
 		"native/src/Lexicon/Engine/SpecialBase.cpp"
 		native/src/Lexicon/Engine/QualifiedType.cpp

@@ -75,7 +75,7 @@ namespace LEX
 
 			Element* element = dynamic_cast<Element*>(this);
 
-			ITypeInfo* scope = element->FetchEnvironment()->As<ITypeInfo>();
+			ITypeInfo* scope = NULL_OP(NULL_Q(NULL_Q(element)->GetEnvironment())->As<ITypeInfo>());
 			
 			if constexpr (0)
 			{//For now it accepts all, so no real reason to do this.

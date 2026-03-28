@@ -7,6 +7,7 @@
 #include "Lexicon/TypeInfo.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
+//TODO: get rid of this, overhead.
 template <typename EnumType>
 requires(std::is_enum_v<EnumType>&& !std::is_scoped_enum_v<EnumType>) struct fmt::formatter<EnumType> : fmt::formatter<std::underlying_type_t<EnumType>>
 {
@@ -723,7 +724,7 @@ namespace LEX
             ITypeInfo* policy = IdentityManager::instance->GetTypeByOffset("NUMBER", !it ? 0 : it->GetOffset());
 
             //Should already be specialized, so just sending it.
-            return policy->FetchTypePolicy(nullptr);
+            return NULL_OP(NULL_Q(policy)->GetTypeInfo(nullptr));
         }
 
 
@@ -1300,7 +1301,7 @@ namespace LEX
 
                 auto buffer = LEX::IdentityManager::instance->GetTypeByOffset("NUMBER", setting.GetOffset());
                 
-                result = buffer->FetchTypePolicy(nullptr);
+                result = NULL_OP(NULL_Q(buffer)->GetTypeInfo(nullptr));
             }
 
             return result;

@@ -31,7 +31,7 @@ namespace LEX
 	Script* Script::GetCommonsImpl()
 	{
 		//This 
-		return _parent->FetchCommons();
+		return NULL_OP(NULL_Q(_parent)->GetCommons());
 	}
 
 	void Script::SetParent(Directory* elem)

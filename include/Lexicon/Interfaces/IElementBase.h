@@ -78,21 +78,6 @@ namespace LEX
 		bool IsGenericElement() const override { return false; }
 		
 
-		std::string_view FetchName(const std::string_view& str) const
-		{
-			return this ? GetName() : str;
-		}
-
-		std::string_view FetchName() const
-		{
-			return FetchName("<null>");
-		}
-
-		static std::string_view FetchName2(IElementBase* something)
-		{
-			return {};
-		}
-
 		std::string GetFullName() //const
 		{
 			return {};
@@ -214,7 +199,6 @@ namespace LEX
 
 	#define DEF_FUNC_IMPL_ELEMENT_MAIN \
 	MAP_UD(DEF_USING_IMPL,Element,\
-	FetchName,FetchScript,FetchProject,FetchParent,FetchEnvironment,FetchCommons,\
 	GetScript,GetProject,GetParent,GetEnvironment,GetCommons,GetElementFromPath)
 
 #define DECL_IMPL_FUNC_ELEMENT DEF_FUNC_IMPL_ELEMENT_MAIN DEF_FUNC_IMPL_ELEMENT_1 DECL_IMPL_FUNC_COMPONENT

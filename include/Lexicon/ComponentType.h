@@ -45,13 +45,6 @@ namespace LEX
 
 
 
-            IComponentImpl,
-            IElementImpl,
-            IEnvironmentImpl,
-            IDirectoryImpl,
-
-
-
             FunctionBase,
             ConcreteFunction,
             GenericFunction,

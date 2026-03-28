@@ -34,7 +34,7 @@ namespace LEX
 
 
 
-		QualifiedType sub_type = subject->FetchQualifiedType();
+		QualifiedType sub_type = NULL_OP(NULL_Q(subject)->GetQualifiedType());
 
 
 
@@ -112,7 +112,7 @@ namespace LEX
 			return false;
 		}
 
-		QualifiedType sub_type = subject->FetchQualifiedType();
+		QualifiedType sub_type = NULL_OP(NULL_Q(subject)->GetQualifiedType());
 
 
 
@@ -396,7 +396,7 @@ namespace LEX
 				return;
 				int i = param.GetFieldIndex();
 
-				TypeInfo* expected = param.GetType()->FetchTypePolicy(caller);
+				TypeInfo* expected = NULL_OP(NULL_Q(param.GetType())->GetTypeInfo(caller));
 
 
 				if (!expected)
@@ -420,7 +420,7 @@ namespace LEX
 			auto func = prod.value();
 
 			if (!func) {
-				report::apply::error("Procedure for {} is null", self->FetchName());
+				report::apply::error("Procedure for {} is null", NULL_OP(NULL_Q(self)->GetName(), "<no name>"));
 			}
 
 			if (!self)
@@ -507,7 +507,7 @@ namespace LEX
 
 				auto& arg = args[i];
 
-				TypeInfo* expected = param.GetType()->FetchTypePolicy(nullptr);
+				TypeInfo* expected = NULL_OP(NULL_Q(param.GetType())->GetTypeInfo(nullptr));
 
 
 				if (!expected)

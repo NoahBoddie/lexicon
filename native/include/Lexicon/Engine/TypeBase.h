@@ -50,7 +50,7 @@ namespace LEX
 		TypeNode CreateNode(ITemplatePart* part)
 		{
 			auto type = AsType();
-			return TypeNode{ this, part->GetSize() ? type->CheckTypePolicy(part) : type };
+			return TypeNode{ this, part->GetSize() ? type->CheckTypeInfo(part) : type };
 		}
 
 		//TODO: I would like have more information here telling the compiler what it can and can't do with it.

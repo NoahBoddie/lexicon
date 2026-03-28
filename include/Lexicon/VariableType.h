@@ -442,7 +442,7 @@ namespace LEX
 	{
 		TypeInfo* operator()(const Void*)
 		{
-			return IdentityManager::instance->GetInherentType(InherentType::kVoid)->FetchTypePolicy(nullptr);
+			return NULL_OP(NULL_Q(IdentityManager::instance->GetInherentType(InherentType::kVoid))->GetTypeInfo(nullptr));
 		}
 	};
 
@@ -451,7 +451,7 @@ namespace LEX
 	{
 		TypeInfo* operator()(const void*)
 		{
-			return IdentityManager::instance->GetInherentType(InherentType::kVoid)->FetchTypePolicy(nullptr);
+			return NULL_OP(NULL_Q(IdentityManager::instance->GetInherentType(InherentType::kVoid))->GetTypeInfo(nullptr));
 		}
 	};
 

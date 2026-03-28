@@ -988,34 +988,6 @@ namespace LEX::Test
 
 
 
-    struct IComponent
-    {
-        static TypeInfo* GetVariableType(const IComponent* comp)
-        {
-
-        }
-
-        //This will only be on the heirarch
-        virtual uint16_t GetComponentOffset() const = 0;
-        virtual Reflect GetReflect() const = 0;
-        virtual size_t GetReflectOffset() const = 0;
-        
-        //virtual bool IsValidOffset(size_t offset) const
-        //{
-        //    //This can be used for abstract types that may not update right.
-        //    return GetReflectOffset() == offset;
-        //}
-
-
-        //bool IsValidOffset(auto offset) const requires (std::is_enum_v<decltype(offset)>)
-        //{
-        //	IsValidOffset(static_cast<size_t>(offset));
-        //}
-
-
-    };
-
-
     //TODO: rethink reflection, instead maybe incorporate it as an aspect of ALL elements, instead being something of an IComponent
 
 

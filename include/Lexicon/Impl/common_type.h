@@ -15,12 +15,12 @@ namespace LEX
 
 		static TypeInfo* boolean()
 		{
-			constexpr auto bool_settings = Number::Settings::CreateFromType<bool>();
+			constexpr auto settings = Number::Settings::CreateFromType<bool>();
 
 			static TypeInfo* type = nullptr;
 
 			if (!type){
-				type = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset())->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset()))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -31,7 +31,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("STRING", 0)->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("STRING", 0))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -40,12 +40,12 @@ namespace LEX
 
 		static TypeInfo* uboolean()
 		{
-			constexpr auto bool_settings = Number::Settings{ NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound };
+			constexpr auto settings = Number::Settings{ NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound };
 
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("NUMBER", bool_settings.GetOffset())->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset()))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -58,7 +58,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset()))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -71,7 +71,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset()))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -84,7 +84,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset()))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -97,7 +97,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset())->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("NUMBER", settings.GetOffset()))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -110,7 +110,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetInherentType(InherentType::kVoid)->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetInherentType(InherentType::kVoid))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -122,7 +122,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetInherentType(InherentType::kNull)->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetInherentType(InherentType::kNull))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -135,7 +135,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("CORE", 0)->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("CORE", 0))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -146,7 +146,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetInherentType(InherentType::kVoidable)->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetInherentType(InherentType::kVoidable))->GetTypeInfo(nullptr));
 			}
 
 			return type;
@@ -158,7 +158,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = IdentityManager::instance->GetTypeByOffset("REFLECT_Type", 2)->FetchTypePolicy(nullptr);
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("REFLECT_Type", 2))->GetTypeInfo(nullptr));
 			}
 
 			return type;

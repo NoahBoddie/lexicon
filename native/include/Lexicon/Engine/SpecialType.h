@@ -95,12 +95,12 @@ namespace LEX
 
 		void SetSelfQualifiers(Qualifier& qualifiers) const override { return _self->SetSelfQualifiers(qualifiers); }
 
-		ITypeInfo* CheckTypePolicy(ITemplatePart* args) override
+		ITypeInfo* CheckTypeInfo(ITemplatePart* args) override
 		{
 			return dynamic_cast<ITypeInfo*>(ObtainSpecial(args));
 		}
 
-		TypeInfo* GetTypePolicy(ITemplateBody* args) override
+		TypeInfo* GetTypeInfo(ITemplateBody* args) override
 		{
 			auto special = ObtainSpecial(args)->ToResolved<TypeInfo>();
 

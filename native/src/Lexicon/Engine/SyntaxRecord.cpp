@@ -45,9 +45,9 @@ namespace LEX
 	std::string SyntaxBody::GetAffix()
 	{
 		//Add project
-		Script* script = GetParent()->FetchScript();
+		Script* script = NULL_OP(NULL_Q(GetParent())->GetScript());
 
-		std::string_view name = script ? script->GetName() : "<no_name>";
+		std::string_view name = NULL_OP(NULL_Q(script)->GetName(), "<no_name>");
 		std::string_view extension = script ? ".lsi" : "";
 
 		auto& syntax = GetSyntax();
@@ -64,8 +64,8 @@ namespace LEX
 				{
 					if (state == LogState::Prep)
 					{
-						Script* script = GetParent()->FetchScript();
-						Project* project = GetParent()->FetchProject();
+						Script* script = NULL_OP(NULL_Q(GetParent())->GetScript());
+						Project* project = NULL_OP(NULL_Q(GetParent())->GetProject());
 
 						auto& syntax = GetSyntax();
 
