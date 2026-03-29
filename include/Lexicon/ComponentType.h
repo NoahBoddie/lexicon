@@ -4,9 +4,9 @@ namespace LEX
 {
     ENUM(ComponentType, uint16_t)
     {
-        Invalid = -1,
-        
-        Component,
+        Invalid = static_cast<uint16_t>(-1),
+
+        Component = 0,
         Element,
         Environment,
         Directory,

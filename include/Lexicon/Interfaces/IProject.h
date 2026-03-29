@@ -29,7 +29,7 @@ namespace LEX
 
 	struct IMPL_VERSION(IProject), public IDirectory
 	{
-		DEFINE_COMPONENT_OFFSET(ComponentType::IProject)
+		DEFINE_COMPONENT_OFFSET(ComponentType::IProject, ComponentType::Project);
 		
 		auto FindScript(const std::string_view& name)
 		{

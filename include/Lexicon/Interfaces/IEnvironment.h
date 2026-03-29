@@ -9,7 +9,7 @@ namespace LEX
 
 	struct IEnvironment : INTERFACE_DERIVES(IEnvironmentBase, IDirectory)
 	{
-		DEFINE_COMPONENT_OFFSET(ComponentType::IEnvironment)
+		DEFINE_COMPONENT_OFFSET(ComponentType::IEnvironment, ComponentType::Environment);
 
 			/*
 			IFunction* GetFunctionFromPath(std::string_view path, ISignature& sign)

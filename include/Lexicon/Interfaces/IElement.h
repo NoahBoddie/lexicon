@@ -16,7 +16,7 @@ namespace LEX
 
 	struct IElement : INTERFACE_DERIVES(IElementBase, IComponent)
 	{
-		DEFINE_COMPONENT_OFFSET(ComponentType::IElement)
+		DEFINE_COMPONENT_OFFSET(ComponentType::IElement, ComponentType::Element)
 	private:
 
 #ifdef LEX_SOURCE

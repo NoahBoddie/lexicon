@@ -6,6 +6,8 @@ namespace LEX
 {
     struct IComponent : public IComponentBase
     {
-        DEFINE_COMPONENT_OFFSET(ComponentType::IComponent)
+    public:
+        DEFINE_COMPONENT_OFFSET(ComponentType::IComponent, ComponentType::Component)
+    private:
     };
 }

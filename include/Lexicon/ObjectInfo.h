@@ -95,40 +95,20 @@ namespace LEX
 				//This can be defined in a source
 				virtual uint32_t GetTypeID(ObjectData&) = 0;
 
-				//Non-virtual
-				ITypeInfo* GetTypeInterface(ObjectData & object)
-				{
-					//Note, not real code (yet)
-					auto id = GetTypeID(object);
-
-					return IdentityManager::instance->GetTypeByID(id);
-				}
-
-				TypeInfo* GetTypeResolved(ObjectData & object)
-				{
-					auto type = GetTypeInterface(object);
-
-					return SpecializeType(object, type);
-				}
 
 				//Gets the objects print string. Comes with context for types such as bind classes that attach themselves to an object.
 				virtual String PrintString(ObjectData & object, std::string_view context) = 0;
 
+				virtual bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) = 0;
+
+				virtual TypeOffset GetOffsetFromArgs(const std::string_view& category, const std::span<std::string_view>& args) = 0;
 				//*/
 
 			};
 		}
 
-		namespace _2
-		{
-			struct INTERFACE_VERSION(ObjectVTable)
-			{
-				virtual bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) = 0;
 
-			};
-		}
-
-		CURRENT_VERSION(ObjectVTable, 2);
+		CURRENT_VERSION(ObjectVTable, 1);
 	}
 
 	struct IMPL_VERSION(ObjectVTable)
@@ -194,6 +174,27 @@ namespace LEX
 			return false;
 		}
 
+
+		ITypeInfo* GetTypeInterface(ObjectData& object)
+		{
+			//Note, not real code (yet)
+			auto id = GetTypeID(object);
+
+			return IdentityManager::instance->GetTypeByID(id);
+		}
+
+		TypeInfo* GetTypeResolved(ObjectData& object)
+		{
+			auto type = GetTypeInterface(object);
+
+			return SpecializeType(object, type);
+		}
+
+		TypeOffset GetOffsetFromArgs(const std::string_view& category, const std::span<std::string_view>& args) override
+		{
+			//This remains unused unless someone manually overrides it.
+			return -1;
+		}
 
 		//*/
 	INTERNAL:

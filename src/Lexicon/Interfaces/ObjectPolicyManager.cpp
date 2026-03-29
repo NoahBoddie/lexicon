@@ -125,7 +125,17 @@ namespace LEX
 	{
 		//Change parameters of this, include a main name. Maybe a category. But maybe not.
 		report::message::info("adding category {}", category);
-		auto index = IdentityManager::instance->GenerateID(category, range);
+		auto index = IdentityManager::instance->GenerateID(category, range, 
+			[](const std::string_view& category, const std::span<std::string_view>& args)-> TypeOffset
+			{
+				ObjectPolicy* policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
+				
+				assert_if(!policy) {
+					return -1;
+				}
+
+				return policy->GetOffsetFromArgs(category, args);
+			});
 
 		//Crashing is unlikely and most likely will want to be unhandled. So letting it through.
 		ObjectPolicy* policy = new ObjectPolicy;

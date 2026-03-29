@@ -317,7 +317,7 @@ namespace LEX
 				{
 					//Handle error, I can't fucking be bothered.
 					SyntaxRecord& category = attach_data.GetFront();
-					TypeOffset index;
+					TypeOffset offset;
 
 					//this should more be if it's not number.
 					if (auto& args = category.GetFront(); args.GetView() == "args")
@@ -328,15 +328,15 @@ namespace LEX
 
 						std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
 
-						index = GetProject()->client()->GetOffsetFromArgs(category.GetView(), string_args.data(), string_args.size());
-						//logger::trace("offset from args = {}", index);
+
+						offset = IdentityManager::instance->GetTypeOffsetFromArgs(category.GetView(), string_args);
 					}
 					else
 					{
-						index = RecordToInt(category.GetFront());
+						offset = RecordToInt(category.GetFront());
 					}
 
-					result = LookUpOrMake(category.GetTag(), index, lookup);
+					result = LookUpOrMake(category.GetTag(), offset, lookup);
 
 					break;
 

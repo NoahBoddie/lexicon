@@ -1520,7 +1520,7 @@ namespace LEX
 		Solution TypeofProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			//Declaration decl{ target, compiler->GetElement(), Refness::Temp };
-			Declaration decl  = Declaration::CreateOnly(target, compiler->GetElement(), Refness::Temp, HeaderFlag::TypeSpecifiers);
+			Declaration decl  = Declaration::CreateOnly(target.GetFront(), compiler->GetElement(), Refness::Temp, HeaderFlag::TypeSpecifiers);
 
 			Solution sol{ QualifiedType{ common_type::type_info() }, OperandType::Type, decl.policy };
 
@@ -2450,6 +2450,115 @@ namespace LEX
 
 
 
+		TypeOffset TypeOffsetFn_Number(const std::string_view&, const std::span<std::string_view>& args)
+		{
+			if (args.size() != 4)
+				report::compile::error("NUMBER requires 4 entries");
+
+			Number::Settings setting;
+
+			for (auto& arg : args)
+			{
+				switch (Hash(arg))
+				{
+				case "Overflow"_h:
+					if (setting.limit != Limit::Invalid)
+						report::compile::error("NUMBER limit already set to {}.", magic_enum::enum_name(setting.limit));
+					setting.limit = Limit::Overflow;
+					break;
+				case "Bound"_h:
+					if (setting.limit != Limit::Invalid)
+						report::compile::error("NUMBER limit already set to {}.", magic_enum::enum_name(setting.limit));
+					setting.limit = Limit::Bound;
+					break;
+				case "Infinite"_h:
+					if (setting.limit != Limit::Invalid)
+						report::compile::error("NUMBER limit already set to {}.", magic_enum::enum_name(setting.limit));
+					setting.limit = Limit::Infinite;
+					break;
+
+				case "Bit"_h:
+					if (setting.size != Size::Invalid)
+						report::compile::error("NUMBER size already set to {}.", magic_enum::enum_name(setting.size));
+					setting.size = Size::Bit;
+					break;
+				case "Byte"_h:
+					if (setting.size != Size::Invalid)
+						report::compile::error("NUMBER size already set to {}.", magic_enum::enum_name(setting.size));
+					setting.size = Size::Byte;
+					break;
+				case "Word"_h:
+					if (setting.size != Size::Invalid)
+						report::compile::error("NUMBER size already set to {}.", magic_enum::enum_name(setting.size));
+					setting.size = Size::Word;
+					break;
+				case "DWord"_h:
+					if (setting.size != Size::Invalid)
+						report::compile::error("NUMBER size already set to {}.", magic_enum::enum_name(setting.size));
+					setting.size = Size::DWord;
+					break;
+				case "QWord"_h:
+					if (setting.size != Size::Invalid)
+						report::compile::error("NUMBER size already set to {}.", magic_enum::enum_name(setting.size));
+					setting.size = Size::QWord;
+					break;
+
+				case "Signed"_h:
+					if (setting.size != Size::Invalid)
+						report::compile::error("NUMBER sign already set to {}.", magic_enum::enum_name(setting.sign));
+					setting.sign = Signage::Signed;
+					break;
+
+				case "Unsigned"_h:
+					if (setting.size != Size::Invalid)
+						report::compile::error("NUMBER size already set to {}.", magic_enum::enum_name(setting.sign));
+					setting.sign = Signage::Unsigned;
+					break;
+
+
+				case "Integral"_h:
+					if (setting.type != NumeralType::Invalid)
+						report::compile::error("NUMBER type already set to {}.", magic_enum::enum_name(setting.type));
+					setting.type = NumeralType::Integral;
+					break;
+
+				case "Floating"_h:
+					if (setting.type != NumeralType::Invalid)
+						report::compile::error("NUMBER size already set to {}.", magic_enum::enum_name(setting.type));
+					setting.type = NumeralType::Floating;
+					break;
+
+
+				default:
+					report::compile::error("NUMBER unknown number entry '{}' found.", arg);
+				};
+			}
+
+			return setting.GetOffset();
+		}
+
+
+		TypeOffset TypeOffsetFn_Reflect(const std::string_view&, const std::span<std::string_view>& args)
+		{
+			if (args.size() != 1)
+				report::compile::error("REFLECT requires 1 entries");
+
+			
+			std::optional<ComponentType> type = magic_enum::enum_cast<ComponentType>(args[0]);
+			
+			if (type.has_value() == false) {
+				report::compile::error("Argument '{}' is not valid", args[0]);
+			}
+
+			if (type.value() >= ComponentType::kScriptedMax) {
+				report::compile::error("Value of argument '{}' outside of the scripted bounds", args[0]);
+			}
+
+			return type.value();
+		}
+
+
+
 		INITIALIZE()
 		{
 			logger::info("test");
@@ -2542,18 +2651,26 @@ namespace LEX
 
 			IdentityManager::instance->GenerateID("CORE", 0);
 
-			IdentityManager::instance->GenerateID("REFLECT_None", 0);
-			IdentityManager::instance->GenerateID("REFLECT_Type", 2);
+			IdentityManager::instance->GenerateID("REFLECT", ComponentType::kScriptedMax, TypeOffsetFn_Reflect);
+			
+			static ConcreteType* cmpInfo = new ConcreteType{ "REFLECT", ComponentType::Component };
+			static ConcreteType* elmInfo = new ConcreteType{ "REFLECT", ComponentType::Element };
+			static ConcreteType* dirInfo = new ConcreteType{ "REFLECT", ComponentType::Directory };
+			static ConcreteType* envInfo = new ConcreteType{ "REFLECT", ComponentType::Environment };
+			static ConcreteType* prjInfo = new ConcreteType{ "REFLECT", ComponentType::Project };
+			static ConcreteType* scrInfo = new ConcreteType{ "REFLECT", ComponentType::Script };
+			
+			static ConcreteType* fncInfo = new ConcreteType{ "REFLECT", ComponentType::Function };
+			static ConcreteType* glbInfo = new ConcreteType{ "REFLECT", ComponentType::Global };
+			static ConcreteType* typInfo = new ConcreteType{ "REFLECT", ComponentType::TypeInfo };
 
-			static ConcreteType* reflectBase = new ConcreteType{ "REFLECT_None", 0 };
-
-			static ConcreteType* typeBasic = new ConcreteType{ "REFLECT_Type", 0 };
-			static ConcreteType* typeGeneric = new ConcreteType{ "REFLECT_Type", 1 };
-			static ConcreteType* typeConcrete = new ConcreteType{ "REFLECT_Type", 2 };
+			static ConcreteType* iFncInfo = new ConcreteType{ "REFLECT", ComponentType::IFunction };
+			static ConcreteType* iTypInfo = new ConcreteType{ "REFLECT", ComponentType::ITypeInfo };
+			static ConcreteType* iGlbInfo = new ConcreteType{ "REFLECT", ComponentType::IGlobal };
 
 
 
-			IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length);
+			IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length, TypeOffsetFn_Number);
 			IdentityManager::instance->GenerateID("STRING", 0);
 
 

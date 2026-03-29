@@ -38,10 +38,9 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 	struct IdentityData
 	{
 		std::string_view name;
-
 		uint32_t startID = 0;
 		uint32_t range = 0;
-
+		TypeOffsetFn func = nullptr;
 
 	public:
 		TypeID GetTypeID(uint16_t offset)
@@ -54,8 +53,8 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 			return startID + offset;
 		}
 
-		constexpr IdentityData(std::string_view n, uint32_t val, uint16_t rng) :
-			name{ n }, startID{ val }, range{ rng }
+		constexpr IdentityData(std::string_view n, uint32_t val, uint16_t rng, TypeOffsetFn fn) :
+			name{ n }, startID{ val }, range{ rng }, func { fn }
 		{
 		}
 
@@ -230,7 +229,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 
 	//should return the index.
-	uint32_t IdentityManager::GenerateID(std::string_view name, uint16_t range)
+	uint32_t IdentityManager::GenerateID(std::string_view name, uint16_t range, TypeOffsetFn func)
 	{
 		//Generates a grouped ID instead of a single one.
 		std::lock_guard<std::mutex> guard{ _lock };
@@ -243,7 +242,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 		auto size = policyList.size();
 
-		dataList.emplace_back(name, nextID, ++range);
+		dataList.emplace_back(name, nextID, ++range, func);
 
 		nextID += range;
 
@@ -270,7 +269,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 		auto& dataList = GetDataList();
 
-		dataList.emplace_back("", nextID, 1);//shouldn't this be 1 since it's a size?
+		dataList.emplace_back("", nextID, 1, nullptr);//shouldn't this be 1 since it's a size?
 		policyList.emplace_back(policy);
 
 		nextID++;
@@ -300,4 +299,21 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 		return policyList[id.value() - InherentType::kTotal];
 	}
 
+	TypeOffset IdentityManager::GetTypeOffsetFromArgs(TypeIndex index, const std::span<std::string_view>& args)
+	{
+		auto& dataList = GetDataList();
+
+		auto size = dataList.size();
+
+		assert_if_not(dataList.size() > index)
+		{
+			auto& data = dataList[index];
+
+			assert_if_not(data.func)
+				return data.func(data.name, args);
+			
+		}
+
+		return -1;
+	}
 }

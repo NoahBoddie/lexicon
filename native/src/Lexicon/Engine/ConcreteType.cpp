@@ -275,7 +275,20 @@ namespace LEX
 
 					std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
 
-					offset = GetProject()->client()->GetOffsetFromArgs(cat_name.GetView(), string_args.data(), string_args.size());
+					offset = IdentityManager::instance->GetTypeOffsetFromArgs(category, string_args);
+					
+					if (offset == -1) {
+						std::string arg_string;
+
+						size_t after = 0;
+
+						for (auto str : string_args) {
+							arg_string += std::format("{}{}", (after++) ? ", " : "", str);
+						}
+						
+						report::compile::error("Failed to get type specification from arguments '{}'", arg_string);
+					}
+					
 					logger::info("offset from args = {}", offset);
 				}
 				else

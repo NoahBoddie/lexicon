@@ -9,7 +9,7 @@ namespace LEX
 
 	struct IDirectory : INTERFACE_DERIVES(IDirectoryBase, IElement)
 	{
-		DEFINE_COMPONENT_OFFSET(ComponentType::IDirectory)
+		DEFINE_COMPONENT_OFFSET(ComponentType::IDirectory, ComponentType::Directory)
 
 	};
 }

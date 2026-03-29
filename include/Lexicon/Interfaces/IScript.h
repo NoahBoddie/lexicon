@@ -26,6 +26,6 @@ namespace LEX
 
 	struct IMPL_VERSION(IScript), public IEnvironment
 	{
-		DEFINE_COMPONENT_OFFSET(ComponentType::IScript)
+		DEFINE_COMPONENT_OFFSET(ComponentType::IScript, ComponentType::Script);
 	};
 }

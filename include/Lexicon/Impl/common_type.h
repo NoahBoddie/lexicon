@@ -158,7 +158,7 @@ namespace LEX
 			static TypeInfo* type = nullptr;
 
 			if (!type) {
-				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("REFLECT_Type", 2))->GetTypeInfo(nullptr));
+				type = NULL_OP(NULL_Q(IdentityManager::instance->GetTypeByOffset("REFLECT", ComponentType::TypeInfo))->GetTypeInfo(nullptr));
 			}
 
 			return type;
