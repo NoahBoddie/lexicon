@@ -17,7 +17,7 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct INTERFACE_VERSION_DERIVES(Function, ISpecial)
+			struct INTERFACE_VERSION(Function)
 			{
 
 			};
@@ -28,7 +28,7 @@ namespace LEX
 	
 
 
-	struct __declspec(novtable) IMPL_VERSION_DERIVES(FunctionAbstract, Function, IFunction), ICallableUnit
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(FunctionAbstract, Function, IFunction), public ICallableUnit
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::Function)
 	public:

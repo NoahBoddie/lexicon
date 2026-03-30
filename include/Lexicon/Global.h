@@ -15,7 +15,7 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct INTERFACE_VERSION_DERIVES(Global, ISpecial)
+			struct INTERFACE_VERSION(Global)
 			{
 				virtual const RuntimeVariable GetValue() const = 0;
 				virtual bool Set(const RuntimeVariable& value) = 0;
