@@ -8,44 +8,6 @@
 
 namespace LEX
 {
-	bool ITypeInfo::Convert(const Variable& from, Variable& to) const
-	{
-		Conversion convert;
-
-		TypeInfo* from_type = from.GetTypeInfo();
-
-		//I want to make a variable vtable to handle this at a later point
-		bool success = from_type;
-
-		if (!from_type)
-			return false;
-
-		auto result = from_type->IsConvertibleTo(this, this, convert, ConversionFlag::Explicit);
-
-
-		if (!result)
-			return false;
-
-		to = convert.Run(from, result);
-
-
-		{
-			
-			//TODO:I want IFunction to have a convert function here, where I can call upon convert for this.
-			/*
-			if (convert) {
-				return convert(*this);
-			}
-			else {
-				return *this;
-			}
-			//*/
-		}
-
-		return true;
-	}
-
-
 	ConvertResult ITypeInfo::GetConvertTo_Hierarchy(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out, ConversionFlag flags) const
 	{
 		if (this == other) {

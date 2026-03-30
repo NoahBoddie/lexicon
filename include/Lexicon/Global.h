@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/IGlobal.hpp"
+#include "Lexicon/IGlobal.h"
 
 
 #include "Lexicon/RuntimeVariable.h"
@@ -10,28 +10,50 @@ namespace LEX
 {
 	class RuntimeVariable;
 
-	struct Global : public IGlobal
+
+	namespace Version
+	{
+		namespace _1
+		{
+			struct INTERFACE_VERSION_DERIVES(Global, ISpecial)
+			{
+				virtual const RuntimeVariable GetValue() const = 0;
+				virtual bool Set(const RuntimeVariable& value) = 0;
+			};
+		}
+
+		CURRENT_VERSION(Global, 1);
+	}
+
+
+
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(GlobalAbstract, Global, IGlobal)
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::Global)
-
-
-		//bool IsResolved() const override final { return true; }
-
-		//Global* GetGlobal(ITemplateBody* args) override { return this; };
-
-		//TODO: Restore these
-		
-		//Gets the value of the global. Attempts to send it by reference, but qualifiers
-		virtual RuntimeVariable GetValue() = 0;
-		virtual RuntimeVariable GetReference() = 0;//Move this to implementation
-		virtual const RuntimeVariable GetValue() const { return const_cast<Global*>(this)->GetValue(); }
-		virtual const RuntimeVariable GetReference() const { return const_cast<Global*>(this)->GetReference(); }
-
+	public:
+		virtual const RuntimeVariable GetValue() const = 0;
+		RuntimeVariable GetValue() { return make_const(this)->GetValue(); }
 
 
 		//Allows for the setting of the actual global space. If the setting defies the qualifiers it may fail.
-		virtual bool Set(const RuntimeVariable& value) = 0;
-
 		
+
+		Global* GetGlobal(ITemplateBody*) override
+		{
+			return reinterpret_cast<Global*>(this);
+		}
 	};
+
+
+
+#ifndef LEX_SOURCE
+	//Only accessible outside of the source.
+	struct Global : public GlobalAbstract {};
+#endif
 } 
+
+
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/GlobalImpl.h"
+#endif

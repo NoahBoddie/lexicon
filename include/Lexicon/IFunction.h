@@ -18,10 +18,9 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION_DERIVES(IFunction, ISpecial)
 			{
-				virtual bool IsConversion() const { return false; }
-				virtual bool IsMethod() const { return false; }
-				bool IsResolved() const override { return false; }
-
+				virtual bool IsConversion() const = 0;
+				virtual bool IsMethod() const = 0;
+				virtual bool IsGeneric() const = 0;
 				//This should be hidden.
 				virtual IFunction* CheckFunction(ITemplatePart* args) = 0;
 				virtual Function* GetFunction(ITemplateBody* args) = 0;
@@ -39,7 +38,12 @@ namespace LEX
 	struct __declspec(novtable) IMPL_VERSION_DERIVES(IFunctionAbstract, IFunction, IElement)
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::IFunction)
-
+	
+	public:
+		bool IsResolved() const override { return false; }
+		bool IsConversion() const override { return false; }
+		bool IsMethod() const override { return false; }
+		bool IsGeneric() const override { return false; }
 	};
 
 

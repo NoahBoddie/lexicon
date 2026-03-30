@@ -515,6 +515,11 @@ namespace LEX
 			return result;
 		}
 
+		const RuntimeVariable AsRef() const
+		{
+			return unconst(this)->AsRef();
+		}
+
 		RuntimeVariable&& Detach()
 		{
 			//Takes the Variable inside and moves it to a DetachedReference

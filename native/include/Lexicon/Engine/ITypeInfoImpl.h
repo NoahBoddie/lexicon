@@ -92,8 +92,6 @@ namespace LEX
 			return ConversionResult::Ineligible;
 		}
 
-		bool Convert(const Variable& from, Variable& to) const override final;
-
 
 
 		//Scope should be an environment that turns itself into an ITypeInfo.

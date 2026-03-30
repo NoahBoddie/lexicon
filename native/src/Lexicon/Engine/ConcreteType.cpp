@@ -79,7 +79,7 @@ namespace LEX
 
 		return _default;
 	}
-	void ConcreteType::SetDefault(Variable& var)
+	void ConcreteType::SetDefault(const Variable& var)
 	{
 		_default = var;
 	}

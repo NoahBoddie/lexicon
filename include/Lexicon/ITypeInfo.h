@@ -59,8 +59,6 @@ namespace LEX
 
 				virtual bool CanConvert(const ITypeInfo* other) const = 0;
 
-				virtual bool Convert(const Variable& from, Variable& to) const = 0;
-
 				virtual std::span<ITypeInfo*> GetTemplate() = 0;
 
 				virtual ObjectPolicy* GetObjectPolicy() const = 0;
@@ -68,21 +66,10 @@ namespace LEX
 			INTERNAL:
 				
 				virtual ITypeInfo* CheckTypeInfo(ITemplatePart* args) = 0;
-
-
 			};
 		}
 
-		namespace _2
-		{
-			struct INTERFACE_VERSION(ITypeInfo)
-			{
-
-
-			};
-		}
-
-		CURRENT_VERSION(ITypeInfo, 2);
+		CURRENT_VERSION(ITypeInfo, 1);
 	}
 
 

@@ -27,8 +27,8 @@ namespace LEX
 
 		IGlobal* CheckGlobal(ITemplatePart* args) override { return this; }
 
-		RuntimeVariable GetValue() override { return value.Ref(); }
-		RuntimeVariable GetReference() override { return value.AsRef(); }
+		const RuntimeVariable GetValue() const override { return value.Ref(); }
+		const RuntimeVariable GetReference() const override { return value.AsRef(); }
 
 		
 		bool Set(const RuntimeVariable& value) override

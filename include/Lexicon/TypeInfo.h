@@ -15,26 +15,23 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION(TypeInfo)
 			{
-				
 				virtual Variable GetDefault() = 0;
 				
 				virtual LEX::TypeInfo* GetExtends() = 0;
 
-			protected:
-				//TODO: SetDefault does NOT need to exist at all. Whatever can use this likely can just set it. Rather, move it to the TypeBase
-				virtual void SetDefault(Variable&) = 0;
-
-
-				
-
+				virtual bool Convert(const Variable& from, Variable& to, TypeInfo* null_override = nullptr) const = 0;
 			};
+
+			
 		}
 
 		CURRENT_VERSION(TypeInfo, 1);
 	}
 
 
-	struct IMPL_VERSION(TypeInfo), public ITypeInfo
+
+	
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(TypeInfoAbstract, TypeInfo, ITypeInfo)
 	{	
 		DEFINE_COMPONENT_OFFSET(ComponentType::TypeInfo)
 
@@ -50,26 +47,35 @@ namespace LEX
 
 		TypeInfo* GetTypeInfo(ITemplateBody* args) override
 		{
-			return this;
+			return reinterpret_cast<TypeInfo*>(this);
 		}
 
 
 		
 		virtual Variable GetDefault() = 0;
 		
-	protected: 
-		//TODO: SetDefault does NOT need to exist at all. Whatever can use this likely can just set it. Rather, move it to the TypeBase
-		virtual void SetDefault(Variable&) = 0;
 	public:
 		//Make these work like an actual emplace function, where it basically does the construction elsewhere.
 		// Move into function base? Largely non-basic structures depend on something else for this shit.
 		//REMOVE THIS PLEASE.
-		void EmplaceDefault(Variable& var);
-		void EmplaceDefault(Variable&& var) { return EmplaceDefault(var); }
-
+		
 		virtual TypeInfo* GetExtends() = 0;
 
 		
 	};
 
+
+#ifndef LEX_SOURCE
+	//Only accessible outside of the source.
+	struct TypeInfo : public ITypeInfoAbstract {};
+#endif
+
+
 }
+
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/TypeInfoImpl.h"
+#endif
+
+

@@ -12,27 +12,50 @@ namespace LEX
 	struct ITemplateBody;
 	struct TypeInfo;
 
-	struct Function : public IFunction, public ICallableUnit
+
+	namespace Version
+	{
+		namespace _1
+		{
+			struct INTERFACE_VERSION_DERIVES(Function, ISpecial)
+			{
+
+			};
+		}
+
+		CURRENT_VERSION(Function, 1);
+	}
+	
+
+
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(FunctionAbstract, Function, IFunction), ICallableUnit
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::Function)
-
-		//virtual size_t GetParameterCount() = 0;
-
-		//May make a GetAt by default but still allow overriding with virtual
-		//virtual std::vector<TypeInfo*> GetParameters() = 0;
+	public:
 
 		bool IsResolved() const override { return true; }
 
-		virtual bool IsGeneric() const { return false; }
-		
-		
+		bool IsGeneric() const override { return false; }
+
+
 
 		//Change this when generic gets into the picture
 		Function* GetFunction(ITemplateBody* args) override
 		{
-			return this;
+			return reinterpret_cast<Function*>(this);
 		}
 	};
 
 
+
+#ifndef LEX_SOURCE
+	//Only accessible outside of the source.
+	struct Function : public FunctionAbstract {};
+#endif
 }
+
+
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/FunctionImpl.h"
+#endif

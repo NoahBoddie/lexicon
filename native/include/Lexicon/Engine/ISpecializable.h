@@ -11,6 +11,7 @@ namespace LEX
 
 	struct GenericBase;
 
+
 	//TODO: This seems close to being completely unnecessary in my opinion especially because i's in engine. 
 	// Might as well make an upper version of ISpecial that handles this transformation to GenericBase, and move
 	// the handling of all this to GenericBase. I'll hold off for now though.

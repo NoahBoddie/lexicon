@@ -95,7 +95,7 @@ namespace LEX
 
 
 	protected:
-		void SetDefault(Variable& var) override;
+		void SetDefault(const Variable& var) override;
 
 		const Component* AsComponent() const override final { return this; }
 	public:
