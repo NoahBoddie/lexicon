@@ -4,7 +4,7 @@
 #include "Lexicon/Exception.h"//May move to src
 
 #include "Lexicon/Engine/Component.h"
-#include "Lexicon/Engine/Directory.h"
+#include "Lexicon/Engine/Repository.h"
 #include "Lexicon/Interfaces/IProject.h"
 namespace LEX
 {
@@ -21,7 +21,7 @@ namespace LEX
 
 
 
-	class Project : public Directory, public IProject
+	class Project : public Repository, public IProject
 	{
 	public:
 		DECL_IMPL_FUNC_ENVIRONMENT;

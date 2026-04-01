@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Interfaces/IDirectory.h"
+#include "Lexicon/Interfaces/IRepository.h"
 
 namespace LEX
 {
@@ -27,7 +27,7 @@ namespace LEX
 
 	}
 
-	struct IMPL_VERSION(IProject), public IDirectory
+	struct IMPL_VERSION(IProject, IRepository)
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::IProject, ComponentType::Project);
 		
