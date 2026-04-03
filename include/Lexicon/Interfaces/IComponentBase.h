@@ -68,6 +68,8 @@ namespace LEX
             std::is_volatile<T>>>>>
         copy_cv_t<Self, T>* As(this Self& a_this, ComponentType type)
         {
+#define AS_COMPONENT(mc_component) As<::LEX::mc_component>(::LEX::ComponentType::mc_component)
+
             using To = copy_cv_t<Self, T>;
             if (Self* ptr = std::addressof(a_this)) {
 
@@ -78,7 +80,7 @@ namespace LEX
                 else {
 
 
-                    if constexpr (requires() { sizeof(T) > 0; }&& requires() { { T::COMPONENT_TYPE } -> std::convertible_to<ComponentType>; })
+                    if constexpr (requires() { sizeof(T) > 0; } && requires() { { T::COMPONENT_TYPE } -> std::convertible_to<ComponentType>; })
                     {
                         if (T::COMPONENT_TYPE != type) {
                             report::fault::critical("Incorrect type submitted for casting, expected {}, recieved {}",
@@ -94,6 +96,9 @@ namespace LEX
             return nullptr;
         }
 
+
+
+
         template<typename T, typename Self, typename = std::enable_if_t<
             std::negation_v<
             std::disjunction<
@@ -101,7 +106,7 @@ namespace LEX
             std::is_reference<T>,
             std::is_const<T>,
             std::is_volatile<T>>>>>
-        T* As(this Self& a_this) requires(requires() { { T::COMPONENT_TYPE } -> std::convertible_to<ComponentType>; })
+        copy_cv_t<Self, T>* As(this Self& a_this) requires(requires() { { T::COMPONENT_TYPE } -> std::convertible_to<ComponentType>; })
         {
             return a_this.As<T>(T::COMPONENT_TYPE);
         }
@@ -132,6 +137,7 @@ namespace LEX
 
 
 #define DECL_IMPL_FUNC_COMPONENT DEF_FUNC_IMPL_COMPONENT_MAIN DEF_FUNC_IMPL_COMPONENT_1
+
 
 
 }

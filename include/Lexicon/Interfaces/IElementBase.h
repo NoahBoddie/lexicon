@@ -63,6 +63,14 @@ namespace LEX
 
     struct IMPL_VERSION(IElementBase)
     {
+	private:
+#ifdef LEX_SOURCE
+		using sign_t = OverloadArgument;
+#else
+		using sign_t = SignatureBase;
+#endif
+
+
 	protected:
 		IScript* GetScriptInfc() override final;
 		IProject* GetProjectInfc() override final;
@@ -150,19 +158,15 @@ namespace LEX
 			return GetCommonsInfc();
 #endif
 		}
-		
-#ifdef LEX_SOURCE
-		auto GetElementFromPath(const std::string_view& path, ElementType elem, OverloadArgument* sign = nullptr)
-		{
-			return GetElementFromPathImpl(path, elem, sign);
-		}
-#else
-		auto GetElementFromPath(const std::string_view& path, ElementType elem, SignatureBase* sign = nullptr)
-		{
-			return GetElementFromPathInfc(path, elem, sign);
-		}
-#endif
 
+		auto GetElementFromPath(const std::string_view& path, ElementType elem, sign_t* sign = nullptr)
+		{
+#ifdef LEX_SOURCE
+			return GetElementFromPathImpl(path, elem, sign);
+#else
+			return GetElementFromPathInfc(path, elem, sign);
+#endif
+		}
 
 
 

@@ -104,7 +104,7 @@ namespace LEX
 		using Base = InterfaceLayerImpl<Intfs...>;
 		using Current = std::tuple_element_t<0, std::tuple<Intfs...>>;
 
-		static constexpr uintptr_t version = Base::totalVersion;
+		static constexpr uintptr_t version = Current::version;
 
 		//Static assert that the interface layer is equal in size to all of its interface layers
 

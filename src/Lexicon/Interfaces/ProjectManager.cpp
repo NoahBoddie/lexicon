@@ -206,18 +206,8 @@ namespace LEX
 
 	public:
 
-		ScriptString(std::string_view n, const char* str) : ScriptString{ n, std::string_view {str} }
-		{
-
-		}
-
-
-		ScriptString(std::string_view n, std::string& str) : ScriptString{ n , std::string_view {str} }
-		{
-			
-		}
-
-		ScriptString(std::string_view n, std::string_view view) : _name{ n }, _value{std::string(view)}
+		ScriptString(const std::string_view& n, const std::string_view& view) : 
+			_name{ n }, _value{std::string(view)}
 		{
 			Init();
 		}
@@ -440,6 +430,11 @@ namespace LEX
 			{
 				script.SetLines(false, it->SYNTAX().line);
 
+				switch (Hash(it->GetView()))
+				{
+
+				}
+
 				switch (it->SYNTAX().type)
 				{
 				case SyntaxType::Requirement:
@@ -557,7 +552,8 @@ namespace LEX
 		if (!a_project) {
 			return APIResult::FileMissing;
 		}
-		auto project = dynamic_cast<Project*>(a_project);
+		//auto project = dynamic_cast<Project*>(a_project);
+		Project* project = a_project->As<Project>();
 
 		std::vector<std::string_view> options { a_options.begin(), a_options.end() };
 
@@ -627,7 +623,7 @@ namespace LEX
 		Project* project = Component::Create<Project>();
 		//static_assert(std::derived_from<Project, Component>, "fafaf");
 		project->SetName(name);
-
+		project->SetFilepath(path);
 		//todo - Set client
 		project->_client = client;
 		
@@ -652,37 +648,74 @@ namespace LEX
 
 		//These actually shouldn't through, that's a parsing process thing. What it should actually be doing is probably returning in some failure and
 		// communicating to the project client.
-		if (std::filesystem::exists(commons_path) == false) {
-			throw EnvironmentError(std::format("Commons not found at {}.", commons_path.string()));
-			return APIResult::Failure;
-		}
+		
+		constexpr bool USE_REPO = true;
 
-		if (CreateScript(project, "Commons", path) == APIResult::Failure) {
-			throw EnvironmentError("Commons not valid.");
-			return APIResult::Failure;
-		}
-
+		if constexpr (!USE_REPO)
 		{
-			std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi", "Commons.lsi");
-
-			auto last = std::unique(scripts.begin(), scripts.end());
-			
-			if (auto end = scripts.end(); last != end) {
-				logger::warn("Copies of scripts present in file search");
-				scripts.erase(last, scripts.end());
+			if (std::filesystem::exists(commons_path) == false) {
+				throw EnvironmentError(std::format("Commons not found at {}.", commons_path.string()));
+				return APIResult::Failure;
 			}
-			
-			for (auto full_path : scripts)
-			{
-				std::string path = full_path.first;
-				std::string name = full_path.second;
-				name = name.substr(0, name.size() - 4);
 
-				if (CreateScript(project, name, path) == APIResult::Failure) {
-					//Do minor error or something rather other.
+			if (CreateScript(project, "Commons", path) == APIResult::Failure) {
+				throw EnvironmentError("Commons not valid.");
+				return APIResult::Failure;
+			}
+
+			{
+				std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi", "Commons.lsi");
+
+				auto last = std::unique(scripts.begin(), scripts.end());
+
+				if (auto end = scripts.end(); last != end) {
+					logger::warn("Copies of scripts present in file search");
+					scripts.erase(last, scripts.end());
+				}
+
+				for (auto full_path : scripts)
+				{
+					std::string path = full_path.first;
+					std::string name = full_path.second;
+					name = name.substr(0, name.size() - 4);
+
+					if (CreateScript(project, name, path) == APIResult::Failure) {
+						//Do minor error or something rather other.
+					}
 				}
 			}
 		}
+		else
+		{
+			if (std::filesystem::exists(commons_path) == false) {
+				report::compile::error("Project {} lacks a viable commons file at {}", project->GetName(), project->GetFilepath());
+			}
+
+			if (project->MakeCommons(path) == nullptr) {
+				report::compile::error("Commons not valid.");
+			}
+
+			{
+				std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi", "Commons.lsi");
+
+				auto last = std::unique(scripts.begin(), scripts.end());
+
+				if (auto end = scripts.end(); last != end) {
+					logger::warn("Copies of scripts present in file search");
+					scripts.erase(last, scripts.end());
+				}
+
+				for (auto& [path, name] : scripts)
+				{
+					name = name.substr(0, name.size() - 4);
+
+					if (project->CreateScript(name, {}, path, {}) == nullptr) {
+						//TODO: Do minor error or something rather other.
+					}
+				}
+			}
+		}
+		
 
 		return APIResult::Success;
 	}

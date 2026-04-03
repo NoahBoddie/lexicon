@@ -23,40 +23,26 @@ namespace LEX
 			return _commons;
 		}
 
-		auto end = _scripts.end();
-
-
-		//Proper version of Script not implement
-		auto it = std::find_if(_scripts.begin(), end, [&](Script* search) { return search->GetName() == name; });
-
-		if (it != end) {
-			return *it;
-		}
-
-		return nullptr;
+		return Repository::FindScriptImpl(name);
 	}
 
 	void Project::AddScript(Script* script)
 	{
 		//Should search for script, throwing if within, then call SetParent on the script.
 
-		if (script->IsCommons() == true) {
+		if (script->IsCommons() == true) 
+		{
+			if (_commons) {
+				report::compile::error("CommonScript for project {} already exists", GetName());
+			}
 
 			_commons = static_cast<CommonScript*>(script);
+			DeclareParentTo(script);
 		}
 		else
 		{
-			auto end = _scripts.end();
-
-			//TODO: Report name when Project::AddScript is used, seems pretty important.
-			if (auto it = std::find(_scripts.begin(), end, script); it != end)
-				throw EnvironmentError("Script already added.");
-
-			_scripts.push_back(script);
+			return Repository::AddScript(script);
 		}
-
-		//Call add parent function
-		DeclareParentTo(script);
 
 	}
 

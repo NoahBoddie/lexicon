@@ -157,6 +157,8 @@ namespace LEX
 
 		bool IsCommons() const override { return true; }
 
+		void SetParent(Directory* env) override;
+
 		//The common ground of a project, mainly exists to override some functions in script.
 		std::string_view GetName() const override;
 	};

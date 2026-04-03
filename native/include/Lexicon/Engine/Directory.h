@@ -11,5 +11,8 @@ namespace LEX
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::Directory);
 
+
+
+		//virtual Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter& inserter) { return nullptr; }
 	};
 }

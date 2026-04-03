@@ -12,6 +12,7 @@ namespace LEX
         Directory,
         Repository,
         Project,
+        Subdirectory,
         Script,
         IFunction,
         Function,
@@ -30,8 +31,8 @@ namespace LEX
         IEnvironment,
         IScript,
         IProject,
-        //IRepository,  //I'm unsure of the necessity of this type.
-
+        ISubdirectory,
+        
         FunctionBase,
         ConcreteFunction,
         GenericFunction,

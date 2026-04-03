@@ -377,6 +377,8 @@ namespace LEX
 		return stat_log<IssueLevel::mc_level>(code, loc, GetIssueType(), args...);						\
 	}
 
+	//TODO: I want some new logger types. I find when it's kinda just general processing I have an issue putting it anywhere.
+
 #define DECLARE_ALL_LOGGER_LEVELS()							\
 	DECLARE_LOGGER_LEVEL(trace, Trace)						\
 	DECLARE_LOGGER_LEVEL(info, Info)						\

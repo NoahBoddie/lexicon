@@ -36,19 +36,13 @@ namespace LEX
 
 	void Script::SetParent(Directory* elem)
 	{
-		//TODO: Script::SetParent is actually supposed to ask if new parent isn't a project. Attend to that when enum is added.
-		//TODO: EnvironmentError in this situation is exclusively an error on my part, need a new exception for that.
-		
-		//TODO: use As
-		Project* project = elem->GetProject();
-		
-		//if (elem->IsComponentType<Project>() == false)
-		//	throw EnvironmentError("Parent of script must be a project.");
+		Repository* repo = elem->As<Repository>();
 
-		if (!project || elem != project)
-			report::fault::critical("Parent of script must be project.");
+		if (!repo) {
+			report::fault::critical("Parent of script must be a Repository.");
+		}
 
-		_parent = project;
+		_parent = repo;
 	}
 
 
@@ -345,6 +339,17 @@ namespace LEX
 		return "Commons";
 	}
 
+
+	void CommonScript::SetParent(Directory* elem)
+	{
+		Project* project = elem->As<Project>();
+
+		if (!project) {
+			report::fault::critical("Parent of CommonScript must be a Project.");
+		}
+
+		_parent = project;
+	}
 
 	//std::string CoreScript::GetName()
 	//{

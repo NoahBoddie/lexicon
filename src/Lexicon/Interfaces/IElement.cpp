@@ -5,8 +5,6 @@
 
 namespace LEX
 {
-#define TRUE_SELF()
-
 	Script* IElement::GetScriptImpl()
 	{
 		return AsComponent()->As<Element>()->GetScript();

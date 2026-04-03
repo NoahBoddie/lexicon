@@ -82,7 +82,9 @@ namespace LEX
 		Requirement,
 		Relationship,
 		
+		//I'd like to get rid of all directory things, and use 
 		Directive,
+		Subdirectory,
 
 		Prefunc,
 

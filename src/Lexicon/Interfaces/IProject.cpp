@@ -8,9 +8,4 @@ namespace LEX
 	{
 		return AddFormatImpl(name, content, source->As<Script>());
 	}
-
-	IScript* IProject::FindScriptInfc(const std::string_view& name)
-	{
-		return FindScriptImpl(name);
-	}
 }

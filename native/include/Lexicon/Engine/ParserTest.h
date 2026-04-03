@@ -2615,4 +2615,26 @@ namespace LEX
 			}
 
 		};
+
+#ifdef DONT_DO_THIS_YET
+		struct SubdirectoryParser : public AutoProcessor<SubdirectoryParser>
+		{
+			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
+			{
+				return !target && (stream->IsType(TokenType::Identifier, "subdirectory") || stream->IsType(TokenType::Identifier, "subproject"));
+			}
+
+
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Subdirectory);
+
+				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), SyntaxType::None));
+
+				return result;
+			}
+
+		};
+#endif
 }

@@ -18,7 +18,6 @@ namespace LEX
 			{
 			private:
 				virtual void AddFormatInfc(const std::string_view& name, const std::string_view& content, IScript* source) = 0;
-				virtual IScript* FindScriptInfc(const std::string_view& name) = 0;
 
 			};
 		}
@@ -29,30 +28,25 @@ namespace LEX
 
 	struct IMPL_VERSION(IProject, IRepository)
 	{
+	public:
 		DEFINE_COMPONENT_OFFSET(ComponentType::IProject, ComponentType::Project);
-		
-		auto FindScript(const std::string_view& name)
-		{
+
+	private:
 #ifdef LEX_SOURCE
-			return FindScriptImpl(name);
+		using script_t = Script;
 #else
-			return FindScriptInfc(name);
-#endif
-		}
+		using script_t = IScript;
+#endif	
+	public:
 
-
-
-#ifdef LEX_SOURCE
-		auto AddFormat(const std::string_view& name, const std::string_view& content, Script* source)
+		auto AddFormat(const std::string_view& name, const std::string_view& content, script_t* source)
 		{
+#ifdef LEX_SOURCE
 			return AddFormatImpl(name, content, source);
-		}
 #else
-		auto AddFormat(const std::string_view& name, const std::string_view& content, IScript* source)
-		{
 			return AddFormatInfc(name, content, source);
+#endif	
 		}
-#endif
 
 
 
@@ -60,12 +54,9 @@ namespace LEX
 	private:
 #ifdef LEX_SOURCE
 		virtual void AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source) = 0;
-		virtual Script* FindScriptImpl(const std::string_view& name) = 0;
 #endif
 
 		void AddFormatInfc(const std::string_view& name, const std::string_view& content, IScript* source) override;
-		IScript* FindScriptInfc(const std::string_view& name) override;
-
 
 	};
 }

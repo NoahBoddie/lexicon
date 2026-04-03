@@ -115,7 +115,7 @@ namespace Version
 #define CHECK_INTERFACE_VERSION(...) if (Version() < version) { return __VA_ARGS__; }
 
 
-#define INTERFACE_DERIVES(...) __VA_OPT__(public InterfaceLayer<)__VA_ARGS__ __VA_OPT__(>)
+#define INTERFACE_DERIVES(...) __VA_OPT__(public InterfaceLayer< )__VA_ARGS__ __VA_OPT__(>)
 
 #define IMPL_VERSION_DERIVES_NO_SFX(mc_name, mc_type,...) mc_name : public InterfaceLayer<Version::Current::mc_type __VA_OPT__(,)__VA_ARGS__>
 #define IMPL_VERSION_DERIVES(mc_name, mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_name, CONCAT(IV_,mc_type), __VA_ARGS__)

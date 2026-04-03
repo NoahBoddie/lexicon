@@ -24,7 +24,7 @@ namespace LEX
 	class Project : public Repository, public IProject
 	{
 	public:
-		DECL_IMPL_FUNC_ENVIRONMENT;
+		DECL_IMPL_FUNC_REPOSITORY;
 		DEFINE_COMPONENT_OFFSET(ComponentType::Project)
 
 
@@ -42,11 +42,8 @@ namespace LEX
 
 		ProjectClient* _client = nullptr;
 
-		std::filesystem::path _filePath;
-
 		std::string _name;
 
-		std::vector<Script*> _scripts;
 		std::vector<Format> formatList;
 
 
@@ -72,7 +69,7 @@ namespace LEX
 			_name = name;
 		}
 		
-		void AddScript(Script* script);
+		void AddScript(Script* script) override;
 		//*/
 
 	private:
@@ -121,10 +118,7 @@ namespace LEX
 
 		void SetSyntaxTree(SyntaxRecord& rec) final override {}
 
-
 		Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) override;
-
-	private:
 
 		Script* FindScriptImpl(const std::string_view& name) override;
 	};

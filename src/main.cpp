@@ -859,7 +859,15 @@ namespace LEX::Test
 
 
 
+    ENUM(DirectiveType)
+    {
+        Invalid
+    };
 
+    struct Directive
+    {
+
+    };
 
 
 
@@ -878,7 +886,154 @@ namespace LEX::Test
     // script, the implementations will be as one.
 
 
-#ifndef DISABLE_THIS_GUFF
+    struct Subdirectory;
+
+
+
+
+
+    /////////////////////////////////////////////
+
+
+
+
+    //The interface pointer is a struct that 
+    template<typename T>
+    struct interface_ptr
+    {
+        using element_type = std::remove_const_t<T>;
+        using pointer_type = element_type*;
+        constexpr static uintptr_t kExpected = element_type::version;
+
+        //When activated
+
+
+        
+        constexpr interface_ptr() noexcept = default;
+
+        interface_ptr(pointer_type p) : _ptr{ p }
+        {
+            verify();
+        }
+
+        template<std::derived_from<element_type> U>
+        interface_ptr(interface_ptr<U> p) : interface_ptr{ unconst(p.get()) }
+        {
+            verify();
+        }
+
+
+        interface_ptr(const interface_ptr<T>& p) : interface_ptr{ unconst(p.get()) }
+        {
+            verify();
+        }
+
+
+
+        pointer_type get() noexcept { return _ptr; }
+        const pointer_type get() const noexcept { return _ptr; }
+
+        operator pointer_type() noexcept { return get(); }
+        operator const pointer_type() const noexcept { return get(); }
+        
+        pointer_type operator->() { return get(); }
+        const pointer_type operator->() const noexcept { return get(); }
+
+
+    private:
+
+        void verify()
+        {
+#ifndef LEX_SOURCE
+            assert_if(_ptr && _ptr->CheckVersion<element_type>(kExpected) == false) {
+                report::link::critical("interface of '{}' failed to meet expected version of {}", type_name_v<element_type>, kExpected);
+            }
+#endif
+        }
+
+        pointer_type _ptr = nullptr;
+    };
+
+    interface_ptr<IProject> TestIFace()
+    {
+        return nullptr;
+    }
+
+    void TestV()
+    {
+        IProject::version;
+
+        interface_ptr<IProject> test = TestIFace();
+
+        interface_ptr<IElement> test2 = test;
+
+        test->CheckVersion<IProject>(1);
+    }
+
+
+    //Just the things I want to add to directory basically
+    struct DirectoryPlus : public Directory
+    {
+        virtual Environment* FindEnvironment(const std::string_view& name) { return nullptr; }
+
+        virtual Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter& inserter) { return nullptr; }
+    };
+
+
+    //Projects and Subdirectories derive from repositories. Repositories are specifically
+    // directories that can hold 
+    struct Repository : public DirectoryPlus
+    {
+        //This includes the same functions so they can be conjoined at a relevant point.
+        //virtual Script* FindScript(const std::string_view& name) = 0;
+        //Subdirectory* FindSubproject(const std::string_view& name);
+
+
+
+        //virtual Script* AddScript(Script* script) = 0;
+        //virtual bool CreateSubproject(const std::string_view& name) = 0;
+
+        std::string filePath;
+
+
+        std::vector<Script*> scripts;
+
+
+        //TODO: Make a custom type for this, something that's effectively a unique pointer that only
+        // creates data when accessed.
+        std::unique_ptr<std::unordered_map<std::string_view, Subdirectory*>> subdirectories = nullptr;
+
+    };
+
+
+
+    //Has no representable interface.
+    struct Subdirectory : public Repository
+    {
+
+#define ELEM_ENUM using Prev = Flag; enum Flag
+
+#define ELEM_FLAG(mc_name, mc_index) mc_name = 1 << (Prev::_next + mc_index)
+
+#define ELEM_NEXT  _last, _next = std::bit_width<uint32_t>(_last)
+
+        ELEM_ENUM
+        {
+            None = 0,
+
+            ELEM_FLAG(IsSubproject, 0),
+            
+            ELEM_NEXT,
+        };
+
+
+    };
+
+    //scripts themselves will hold onto subdirectories via pointer and string_view
+
+    
+
+#ifdef DISABLE_THIS_GUFF
 
 
 
