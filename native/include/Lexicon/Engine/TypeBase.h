@@ -30,16 +30,13 @@ namespace LEX
 	private:
 
 
-		using Prev = Flag;
-		enum Flag
+
+		ELEM_ENUM
 		{
-			None = 0,
-			LinkLater = 1 << (Prev::_next + 0),
-			InheritHandled = 1 << (Prev::_next + 1),
+			ELEM_FLAG(LinkLater, 0),
+			ELEM_FLAG(InheritHandled, 1),
 
-
-			_next = 1 << (Prev::_next + 2),
-
+			ELEM_NEXT,
 		};
 
 		//This is a pivot for Policies, generic or otherwise to exist, without possibly something like

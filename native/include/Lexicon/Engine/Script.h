@@ -32,16 +32,14 @@ namespace LEX
 	protected:
 		//Scripts have functions/globals(vars)/types/(parents/projects)
 		
-		using Prev = Flag;
-		
-		enum Flag
+		ELEM_ENUM
 		{
-			None = 0,
-			Incremental = 1 << (Prev::_next + 0),
+			ELEM_FLAG(Incremental, 0),
 
-			_next = 1 << (Prev::_next + 1),
-
+			ELEM_NEXT,
 		};
+
+
 
 	public:
 		

@@ -56,14 +56,26 @@ namespace LEX
 
 		using SearchFunction = std::variant<std::function<EnvironSearch>, std::function<ElementSearch>>;
 
-		enum Flag
+
+#define ELEM_ENUM using Prev = Flag; enum Flag : std::underlying_type_t<Prev>
+#define ELEM_FLAG(mc_name, mc_index) mc_name = 1 << (Prev::_next + mc_index)
+#define ELEM_NEXT  _last, _next = std::bit_width<uint32_t>(_last), None = 0
+		//#define ELEM_FLAG(mc_name, mc_expr) mc_name = static_cast<std::underlying_type_t<Prev>>(mc_expr) << Prev::_next
+
+
+		enum Flag 
 		{
 			None		= 0 << 0,
 			Attached	= 1 << 0,  //When parent is set. If not attached, will not be set.
 
-			_next		= 1 << 1
+
+			_last, 
+			_next = std::bit_width<uint32_t>(_last),
+
 		};
 
+
+	
 		//TODO: I'd like to devise a situation where Element wasn't derived from IElement, just so the inheritance wouldn't have
 		// to be virtual
 
