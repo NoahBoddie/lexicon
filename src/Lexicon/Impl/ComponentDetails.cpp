@@ -9,6 +9,12 @@
 
 namespace LEX
 {
+
+    const IComponentBase* IComponentBase::GetComponentBase() const
+    {
+        return GetComponent();
+    }
+
     TypeInfo* IComponentBase::GetTypeFromOffset(uint16_t offset)
     {
         ITypeInfo* type = IdentityManager::instance->GetTypeByOffset("REFLECT", offset);

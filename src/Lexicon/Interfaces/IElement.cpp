@@ -2,36 +2,43 @@
 
 #include "Lexicon/Engine/Component.h"
 #include "Lexicon/Engine/Element.h"
-
+#include "Lexicon/Engine/Directory.h"
 namespace LEX
 {
 	Script* IElement::GetScriptImpl()
 	{
-		return AsComponent()->As<Element>()->GetScript();
+		return GetComponent()->As<Element>()->GetScript();
 	}
 
 	Project* IElement::GetProjectImpl()
 	{
-		return AsComponent()->As<Element>()->GetProject();
+		return GetComponent()->As<Element>()->GetProject();
 	}
 
 	Directory* IElement::GetParentImpl()
 	{
-		return AsComponent()->As<Element>()->GetParent();
+		return GetComponent()->As<Element>()->GetParent();
 	}
 
 	Environment* IElement::GetEnvironmentImpl()
 	{
-		return AsComponent()->As<Element>()->GetEnvironment();
+		return GetComponent()->As<Element>()->GetEnvironment();
 	}
+
+	Directory* IElement::GetDirectoryImpl()
+	{
+		return GetComponent()->As<Directory>()->GetDirectory();
+	}
+
+
 	Script* IElement::GetCommonsImpl()
 	{
-		return AsComponent()->As<Element>()->GetCommons();
+		return GetComponent()->As<Element>()->GetCommons();
 	}
 
 	Element* IElement::GetElementFromPathImpl(std::string_view path, ElementType elem, OverloadArgument* sign)
 	{
-		return AsComponent()->As<Element>()->GetElementFromPath(path, elem, sign);
+		return GetComponent()->As<Element>()->GetElementFromPath(path, elem, sign);
 	}
 
 }

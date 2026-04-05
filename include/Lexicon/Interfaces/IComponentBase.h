@@ -16,7 +16,7 @@ namespace LEX
             struct M_INTERFACE_VERSION(IComponentBase)
             {
             protected:
-                virtual const Component* AsComponent() const = 0;
+                virtual const Component* GetComponent() const = 0;
                 virtual const void* Cast(const void* self, ComponentType from, ComponentType to) const = 0;
 
             public:
@@ -27,7 +27,7 @@ namespace LEX
             };
         
             #define DEF_FUNC_IMPL_COMPONENT_1 \
-            MAP_UD(DEF_USING_IMPL,Component,AsComponent,GetComponentOffset,GetComponentType)
+            MAP_UD(DEF_USING_IMPL,Component,GetComponent,GetComponentOffset,GetComponentType)
         }
 
         CURRENT_VERSION(IComponentBase, 1);
@@ -41,8 +41,9 @@ namespace LEX
     public:
         static constexpr auto COMPONENT_TYPE = ComponentType::Invalid;
 
-        virtual const Component* AsComponent() const = 0;
-        Component* AsComponent() { return unconst(make_const(this)->AsComponent()); }
+        //TODO: Change name to GetComponent, as this object may not actually be the component.
+        virtual const Component* GetComponent() const = 0;
+        Component* GetComponent() { return unconst(make_const(this)->GetComponent()); }
 
     private:
         //The way this would work is it would link to an engine file that handles the traits. 
@@ -54,6 +55,9 @@ namespace LEX
         {
             return unconst(make_const(this)->Cast(self, from, to));
         }
+
+        const IComponentBase* GetComponentBase() const;
+
     public:
 
 
@@ -109,6 +113,32 @@ namespace LEX
         copy_cv_t<Self, T>* As(this Self& a_this) requires(requires() { { T::COMPONENT_TYPE } -> std::convertible_to<ComponentType>; })
         {
             return a_this.As<T>(T::COMPONENT_TYPE);
+        }
+
+        template<typename T, typename Self, typename = std::enable_if_t<
+            std::negation_v<
+            std::disjunction<
+            std::is_pointer<T>,
+            std::is_reference<T>,
+            std::is_const<T>,
+            std::is_volatile<T>>>>>
+            copy_cv_t<Self, T>* GetAs(this Self& a_this, ComponentType type)
+        {
+#define GET_AS_COMPONENT(mc_component) GetAs<::LEX::mc_component>(::LEX::ComponentType::mc_component)
+            return GetComponentBase()->As<T>(type);
+        }
+
+
+        template<typename T, typename Self, typename = std::enable_if_t<
+            std::negation_v<
+            std::disjunction<
+            std::is_pointer<T>,
+            std::is_reference<T>,
+            std::is_const<T>,
+            std::is_volatile<T>>>>>
+            copy_cv_t<Self, T>* GetAs(this Self& a_this) requires(requires() { { T::COMPONENT_TYPE } -> std::convertible_to<ComponentType>; })
+        {
+            return a_this.GetAs<T>(T::COMPONENT_TYPE);
         }
 
 

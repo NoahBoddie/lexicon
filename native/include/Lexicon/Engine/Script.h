@@ -107,8 +107,6 @@ namespace LEX
 		Environment* FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter) override;
 
 
-
-
 		//Includes/Imports/Requires need to be included as concepts.
 		// Script is the only thing that uses these, so no reason to branch out.
 		// Also, I may not need to "Find" them for that reason.
@@ -147,7 +145,7 @@ namespace LEX
 
 		Script* GetScriptImpl() override;
 
-		const Component* AsComponent() const override final { return this; }
+		const Component* GetComponent() const override final { return this; }
 	};
 
 	

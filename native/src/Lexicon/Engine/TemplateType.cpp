@@ -26,9 +26,9 @@ namespace LEX
 		return _owner; 
 	}
 
-	const Component* TemplateType::AsComponent() const
+	const Component* TemplateType::GetComponent() const
 	{ 
-		return _owner ? _owner->AsComponent() : nullptr; 
+		return _owner ? _owner->GetComponent() : nullptr; 
 	}
 
 }

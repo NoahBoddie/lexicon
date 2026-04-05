@@ -26,6 +26,6 @@ namespace LEX
 		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override;
 	
 	private:
-		const Component* AsComponent() const override final { return this; }
+		const Component* GetComponent() const override final { return this; }
 	};
 }

@@ -164,7 +164,7 @@ namespace LEX
 		}
 		
 		private:
-			const Component* AsComponent() const override final { return this; }
+			const Component* GetComponent() const override final { return this; }
 	};
 
 

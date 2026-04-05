@@ -58,7 +58,7 @@ namespace LEX
 		std::unique_ptr<SpecialBase> CreateSpecial(ITemplatePart* args) override;
 	
 	private:
-		const Component* AsComponent() const override final { return this; }
+		const Component* GetComponent() const override final { return this; }
 	};
 
 

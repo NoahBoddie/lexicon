@@ -21,14 +21,14 @@
 #include "Lexicon/Engine/Signature.h"
 
 #include "Lexicon/Engine/ConcreteFunction.h"
-
+#include "Lexicon/Engine/ProjectDirectory.h"
 namespace LEX
 {
 
 
 	inline static Project* _shared;
 	
-	inline static std::vector<Project*> _projects;
+	std::vector<Project*>& _projects = unconst(ProjectDirectory::GetSingleton()->GetProjects());
 	
 	//This is the core script. Regardless of the name of the script, they all should get included into this, the core script.
 	// This script cannot be added to except by from here.
@@ -45,9 +45,6 @@ namespace LEX
 	constexpr std::string_view intExtension = "lsi";//Then this.
 	constexpr std::string_view srcExtension = "lsc";
 
-	//constexpr std::string_view core_path = "Data/Lexicon";
-	constexpr std::string_view core_path = "C:/Users/Noah/Desktop/Projects/[Project Data]/Mod Projects/Arithmetic/3.0/{scripted code}/Lexicon";
-
 
 	//Concept behind this is once i'd like this to happen once when all plugins are properly loaded.
 	/*
@@ -58,9 +55,6 @@ namespace LEX
 		);
 	}
 	//*/
-
-
-
 
 
 
@@ -623,7 +617,7 @@ namespace LEX
 		Project* project = Component::Create<Project>();
 		//static_assert(std::derived_from<Project, Component>, "fafaf");
 		project->SetName(name);
-		project->SetFilepath(path);
+		
 		//todo - Set client
 		project->_client = client;
 		
@@ -642,7 +636,8 @@ namespace LEX
 
 		path += "/";
 		path += name;
-
+		
+		project->SetFilepath(path);
 
 		std::filesystem::path commons_path = std::filesystem::path(path + "/Commons.lsi");
 

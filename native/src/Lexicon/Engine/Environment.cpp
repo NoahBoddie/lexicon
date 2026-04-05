@@ -170,6 +170,18 @@ namespace LEX
 		}
 
 
+		Directory* Environment::FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter)
+		{
+			auto types = FindTypes(record.GetView());
+
+			if (types.size() == 1)
+				//result = nullptr;
+				return types[0];
+
+			return nullptr;
+		}
+
+
 
 
 

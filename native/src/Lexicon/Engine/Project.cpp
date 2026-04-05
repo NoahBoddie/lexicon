@@ -1,6 +1,6 @@
 #include "Lexicon/Engine/Project.h"
 #include "Lexicon/Engine/Script.h"
-
+#include "Lexicon/Engine/ProjectDirectory.h"
 namespace LEX
 {
 
@@ -24,6 +24,11 @@ namespace LEX
 		}
 
 		return Repository::FindScriptImpl(name);
+	}
+
+	Directory* Project::GetParentImpl()
+	{
+		return IsShared() ? nullptr : ProjectDirectory::GetSingleton();
 	}
 
 	void Project::AddScript(Script* script)
@@ -56,5 +61,12 @@ namespace LEX
 	{
 		return FindScript(record.GetView());
 	}
+
+
+	Directory* Project::FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter)
+	{
+		return FindScript(record.GetView());
+	}
+
 
 }

@@ -205,7 +205,7 @@ namespace LEX
 
 	private:
 		//TODO: No component. Need to fix.
-		const Component* AsComponent() const override final;
+		const Component* GetComponent() const override final;
 
 
 	};

@@ -163,8 +163,8 @@ namespace LEX
 		}
 	
 	
-		//This will merge with the AsComponent of IComponent when set in generic classes
-		virtual const Component* AsComponent() const = 0;
+		//This will merge with the GetComponent of IComponent when set in generic classes
+		virtual const Component* GetComponent() const = 0;
 
 
 	public://Only public for now.

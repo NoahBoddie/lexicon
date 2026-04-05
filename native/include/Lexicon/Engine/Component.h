@@ -57,11 +57,9 @@ namespace LEX
 	private:
 		//Limit the use of a recordless create by seeing if load from record has been implemented.
 		template<class D>
-		static D* _Create(SyntaxRecord* rec = nullptr)
+		static D* _Create(SyntaxRecord* rec = nullptr) requires(!std::is_abstract_v<D>)
 		{
 			D* comp = new D();
-			
-			comp->_type = D::COMPONENT_TYPE;
 			
 			comp->Initialize(rec);
 
@@ -75,19 +73,19 @@ namespace LEX
 
 
 		template<std::derived_from<Component> D>
-		static D* Create(SyntaxRecord* rec = nullptr)
+		static D* Create(SyntaxRecord* rec = nullptr) requires(!std::is_abstract_v<D>)
 		{
 			return _Create<D>(rec);
 		}
 
 		template<std::derived_from<Component> D>
-		static D* Create(SyntaxRecord& rec)
+		static D* Create(SyntaxRecord& rec) requires(!std::is_abstract_v<D>)
 		{
 			return Create<D>(&rec);
 		}
 		
 		template<std::derived_from<Component> D>
-		static D* Create(SyntaxRecord&& rec)
+		static D* Create(SyntaxRecord&& rec) requires(!std::is_abstract_v<D>)
 		{
 			return Create<D>(&rec);
 		}
@@ -530,7 +528,6 @@ public:
 		inline static LinkFlag _linkCheckFlags = LinkFlag::None;
 
 		//TODO: Get rid of this any anything that uses it.
-		ComponentType _type = ComponentType::Invalid;
 		mutable ComponentFlag _flags = ComponentFlag::None;
 
 		//Data usable by any person to store personal data here. After all, it's free space.

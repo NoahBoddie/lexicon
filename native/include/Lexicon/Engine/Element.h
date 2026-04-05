@@ -90,7 +90,11 @@ namespace LEX
 		Project* GetProjectImpl() override;
 
 		Script* GetCommonsImpl() override;
-
+		
+		Directory* GetDirectoryImpl() override
+		{
+			return GetParent();
+		}
 	public:
 
 

@@ -40,7 +40,8 @@ namespace LEX
 				virtual IScript* GetScriptInfc() = 0;
 				virtual IProject* GetProjectInfc() = 0;
 				virtual IDirectory* GetParentInfc() = 0;
-				virtual IEnvironment* GetEnvironmentInfc() = 0;//I might delete this.
+				virtual IEnvironment* GetEnvironmentInfc() = 0;
+				virtual IDirectory* GetDirectoryInfc() = 0;
 				virtual IScript* GetCommonsInfc() = 0;
 				virtual IElement* GetElementFromPathInfc(std::string_view path, ElementType elem, SignatureBase * sign = nullptr) = 0;
 
@@ -76,8 +77,9 @@ namespace LEX
 		IProject* GetProjectInfc() override final;
 		IDirectory* GetParentInfc() override final;
 		IEnvironment* GetEnvironmentInfc() override final;
+		IDirectory* GetDirectoryInfc() override final;
 		IScript* GetCommonsInfc() override final;
-		IElement* GetElementFromPathInfc(std::string_view path, ElementType elem, SignatureBase * sign = nullptr) override final;
+		IElement* GetElementFromPathInfc(std::string_view path, ElementType elem, SignatureBase* sign = nullptr) override final;
 
 
 
@@ -150,6 +152,14 @@ namespace LEX
 			return GetEnvironmentInfc();
 #endif
 		}
+		auto GetDirectory()
+		{
+#ifdef LEX_SOURCE
+			return GetDirectoryImpl();
+#else
+			return GetDirectoryInfc();
+#endif
+		}
 		auto GetCommons()
 		{
 #ifdef LEX_SOURCE
@@ -177,7 +187,8 @@ namespace LEX
 		virtual Script* GetScriptImpl() = 0;
 		virtual Project* GetProjectImpl() = 0;
 		virtual Directory* GetParentImpl() = 0;
-		virtual Environment* GetEnvironmentImpl() = 0;//I might delete this.
+		virtual Environment* GetEnvironmentImpl() = 0;
+		virtual Directory* GetDirectoryImpl() = 0;
 		virtual Script* GetCommonsImpl() = 0;
 
 
@@ -203,7 +214,7 @@ namespace LEX
 
 	#define DEF_FUNC_IMPL_ELEMENT_MAIN \
 	MAP_UD(DEF_USING_IMPL,Element,\
-	GetScript,GetProject,GetParent,GetEnvironment,GetCommons,GetElementFromPath)
+	GetScript,GetProject,GetParent,GetEnvironment,GetDirectory,GetCommons,GetElementFromPath)
 
 #define DECL_IMPL_FUNC_ELEMENT DEF_FUNC_IMPL_ELEMENT_MAIN DEF_FUNC_IMPL_ELEMENT_1 DECL_IMPL_FUNC_COMPONENT
 

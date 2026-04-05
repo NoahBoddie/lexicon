@@ -124,11 +124,11 @@ namespace LEX
 		}
 
 		private:
-			const Component* AsComponent() const override final 
+			const Component* GetComponent() const override final 
 			{ 
 				auto generic = GetGeneric();
 
-				return generic ? generic->AsComponent() : nullptr;
+				return generic ? generic->GetComponent() : nullptr;
 			}
 	};
 }

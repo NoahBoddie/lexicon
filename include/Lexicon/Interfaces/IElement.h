@@ -24,6 +24,7 @@ namespace LEX
 		Project* GetProjectImpl() override;
 		Directory* GetParentImpl() override;
 		Environment* GetEnvironmentImpl() override;
+		Directory* GetDirectoryImpl() override;
 		Script* GetCommonsImpl() override;
 
 		Element* GetElementFromPathImpl(std::string_view path, ElementType elem, OverloadArgument* sign = nullptr) override;

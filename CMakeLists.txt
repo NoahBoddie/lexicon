@@ -141,7 +141,7 @@ set(headers
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h"   "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h"   "include/Lexicon/ComponentType.h" "include/Lexicon/Interfaces/IComponentBase.h" "include/Lexicon/Interfaces/IComponent.h" "include/Lexicon/Interfaces/IElementBase.h" "include/Lexicon/Impl/ComponentDetails.h" "include/Lexicon/Impl/Utility.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IDirectoryBase.h" "include/Lexicon/Interfaces/IDirectory.h" "native/include/Lexicon/Engine/GlobalImpl.h" "include/Lexicon/Interfaces/IRepository.h" "include/Lexicon/Interfaces/IRepositoryBase.h" "include/Lexicon/Interfaces/ISubdirectory.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h"   "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h"   "include/Lexicon/ComponentType.h" "include/Lexicon/Interfaces/IComponentBase.h" "include/Lexicon/Interfaces/IComponent.h" "include/Lexicon/Interfaces/IElementBase.h" "include/Lexicon/Impl/ComponentDetails.h" "include/Lexicon/Impl/Utility.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IDirectoryBase.h" "include/Lexicon/Interfaces/IDirectory.h" "native/include/Lexicon/Engine/GlobalImpl.h" "include/Lexicon/Interfaces/IRepository.h" "include/Lexicon/Interfaces/IRepositoryBase.h" "include/Lexicon/Interfaces/ISubdirectory.h" "include/Lexicon/Interfaces/DirectoryManager.h")
 
 
 set(sources
@@ -276,7 +276,7 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/Conversion.h"
 		"native/include/Lexicon/Engine/Convert.h"
 
-	 "native/include/Lexicon/Engine/NullType.h"    "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "native/include/Lexicon/Engine/FunctionImpl.h" "native/include/Lexicon/Engine/Repository.h" "native/include/Lexicon/Engine/Subdirectory.h")
+	 "native/include/Lexicon/Engine/NullType.h"    "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "native/include/Lexicon/Engine/FunctionImpl.h" "native/include/Lexicon/Engine/Repository.h" "native/include/Lexicon/Engine/Subdirectory.h" "native/include/Lexicon/Engine/ProjectDirectory.h")
 		
 
 	set(sources
@@ -341,7 +341,7 @@ if(LEXICON_SOURCE)
 		"native/src/Lexicon/Engine/GenericFunction.cpp"
 		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
 		"src/Lexicon/Interfaces/IElementBase.cpp"
-		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp")
+		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp" "src/Lexicon/Interfaces/DirectoryManager.cpp" "native/src/Lexicon/Engine/ProjectDirectory.cpp")
 endif()
 
 source_group(

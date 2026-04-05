@@ -83,19 +83,14 @@ namespace LEX
 			return this;
 		}
 		
-		Directory* GetParentImpl() override
-		{
-			auto share = GetShared();
-			//Should return null on shared projects.
-			return share == this ? nullptr : share;
-		}
+		Directory* GetParentImpl() override;
 
 		Script* GetScriptImpl() override
 		{
 			return nullptr;
 		}
 
-		const Component* AsComponent() const override final { return this; }
+		const Component* GetComponent() const override final { return this; }
 
 		Environment* GetEnvironmentImpl() override
 		{
@@ -119,6 +114,10 @@ namespace LEX
 		void SetSyntaxTree(SyntaxRecord& rec) final override {}
 
 		Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) override;
+
+
+		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) override;
+
 
 		Script* FindScriptImpl(const std::string_view& name) override;
 	};

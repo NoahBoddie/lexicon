@@ -97,7 +97,7 @@ namespace LEX
 	protected:
 		void SetDefault(const Variable& var) override;
 
-		const Component* AsComponent() const override final { return this; }
+		const Component* GetComponent() const override final { return this; }
 	public:
 
 		void LoadFromRecord(SyntaxRecord& ast) override;

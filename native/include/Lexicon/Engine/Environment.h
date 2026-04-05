@@ -154,21 +154,6 @@ namespace LEX
 
 
 
-	struct IEnvironment_only : public Element
-	{
-		//This part of an environment can only find other things. I
-		virtual std::vector<FunctionInfo*> FindFunctions(std::string_view name) = 0;
-
-
-
-		//TODO: Change name to find field, and use a variableInfo for this.
-		virtual VariableInfo* FindVariable(std::string_view name) = 0;
-
-		virtual std::vector<TypeBase*> FindTypes(std::string_view name) = 0;
-
-
-	};
-
 
 
 	struct Environment : public Directory, public IEnvironmentBase
@@ -241,6 +226,10 @@ namespace LEX
 
 
 		void CreateFunction(SyntaxRecord& node);
+
+
+
+		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) override;
 
 
 	protected:

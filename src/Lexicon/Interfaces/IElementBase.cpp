@@ -26,6 +26,10 @@ namespace LEX
 		return GetParentImpl()->As<IDirectory>();
 	}
 
+	IDirectory* IElementBase::GetDirectoryInfc()
+	{
+		return GetDirectoryImpl()->As<IDirectory>();
+	}
 
 	IEnvironment* IElementBase::GetEnvironmentInfc()
 	{
