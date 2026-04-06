@@ -57,7 +57,7 @@ namespace LEX
 		using SearchFunction = std::variant<std::function<EnvironSearch>, std::function<ElementSearch>>;
 
 
-#define ELEM_ENUM using Prev = Flag; enum Flag : std::underlying_type_t<Prev>
+#define ELEM_ENUM using Prev = Flag; enum Flag; Flag& GetFlags() const { return GetComponentData<Flag>(); } enum Flag : std::underlying_type_t<Prev>
 #define ELEM_FLAG(mc_name, mc_index) mc_name = 1 << (Prev::_next + mc_index)
 #define ELEM_NEXT  _last, _next = std::bit_width<uint32_t>(_last), None = 0
 		//#define ELEM_FLAG(mc_name, mc_expr) mc_name = static_cast<std::underlying_type_t<Prev>>(mc_expr) << Prev::_next
@@ -246,14 +246,18 @@ namespace LEX
 			node.SetParent(this);//Doing this last allows the base most ones to set their parent first.
 		}
 
+		//virtual bool CanStack(Element* other)
+		//{
+		//	return false;
+		//}
 
+		bool ShouldLink() override;
 
-		
 	protected:
 		
 		virtual void SetParent(Directory*) = 0;
 
-		void NoAttached()
+		void DeclareOrphan()
 		{
 			//This simply removes the attach check by confirming it's already attached.
 			if (IsAttached() == false)

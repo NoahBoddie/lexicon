@@ -674,12 +674,14 @@ namespace LEX
 
 	void Element::DeclareParentTo(Element* child)
 	{
-		auto directory = As<Directory>();
-		assert(directory);
-		child->SetParent(directory);
-		child->GetFlags() |= Flag::Attached;
-		child->OnAttach();
-
+		assert_if_not(child->IsAttached() == false)
+		{
+			auto directory = As<Directory>();
+			assert(directory);
+			child->SetParent(directory);
+			child->GetFlags() |= Flag::Attached;
+			child->OnAttach();
+		}
 	}
 
 
@@ -1407,6 +1409,11 @@ namespace LEX
 	}
 	
 	//*/
+
+	bool Element::ShouldLink()
+	{
+		return NULL_OP(NULL_Q(GetParent())->ShouldLink(), true);
+	}
 
 
 	Environment* SecondaryElement::GetEnvironmentImpl()

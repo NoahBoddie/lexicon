@@ -26,7 +26,7 @@ namespace LEX
 		return GetComponent()->As<Repository>()->CreateScript(name, options, path, content);
 	}
 
-	Subdirectory* IRepository::CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, const std::string_view& path)
+	Subdirectory* IRepository::CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path)
 	{
 		return GetComponent()->As<Repository>()->CreateSubdirectory(name, sub_to, options, path);
 	}

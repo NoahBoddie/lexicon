@@ -43,7 +43,7 @@ namespace LEX
 
 
 
-
+	/*
 	namespace NEW
 	{
 		namespace _UNDER
@@ -129,19 +129,6 @@ namespace LEX
 
 		std::vector<SpecialDirectory> GetDirectories(Element* a_this, Directory* focus, SyntaxRecord* step, RelateType& relation, std::set<Element*>& searched)
 		{
-			/*
-			make variable that stores temp environment here.
-			overloop here
-			for each environment in the temp var:
-
-			Check for environ being in the set.
-			Add environ to the set.
-			Call function.
-			move temp var restart overloop.
-
-			Overloop keeps going until absolutely nothing is created from GetAssociate
-			//*/
-
 			//This could be cleaner, but it works for now.
 
 			std::vector<SpecialDirectory> result{};
@@ -585,6 +572,22 @@ namespace LEX
 		}
 
 
+		namespace Detail
+		{
+
+		}
+
+
+		bool SearchDirectory(std::vector<SpecialDirectory>& query, ComponentType type)
+		{
+			switch (type)
+			{
+				//ComponentType::
+			}
+
+			return false;
+		}
+
 
 		Element* GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadArgument* sign = nullptr)
 		{
@@ -670,5 +673,5 @@ namespace LEX
 		}
 
 	}
-
+	//*/
 }

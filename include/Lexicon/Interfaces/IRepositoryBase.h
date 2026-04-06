@@ -36,7 +36,7 @@ namespace LEX
 				virtual IScript* FindScriptInfc(const std::string_view& name)= 0;
 				virtual ISubdirectory* FindSubdirectoryInfc(const std::string_view& name) = 0;
 				virtual IScript* CreateScriptInfc(const std::string_view& name, std::span<std::string_view> options, const std::string_view& path, std::optional<std::string_view> content) = 0;
-				virtual ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, const std::string_view& path) = 0;
+				virtual ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) = 0;
 			};
 
 #define DEF_FUNC_IMPL_REPOSITORY_1 \
@@ -114,14 +114,14 @@ namespace LEX
 		virtual Script* FindScriptImpl(const std::string_view& name) = 0;
 		virtual Subdirectory* FindSubdirectoryImpl(const std::string_view& name) = 0;
 		virtual Script* CreateScriptImpl(const std::string_view& name, std::span<std::string_view> options, const std::string_view& path, std::optional<std::string_view> content) = 0;
-		virtual Subdirectory* CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, const std::string_view& path) = 0;
+		virtual Subdirectory* CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) = 0;
 
 #endif
 
 		IScript* FindScriptInfc(const std::string_view& name) override final;
 		ISubdirectory* FindSubdirectoryInfc(const std::string_view& name) override final;
 		IScript* CreateScriptInfc(const std::string_view& name, std::span<std::string_view> options, const std::string_view& path, std::optional<std::string_view> content) override final;
-		ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, const std::string_view& path) override final;
+		ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) override final;
 
 
 	};

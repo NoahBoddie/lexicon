@@ -897,6 +897,8 @@ namespace LEX::Test
 
 
 
+
+
     //The interface pointer is a struct that 
     template<typename T>
     struct interface_ptr
@@ -959,6 +961,10 @@ namespace LEX::Test
         return nullptr;
     }
 
+
+
+
+
     void TestV()
     {
         IProject::version;
@@ -968,6 +974,9 @@ namespace LEX::Test
         interface_ptr<IElement> test2 = test;
 
         test->CheckVersion<IProject>(1);
+
+
+
     }
 
 
@@ -1010,21 +1019,6 @@ namespace LEX::Test
     //Has no representable interface.
     struct Subdirectory : public Repository
     {
-
-#define ELEM_ENUM using Prev = Flag; enum Flag
-
-#define ELEM_FLAG(mc_name, mc_index) mc_name = 1 << (Prev::_next + mc_index)
-
-#define ELEM_NEXT  _last, _next = std::bit_width<uint32_t>(_last)
-
-        ELEM_ENUM
-        {
-            None = 0,
-
-            ELEM_FLAG(IsSubproject, 0),
-            
-            ELEM_NEXT,
-        };
 
 
     };

@@ -18,6 +18,8 @@ namespace LEX
 		Final = 1 << 6,		//Used when all other link flags have gone out.
 		Exit = 1 << 7,		//Used when the program is exiting.
 
+
+		Complete = ((uint8_t)-1) & ~(LinkFlag::Final | LinkFlag::Exit),
 		All = LinkFlag::Loaded | LinkFlag::Object | LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External,
 		Any = LinkFlag::All,
 		//Final happens when all linking is done, notably, what also happens here is a bid for dependency.

@@ -296,8 +296,7 @@ namespace LEX
 		//>-------------------------
 		//This is for environment
 		std::map<std::string_view, TypeBase*> typeMap;
-		//TODO: I need a class called policy base that will handle TypeBases. Basically it'd be something like what ITypeInfo is to ITypeInfo.
-		// largely, it'd serve as a good wrapper for type aliases or other types such as generic arguments.
+
 
 		
 		std::vector<GlobalBase*> variables;//should be global variables

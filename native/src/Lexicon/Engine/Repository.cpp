@@ -6,6 +6,7 @@
 #include "Lexicon/Engine/Script.h"
 #include "Lexicon/Engine/Project.h"
 #include "Lexicon/Engine/ParserTest.h"
+#include "Lexicon/Engine/Subdirectory.h"
 namespace LEX
 {
 
@@ -495,7 +496,8 @@ namespace LEX
 
 		AddScript(script);
 
-		Component::RefreshLinkage();
+		if (!is_commons && !IsBatchLoading())
+			Component::RefreshLinkage();
 
 		return script;
 	}
@@ -534,5 +536,111 @@ namespace LEX
 		}
 
 		return nullptr;
+	}
+
+
+	Directory* Repository::FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter)
+	{
+		return FindScript(record.GetView());
+	}
+
+	Subdirectory* Repository::FindSubdirectoryImpl(const std::string_view& name)
+	{
+		auto end = _subdirectories.end();
+
+
+		//Proper version of Script not implement
+		auto it = std::find_if(_subdirectories.begin(), end, [&](Subdirectory* search) { return search->GetName() == name; });
+
+		if (it != end) {
+			return *it;
+		}
+
+		return nullptr;
+	}
+
+	Subdirectory* Repository::CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path)
+	{
+
+		if (auto subdirectory = FindSubdirectory(name)) {
+			if (sub_to || subdirectory->IsSubproject() == true) {
+				report::compile::failure("subproject named '{}' already exists", name);
+				return nullptr;
+			}
+		}
+		Subdirectory test;
+		Subdirectory* directory = Component::Create<Subdirectory>();
+
+		directory->SetName(name);
+		directory->SetParent(sub_to ? (Directory*)sub_to : this);
+
+		std::string dir_path;
+
+		if (path.empty() == true) {
+			dir_path = std::format("{}/{}", GetFilepath(), name);
+		}
+		else {
+			dir_path = path;
+		}
+
+		directory->SetFilepath(dir_path);
+
+		directory->LoadRepository(options);
+
+		
+	}
+
+	void Repository::LoadRepository(const std::span<std::string_view>& options)
+	{
+	
+		assert_if (IsDirectoryLoaded() == true)
+			return;
+
+		GetFlags() |= Flag::kDirectoryLoaded;
+
+		//If the name doesn't exist, this should just use the core path (this is how we detect the commons.
+		//std::string path = std::string(SettingManager::GetSingleton()->dataDir) + "/scripts";
+		std::string_view path = GetFilepath();
+
+		std::filesystem::path commons_path = std::filesystem::path(std::format("{}/Commons.lsi", path));
+
+		//These actually shouldn't through, that's a parsing process thing. What it should actually be doing is probably returning in some failure and
+		// communicating to the project client.
+
+		{
+			if (std::filesystem::exists(commons_path) && GetCommons() != nullptr) {
+				report::compile::warn("Repository {} detected a unused commons script at {}", GetName(), path);
+			}
+
+			{
+				//Commons will always be ignored in repositories from this perspective, a different thing handles this
+				std::vector<std::pair<std::string, std::string>> scripts = SearchFiles(path, ".lsi", "Commons.lsi");
+
+				auto last = std::unique(scripts.begin(), scripts.end());
+
+				if (auto end = scripts.end(); last != end) {
+					logger::warn("Copies of scripts present in file search");
+					scripts.erase(last, scripts.end());
+				}
+
+
+				SetBatchLoading(true);
+
+
+				for (auto& [path, name] : scripts)
+				{
+					name = name.substr(0, name.size() - 4);
+
+					if (CreateScript(name, options, path, std::nullopt) == nullptr) {
+						//TODO: Do minor error or something rather other.
+					}
+				}
+
+				SetBatchLoading(false);
+			}
+		}
+
+		DeclareOrphan();
+		
 	}
 }

@@ -645,7 +645,7 @@ namespace LEX
 		// communicating to the project client.
 		
 		constexpr bool USE_REPO = true;
-
+		constexpr bool USE_NEW_LOAD = true;
 		if constexpr (!USE_REPO)
 		{
 			if (std::filesystem::exists(commons_path) == false) {
@@ -680,7 +680,7 @@ namespace LEX
 				}
 			}
 		}
-		else
+		else if constexpr (!USE_NEW_LOAD)
 		{
 			if (std::filesystem::exists(commons_path) == false) {
 				report::compile::error("Project {} lacks a viable commons file at {}", project->GetName(), project->GetFilepath());
@@ -710,7 +710,18 @@ namespace LEX
 				}
 			}
 		}
-		
+		else
+		{
+			if (std::filesystem::exists(commons_path) == false) {
+				report::compile::error("Project {} lacks a viable commons file at {}", project->GetName(), project->GetFilepath());
+			}
+
+			if (project->MakeCommons(path) == nullptr) {
+				report::compile::error("Commons not valid.");
+			}
+
+			project->LoadRepository();
+		}
 
 		return APIResult::Success;
 	}

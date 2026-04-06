@@ -63,10 +63,6 @@ namespace LEX
 	}
 
 
-	Directory* Project::FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter)
-	{
-		return FindScript(record.GetView());
-	}
 
 
 }

@@ -216,46 +216,98 @@ namespace LEX
 
 					Component* target = it->first;
 
-					bool invalid = false;
 
-					if (flag)
+
+					if constexpr (true)
 					{
-						LinkResult result = LinkResult::Failure;
-
-
-						if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
-						{
-							report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
-						}
-
-						//Its also possible the impl version of the call can do this for me.
-						if (result == LinkResult::Success) {
-							target->FlagAsValid();
-							//linkAfter.push_back(target);
-						}
-						else {
-							target->FlagAsInvalid();
-						}
-
-
-						//If the validation has failed, it will cease to attempt to validate it.
-						invalid = target->InvalidFlag();
-					}
-
-					if ((tasks &= ~flag) && !invalid)
-					{
-					_continue:
+						//I'm unsure what it is, but this is causing the issue.
+						auto del = it;
 						it++;
+
+
+						if (flag && target->ShouldLink() == true)
+						{
+							LinkResult result = LinkResult::Failure;
+
+
+							if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
+							{
+								report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+							}
+
+							bool invalid;
+
+							//Its also possible the impl version of the call can do this for me.
+							if (result == LinkResult::Success) {
+								target->FlagAsValid();
+								invalid = false;
+							}
+							else {
+								target->FlagAsInvalid();
+								invalid = true;
+							}
+
+							tasks &= ~flag;
+							bool is_done = !!(tasks & LinkFlag::Complete);
+							//This isn't to fire on links like final or exit.
+							bool public_link = (flag & LinkFlag::Complete);
+													
+							if (is_done || invalid)
+							{
+								if (is_done && public_link)
+									finished.push_back(target);
+
+								if (!invalid)
+									target->TryValidate();
+
+								if (!tasks)
+									_linkerContainer.erase(del);
+							}
+						}
 					}
 					else
 					{
-						auto del = it;
-						it++;
-						finished.push_back(target);
-						//if (can_validate)
-						target->TryValidate();
-						//_linkerContainer.erase(del);
-						_linkerContainer.erase(del);
+						bool invalid = false;
+
+						if (flag && target->ShouldLink() == true)
+						{
+							LinkResult result = LinkResult::Failure;
+
+
+							if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
+							{
+								report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+							}
+
+							//Its also possible the impl version of the call can do this for me.
+							if (result == LinkResult::Success) {
+								target->FlagAsValid();
+								//linkAfter.push_back(target);
+							}
+							else {
+								target->FlagAsInvalid();
+							}
+
+
+							//If the validation has failed, it will cease to attempt to validate it.
+							invalid = target->InvalidFlag();
+						}
+
+						if ((tasks &= ~flag) && !invalid)
+						{
+						_continue:
+							it++;
+						}
+						else
+						{
+							auto del = it;
+							it++;
+							finished.push_back(target);
+							//if (can_validate)
+							target->TryValidate();
+							//_linkerContainer.erase(del);
+							_linkerContainer.erase(del);
+						}
 					}
 				}
 			}
@@ -323,6 +375,11 @@ namespace LEX
 
 		virtual LinkFlag GetLinkFlags() { return LinkFlag::None; }
 		
+		virtual bool ShouldLink()
+		{
+			return true;
+		}
+
 		//This is a function that gets called when the entire linking process completes.
 		virtual void OnLinkComplete() {}
 
@@ -516,7 +573,7 @@ public:
 		}
 
 		template <typename T>
-		T& GetComponentData() const
+		T& GetComponentData() const noexcept
 		{
 			return reinterpret_cast<T&>(_data);
 		}

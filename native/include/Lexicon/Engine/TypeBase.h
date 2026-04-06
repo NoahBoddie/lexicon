@@ -112,10 +112,6 @@ namespace LEX
 
 		void CheckDeriveFrom(ITypeInfo* other) override;
 
-		Flag& GetFlags() const
-		{
-			return GetComponentData<Flag>();
-		}
 
 		bool IsLinkedLater() const
 		{

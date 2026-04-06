@@ -116,9 +116,6 @@ namespace LEX
 		Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) override;
 
 
-		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) override;
-
-
 		Script* FindScriptImpl(const std::string_view& name) override;
 	};
 

@@ -12,6 +12,15 @@ namespace LEX
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::Repository)
 	public:
+		ELEM_ENUM
+		{
+			ELEM_FLAG(kBatchLoading, 0),
+			ELEM_FLAG(kDirectoryLoaded, 1),
+
+			ELEM_NEXT,
+		};
+
+
 
 		std::string_view GetFilepath() const override
 		{
@@ -31,7 +40,38 @@ namespace LEX
 			return MakeScript("", true, options, path, content);
 		}
 
+		bool ShouldLink() override
+		{
+			if (IsBatchLoading() == true)
+				return false;
+
+			return Directory::ShouldLink();
+		}
+
 	protected:
+
+		bool IsDirectoryLoaded() const
+		{
+			return GetFlags() & Flag::kDirectoryLoaded;
+		}
+
+		bool IsBatchLoading() const
+		{
+			return GetFlags() & Flag::kBatchLoading;
+		}
+
+
+		void SetBatchLoading(bool value)
+		{
+			if (value) {
+				GetFlags() |= Flag::kBatchLoading;
+			}
+			else {
+				GetFlags() &= ~Flag::kBatchLoading;
+			}
+		}
+
+
 
 		bool CreateSyntaxTree(std::string_view file, std::string_view extension, std::string_view path,
 			std::vector<std::string_view>& options, SyntaxRecord& ast);
@@ -43,15 +83,21 @@ namespace LEX
 
 
 		Script* FindScriptImpl(const std::string_view& name) override;
-		Subdirectory* FindSubdirectoryImpl(const std::string_view& name) override { return nullptr; }
-		Subdirectory* CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, const std::string_view& path) override { return nullptr; }
-
+		
 		Script* CreateScriptImpl(const std::string_view& name, std::span<std::string_view> options, const std::string_view& path, std::optional<std::string_view> content) override;
 
 
 		Script* MakeScript(const std::string_view& name, bool is_commons, std::span<std::string_view> options, std::string_view path, std::optional<std::string_view> content);
 
+		Subdirectory* FindSubdirectoryImpl(const std::string_view& name) override;
 
+		Subdirectory* CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) override;
+
+
+
+		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter*) override;
+
+		void LoadRepository(const std::span<std::string_view>& options = {});
 
 		virtual void AddScript(Script* script);
 

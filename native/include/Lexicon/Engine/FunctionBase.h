@@ -286,6 +286,12 @@ namespace LEX
 
 	public:
 
+		//bool CanStack(Element* other) override
+		//{
+		//	if (!other)
+		//		return false;
+		//	return other->As<FunctionBase>();
+		//}
 
 		virtual void SetProcedureData(Procedure proc, uint64_t data)
 		{
