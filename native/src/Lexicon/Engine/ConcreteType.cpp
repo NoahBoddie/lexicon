@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/ConcreteType.h"
 
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 #include "Lexicon/Engine/ConcreteFunction.h"

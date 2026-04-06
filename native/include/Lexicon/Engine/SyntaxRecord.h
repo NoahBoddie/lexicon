@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 
 
 #include "Lexicon/Report.h"

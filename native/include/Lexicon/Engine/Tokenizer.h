@@ -439,6 +439,11 @@ namespace LEX
 		scriptTokens.AddKeyword("undefined");
 		scriptTokens.AddKeyword("null");
 		scriptTokens.AddKeyword("none");
+		scriptTokens.AddKeyword("include");
+		scriptTokens.AddKeyword("import");
+		scriptTokens.AddKeyword("requires");
+		scriptTokens.AddKeyword("subdirectory");
+		scriptTokens.AddKeyword("subproject");
 
 		scriptTokens.AddConditional("maybe");
 

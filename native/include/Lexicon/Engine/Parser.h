@@ -2,8 +2,8 @@
 
 #include "Lexicon/Engine/ProcessContext.h"
 #include "Lexicon/Engine/TokenStream.h"
-#include "Lexicon/Engine/Expression.h"
-#include "Lexicon/Engine/ExpressionType.h"
+#include "Lexicon/Engine/Syntax.h"
+#include "Lexicon/Engine/SyntaxType.h"
 #include "Lexicon/Engine/ParseHandler.h"
 
 #include "Lexicon/Engine/ParseModule.h"

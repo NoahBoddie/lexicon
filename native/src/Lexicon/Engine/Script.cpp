@@ -10,7 +10,7 @@
 #include "Lexicon/Engine/GlobalVariable.h"
 #include "Lexicon/Engine/ConcreteGlobal.h"
 #include "Lexicon/Engine/parse_strings.h"
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 #include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/Parser.h"
 

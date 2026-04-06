@@ -2,8 +2,8 @@
 
 #include "Lexicon/Engine/RoutineCompiler.h"
 
-#include "Lexicon/Engine/Expression.h"
-#include "Lexicon/Engine/ExpressionType.h"
+#include "Lexicon/Engine/Syntax.h"
+#include "Lexicon/Engine/SyntaxType.h"
 #include "Lexicon/Engine/Solution.h"
 #include "Lexicon/Engine/Instruction.h"
 #include "Lexicon/Engine/RoutineBase.h"

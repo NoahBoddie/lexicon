@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/Declaration.h"
 
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 
 #include "Lexicon/Engine/TypeBase.h"
 

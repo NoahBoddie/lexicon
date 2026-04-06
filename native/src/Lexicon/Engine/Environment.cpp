@@ -9,7 +9,7 @@
 #include "Lexicon/Engine/Project.h"
 
 #include "Lexicon/Engine/Component.h"
-#include "Lexicon/Engine/ExpressionType.h"
+#include "Lexicon/Engine/SyntaxType.h"
 #include "Lexicon/Exception.h"
 #include "Lexicon/Engine/Parser.h"
 #include "Lexicon/Engine/Element.h"

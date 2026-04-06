@@ -186,8 +186,8 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/ConcreteFunction.h
 		native/include/Lexicon/Engine/ConcreteType.h
 		native/include/Lexicon/Engine/Declaration.h
-		native/include/Lexicon/Engine/Expression.h
-		native/include/Lexicon/Engine/ExpressionType.h
+		"native/include/Lexicon/Engine/Syntax.h"
+		"native/include/Lexicon/Engine/SyntaxType.h"
 		native/include/Lexicon/Engine/FunctionBase.h
 		native/include/Lexicon/Engine/GlobalBase.h
 		native/include/Lexicon/Engine/FunctionData.h

@@ -13,7 +13,7 @@
 #include "Lexicon/Engine/Project.h"
 #include "Lexicon/Engine/Script.h"
 #include "Lexicon/Engine/Parser.h"
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 #include "Lexicon/Engine/DefaultClient.h"
 
 #include "Lexicon/Engine/SettingManager.h"

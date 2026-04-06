@@ -2,8 +2,8 @@
 
 #include "Lexicon/Variable.h"
 #include "Lexicon/Engine/Literal.h"
-#include "Lexicon/Engine/Expression.h"
-#include "Lexicon/Engine/ExpressionType.h"
+#include "Lexicon/Engine/Syntax.h"
+#include "Lexicon/Engine/SyntaxType.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
 namespace LEX
 {

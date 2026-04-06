@@ -1,6 +1,6 @@
 #include "Lexicon/Engine/FunctionBase.h"
 
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/Declaration.h"
 #include "Lexicon/Engine/RoutineCompiler.h"

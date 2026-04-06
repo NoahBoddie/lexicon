@@ -1,5 +1,5 @@
 #include "Lexicon/Engine/GlobalBase.h"
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 #include "Lexicon/Engine/parse_strings.h"
 #include "Lexicon/Engine/Declaration.h"
 #include "Lexicon/Engine/RoutineCompiler.h"

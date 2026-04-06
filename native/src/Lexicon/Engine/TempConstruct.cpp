@@ -3,7 +3,7 @@
 
 
 #include "Lexicon/Engine/RoutineCompiler.h"
-#include "Lexicon/Engine/Expression.h"
+#include "Lexicon/Engine/Syntax.h"
 #include "Lexicon/Engine/LiteralManager.h"
 #include "Lexicon/Engine/OperatorType.h"
 

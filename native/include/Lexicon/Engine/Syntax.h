@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/TypeAliases.h"
-#include "Lexicon/Engine/ExpressionType.h"
+#include "Lexicon/Engine/SyntaxType.h"
 
 namespace LEX
 {

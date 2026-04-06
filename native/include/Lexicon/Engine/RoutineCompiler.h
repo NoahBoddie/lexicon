@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Expression.h"
-#include "ExpressionType.h"
+#include "Lexicon/Engine/Syntax.h"
+#include "Lexicon/Engine/SyntaxType.h"
+
 #include "Solution.h"
 #include "Instruction.h"
 #include "RoutineBase.h"
