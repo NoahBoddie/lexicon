@@ -568,11 +568,14 @@ namespace LEX
 				return nullptr;
 			}
 		}
-		Subdirectory test;
+
 		Subdirectory* directory = Component::Create<Subdirectory>();
+		Directory* parent = sub_to ? (Directory*)sub_to : this;
 
 		directory->SetName(name);
-		directory->SetParent(sub_to ? (Directory*)sub_to : this);
+
+		parent->DeclareParentTo(directory);
+		//directory->SetParent(sub_to ? (Directory*)sub_to : this);
 
 		std::string dir_path;
 
@@ -587,7 +590,7 @@ namespace LEX
 
 		directory->LoadRepository(options);
 
-		
+		return directory;
 	}
 
 	void Repository::LoadRepository(const std::span<std::string_view>& options)
@@ -609,6 +612,7 @@ namespace LEX
 
 		{
 			if (std::filesystem::exists(commons_path) && GetCommons() != nullptr) {
+				//TODO: This for some reason seems to be triggering everywhere
 				report::compile::warn("Repository {} detected a unused commons script at {}", GetName(), path);
 			}
 

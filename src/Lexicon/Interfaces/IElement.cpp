@@ -27,8 +27,14 @@ namespace LEX
 
 	Directory* IElement::GetDirectoryImpl()
 	{
-		return GetComponent()->As<Directory>()->GetDirectory();
+		return GetComponent()->As<Element>()->GetDirectory();
 	}
+
+	Repository* IElement::GetRepositoryImpl()
+	{
+		return GetAs<Element>()->GetRepository();
+	}
+
 
 
 	Script* IElement::GetCommonsImpl()

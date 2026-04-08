@@ -142,6 +142,33 @@ namespace LEX
 		} 
 		
 
+
+
+		void PrintSyntax(std::string indent)
+		{
+			constexpr std::string_view __dent = "| ";
+
+			auto self = GetSelf();
+
+			std::string log = self->Print();
+
+			debug("{}{}", indent, log);
+			indent += __dent;
+
+			for (auto& child_rec : self->children())
+			{
+				child_rec.PrintSyntax(indent);
+			}
+		}
+
+
+		void PrintSyntax()
+		{
+			PrintSyntax("");
+
+			logger::debug("Record uses {} Kilobytes", GetSelf()->GetMemoryUsage() / 1000.f);
+		}
+
 		/*
 		template <is_not<std::source_location>... Ts>
 		static void Warn(SourceAndProxy<std::string> message, Syntax syntax, Ts&&... args)

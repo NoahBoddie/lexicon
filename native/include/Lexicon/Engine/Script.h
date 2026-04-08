@@ -52,8 +52,21 @@ namespace LEX
 
 		SyntaxRecord _syntaxTree;
 
+		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList= nullptr;
+
 		//This is where scripts are refered
 		std::unordered_map<RelateType, std::vector<Script*>> _relationMap;
+
+
+		auto& ObtainSubdirectoryList()
+		{
+			if (!_subdirectoryList) {
+				_subdirectoryList = std::make_unique<decltype(_subdirectoryList)::element_type>();
+			}
+
+			return *_subdirectoryList.get();
+		}
+
 	public:
 
 
@@ -104,6 +117,8 @@ namespace LEX
 
 		Environment* FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter) override;
 
+		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) override;
+
 
 		//Includes/Imports/Requires need to be included as concepts.
 		// Script is the only thing that uses these, so no reason to branch out.
@@ -112,6 +127,8 @@ namespace LEX
 		
 
 		Script* FindRelationship(std::string name, bool shared, RelateType bond);
+
+		Subdirectory* FindSubdirectory(const std::string_view& name);
 
 
 		std::vector<Script*> GetRelationships(RelateType bond)

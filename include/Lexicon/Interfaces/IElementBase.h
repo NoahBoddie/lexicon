@@ -20,12 +20,14 @@ namespace LEX
 	struct IProject;
 	struct IScript;
 	struct IDirectory;
+	struct IRepository;
 	struct IEnvironment;
 
 	struct Element;
 	class Project;
 	class Script;
 	struct Directory;
+	struct Repository;
 	struct Environment;
 
 	struct SignatureBase;
@@ -42,6 +44,7 @@ namespace LEX
 				virtual IDirectory* GetParentInfc() = 0;
 				virtual IEnvironment* GetEnvironmentInfc() = 0;
 				virtual IDirectory* GetDirectoryInfc() = 0;
+				virtual IRepository* GetRepositoryInfc() = 0;
 				virtual IScript* GetCommonsInfc() = 0;
 				virtual IElement* GetElementFromPathInfc(std::string_view path, ElementType elem, SignatureBase * sign = nullptr) = 0;
 
@@ -78,6 +81,7 @@ namespace LEX
 		IDirectory* GetParentInfc() override final;
 		IEnvironment* GetEnvironmentInfc() override final;
 		IDirectory* GetDirectoryInfc() override final;
+		IRepository* GetRepositoryInfc() override final;
 		IScript* GetCommonsInfc() override final;
 		IElement* GetElementFromPathInfc(std::string_view path, ElementType elem, SignatureBase* sign = nullptr) override final;
 
@@ -160,6 +164,16 @@ namespace LEX
 			return GetDirectoryInfc();
 #endif
 		}
+
+		auto GetRepository()
+		{
+#ifdef LEX_SOURCE
+			return GetRepositoryImpl();
+#else
+			return GetRepositoryInfc();
+#endif
+		}
+		
 		auto GetCommons()
 		{
 #ifdef LEX_SOURCE
@@ -189,6 +203,7 @@ namespace LEX
 		virtual Directory* GetParentImpl() = 0;
 		virtual Environment* GetEnvironmentImpl() = 0;
 		virtual Directory* GetDirectoryImpl() = 0;
+		virtual Repository* GetRepositoryImpl() = 0;
 		virtual Script* GetCommonsImpl() = 0;
 
 
@@ -214,7 +229,7 @@ namespace LEX
 
 	#define DEF_FUNC_IMPL_ELEMENT_MAIN \
 	MAP_UD(DEF_USING_IMPL,Element,\
-	GetScript,GetProject,GetParent,GetEnvironment,GetDirectory,GetCommons,GetElementFromPath)
+	GetScript,GetProject,GetParent,GetEnvironment,GetDirectory,GetRepository,GetCommons,GetElementFromPath)
 
 #define DECL_IMPL_FUNC_ELEMENT DEF_FUNC_IMPL_ELEMENT_MAIN DEF_FUNC_IMPL_ELEMENT_1 DECL_IMPL_FUNC_COMPONENT
 

@@ -2280,7 +2280,40 @@ namespace LEX
 		};
 
 
+		struct SubdirectoryParser : public AutoParser<SubdirectoryParser>
+		{
+			//TODO: need preventative measures to make sure it doesn't end up in a function.
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				return !target && (stream->IsType(TokenType::Keyword, "subdirectory") || stream->IsType(TokenType::Keyword, "subproject"));
+			}
 
+
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				auto token = stream->next();
+
+				if (stream->IsType(TokenType::Identifier) == false && stream->IsType(TokenType::String) == false)
+					stream->croak("Invalid token detected");
+
+				SyntaxType type;
+
+				if (token.GetView() == "subdirectory") {
+					type = SyntaxType::Subdirectory;
+				}
+				else if(token.GetView() == "subproject") {
+					type = SyntaxType::Subproject;
+				}
+				else {
+					stream->croak("Invalid subdirectory type detected");
+				}
+				auto result = ParsingStream::CreateExpression(stream->next(), type);
+
+				return stream->EndExpression(result);
+			}
+
+		};
 
 
 
@@ -2616,25 +2649,4 @@ namespace LEX
 
 		};
 
-#ifdef DONT_DO_THIS_YET
-		struct SubdirectoryParser : public AutoProcessor<SubdirectoryParser>
-		{
-			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
-			{
-				return !target && (stream->IsType(TokenType::Identifier, "subdirectory") || stream->IsType(TokenType::Identifier, "subproject"));
-			}
-
-
-
-			Record HandleToken(ParsingStream* stream, Record* target) override
-			{
-				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Subdirectory);
-
-				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), SyntaxType::None));
-
-				return result;
-			}
-
-		};
-#endif
 }

@@ -56,6 +56,7 @@ namespace LEX
             return unconst(make_const(this)->Cast(self, from, to));
         }
 
+        IComponentBase* GetComponentBase();
         const IComponentBase* GetComponentBase() const;
 
     public:
@@ -124,8 +125,11 @@ namespace LEX
             std::is_volatile<T>>>>>
             copy_cv_t<Self, T>* GetAs(this Self& a_this, ComponentType type)
         {
-#define GET_AS_COMPONENT(mc_component) GetAs<::LEX::mc_component>(::LEX::ComponentType::mc_component)
-            return GetComponentBase()->As<T>(type);
+#define GET_AS_COMPONENT(mc_component) GetAs<::LEX::mc_component>(::LEX::ComponentType::mc_component)            
+            if (Self* ptr = std::addressof(a_this)) {
+                return a_this.GetComponentBase()->As<T>(type);
+            }
+            return nullptr;
         }
 
 

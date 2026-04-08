@@ -107,6 +107,9 @@ namespace LEX
 		{
 			return GetParent();
 		}
+		
+		Repository* GetRepositoryImpl() override;
+
 	public:
 
 
@@ -251,11 +254,15 @@ namespace LEX
 		//	return false;
 		//}
 
-		bool ShouldLink() override;
+		bool ShouldLink(LinkFlag flag) override;
 
-	protected:
-		
-		virtual void SetParent(Directory*) = 0;
+
+		bool IsAttached()
+		{
+			return GetFlags() & Flag::Attached;
+		}
+
+		void DeclareParentTo(Element* child);
 
 		void DeclareOrphan()
 		{
@@ -265,21 +272,19 @@ namespace LEX
 				GetFlags() |= Flag::Attached;
 				OnAttach();
 			}
-			
+
 		}
 
-		bool IsAttached()
-		{
-			return GetFlags() & Flag::Attached;
-		}
-	
+
+	protected:
+		
+		virtual void SetParent(Directory*) = 0;
+
 		Flag& GetFlags() const
 		{
 			return GetComponentData<Flag>();
 		}
 		
-
-		void DeclareParentTo(Element* child);
 
 	public:
 	};

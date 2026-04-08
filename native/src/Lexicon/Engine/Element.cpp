@@ -83,6 +83,7 @@ namespace LEX
 
 		Directory* WalkDirectoryPath(Directory* focus, SyntaxRecord* path, ITemplateInserter& inserter)
 		{
+			auto or_path = path;
 			while (path && path->IsPath() == true)
 			{
 				//if (path->IsPath() == false) {
@@ -90,12 +91,23 @@ namespace LEX
 				//	return FetchEnvironment();
 				//}
 
-				if (!focus)
+				if (!focus) {
+					logger::info("exit due to no focus");
 					return nullptr;
-
+				}
 				auto below = ParseUtility::SeekNextPath(path);
 
-				focus = focus->FindDirectory(*below, &inserter);
+
+				auto old = focus->FindDirectory(*below, &inserter);
+
+				if (!old)
+				{
+					logger::info("new focus will die due to lack of self: {} {} {}", focus->GetName(), below->GetView(), !!path);
+					or_path->PrintSyntax();
+				}
+
+				focus = old;
+
 			}
 
 			return focus;
@@ -197,17 +209,15 @@ namespace LEX
 					//std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{};
 					std::vector<SpecialDirectory> query = GetDirectories(a_this, dir, rec, ship, searched);
 
-					if (rec) {
-						query.push_back(dir);
-					}
+					//if (!rec) {
+					//	query.push_back(dir);
+					//}
 
 					//if (env && !need_associate) {
 						//query.push_back(env);
 					//}
 
-					bool success;
-
-					success = func(query);
+					bool success = func(query);
 
 					if (success)
 						return true;
@@ -497,6 +507,10 @@ namespace LEX
 		QualifiedField SearchFieldPath(Element* a_this, SyntaxRecord& path)
 		{
 
+			if (path.GetView() == "subscript1" || path.GetView() == "subscript2") {
+				logger::info("it");
+			}
+
 			QualifiedField result{ nullptr };
 
 			NEW::SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<SpecialDirectory>& query) -> bool
@@ -671,6 +685,11 @@ namespace LEX
 	}
 	
 	Script* Element::GetCommonsImpl() { return NULL_OP(NULL_Q(GetScript())->GetCommons()); }
+
+	Repository* Element::GetRepositoryImpl()
+	{
+		return NULL_OP(NULL_Q(GetParent())->GetRepository());
+	}
 
 	void Element::DeclareParentTo(Element* child)
 	{
@@ -1410,9 +1429,9 @@ namespace LEX
 	
 	//*/
 
-	bool Element::ShouldLink()
+	bool Element::ShouldLink(LinkFlag flag)
 	{
-		return NULL_OP(NULL_Q(GetParent())->ShouldLink(), true);
+		return flag == LinkFlag::Loaded || NULL_OP(NULL_Q(GetParent())->ShouldLink(flag), true);
 	}
 
 

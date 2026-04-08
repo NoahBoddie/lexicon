@@ -16,6 +16,7 @@ namespace LEX
 		virtual Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) = 0;
 
 
+
 	protected:
 
 		Directory* GetDirectoryImpl() override

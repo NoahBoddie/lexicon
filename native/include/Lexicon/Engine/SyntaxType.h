@@ -85,6 +85,7 @@ namespace LEX
 		//I'd like to get rid of all directory things, and use 
 		Directive,
 		Subdirectory,
+		Subproject,
 
 		Prefunc,
 

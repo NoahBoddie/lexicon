@@ -9,6 +9,10 @@
 
 namespace LEX
 {
+    IComponentBase* IComponentBase::GetComponentBase()
+    {
+        return GetComponent();
+    }
 
     const IComponentBase* IComponentBase::GetComponentBase() const
     {

@@ -342,7 +342,7 @@ if(LEXICON_SOURCE)
 		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
 		"src/Lexicon/Interfaces/IElementBase.cpp"
 		"native/src/Lexicon/Engine/Subdirectory.cpp"
-		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp" "src/Lexicon/Interfaces/DirectoryManager.cpp" "native/src/Lexicon/Engine/ProjectDirectory.cpp" )
+		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp" "src/Lexicon/Interfaces/DirectoryManager.cpp" "native/src/Lexicon/Engine/ProjectDirectory.cpp"  "native/src/Lexicon/Engine/Directory.cpp")
 endif()
 
 source_group(

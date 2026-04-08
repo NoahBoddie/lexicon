@@ -1159,4 +1159,588 @@ namespace LEX::Test
 #endif
 
 }
+
+
+namespace LEX::TEST2
+{
+    void test_flag_loop()
+    {
+#define CYC_SWITCH(mc_flag, mc_start) \
+	if (bool cont_cycle = true; true) \
+		if (const auto switch_flag = mc_flag; false){}\
+		else if (auto start_value = decltype(switch_flag)(mc_start); !(int)start_value){ assert((int)start_value); }\
+		else \
+			for (std::remove_const_t<decltype(switch_flag)> i = start_value; \
+			cont_cycle && i < sizeof(decltype(switch_flag)) * 8;\
+			i = decltype(switch_flag)(i << 1)) \
+				switch (switch_flag & i)
+        constexpr LinkFlag flags = LinkFlag::Complete;
+
+        constexpr int test = std::countr_zero<uint8_t>(255);
+
+        constexpr int testlast = sizeof(LinkFlag) * 8;
+
+        auto THE_EXPRESS = flags;
+
+        CYC_SWITCH(flags, 1)
+        {
+
+        }
+#define break_cycle run_cycle = false; break;
+#define flag_loop(mc_flag_expr) \
+            if (bool run_cycle = true)\
+            if (auto underlying = std::to_underlying(mc_flag_expr); !underlying) {  }\
+            else for (auto i = static_cast<decltype(mc_flag_expr)>(1 << std::countr_zero(underlying)); \
+                run_cycle && underlying;\
+                underlying &= ~i, i = static_cast<decltype(mc_flag_expr)>(1 << std::countr_zero(underlying)))
+
+
+#define flag_switch(mc_flag_expr) flag_loop(mc_flag_expr) switch (i)
+
+
+        //I wish to rename these bit_switch, bit_loop, and bit_break.
+
+        flag_switch(flags)
+        {
+
+        }
+        
+        flag_loop(flags)
+        {
+
+        }
+
+        if (bool run_cycle = true)
+            if (auto switch_flag = std::to_underlying(THE_EXPRESS); !switch_flag) {  }
+            else for (auto i = static_cast<decltype(THE_EXPRESS)>(1 << std::countr_zero(switch_flag));
+                run_cycle && std::to_underlying(i) && std::to_underlying(i) != sizeof(switch_flag) * 8;
+                switch_flag &= ~i, i = static_cast<decltype(THE_EXPRESS)>(1 << std::countr_zero(switch_flag)))
+                switch (static_cast<decltype(THE_EXPRESS)>(i))
+                {
+                case LinkFlag::Declaration:
+                }
+
+        
+    }
+    
+
+    struct ComponentTest : public Component
+    {
+        struct LinkEntry : std::pair<Component*, LinkFlag>
+        {
+            using pair::pair;
+            using pair::operator=;
+        };
+
+
+
+        inline static std::recursive_mutex link_mutex;//Used to prevent refresh and regular link from going off at once.
+        inline static LinkFlag processingFlags;
+        inline static LinkFlag reprisalFlags;
+
+        inline static LinkFlag completedFlags;
+        inline static std::list<std::pair<Component*, LinkFlag>> g_linkerList;
+        //Consider what would happen when refreshing the linkage
+        //Make a component flag for being currently in a linker list. This way I don't need to 
+        // confirm something being in there.
+
+
+        using iterator = decltype(g_linkerList)::iterator;
+
+
+        static auto& GetProcessingFlags()
+        {
+            return reinterpret_cast<std::atomic<LinkFlag>&>(processingFlags);
+        }
+
+        static bool IsProcessing()
+        {
+            return GetProcessingFlags();
+        }
+
+
+        //Registers component for linking. Returns false if no linking is required.
+        bool RegisterLinkComponent()
+        {
+            //return early if already registered.
+
+            LinkFlag links = GetLinkFlags();
+
+            if (links) {
+                //std::lock_guard lock(link_mutex);
+                //Set flag here
+                g_linkerList.emplace_back(this, links);
+            }
+
+            return links;
+        }
+
+        static auto UnregisterLinkComponent(const iterator& it)
+        {
+            std::lock_guard lock(link_mutex);
+
+            if (g_linkerList.end() != it) {
+                //remove flag here
+                auto [test1, test2] = *it;
+
+                return g_linkerList.erase(it);
+            }
+
+            return it;
+        }
+
+
+        auto UnregisterLinkComponent()
+        {
+            std::lock_guard lock(link_mutex);
+
+            auto it = std::find_if(g_linkerList.begin(), g_linkerList.end(),
+                [this](auto& it) {return it.first == this; });
+
+
+            return UnregisterLinkComponent(it);
+        }
+
+
+
+        static bool LinkSingle(iterator& it, LinkFlag flags, bool grouped)
+        {
+            flags &= processingFlags;
+            flags &= completedFlags;
+            
+           
+            if (flags)
+            {
+                std::lock_guard lock(link_mutex);
+
+                auto [target, tasks] = *it;
+
+                bool complete = false;
+
+                //If there are tasks the component has not processed yet it has reached this stage,
+                // it will attempt to play catch up.
+                flag_loop(tasks)
+                {
+                    bool flag_allowed = flags & i;
+
+                    if (flag_allowed && target->ShouldLink(i) == true)
+                    {
+                        LinkResult result = LinkResult::Failure;
+
+
+                        if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(i); }) == true)
+                        {
+                            report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+                        }
+
+                        bool invalid;
+
+                        //Its also possible the impl version of the call can do this for me.
+                        if (result == LinkResult::Success) {
+                            target->FlagAsValid();
+                            invalid = false;
+                        }
+                        else {
+                            target->FlagAsInvalid();
+                            invalid = true;
+                        }
+
+                        tasks &= ~i;
+                        bool is_done = !!(tasks & LinkFlag::Complete);
+                        //This isn't to fire on links like final or exit.
+                        bool public_link = (i & LinkFlag::Complete);
+
+                        if (is_done || invalid)
+                        {
+                            if (is_done && public_link)
+                                complete = true;
+
+                            if (!invalid)
+                                target->TryValidate();
+
+                            if (!tasks)
+                                it = UnregisterLinkComponent(it);
+                        }
+                    }
+                }
+
+                if (!grouped && complete) {
+                    target->OnLinkComplete();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+    
+
+
+
+
+
+        static void LinkComponentsImpl(LinkFlag flags)
+        {
+            
+            //Multiple different threads can use this
+            
+
+            //this is what we remove when we leave.
+            auto add_flags = ~processingFlags & flags;
+
+            processingFlags |= flags;
+
+
+            bool should_message = (completedFlags & flags) == LinkFlag::None;
+
+            if (should_message) {
+                std::string message;
+
+                flag_loop(flags)
+                {
+                    if (message.empty() == false)
+                        message += "|";
+                    message += magic_enum::enum_name(i);
+                }
+
+                report::link::info("Starting link stage: {} ", message);
+            }
+                
+
+
+            //Make sure to remove the linkCheckFlags
+
+          
+            std::vector <Component*> finished{};
+
+            if (flags) {
+                for (auto it = g_linkerList.begin(); it != g_linkerList.end();)
+                {
+                    std::lock_guard lock(link_mutex);
+
+                    auto prev = it;
+                    
+                    Component* target = it->first;
+
+                    if (LinkSingle(it, flags, true) == true) {
+                        finished.push_back(target);
+                    }
+
+                    if (it == prev) {
+                        it++;
+                    }
+
+                }
+            }
+            //This removes messages for stuff we already sent.
+            auto message_flags = ~completedFlags & flags;
+
+            completedFlags |= flags;
+
+            LinkMessenger::instance->Dispatch(message_flags);
+
+            //for (auto& target : linkAfter) {
+            //	auto link_flag = target->OnLink();
+            //}
+
+
+            for (auto& target : finished) {
+                target->OnLinkComplete();
+            }
+
+            if (should_message) {
+                std::string message;
+
+                flag_loop(flags)
+                {
+                    if (message.empty() == false)
+                        message += "|";
+                    message += magic_enum::enum_name(i);
+                }
+
+                report::link::info("Finalized link stage: {} ", message);
+            }
+
+        }
+
+        static void LinkComponents(LinkFlag flags)
+        {
+            //This lock (hopefully) will only allow one thing to check 
+            
+            //static std::mutex mutex;
+            
+            //I'd like this to use recursive
+
+            LinkFlag send;
+
+            //I'd like this to be locked to one thread when examining, and then released
+            // to allow other threads to see that we are currently processing, and for them
+            // to reprise later.
+            {
+                static std::mutex mutex;
+
+                std::lock_guard lock(mutex);
+
+                //This ensures that lesser link flags will be executed, 
+                // but also that completed flags won't be repeated
+                send = LinkFlag((1 << std::bit_width<std::underlying_type_t<LinkFlag>>(flags)) - 1);
+                send &= ~completedFlags;
+
+
+                if (IsProcessing() == true) {
+                    reprisalFlags |= send;
+                    return;
+                }
+
+                processingFlags |= send;
+            }
+            
+            {
+                
+
+                LinkComponentsImpl(send);
+
+                processingFlags &= ~send;
+
+                if (reprisalFlags) {
+                    send = reprisalFlags;
+                    reprisalFlags = LinkFlag::None;
+                    LinkComponents(send);
+                }
+            }
+        }
+
+        static void RelinkComponents()
+        {
+            if (!completedFlags)
+                return;
+
+            auto flags = completedFlags;
+
+            processingFlags &= flags;
+
+            LinkComponentsImpl(flags);
+
+            processingFlags &= ~flags;
+        }
+
+
+
+        //This name is being taken because the function is used in one place and is small. Better inlined.
+        void HandleLinkage()//private
+        {
+            if (RegisterLinkComponent() == false) {
+                TryValidate();
+            }
+        }
+
+
+        static bool DoLink(LinkFlag flags)
+        {
+
+        }
+        
+        //With no record, on init shouldn't be used.
+        //virtual void OnInit(Record& rec)
+        static void Link(LinkFlag flags)
+        {
+            bool should_message = (_linkCheckFlags & flags) == LinkFlag::None;
+
+            if (should_message)
+                report::link::info("Starting link stage: {} ", magic_enum::enum_name(flags));
+
+
+            //Make sure to remove the linkCheckFlags
+
+            auto end = _linkerContainer.end();
+
+            //std::vector <Component*> linkAfter{};
+            std::vector <Component*> finished{};
+
+            if (flags) {
+                for (auto it = _linkerContainer.begin(); it != _linkerContainer.end();)
+                {
+                    LinkFlag& tasks = it->second;
+
+                    LinkFlag flag = flags & tasks;
+
+                    Component* target = it->first;
+
+
+
+                    if constexpr (true)
+                    {
+                        //I'm unsure what it is, but this is causing the issue.
+                        auto del = it;
+                        it++;
+
+
+                        if (flag && target->ShouldLink(flag) == true)
+                        {
+                            LinkResult result = LinkResult::Failure;
+
+
+                            if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
+                            {
+                                report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+                            }
+
+                            bool invalid;
+
+                            //Its also possible the impl version of the call can do this for me.
+                            if (result == LinkResult::Success) {
+                                target->FlagAsValid();
+                                invalid = false;
+                            }
+                            else {
+                                target->FlagAsInvalid();
+                                invalid = true;
+                            }
+
+                            tasks &= ~flag;
+                            bool is_done = !!(tasks & LinkFlag::Complete);
+                            //This isn't to fire on links like final or exit.
+                            bool public_link = (flag & LinkFlag::Complete);
+
+                            if (is_done || invalid)
+                            {
+                                if (is_done && public_link)
+                                    finished.push_back(target);
+
+                                if (!invalid)
+                                    target->TryValidate();
+
+                                if (!tasks)
+                                    _linkerContainer.erase(del);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        bool invalid = false;
+
+                        if (flag && target->ShouldLink(flag) == true)
+                        {
+                            LinkResult result = LinkResult::Failure;
+
+
+                            if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
+                            {
+                                report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+                            }
+
+                            //Its also possible the impl version of the call can do this for me.
+                            if (result == LinkResult::Success) {
+                                target->FlagAsValid();
+                                //linkAfter.push_back(target);
+                            }
+                            else {
+                                target->FlagAsInvalid();
+                            }
+
+
+                            //If the validation has failed, it will cease to attempt to validate it.
+                            invalid = target->InvalidFlag();
+                        }
+
+                        if ((tasks &= ~flag) && !invalid)
+                        {
+                        _continue:
+                            it++;
+                        }
+                        else
+                        {
+                            auto del = it;
+                            it++;
+                            finished.push_back(target);
+                            //if (can_validate)
+                            target->TryValidate();
+                            //_linkerContainer.erase(del);
+                            _linkerContainer.erase(del);
+                        }
+                    }
+                }
+            }
+            //This removes messages for stuff we already sent.
+            auto message_flags = ~_linkCheckFlags & flags;
+
+            _linkCheckFlags |= flags;
+
+            LinkMessenger::instance->Dispatch(message_flags);
+
+            //for (auto& target : linkAfter) {
+            //	auto link_flag = target->OnLink();
+            //}
+
+
+            for (auto& target : finished) {
+                target->OnLinkComplete();
+            }
+
+            if (should_message)
+                report::link::info("Finalized link stage: {}", magic_enum::enum_name(flags));
+
+            //Should it have processed everything it should remove it all.
+        }
+
+
+        static void RefreshLinkageAll()
+        {
+            if (HasLinked(LinkFlag::Any) == false)
+                return;
+
+
+            //At a later point, link should just be able to & out the given flags and run all the stuff it wants.
+            // Also this likely will need to be thread locked in the future.
+
+            for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
+            {
+                if (HasLinked(flag) == true)
+                {
+                    Link(flag);
+                }
+            }
+        }
+
+
+        static bool HasLinked(LinkFlag flag)
+        {
+            return flag & _linkCheckFlags;
+        }
+
+        static bool HasInit()
+        {
+            return _initialized;
+        }
+
+        static LinkFlag FlagsLinked()
+        {
+            return _linkCheckFlags;
+        }
+
+
+    private:
+
+
+    public:
+        
+    private:
+        inline static std::map<Component*, LinkFlag> _linkerContainer{};
+
+
+
+    private:
+
+        inline static bool _initialized = false;
+        //This is used later on to signify that if All flags have been done, linkage doesn't have to wait.
+        inline static LinkFlag _linkCheckFlags = LinkFlag::None;
+
+    };
+
+    //This has 2 more derived classes, one that gets the generic record it derives from, and then another that gets the beginning and end
+    // elements of the data. I'll be honest, this is just so I don't have to make an object to store it over and over again.
+
+    //Thinking of hard coding this in templates which one should be done
+
+}
+
 //*/

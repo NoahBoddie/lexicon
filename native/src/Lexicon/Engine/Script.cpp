@@ -18,7 +18,7 @@
 
 #include "Lexicon/Interfaces/ProjectClient.h"
 #include "Lexicon/Interfaces/IElement.h"
-
+#include "Lexicon/Engine/Subdirectory.h"
 
 namespace LEX
 {
@@ -79,7 +79,7 @@ namespace LEX
 
 	void Script::LoadFromSyntaxNode(SyntaxRecord& node)
 	{
-		get_switch(node.SYNTAX().type)
+		get_switch(node.GetSyntax().type)
 		{
 
 			case SyntaxType::Format: 
@@ -127,6 +127,50 @@ namespace LEX
 					}
 				}
 				break;
+
+			case SyntaxType::Subproject:
+			case SyntaxType::Subdirectory:
+				if constexpr (1)
+				{
+					bool is_subproject = switch_value == SyntaxType::Subproject;
+
+					Repository* repo = GetRepository();
+
+					auto this_name = GetName();
+					auto other_name = node.GetView();
+					//TODO: Other name needs to split.
+
+
+					if (!repo) {
+						report::compile::warn("script '{}' has no parent repository and cannot contain subdirectory '{}'", GetName(), node.GetView());
+						return;
+					}
+
+					if (is_subproject && other_name != this_name) {
+						report::compile::warn("script '{}' cannot create make '{}' a subproject due to not having the same name", GetName(), node.GetView());
+					}
+
+					auto& subdirs = ObtainSubdirectoryList();
+
+					//This expects that this bit will stick arounds so it is imperative that this remains existent
+					auto& slot = subdirs[node.GetTag()];
+
+					if (slot) {
+						report::compile::warn("script '{}' already contains a subdirectory named '{}'", GetName(), node.GetView());
+						return;
+					}
+
+					Subdirectory* directory = repo->CreateSubdirectory(node.GetView(), is_subproject ? this : nullptr);
+
+					if (!repo) {
+						report::compile::error("script '{}' failed to create subdirectory '{}'", GetName(), node.GetView());
+					}
+
+					slot = directory;
+
+				}
+				break;
+
 			default:
 				return __super::LoadFromSyntaxNode(node);
 		}
@@ -298,7 +342,34 @@ namespace LEX
 		return nullptr;
 	}
 
+	Directory* Script::FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter)
+	{
+		Directory* result = FindSubdirectory(record.GetView());
+		
+		if (!result)
+			result = Environment::FindDirectory(record, inserter);
+		
+		return result;
+	}
 
+
+	Subdirectory* Script::FindSubdirectory(const std::string_view& name)
+	{
+
+		if (_subdirectoryList) {
+			
+
+			auto& map = ObtainSubdirectoryList();
+
+			if (auto it = map.find(std::string{name}); map.end() != it) {
+				return it->second;
+			}
+
+			logger::info("Failure XXXXXXXXXXXXX {} from {}", name, GetName());
+		}
+
+		return nullptr;
+	}
 
 	//Includes/Imports/Requires need to be included as concepts.
 	// Script is the only thing that uses these, so no reason to branch out.
@@ -314,6 +385,8 @@ namespace LEX
 
 		return nullptr;
 	}
+
+
 
 
 	void Script::AddRelationship(Script* script, RelateType bond)

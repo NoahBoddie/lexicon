@@ -31,6 +31,11 @@ namespace LEX
 		return GetDirectoryImpl()->As<IDirectory>();
 	}
 
+	IRepository* IElementBase::GetRepositoryInfc()
+	{
+		return GetRepositoryImpl()->As<IRepository>();
+	}
+
 	IEnvironment* IElementBase::GetEnvironmentInfc()
 	{
 		return GetEnvironmentImpl()->As<IEnvironment>();

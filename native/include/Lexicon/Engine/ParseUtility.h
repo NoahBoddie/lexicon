@@ -129,6 +129,11 @@ namespace LEX
 
 			a_this = a_this->FindChild(parse_strings::path);
 
+			if (!a_this && current)
+			{
+				logger::debug("{} noted at no self", current->GetView());
+			}
+
 			return current;
 		}
 

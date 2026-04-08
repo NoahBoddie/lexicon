@@ -24,11 +24,20 @@ namespace LEX
 		Linked		= 1 << 5  //Flag determines that a check for linking occured, not entirely that all links are done.
 	};
 
+	ENUM(ValidationFlag, uint8_t)
+	{
+		Invalid = 1 << 0, //Setting this will fail it to validate, even if it validates later.
+		Valid_ = 1 << 1, //Flag to designate primary validation step achieved
+		Complete = 1 << 2,		
+		Success_ = ValidationFlag::Complete | ValidationFlag::Valid_, //Flag for validation completion, comprised of success for easier comparison.
+
+		//success and valid have switched as a single success doesnt make it valid.
+	};
 	
 	enum struct LinkResult
 	{
 		Success,
-		Failure
+		Failure,
 	};
 
 
@@ -225,7 +234,7 @@ namespace LEX
 						it++;
 
 
-						if (flag && target->ShouldLink() == true)
+						if (flag && target->ShouldLink(flag) == true)
 						{
 							LinkResult result = LinkResult::Failure;
 
@@ -269,7 +278,7 @@ namespace LEX
 					{
 						bool invalid = false;
 
-						if (flag && target->ShouldLink() == true)
+						if (flag && target->ShouldLink(flag) == true)
 						{
 							LinkResult result = LinkResult::Failure;
 
@@ -375,7 +384,7 @@ namespace LEX
 
 		virtual LinkFlag GetLinkFlags() { return LinkFlag::None; }
 		
-		virtual bool ShouldLink()
+		virtual bool ShouldLink(LinkFlag)
 		{
 			return true;
 		}

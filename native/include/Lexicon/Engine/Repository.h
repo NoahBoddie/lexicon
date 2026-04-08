@@ -40,12 +40,16 @@ namespace LEX
 			return MakeScript("", true, options, path, content);
 		}
 
-		bool ShouldLink() override
+		bool ShouldLink(LinkFlag flag) override
 		{
+			if (flag == LinkFlag::Loaded) {
+				return true;
+			}
+
 			if (IsBatchLoading() == true)
 				return false;
 
-			return Directory::ShouldLink();
+			return Directory::ShouldLink(flag);
 		}
 
 	protected:
@@ -92,7 +96,11 @@ namespace LEX
 		Subdirectory* FindSubdirectoryImpl(const std::string_view& name) override;
 
 		Subdirectory* CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) override;
-
+		
+		Repository* GetRepositoryImpl() override
+		{
+			return this;
+		}
 
 
 		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter*) override;
