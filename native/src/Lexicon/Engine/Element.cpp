@@ -83,7 +83,6 @@ namespace LEX
 
 		Directory* WalkDirectoryPath(Directory* focus, SyntaxRecord* path, ITemplateInserter& inserter)
 		{
-			auto or_path = path;
 			while (path && path->IsPath() == true)
 			{
 				//if (path->IsPath() == false) {
@@ -92,21 +91,11 @@ namespace LEX
 				//}
 
 				if (!focus) {
-					logger::info("exit due to no focus");
 					return nullptr;
 				}
 				auto below = ParseUtility::SeekNextPath(path);
 
-
-				auto old = focus->FindDirectory(*below, &inserter);
-
-				if (!old)
-				{
-					logger::info("new focus will die due to lack of self: {} {} {}", focus->GetName(), below->GetView(), !!path);
-					or_path->PrintSyntax();
-				}
-
-				focus = old;
+				focus = focus->FindDirectory(*below, &inserter);
 
 			}
 
@@ -506,10 +495,6 @@ namespace LEX
 
 		QualifiedField SearchFieldPath(Element* a_this, SyntaxRecord& path)
 		{
-
-			if (path.GetView() == "subscript1" || path.GetView() == "subscript2") {
-				logger::info("it");
-			}
 
 			QualifiedField result{ nullptr };
 

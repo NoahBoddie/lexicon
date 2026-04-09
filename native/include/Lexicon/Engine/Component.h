@@ -230,6 +230,7 @@ namespace LEX
 
 				auto& [target, tasks] = *it;
 
+
 				//If there are tasks the component has not processed yet it has reached this stage,
 				// it will attempt to play catch up.
 				bit_loop(tasks)
@@ -240,10 +241,7 @@ namespace LEX
 					{
 						LinkResult result = LinkResult::Failure;
 
-						if (target->GetName() == "CreateOne")
-							logger::info("do");
-
-						logger::trace("Linking {}: {}, ", target->GetName(), magic_enum::enum_name(i));
+						logger::trace("Linking {}: {}", target->GetName(), magic_enum::enum_name(i));
 
 						if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(i); }) == true)
 						{

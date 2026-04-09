@@ -152,7 +152,7 @@ namespace LEX
 
 			std::string log = self->Print();
 
-			debug("{}{}", indent, log);
+			logger::debug("{}{}", indent, log);
 			indent += __dent;
 
 			for (auto& child_rec : self->children())
