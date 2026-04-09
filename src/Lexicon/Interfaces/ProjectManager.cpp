@@ -599,7 +599,7 @@ namespace LEX
 			return APIResult::AbstractFailure;
 		}
 
-		Component::RefreshLinkage();
+		Component::RelinkComponents();
 
 		return APIResult::Success;
 	}

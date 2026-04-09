@@ -497,7 +497,7 @@ namespace LEX
 		AddScript(script);
 
 		if (!is_commons && !IsBatchLoading())
-			Component::RefreshLinkage();
+			Component::RelinkComponents();
 
 		return script;
 	}

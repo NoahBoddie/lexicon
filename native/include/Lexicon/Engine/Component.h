@@ -14,22 +14,19 @@ namespace LEX
 	ENUM(ComponentFlag, uint8_t)
 	{
 		None = 0,
-		Invalid		= 0b001, //Setting this will fail it to validate, even if it validates later.
-		Valid		= 0b010, //Flag to designate primary validation step achieved
-		Success		= 0b110, //Flag for validation completion, comprised of success for easier comparison.
-
-		Validation	= 0b111, //All validation flags at once. To get use '&' on flags and get equal to success
-
-		Initialized = 1 << 4, //flag to say that load from view has finished once.
-		Linked		= 1 << 5  //Flag determines that a check for linking occured, not entirely that all links are done.
+		
+		Initialized = 1 << 0, //flag to say that load from view has finished once.
+		Linking = 1  << 1,
+		Linked		= 1 << 2,  //Flag determines that a check for linking occured, not entirely that all links are done.
 	};
 
 	ENUM(ValidationFlag, uint8_t)
 	{
+		None = 0,
 		Invalid = 1 << 0, //Setting this will fail it to validate, even if it validates later.
-		Valid_ = 1 << 1, //Flag to designate primary validation step achieved
+		Success = 1 << 1, //Flag to designate primary validation step achieved
 		Complete = 1 << 2,		
-		Success_ = ValidationFlag::Complete | ValidationFlag::Valid_, //Flag for validation completion, comprised of success for easier comparison.
+		Valid = ValidationFlag::Complete | ValidationFlag::Success, //Flag for validation completion, comprised of success for easier comparison.
 
 		//success and valid have switched as a single success doesnt make it valid.
 	};
@@ -48,25 +45,37 @@ namespace LEX
 	public:
 		DEFINE_COMPONENT_OFFSET(ComponentType::Component)
 
-
-		//virtual ComponentType GetComponentType()
-		//{
-		//	return typeid(*this);
-		//}
-
-		//ComponentType FetchComponentType()
-		//{
-		//	return this ? GetComponentType() : ComponentType{};
-		//}
-
-
-		//template <std::derived_from<Component> T>
-		//bool IsComponentType() { return this ? (_type == T::COMPONENT_TYPE) : false; }
-
 	private:
+
+
+		inline static std::recursive_mutex link_mutex;//Used to prevent refresh and regular link from going off at once.
+		inline static LinkFlag processingFlags{};//this seems really useless for the most part.
+		inline static LinkFlag reprisalFlags{};
+		inline static LinkFlag completedFlags{};
+
+		inline static std::list<std::pair<Component*, LinkFlag>> g_linkerList;
+
+
+		using iterator = decltype(g_linkerList)::iterator;
+
+
+		//To handle link dependency is to handle linking that occurs when things are all complete. I think to that, dependency will fire when _linkCheckFlags
+		// equal LinkFlag::All. 
+		//A secondary problem is also when a component dies it may not be able to pull itself out of the component library. To that, I think it would be better
+		// to turn this into a vector of pairs, and when something is removed from existing, it will pull it's dependency. I can probably make a function for this, along with
+		// a flag. The idea would basically be that if the left hand doesn't exist, we don't worry about depedency, but if the right hand doesn't exist a dependency has been
+		// compromised.
+		// ^Definitely harder/longer to search but it will only need to be searched once.
+		//Core to the concept of this would be to pluck every the pair every time consideration is going off, and then to make the function recursive, and able
+		// to resolve other components questions.
+		inline static std::map<Component*, std::vector<size_t>> _dependencyMap{};
+
+		inline static std::vector<Component*> _dependeeList{};
+
+
 		//Limit the use of a recordless create by seeing if load from record has been implemented.
 		template<class D>
-		static D* _Create(SyntaxRecord* rec = nullptr) requires(!std::is_abstract_v<D>)
+		static D* CreateImpl(SyntaxRecord* rec = nullptr) requires(!std::is_abstract_v<D>)
 		{
 			D* comp = new D();
 			
@@ -84,7 +93,7 @@ namespace LEX
 		template<std::derived_from<Component> D>
 		static D* Create(SyntaxRecord* rec = nullptr) requires(!std::is_abstract_v<D>)
 		{
-			return _Create<D>(rec);
+			return CreateImpl<D>(rec);
 		}
 
 		template<std::derived_from<Component> D>
@@ -116,64 +125,6 @@ namespace LEX
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-		//////////////
-		//new names //
-		//////////////
-		/*
-		Initialize- fires once, create uses, cannot be considered valid what so ever if it's not been fired (to which, it should be known that it's not valid).
-
-		virtual OnLink
-		virtual OnXyzLink (This part is manual)
-
-		PartiallyValid->ValidFlag
-		ForcedInvalid->InvalidFlag
-		IsValid->virtual GetValid
-		IsValid
-
-		FinalizeLinkage->Link
-		CheckLinkValidation ->
-		GetLinkFlag-> GetLinkFlags
-		OnLinkage -> OnLink
-		IsLinked-
-
-
-		AttempteValidation -> FlagAsValid
-		<No function> -> FlagAsInvalid
-		AttemptFullValidation-> delete, whatever used it can just manually check if linking is complete
-		AttemptCompleteValidation-> TryValidate
-
-		//*/
-
-
-
-
-
-		//This name is being taken because the function is used in one place and is small. Better inlined.
-		void HandleLinkage()//private
-		{
-			LinkFlag links = GetLinkFlags();
-
-			if (!!links) {
-				//auto& link_entry = _linkerContainer[this];
-				_linkerContainer[this] = links;
-
-			}
-			else {
-				TryValidate();
-			}
-		}
-
 		void Initialize(SyntaxRecord* rec)
 		{
 			if (IsInitialized() == false)
@@ -198,132 +149,205 @@ namespace LEX
 			return _flags & ComponentFlag::Initialized;
 		}
 
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-		//With no record, on init shouldn't be used.
-		//virtual void OnInit(Record& rec)
-		static void Link(LinkFlag flags) 
+		static auto& GetProcessingFlags()
 		{
-			bool should_message = (_linkCheckFlags & flags) == LinkFlag::None;
+			return reinterpret_cast<std::atomic<LinkFlag>&>(processingFlags);
+		}
 
-			if (should_message)
-				report::link::info("Starting link stage: {} ", magic_enum::enum_name(flags));
+		static bool IsProcessing()
+		{
+			return GetProcessingFlags();
+		}
+
+
+		//Registers component for linking. Returns false if no linking is required.
+		bool RegisterLinkComponent()
+		{
+			//return early if already registered.
+
+			LinkFlag links = GetLinkFlags();
+
+			if (links) {
+				//std::lock_guard lock(link_mutex);
+				//Set flag here
+				g_linkerList.emplace_back(this, links);
+			}
+
+			return links;
+		}
+
+		static auto UnregisterLinkComponent(const iterator& it)
+		{
+			std::lock_guard lock(link_mutex);
+
+			if (g_linkerList.end() != it) {
+				//remove flag here
+				auto [test1, test2] = *it;
+
+				return g_linkerList.erase(it);
+			}
+
+			return it;
+		}
+
+
+		auto FindLinkEntry()
+		{
+
+			return std::find_if(g_linkerList.begin(), g_linkerList.end(),
+				[this](auto& it) {return it.first == this; });
+
+		}
+
+		auto UnregisterLinkComponent()
+		{
+			std::lock_guard lock(link_mutex);
+
+			auto it = FindLinkEntry();
+
+			return UnregisterLinkComponent(it);
+		}
+
+
+
+
+
+
+		static bool LinkComponent(iterator& it, LinkFlag flags, bool grouped)
+		{
+			//flags &= processingFlags | completedFlags;
+
+			bool complete = false;
+
+			bool inc = true;
+
+			if (flags)
+			{
+
+				std::lock_guard lock(link_mutex);
+
+				auto& [target, tasks] = *it;
+
+				//If there are tasks the component has not processed yet it has reached this stage,
+				// it will attempt to play catch up.
+				bit_loop(tasks)
+				{
+					bool flag_allowed = flags & i;
+					auto should = target->ShouldLink(i);
+					if (flag_allowed) //&& target->ShouldLink(i) == true)
+					{
+						LinkResult result = LinkResult::Failure;
+
+						if (target->GetName() == "CreateOne")
+							logger::info("do");
+
+						logger::trace("Linking {}: {}, ", target->GetName(), magic_enum::enum_name(i));
+
+						if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(i); }) == true)
+						{
+							report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+						}
+
+						bool invalid;
+
+						//Its also possible the impl version of the call can do this for me.
+						if (result == LinkResult::Success) {
+							target->FlagAsSuccess();
+							invalid = false;
+						}
+						else {
+							target->FlagAsInvalid();
+							invalid = true;
+						}
+
+						tasks &= ~i;
+						bool is_done = !(tasks & LinkFlag::Complete);
+						//This isn't to fire on links like final or exit.
+						bool public_link = (i & LinkFlag::Complete);
+
+						if (is_done || invalid)
+						{
+							if (is_done && public_link)
+								complete = true;
+
+							if (!invalid)
+								target->TryValidate();
+
+							if (!tasks) {
+								it = UnregisterLinkComponent(it);
+								inc = false;
+							}
+						}
+					}
+				}
+
+				if (!grouped && complete) {
+					target->OnLinkComplete();
+					complete = false;
+				}
+			}
+			
+			if (inc) {
+				it++;
+			}
+
+
+			return complete;
+		}
+
+
+
+
+
+
+		static void LinkComponentsImpl(LinkFlag flags)
+		{
+			//Multiple different threads can use this
+
+			//this is what we remove when we leave.
+			auto add_flags = ~processingFlags & flags;
+
+
+			bool should_message = (completedFlags & flags) == LinkFlag::None;
+
+			if (should_message) {
+				std::string message;
+
+				bit_loop(flags)
+				{
+					if (message.empty() == false)
+						message += "|";
+					message += magic_enum::enum_name(i);
+				}
+
+				report::link::info("Starting link stage: {} ", message);
+			}
+
 
 
 			//Make sure to remove the linkCheckFlags
 
-			auto end = _linkerContainer.end();
 
-			//std::vector <Component*> linkAfter{};
 			std::vector <Component*> finished{};
 
 			if (flags) {
-				for (auto it = _linkerContainer.begin(); it != _linkerContainer.end();)
+				for (auto it = g_linkerList.begin(); it != g_linkerList.end();)
 				{
-					LinkFlag& tasks = it->second;
-
-					LinkFlag flag = flags & tasks;
+					std::lock_guard lock(link_mutex);
 
 					Component* target = it->first;
 
-
-
-					if constexpr (true)
-					{
-						//I'm unsure what it is, but this is causing the issue.
-						auto del = it;
-						it++;
-
-
-						if (flag && target->ShouldLink(flag) == true)
-						{
-							LinkResult result = LinkResult::Failure;
-
-
-							if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
-							{
-								report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
-							}
-
-							bool invalid;
-
-							//Its also possible the impl version of the call can do this for me.
-							if (result == LinkResult::Success) {
-								target->FlagAsValid();
-								invalid = false;
-							}
-							else {
-								target->FlagAsInvalid();
-								invalid = true;
-							}
-
-							tasks &= ~flag;
-							bool is_done = !!(tasks & LinkFlag::Complete);
-							//This isn't to fire on links like final or exit.
-							bool public_link = (flag & LinkFlag::Complete);
-													
-							if (is_done || invalid)
-							{
-								if (is_done && public_link)
-									finished.push_back(target);
-
-								if (!invalid)
-									target->TryValidate();
-
-								if (!tasks)
-									_linkerContainer.erase(del);
-							}
-						}
-					}
-					else
-					{
-						bool invalid = false;
-
-						if (flag && target->ShouldLink(flag) == true)
-						{
-							LinkResult result = LinkResult::Failure;
-
-
-							if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(flag); }) == true)
-							{
-								report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
-							}
-
-							//Its also possible the impl version of the call can do this for me.
-							if (result == LinkResult::Success) {
-								target->FlagAsValid();
-								//linkAfter.push_back(target);
-							}
-							else {
-								target->FlagAsInvalid();
-							}
-
-
-							//If the validation has failed, it will cease to attempt to validate it.
-							invalid = target->InvalidFlag();
-						}
-
-						if ((tasks &= ~flag) && !invalid)
-						{
-						_continue:
-							it++;
-						}
-						else
-						{
-							auto del = it;
-							it++;
-							finished.push_back(target);
-							//if (can_validate)
-							target->TryValidate();
-							//_linkerContainer.erase(del);
-							_linkerContainer.erase(del);
-						}
+					if (LinkComponent(it, flags, true) == true) {
+						finished.push_back(target);
 					}
 				}
 			}
 			//This removes messages for stuff we already sent.
-			auto message_flags = ~_linkCheckFlags & flags;
+			auto message_flags = ~completedFlags & flags;
 
-			_linkCheckFlags |= flags;
+			completedFlags |= flags;
 
 			LinkMessenger::instance->Dispatch(message_flags);
 
@@ -336,46 +360,116 @@ namespace LEX
 				target->OnLinkComplete();
 			}
 
-			if (should_message)
-				report::link::info("Finalized link stage: {}", magic_enum::enum_name(flags));
+			if (should_message) {
+				std::string message;
 
-			//Should it have processed everything it should remove it all.
+				bit_loop(flags)
+				{
+					if (message.empty() == false)
+						message += "|";
+					message += magic_enum::enum_name(i);
+				}
+
+				report::link::info("Finalized link stage: {} ", message);
+			}
+
 		}
 
-
-
-		static void RefreshLinkage()
+		static void LinkComponents(LinkFlag flags)
 		{
-			if (HasLinked(LinkFlag::Any) == false)
-				return;
+			//This lock (hopefully) will only allow one thing to check 
 
+			//static std::mutex mutex;
 
-			//At a later point, link should just be able to & out the given flags and run all the stuff it wants.
-			// Also this likely will need to be thread locked in the future.
+			//I'd like this to use recursive
 
-			for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
+			LinkFlag send;
+
+			//I'd like this to be locked to one thread when examining, and then released
+			// to allow other threads to see that we are currently processing, and for them
+			// to reprise later.
 			{
-				if (HasLinked(flag) == true)
-				{
-					Link(flag);
+				static std::mutex mutex;
+
+				std::lock_guard lock(mutex);
+
+				//This ensures that lesser link flags will be executed, 
+				// but also that completed flags won't be repeated
+				send = LinkFlag((1 << std::bit_width<std::underlying_type_t<LinkFlag>>(flags)) - 1);
+				send &= ~completedFlags;
+
+
+				if (IsProcessing() == true) {
+					reprisalFlags |= send;
+					return;
+				}
+
+				processingFlags |= send;
+			}
+
+			{
+
+
+				LinkComponentsImpl(send);
+
+				processingFlags &= ~send;
+
+				if (reprisalFlags) {
+					send = reprisalFlags;
+					reprisalFlags = LinkFlag::None;
+					LinkComponents(send);
 				}
 			}
 		}
 
+		static void RelinkComponents()
+		{
+			if (!completedFlags)
+				return;
+
+			auto flags = completedFlags;
+
+			processingFlags &= flags;
+
+			LinkComponentsImpl(flags);
+
+			processingFlags &= ~flags;
+		}
+
+
+		void RelinkComponent()
+		{
+			auto it = FindLinkEntry();
+
+			if (g_linkerList.end() != it) {
+				LinkComponent(it, completedFlags, false);
+			}
+		}
+
+
+
+
+		//This name is being taken because the function is used in one place and is small. Better inlined.
+		void HandleLinkage()//private
+		{
+			if (RegisterLinkComponent() == false) {
+				FlagAsSuccess();
+				TryValidate();
+			}
+		}
+
+
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 		static bool HasLinked(LinkFlag flag)
 		{
-			return flag & _linkCheckFlags;
+			return flag & completedFlags;
 		}
 
-		static bool HasInit()
-		{
-			return _initialized;
-		}
 
 		static LinkFlag FlagsLinked()
 		{
-			return _linkCheckFlags;
+			return completedFlags;
 		}
 
 		virtual std::string_view GetName() const = 0;
@@ -392,14 +486,14 @@ namespace LEX
 		//This is a function that gets called when the entire linking process completes.
 		virtual void OnLinkComplete() {}
 
-		bool ValidFlag() const
+		bool SuccessFlag() const
 		{
-			return (_flags & ComponentFlag::Valid);
+			return (_valid & ValidationFlag::Success);
 		}
 
 		bool InvalidFlag() const
 		{
-			return (_flags & ComponentFlag::Invalid);
+			return (_valid & ValidationFlag::Invalid);
 		}
 
 		
@@ -407,39 +501,51 @@ namespace LEX
 		//more protected. By default, this is a question about the options of the derived class.
 		virtual bool GetValid() const { return true; }
 		
-		bool IsFlaggedSuccess() const
+		bool IsFlaggedValid() const
 		{
-			return (_flags & ComponentFlag::Validation) == ComponentFlag::Success;
+			return _valid == ValidationFlag::Valid;
 		}
 		bool IsValid() const
 		{
-			return IsFlaggedSuccess() && GetValid();
+			bool result = IsFlaggedValid();
+			bool was_valid = result;
+
+			if (result)
+				result = GetValid();
+
+			if (result != was_valid) {
+				FlagAsInvalid();
+				//Make some notification
+			}
+			
+
+			return result;
 		}
 
 		//Checks flag and also the linker cache
 		bool IsLinked() const
 		{
-			return _flags & ComponentFlag::Linked && _linkerContainer.contains(const_cast<Component*>(this));
+			return _flags & ComponentFlag::Linked;
 		}
 	private:
 	
-		void FlagAsValid() const
+		void FlagAsSuccess() const
 		{
-			_flags |= ComponentFlag::Valid;
+			_valid |= ValidationFlag::Success;
 		}
 	public:
 
 		void FlagAsInvalid() const
 		{
-			_flags |= ComponentFlag::Invalid;
+			_valid |= ValidationFlag::Invalid;
 		}
 
 		bool TryValidate()
 		{
-			if (InvalidFlag() == true || ValidFlag() == false)
+			if (InvalidFlag() == true || SuccessFlag() == false)
 				return false;
 
-			_flags |= ComponentFlag::Success;
+			_valid |= ValidationFlag::Complete;
 			
 			return true;
 		}
@@ -454,26 +560,14 @@ namespace LEX
 		Component(const Component&&) = delete;
 		Component& operator= (const Component&) = delete;
 		Component& operator= (const Component&&) = delete;
-		virtual ~Component() { _linkerContainer.erase(this); AbsolveDependency(); }
+		virtual ~Component() { UnregisterLinkComponent(); AbsolveDependency(); }
 
 	private:
-		inline static std::map<Component*, LinkFlag> _linkerContainer{};
+		
 		
 
 
 
-		//To handle link dependency is to handle linking that occurs when things are all complete. I think to that, dependency will fire when _linkCheckFlags
-		// equal LinkFlag::All. 
-		//A secondary problem is also when a component dies it may not be able to pull itself out of the component library. To that, I think it would be better
-		// to turn this into a vector of pairs, and when something is removed from existing, it will pull it's dependency. I can probably make a function for this, along with
-		// a flag. The idea would basically be that if the left hand doesn't exist, we don't worry about depedency, but if the right hand doesn't exist a dependency has been
-		// compromised.
-		// ^Definitely harder/longer to search but it will only need to be searched once.
-		//Core to the concept of this would be to pluck every the pair every time consideration is going off, and then to make the function recursive, and able
-		// to resolve other components questions.
-		inline static std::map<Component*, std::vector<size_t>> _dependencyMap{};
-
-		inline static std::vector<Component*> _dependeeList{};
 public:
 		void AbsolveDependency() const
 		{
@@ -589,13 +683,13 @@ public:
 
 	private:
 
-		inline static bool _initialized = false;
-		//This is used later on to signify that if All flags have been done, linkage doesn't have to wait.
-		inline static LinkFlag _linkCheckFlags = LinkFlag::None;
+
+
 
 		//TODO: Get rid of this any anything that uses it.
 		mutable ComponentFlag _flags = ComponentFlag::None;
-
+		mutable ValidationFlag _valid = ValidationFlag::None;
+		//I may store link flags here too.
 		//Data usable by any person to store personal data here. After all, it's free space.
 		mutable uint32_t _data = 0;
 	};

@@ -284,7 +284,7 @@ namespace LEX
 				try
 				{
 					LoadFromSyntaxTree(begin, end);
-					RefreshLinkage();
+					RelinkComponents();
 
 				}
 				catch (CompileError& error)
