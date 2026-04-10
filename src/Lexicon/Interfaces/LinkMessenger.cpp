@@ -20,11 +20,9 @@ namespace LEX
 		{
 			if (auto linked = Component::FlagsLinked())
 			{
-				for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
-				{
-					if (linked & flag) {
-						callback(flag);
-					}
+				bit_loop(linked) {
+					for (auto callback : callbackList)
+						callback(i);
 				}
 			}
 		}
@@ -35,13 +33,9 @@ namespace LEX
 
 	void LinkMessenger::Dispatch(LinkFlag a_flags)
 	{
-		for (auto flag = (LinkFlag)1; flag != LinkFlag::None; flag <<= 1)
-		{
-			if (flag & a_flags)
-			{
-				for (auto callback : callbackList)
-					callback(flag);
-			}
+		bit_loop(a_flags) {
+			for (auto callback : callbackList)
+				callback(i);
 		}
 	}
 

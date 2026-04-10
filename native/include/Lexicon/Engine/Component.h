@@ -16,7 +16,7 @@ namespace LEX
 		None = 0,
 		
 		Initialized = 1 << 0, //flag to say that load from view has finished once.
-		Linking = 1  << 1,
+		Linking		= 1 << 1,
 		Linked		= 1 << 2,  //Flag determines that a check for linking occured, not entirely that all links are done.
 	};
 
@@ -49,12 +49,17 @@ namespace LEX
 
 
 		inline static std::recursive_mutex link_mutex;//Used to prevent refresh and regular link from going off at once.
+		inline static bool isProcessing = false;
 		inline static LinkFlag processingFlags{};//this seems really useless for the most part.
 		inline static LinkFlag reprisalFlags{};
 		inline static LinkFlag completedFlags{};
+		inline static LinkFlag waitingFlags{};//A list of the flags currently waiting to be processed.
 
-		inline static std::list<std::pair<Component*, LinkFlag>> g_linkerList;
+		inline static std::list<Component*> g_linkerList;
 
+		//Whenever an error is encountered that prevents this from finishing linking, it will put
+		// the message here so attempts to call upon it will preserve what the error was.
+		//inline static std::unordered_map<Component*, std::string> errorTable;
 
 		using iterator = decltype(g_linkerList)::iterator;
 
@@ -158,21 +163,38 @@ namespace LEX
 
 		static bool IsProcessing()
 		{
-			return GetProcessingFlags();
+			return isProcessing || GetProcessingFlags();
 		}
 
 
 		//Registers component for linking. Returns false if no linking is required.
 		bool RegisterLinkComponent()
 		{
+			//if it has tasks but isn't linking it failed, and isn't valid to try to link anymore.
+			if (_tasks) {
+				return IsLinking();
+			}
+
 			//return early if already registered.
 
 			LinkFlag links = GetLinkFlags();
 
 			if (links) {
 				//std::lock_guard lock(link_mutex);
-				//Set flag here
-				g_linkerList.emplace_back(this, links);
+				//TODO:Set up reprisal and waiting here
+				FlagLinking(true);
+				_tasks = links;
+
+
+				waitingFlags |= links;
+
+				bool current_can_handle = get_front_flag(links) & processingFlags;
+
+				if (IsProcessing() && !current_can_handle) {
+					reprisalFlags |= links;
+				}
+
+				g_linkerList.emplace_back(this);
 			}
 
 			return links;
@@ -182,10 +204,8 @@ namespace LEX
 		{
 			std::lock_guard lock(link_mutex);
 
-			if (g_linkerList.end() != it) {
-				//remove flag here
-				auto [test1, test2] = *it;
-
+			if (g_linkerList.end() != it) {				
+				(*it)->FlagLinking(false);
 				return g_linkerList.erase(it);
 			}
 
@@ -197,7 +217,7 @@ namespace LEX
 		{
 
 			return std::find_if(g_linkerList.begin(), g_linkerList.end(),
-				[this](auto& it) {return it.first == this; });
+				[this](Component* it) {return it == this; });
 
 		}
 
@@ -227,16 +247,26 @@ namespace LEX
 			{
 
 				std::lock_guard lock(link_mutex);
-
-				auto& [target, tasks] = *it;
-
+				Component* target = *it;
+				LinkFlag& tasks = target->_tasks;
+				
 
 				//If there are tasks the component has not processed yet it has reached this stage,
 				// it will attempt to play catch up.
-				bit_loop(tasks)
+
+				auto prim = grouped ? flags : tasks;
+				auto aux = grouped ? tasks : flags;
+
+				bit_loop(prim)
 				{
-					bool flag_allowed = flags & i;
-					auto should = target->ShouldLink(i);
+					if (grouped && get_front_flag(tasks) != i) {
+						logger::warn("not linking the front flags or something");
+						bit_break;
+					}
+
+					bool flag_allowed = aux & i;
+
+					//auto should = target->ShouldLink(i);
 					if (flag_allowed) //&& target->ShouldLink(i) == true)
 					{
 						LinkResult result = LinkResult::Failure;
@@ -261,6 +291,7 @@ namespace LEX
 						}
 
 						tasks &= ~i;
+
 						bool is_done = !(tasks & LinkFlag::Complete);
 						//This isn't to fire on links like final or exit.
 						bool public_link = (i & LinkFlag::Complete);
@@ -302,75 +333,61 @@ namespace LEX
 
 		static void LinkComponentsImpl(LinkFlag flags)
 		{
+			processingFlags = flags;
+			
+
 			//Multiple different threads can use this
-
-			//this is what we remove when we leave.
-			auto add_flags = ~processingFlags & flags;
-
-
-			bool should_message = (completedFlags & flags) == LinkFlag::None;
-
-			if (should_message) {
-				std::string message;
-
-				bit_loop(flags)
-				{
-					if (message.empty() == false)
-						message += "|";
-					message += magic_enum::enum_name(i);
-				}
-
-				report::link::info("Starting link stage: {} ", message);
-			}
-
-
-
-			//Make sure to remove the linkCheckFlags
-
 
 			std::vector <Component*> finished{};
 
-			if (flags) {
+			bit_loop(flags)
+			{
+				if (~completedFlags & i) {
+					report::link::info("Starting link stage: {} ", magic_enum::enum_name(i));
+				}
+
+				bool remove_waiting = true;
+
 				for (auto it = g_linkerList.begin(); it != g_linkerList.end();)
 				{
 					std::lock_guard lock(link_mutex);
 
-					Component* target = it->first;
+					Component* target = *it;
 
-					if (LinkComponent(it, flags, true) == true) {
+					if (LinkComponent(it, i, true) == true) {
 						finished.push_back(target);
 					}
+
+					//If remaining still contains the flag we're processing we
+					if (target->_tasks & i) {
+						remove_waiting = false;
+					}
 				}
+
+				if (remove_waiting) {
+					waitingFlags &= ~i;
+				}
+
+				if (~completedFlags & i) {
+					report::link::info("Finalized link stage: {} ", magic_enum::enum_name(i));
+				}
+
+				completedFlags |= i;
+				processingFlags &= ~i;
+
+				LinkMessenger::instance->Dispatch(i);
 			}
+
 			//This removes messages for stuff we already sent.
-			auto message_flags = ~completedFlags & flags;
 
-			completedFlags |= flags;
-
-			LinkMessenger::instance->Dispatch(message_flags);
-
-			//for (auto& target : linkAfter) {
-			//	auto link_flag = target->OnLink();
-			//}
+			
 
 
 			for (auto& target : finished) {
 				target->OnLinkComplete();
 			}
 
-			if (should_message) {
-				std::string message;
-
-				bit_loop(flags)
-				{
-					if (message.empty() == false)
-						message += "|";
-					message += magic_enum::enum_name(i);
-				}
-
-				report::link::info("Finalized link stage: {} ", message);
-			}
-
+			
 		}
 
 		static void LinkComponents(LinkFlag flags)
@@ -392,32 +409,31 @@ namespace LEX
 				std::lock_guard lock(mutex);
 
 				//This ensures that lesser link flags will be executed, 
-				// but also that completed flags won't be repeated
+				// but also that completed flags won't be repeated unless it's also waited upon.
 				send = LinkFlag((1 << std::bit_width<std::underlying_type_t<LinkFlag>>(flags)) - 1);
-				send &= ~completedFlags;
-
+				
+				LinkFlag remove = completedFlags & ~waitingFlags;
+				send &= ~(remove);
 
 				if (IsProcessing() == true) {
 					reprisalFlags |= send;
 					return;
 				}
 
-				processingFlags |= send;
+				
+				isProcessing = true;
 			}
 
+			while (send)
 			{
-
-
-				LinkComponentsImpl(send);
-
-				processingFlags &= ~send;
+				LinkComponentsImpl(std::exchange(send, LinkFlag::None));
 
 				if (reprisalFlags) {
-					send = reprisalFlags;
-					reprisalFlags = LinkFlag::None;
-					LinkComponents(send);
+					send = std::exchange(reprisalFlags, LinkFlag::None);
 				}
 			}
+			
+			isProcessing = false;
 		}
 
 		static void RelinkComponents()
@@ -425,13 +441,11 @@ namespace LEX
 			if (!completedFlags)
 				return;
 
-			auto flags = completedFlags;
+			//Should I be locking this? I want to prevent the completed from changing during this point.
+			//std::lock_guard lock(link_mutex);
 
-			processingFlags &= flags;
+			LinkComponents(completedFlags);
 
-			LinkComponentsImpl(flags);
-
-			processingFlags &= ~flags;
 		}
 
 
@@ -520,13 +534,26 @@ namespace LEX
 			return result;
 		}
 
-		//Checks flag and also the linker cache
-		bool IsLinked() const
+		
+		//Gets if component is currently waiting on a link stage
+		bool IsLinking() const
 		{
-			return _flags & ComponentFlag::Linked;
+			return _flags & ComponentFlag::Linking;
 		}
+
+
+		
+
 	private:
-	
+		void FlagLinking(bool value)
+		{
+			if (value)
+				_flags |= ComponentFlag::Linking;
+			else
+				_flags &= ~ComponentFlag::Linking;
+		}
+
+
 		void FlagAsSuccess() const
 		{
 			_valid |= ValidationFlag::Success;
@@ -687,6 +714,7 @@ public:
 		//TODO: Get rid of this any anything that uses it.
 		mutable ComponentFlag _flags = ComponentFlag::None;
 		mutable ValidationFlag _valid = ValidationFlag::None;
+		mutable LinkFlag _tasks = LinkFlag::None;
 		//I may store link flags here too.
 		//Data usable by any person to store personal data here. After all, it's free space.
 		mutable uint32_t _data = 0;
