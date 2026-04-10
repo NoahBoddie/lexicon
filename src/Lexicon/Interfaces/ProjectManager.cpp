@@ -506,7 +506,7 @@ namespace LEX
 			return APIResult::CreationFailed;
 		}
 
-		ast.ObtainChild(parse_strings::body, SyntaxType::None).EmplaceChild(std::move(tmp_directives));
+		//ast.ObtainChild(parse_strings::body, SyntaxType::None).EmplaceChild(std::move(tmp_directives));
 
 		PrintAST(ast);
 

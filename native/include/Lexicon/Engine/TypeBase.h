@@ -126,7 +126,7 @@ namespace LEX
 
 
 
-		virtual std::vector<Environment*> GetAssociates(RelateType type) override
+		virtual std::vector<Directory*> GetAssociates(RelateType type) override
 		{
 
 			if (type != RelateType::Nested)

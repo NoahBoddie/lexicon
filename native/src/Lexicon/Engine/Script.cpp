@@ -91,42 +91,33 @@ namespace LEX
 				}
 				break;
 
-			case SyntaxType::Directive:
+
+			case SyntaxType::Import:
+			case SyntaxType::Include:
 				if constexpr (1)
 				{
-					//Directives should be ordered, namely that subdirectories should be made first.
 					Project* parent = GetProject();
 
-					for (auto& directive : node.children()) {
-						switch (directive.SYNTAX().type)
-						{
-						case SyntaxType::Relationship:
-						{
-							RelateType type;
+					RelateType type;
 
-							switch (Hash(directive.GetTag()))
-							{
-							case "import"_h: type = RelateType::Imported; break;
-							case "include"_h: type = RelateType::Included; break;
-							default: report::compile::error("unknown relationship directive '{}' detected.", directive.GetView());
-							}
-
-							auto view = directive.GetFront().GetView();
-							Script* script = parent->FindScript(view);
-
-							if (!script) {
-								report::compile::error("Cannot find script '{}'.", view);
-							}
-
-							AddRelationship(script, type);
-						}
-						break;
-
-						}
-
+					switch (switch_value)
+					{
+					case SyntaxType::Import: type = RelateType::Imported; break;
+					case SyntaxType::Include: type = RelateType::Included; break;
+					default: report::compile::error("unknown relationship directive '{}' detected.", magic_enum::enum_name(switch_value));
 					}
+
+					auto view = node.GetView();
+					Script* script = parent->FindScript(view);
+
+					if (!script) {
+						report::compile::error("Cannot find script '{}'.", view);
+					}
+
+					AddRelationship(script, type);
 				}
 				break;
+
 
 			case SyntaxType::Subproject:
 			case SyntaxType::Subdirectory:
@@ -151,7 +142,7 @@ namespace LEX
 					}
 
 					auto& subdirs = ObtainSubdirectoryList();
-
+					
 					//This expects that this bit will stick arounds so it is imperative that this remains existent
 					auto& slot = subdirs[node.GetTag()];
 
@@ -165,8 +156,11 @@ namespace LEX
 					if (!repo) {
 						report::compile::error("script '{}' failed to create subdirectory '{}'", GetName(), node.GetView());
 					}
-
+					//TODO: at some point, I'd like to just have this (maybe be the singular way to handle this.
+					//TODO: include subdirectory/include subproject should also do what this is doing.
 					slot = directory;
+					//TODO: Don't actually use AddRelationship, just manually get the stuff.
+					AddRelationship(directory, is_subproject ? RelateType::NestedUpper : RelateType::Nested);
 
 				}
 				break;
@@ -357,15 +351,11 @@ namespace LEX
 	{
 
 		if (_subdirectoryList) {
-			
-
 			auto& map = ObtainSubdirectoryList();
 
 			if (auto it = map.find(std::string{name}); map.end() != it) {
 				return it->second;
 			}
-
-			logger::info("Failure XXXXXXXXXXXXX {} from {}", name, GetName());
 		}
 
 		return nullptr;
@@ -389,11 +379,11 @@ namespace LEX
 
 
 
-	void Script::AddRelationship(Script* script, RelateType bond)
+	void Script::AddRelationship(Directory* dir, RelateType bond)
 	{
 		//Return the relationship it's been assigned or the relationship it has previously been assign if it
 		// can't the relationship.
-		_relationMap[bond].push_back(script);
+		_relationMap[bond].push_back(dir);
 	}
 
 

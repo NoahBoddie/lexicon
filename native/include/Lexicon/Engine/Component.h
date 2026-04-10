@@ -161,6 +161,11 @@ namespace LEX
 			return reinterpret_cast<std::atomic<LinkFlag>&>(processingFlags);
 		}
 
+		static LinkFlag CurrentFlags()
+		{
+			return completedFlags | processingFlags;
+		}
+
 		static bool IsProcessing()
 		{
 			return isProcessing || GetProcessingFlags();
@@ -191,7 +196,7 @@ namespace LEX
 				bool current_can_handle = get_front_flag(links) & processingFlags;
 
 				if (IsProcessing() && !current_can_handle) {
-					reprisalFlags |= links;
+					reprisalFlags |= links & CurrentFlags();
 				}
 
 				g_linkerList.emplace_back(this);
@@ -260,7 +265,6 @@ namespace LEX
 				bit_loop(prim)
 				{
 					if (grouped && get_front_flag(tasks) != i) {
-						logger::warn("not linking the front flags or something");
 						bit_break;
 					}
 

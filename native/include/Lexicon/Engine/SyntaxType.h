@@ -80,8 +80,9 @@ namespace LEX
 		Identifier,
 		Declare,
 		Requirement,
-		Relationship,
-		
+		//Relationship,
+		Import,
+		Include,
 		//I'd like to get rid of all directory things, and use 
 		Directive,
 		Subdirectory,

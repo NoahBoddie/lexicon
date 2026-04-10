@@ -129,10 +129,6 @@ namespace LEX
 
 
 
-		virtual std::vector<Environment*> GetAssociates(RelateType)
-		{
-			return {};
-		}
 
 
 		virtual Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) { return nullptr; }

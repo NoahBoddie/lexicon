@@ -2316,6 +2316,47 @@ namespace LEX
 		};
 
 
+		struct RelationParser : public AutoParser<RelationParser>
+		{
+			//TODO: This also needs preventative measures to make sure it doesn't end up at the top level
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				return !target && (stream->IsType(TokenType::Keyword, "import") || stream->IsType(TokenType::Keyword, "include"));
+			}
+
+
+
+
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				RecordData relate = stream->peek();
+
+				SyntaxType type;
+				switch (Hash(relate.GetView()))
+				{
+				case "import"_h:
+					type = SyntaxType::Import;
+					break;
+
+				case "include"_h:
+					type = SyntaxType::Include;
+					break;
+
+				default:
+					stream->croak("Invalid string found", nullptr, false);
+					break;
+				}
+
+				stream->next();
+
+				return ParsingStream::CreateExpression(stream->next(), type);
+			}
+
+		};
+
+
+
 
 		////////////////////////////////////////////
 		//Preprocessors                          ///
@@ -2538,7 +2579,7 @@ namespace LEX
 		};
 		//*/
 
-
+#ifdef PREPROCESSOR_RELATE
 		struct RelationParser : public AutoProcessor<RelationParser>
 		{
 			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
@@ -2561,6 +2602,7 @@ namespace LEX
 			}
 
 		};
+#endif
 
 		struct RequiresParser : public AutoProcessor<RequiresParser>
 		{

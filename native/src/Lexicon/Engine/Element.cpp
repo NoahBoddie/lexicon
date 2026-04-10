@@ -109,6 +109,12 @@ namespace LEX
 
 		std::vector<SpecialDirectory> GetDirectories(Element* a_this, Directory* focus, SyntaxRecord* step, RelateType& relation, std::set<Element*>& searched)
 		{
+			switch (relation)
+			{
+			default:
+				break;
+			}
+
 			/*
 			make variable that stores temp environment here.
 			overloop here
@@ -143,9 +149,13 @@ namespace LEX
 
 				for (Directory* dir : out)
 				{
-					if (!dir || !searched.emplace(dir).second) {
+					//Exit if the directory doesnt exist, or if searched contains the directory in the
+					// event that the directory equals the focus or if the search didn't emplace a new value
+					// in the event the directory doesn't equal the focus
+					if (!dir || focus == dir ? searched.contains(dir) : !searched.emplace(dir).second) {
 						continue;
 					}
+
 
 					GenericArray inserter{ NULL_OP(NULL_Q(a_this)->AsGenericElement()), };
 
@@ -212,6 +222,8 @@ namespace LEX
 						return true;
 
 				} while (ship-- != RelateType::None);
+
+				searched.emplace(dir);
 
 				if (Project* project = dir->As<Project>()) {
 					return HandlePath2(a_this, project->GetCommons(), rec, func, searched, need_associate);
@@ -495,6 +507,10 @@ namespace LEX
 
 		QualifiedField SearchFieldPath(Element* a_this, SyntaxRecord& path)
 		{
+			if (path.GetView() == "subscript1") {
+				logger::info("Logger");
+			}
+
 
 			QualifiedField result{ nullptr };
 
@@ -799,8 +815,10 @@ namespace LEX
 				if (env)
 					result.emplace_back(env, std::move(inserter));
 				
-				if (relation != RelateType::None)
-					buffer.insert_range(buffer.end(), elem->GetAssociates(relation));
+				if (relation != RelateType::None) {
+					throw Error("This ain't supposed to be used");
+					//buffer.insert_range(buffer.end(), elem->GetAssociates(relation));
+				}
 			}
 
 			out = std::move(buffer);

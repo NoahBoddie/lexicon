@@ -55,7 +55,7 @@ namespace LEX
 		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList= nullptr;
 
 		//This is where scripts are refered
-		std::unordered_map<RelateType, std::vector<Script*>> _relationMap;
+		std::unordered_map<RelateType, std::vector<Directory*>> _relationMap;
 
 
 		auto& ObtainSubdirectoryList()
@@ -136,20 +136,25 @@ namespace LEX
 			
 		}
 
-		std::vector<Environment*> GetAssociates(RelateType bond)
+		std::vector<Directory*> GetAssociates(RelateType bond)
 		{
 			auto it = _relationMap.find(bond);
-
+			
 			if (_relationMap.end() != it) {
-				auto& list = it->second;
-				return { list.begin(), list.end() };
+				//auto& list = it->second;
+				return it->second;
 			}
+
+			//TODO: this is an example of how I would make a directory list from this.
+			//for (auto const& value : std::views::values(ObtainSubdirectoryList())) {
+				// use value
+			//}
 				
 
 			return {};
 		}
 
-		void AddRelationship(Script*, RelateType bond);
+		void AddRelationship(Directory* dir, RelateType bond);
 
 
 		virtual bool IsCommons() const { return false; }

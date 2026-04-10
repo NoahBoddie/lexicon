@@ -391,7 +391,7 @@ namespace LEX
 			return false;
 		}
 
-		ast.ObtainChild(parse_strings::body, SyntaxType::None).EmplaceChild(std::move(tmp_directives));
+		//ast.ObtainChild(parse_strings::body, SyntaxType::None).EmplaceChild(std::move(tmp_directives));
 
 		PrintAST(ast);
 
@@ -611,7 +611,7 @@ namespace LEX
 		// communicating to the project client.
 
 		{
-			if (std::filesystem::exists(commons_path) && GetCommons() != nullptr) {
+			if (std::filesystem::exists(commons_path) && GetCommons() == nullptr) {
 				//TODO: This for some reason seems to be triggering everywhere
 				report::compile::warn("Repository {} detected a unused commons script at {}", GetName(), path);
 			}
