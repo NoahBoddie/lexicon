@@ -109,12 +109,6 @@ namespace LEX
 
 		std::vector<SpecialDirectory> GetDirectories(Element* a_this, Directory* focus, SyntaxRecord* step, RelateType& relation, std::set<Element*>& searched)
 		{
-			switch (relation)
-			{
-			default:
-				break;
-			}
-
 			/*
 			make variable that stores temp environment here.
 			overloop here
@@ -135,11 +129,11 @@ namespace LEX
 
 			std::vector<Directory*> out{ focus };
 
-			Script* script = focus->As<Script>();
+			 
 
-			//No need to loop if we aren't doing a script.
-			if (!script)
-				relation = RelateType::None;
+			//No need to loop if we aren't doing a script or a type.
+			//if (focus->Is<Environment>() == false)
+			//	relation = RelateType::None;
 			//maybe there's a better way to do this, but whatever innit.
 			while (out.size() != 0)//Overloop
 			{
@@ -149,24 +143,45 @@ namespace LEX
 
 				for (Directory* dir : out)
 				{
+					bool is_focus = focus == dir;
+
+
 					//Exit if the directory doesnt exist, or if searched contains the directory in the
 					// event that the directory equals the focus or if the search didn't emplace a new value
 					// in the event the directory doesn't equal the focus
-					if (!dir || focus == dir ? searched.contains(dir) : !searched.emplace(dir).second) {
+					if (!dir || is_focus ? searched.contains(dir) : !searched.emplace(dir).second) {
 						continue;
 					}
+					//This does not add "this" to searching. I need to emplace it, but only the first time this is called.
 
 
 					GenericArray inserter{ NULL_OP(NULL_Q(a_this)->AsGenericElement()), };
 
-					if (step)
-						dir = WalkDirectoryPath(dir, step, inserter);
+					Directory* it = dir;
 
-					if (dir)
-						result.emplace_back(dir, std::move(inserter));
+					switch (relation)
+					{
+					
+					case RelateType::Included:
+					case RelateType::None:
+						goto skip_check;
 
-					if (script && relation != RelateType::None) {
-						buffer.insert_range(buffer.end(), script->GetAssociates(relation));
+					default:
+						if (!is_focus)
+						{
+							skip_check:
+							if (step)
+								it = WalkDirectoryPath(it, step, inserter);
+
+							if (it)
+								result.emplace_back(it, std::move(inserter));
+						}
+						break;
+
+					}
+
+					if (dir && relation != RelateType::None) {
+						buffer.insert_range(buffer.end(), dir->GetAssociates(relation));
 					}
 
 				}
@@ -201,10 +216,23 @@ namespace LEX
 
 			Directory* dir = focus->GetDirectory();
 
+			
 			if (dir) {
+				bool same_script = need_associate && a_this && a_this->GetScript() == dir->GetScript();
 
 				do
 				{
+
+					//switch (ship)
+					//{
+					//case RelateType::Subdirectory:
+					//case RelateType::Subproject:
+					//	if (!same_script)
+					//		continue;
+					//}
+
+					
+
 					//std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{};
 					std::vector<SpecialDirectory> query = GetDirectories(a_this, dir, rec, ship, searched);
 
@@ -507,10 +535,6 @@ namespace LEX
 
 		QualifiedField SearchFieldPath(Element* a_this, SyntaxRecord& path)
 		{
-			if (path.GetView() == "subscript1") {
-				logger::info("Logger");
-			}
-
 
 			QualifiedField result{ nullptr };
 

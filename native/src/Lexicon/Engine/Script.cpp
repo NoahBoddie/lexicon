@@ -160,7 +160,7 @@ namespace LEX
 					//TODO: include subdirectory/include subproject should also do what this is doing.
 					slot = directory;
 					//TODO: Don't actually use AddRelationship, just manually get the stuff.
-					AddRelationship(directory, is_subproject ? RelateType::NestedUpper : RelateType::Nested);
+					AddRelationship(directory, is_subproject ? RelateType::Subproject : RelateType::Subdirectory);
 
 				}
 				break;

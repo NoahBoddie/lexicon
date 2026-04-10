@@ -144,7 +144,22 @@ namespace LEX
         {
             return a_this.GetAs<T>(T::COMPONENT_TYPE);
         }
+        template<typename T, typename Self, typename = std::enable_if_t<
+            std::negation_v<
+            std::disjunction<
+            std::is_pointer<T>,
+            std::is_reference<T>,
+            std::is_const<T>,
+            std::is_volatile<T>>>>>
+        bool Is(this Self& a_this) requires(requires() { { T::COMPONENT_TYPE } -> std::convertible_to<ComponentType>; })
+        {
+            return a_this.As<T>();
+        }
 
+        bool Is(ComponentType type) const
+        {
+            return GetComponentType() == type;
+        }
 
         //Defined in Impl/ComponentDetails.cpp
         static TypeInfo* GetTypeFromOffset(uint16_t offset);
@@ -166,7 +181,7 @@ namespace LEX
 
 
     #define DEF_FUNC_IMPL_COMPONENT_MAIN \
-    MAP_UD(DEF_USING_IMPL,Component,GetVariableType,As)
+    MAP_UD(DEF_USING_IMPL,Component,GetVariableType,As,GetAs,Is)
 
 
 

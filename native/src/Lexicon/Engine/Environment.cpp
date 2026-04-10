@@ -419,7 +419,6 @@ namespace LEX
 			//for (auto& node : target.children())
 			while (begin != end)
 			{
-				logger::debug("Loading: {}", begin->GetView());
 				LoadFromSyntaxNode(*begin++);
 			}
 		}

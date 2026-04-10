@@ -979,230 +979,53 @@ namespace LEX::Test
 
     }
 
-
-    //Just the things I want to add to directory basically
-    struct DirectoryPlus : public Directory
-    {
-        virtual Environment* FindEnvironment(const std::string_view& name) { return nullptr; }
-
-        virtual Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter& inserter) { return nullptr; }
-    };
-
-
-    //Projects and Subdirectories derive from repositories. Repositories are specifically
-    // directories that can hold 
-    struct Repository : public DirectoryPlus
-    {
-        //This includes the same functions so they can be conjoined at a relevant point.
-        //virtual Script* FindScript(const std::string_view& name) = 0;
-        //Subdirectory* FindSubproject(const std::string_view& name);
-
-
-
-        //virtual Script* AddScript(Script* script) = 0;
-        //virtual bool CreateSubproject(const std::string_view& name) = 0;
-
-        std::string filePath;
-
-
-        std::vector<Script*> scripts;
-
-
-        //TODO: Make a custom type for this, something that's effectively a unique pointer that only
-        // creates data when accessed.
-        std::unique_ptr<std::unordered_map<std::string_view, Subdirectory*>> subdirectories = nullptr;
-
-    };
-
-
-
-    //Has no representable interface.
-    struct Subdirectory : public Repository
-    {
-
-
-    };
-
-    //scripts themselves will hold onto subdirectories via pointer and string_view
-
-    
-
-#ifdef DISABLE_THIS_GUFF
-
-
-
-
-
-    struct Subproject
-    {
-        //Subproject is merely a struct that will be used to keep track of the scripts that are within it, maybe the folder?
-        //To access a subproject, one will have to go through the script (any script) that includes it.
-        // The reason for this is primarily because if I did it through the project, there could be ambiguity introduced from another user,
-        // script names could possibly clash with subprojects. If I go through the script there's no chance of that happening.
-        //Searching the subproject is treated at the similar rank of import, but also you should be able to specify the name to resolve it's ambiguity
-        // consequently, this means if nothing includes the scripts, you cannot register types or functions to the scripts. Of course though, this is by
-        // design, given the fact these do not exist or do anything if not included by them.
-
-
-        //Now, currently I cannot register for functions because it would need an environment to walk to do that. 
-
-        
-
-        std::vector<Script*> scripts;
-    };
-
-    struct Dum
-    {
-        virtual ~Dum() = default;
-    };
-
-
-    struct IElement : public Dum
-    {
-    };
    
 
-
-
-
-
-    //An interface for a type that can access subprojects. (the only object that actually owns them is a project.
-    // I think this shouldn't be public, IE, it should attached to script, NOT to IScript.
-    struct IRepository : public Dum
+    struct AssociationData
     {
-        virtual Script* FindScript(const std::string_view& name) = 0;
-        virtual Subproject* FindSubproject(const std::string_view& name) = 0;
-
-    };
-
-    
-    
-    //repository and directories will explicitly be interfaces that do not have elements or environments attached to them.
-    //Directories are internal only, and don't need to have any versioning.
-
-
-    //I think regular repository doesn't need to exist. Given many things fulfill the idea of a repository, but fewer things actually are.
-    struct Repository
-    {
-        //This includes the same functions so they can be conjoined at a relevant point.
-        virtual Script* FindScript(const std::string_view& name) = 0;
-        virtual Subproject* FindSubproject(const std::string_view& name) = 0;
-
-
-        
-        virtual Script* AddScript(Script* script) = 0;
-        virtual bool CreateSubproject(const std::string_view& name) = 0;
-
-        std::unique_ptr<std::unordered_map<std::string, Subproject*>> subprojects = nullptr;
-        
-    };
-
-    //Real project and Environment derive from this. This is an internal only class. Directory is an interface for elements that contain
-    // environments
-    struct Directory : public Element
-    {
-        virtual void id() {}
-    };
-
-    struct IProject_ : public Dum, public IRepository
-    { };
-
-    struct Project_ : public Directory, public IProject_
-    {
-
-        virtual Script* AddScript(Script* script) = 0;
-        virtual bool CreateSubproject(const std::string_view& name) = 0;
-
-        std::unique_ptr<std::unordered_map<std::string, Subproject*>> subprojects = nullptr;
-    };
-
-
-
-    struct IEnvironment : public Dum, public IElement {};
-
-    struct IScript_ : public Dum, public IEnvironment, public IRepository
-    {
-    };
-
-
-    struct Environment_ : public Directory
-    {
-
-    };
-
-    struct Script_ : public Environment_, public IScript_
-    {
-
-    };
-
-
-
-    //TODO: rethink reflection, instead maybe incorporate it as an aspect of ALL elements, instead being something of an IComponent
-
-
-    //Subprojects will need to be housed someplace other than JUST projects, cause then there can be clash. Projects and scripts should share
-    // a type that acts as the object that holds subprojects. Repository will be this title. Repositories will derive from element, and will have 
-    // functions to access scripts and will have a function to add subprojects.
-
-    //Scripts are repositories, as well as projects. For projects, accessing it's scripts will lead the scripts it owns. Accessing scripts on
-    
-    
-    //Projects might also be treated as IEnvironments just as a point of convenience. However, I'd need to deal with how it handles now, where
-    // one an existing element not having an environment makes it a project, and thus in addition to searching itself for environments, it searches commons.
-    //I could now instead just ask if it's a project
-
-
-    //Biome is the temporary name of the thing that environments and projects. Directory, will be that name.
-    
-
-
-#endif
-
-}
-
-
-namespace LEX::TEST2
-{
-    void test_flag_loop()
-    {
-#define CYC_SWITCH(mc_flag, mc_start) \
-	if (bool cont_cycle = true; true) \
-		if (const auto switch_flag = mc_flag; false){}\
-		else if (auto start_value = decltype(switch_flag)(mc_start); !(int)start_value){ assert((int)start_value); }\
-		else \
-			for (std::remove_const_t<decltype(switch_flag)> i = start_value; \
-			cont_cycle && i < sizeof(decltype(switch_flag)) * 8;\
-			i = decltype(switch_flag)(i << 1)) \
-				switch (switch_flag & i)
-        constexpr LinkFlag flags = LinkFlag::Complete;
-
-        constexpr int test = std::countr_zero<uint8_t>(255);
-
-        constexpr int testlast = sizeof(LinkFlag) * 8;
-
-        auto THE_EXPRESS = flags;
-
-        //I wish to rename these bit_switch, bit_loop, and bit_break.
-
-        bit_switch(flags)
+        using Script = AssociationData;
+        struct//This is a set of bools that will act as what we seek
         {
+            bool isBonding = false;
+            bool isBonded = false;
+        };
+        struct Data
+        {
+            std::vector<Directory*> includes;
+            std::vector<Directory*> imports;
+            Subdirectory* subproject = nullptr;
+            std::unordered_map<std::string, Subdirectory*> subdirectories;
+        };
+
+        Data data;
+
+
+        std::vector<AssociationData*> waiters;
+
+
+        bool Bond(Script* other, RelateType type, Script*& circular_entry)
+        {
+            Data new_data;
+
+            //These are all just loose concepts, they aren't any strongly put in place ideas.
+            if (!other->isBonded)
+                other->waiters.push_back(this);
+
+            //I'm not sure what exactly this will do, but effectively it will do something in reverse.
+            // I'm unsure what though. It should present a warning however.
+
+            //I think instead of this, what I could do is have a linked list of all the previous executed stuff
+            // and add those.
+
+            //Additionally, I could make a different kind of field that puts the circular include in a list
+            // that just soaks up all other associations.
+            if (other->isBonding)
+                circular_entry = this;
+
+
+
 
         }
-        
-        bit_loop(flags)
-        {
-
-        }
-
-        
-    }
-    
-
-    //This has 2 more derived classes, one that gets the generic record it derives from, and then another that gets the beginning and end
-    // elements of the data. I'll be honest, this is just so I don't have to make an object to store it over and over again.
-
-    //Thinking of hard coding this in templates which one should be done
+    };
 
 }
-
-//*/

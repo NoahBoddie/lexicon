@@ -886,12 +886,13 @@ namespace LEX
 				report::compile::critical("SyntaxType unaccounted for whatever whatever. Type: {}", magic_enum::enum_name(node.SYNTAX().type));
 			}
 
+			//holds alt for TargetExpressionProcessor or ExpressionProcessor
 			if (false)//Confirm that the factory is actually made for expressions
 			{
 				report::compile::critical("Syntax is not a expression");
 			}
 
-			report::compile::trace("RoutineCompiler::CompileExpression: Processing {} . . .", magic_enum::enum_name(node.SYNTAX().type));
+			//report::compile::trace("RoutineCompiler::CompileExpression: Processing {} . . .", magic_enum::enum_name(node.SYNTAX().type));
 
 
 			//result from expressions are discarded

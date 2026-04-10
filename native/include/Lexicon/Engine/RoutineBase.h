@@ -39,7 +39,7 @@ namespace LEX
 				auto& syntax = records[i]->GetSyntax();
 				auto& location = locations[i];
 
-				report::trace("{} - {} : {} vs {} : {}", i, syntax.column, syntax.line, location.column, location.line);
+				//report::trace("{} - {} : {} vs {} : {}", i, syntax.column, syntax.line, location.column, location.line);
 			}
 		}
 
