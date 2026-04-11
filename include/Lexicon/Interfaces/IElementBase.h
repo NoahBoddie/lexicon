@@ -51,14 +51,12 @@ namespace LEX
 			public:
 				virtual bool IsGenericElement() const = 0;
 				
-				virtual std::string_view GetName() const = 0;
-
 
             };
 
 			#define DEF_FUNC_IMPL_ELEMENT_1 \
 			MAP_UD(DEF_USING_IMPL,Element,\
-			IsGenericElement,GetName)
+			IsGenericElement)
         }
 
         CURRENT_VERSION(IElementBase, 1);
@@ -92,23 +90,7 @@ namespace LEX
 		bool IsGenericElement() const override { return false; }
 		
 
-		std::string GetFullName() //const
-		{
-			return {};
-			/*
-			std::string result = std::string{ GetName() };
-
-			IElement* element = GetParent();
-
-			while (element)
-			{
-				result = std::format("{}::{}", element->GetName(), result);
-				element = element->GetParent();
-			}
-
-			return result;
-			//*/
-		}
+		
 
 		//TODO: For GetElementFromPath I'd like to have a version that can do the casting without knowing the true type
 

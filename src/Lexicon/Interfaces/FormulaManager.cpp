@@ -16,29 +16,6 @@
 namespace LEX
 {
 
-	struct FormulaData
-	{
-		//Helps prevent redoing a formula that's effectively already loaded. Not going to worry about that right now though.
-		size_t refCount = 0;
-	};
-
-
-	std::unordered_map<IFormula*, FormulaData> formulaMap;
-
-
-
-	FormulaData* FindFormData(IFormula* formula)
-	{
-		if (formula) {
-			auto end = formulaMap.end();
-			auto it = formulaMap.find(formula);
-
-			if (formulaMap.end() != it)
-				return &it->second;
-		}
-		return nullptr;
-	}
-
 
 	[[nodiscard]] uint64_t FormulaManager::RequestFormulaFromRecord(const ISignature& base, std::span<std::string_view> params, std::string_view name, SyntaxRecord& ast,
 		FormulaHandler& out, std::optional<IScript*> from, const std::source_location& loc)
@@ -90,8 +67,6 @@ namespace LEX
 		}
 		formula->SetName(name);
 		formula->SetFile(loc.file_name());
-
-		formulaMap[formula.get()].refCount = 1;
 		out._formula = formula.release();
 
 		//Zero means success
@@ -122,26 +97,4 @@ namespace LEX
 
 		return RequestFormulaFromRecord(base, params, name, ast, out, from, loc);
 	}
-
-	void FormulaManager::IncrementForumula(IFormula* formula)
-	{
-		auto data = FindFormData(formula);
-		//Needs some thread safety do you not agree?
-		if (data) {
-			data->refCount++;
-		}
-	}
-
-	void FormulaManager::DecrementForumula(IFormula*& formula)
-	{
-		auto data = FindFormData(formula);
-		//Needs some thread safety do you not agree?
-		if (data && --data->refCount == 0) {
-			delete formula;
-			formulaMap.erase(formula);
-
-			formula = nullptr;
-		}
-	}
-
 }

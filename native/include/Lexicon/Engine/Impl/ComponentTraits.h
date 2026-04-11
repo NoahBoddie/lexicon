@@ -10,6 +10,7 @@
 #include "Lexicon/Interfaces/IScript.h"
 #include "Lexicon/Interfaces/IProject.h"
 #include "Lexicon/Interfaces/ISubdirectory.h"
+#include "Lexicon/IFormula.h"
 #include "Lexicon/ITypeInfo.h"
 #include "Lexicon/IFunction.h"
 #include "Lexicon/IGlobal.h"
@@ -41,6 +42,7 @@
 //#include "Lexicon/Engine/GenericGlobal.h"
 //#include "Lexicon/Engine/SpecialGlobal.h"
 
+#include "Lexicon/Engine/BasicFormula.h"
 
 //Give it everything.
 
@@ -65,7 +67,7 @@ namespace LEX
         break;
  
     
-#define COMPONENT_NAMES IComponent, Component, IElement, Element, IDirectory, Directory, IRepository, Repository, ISubdirectory, Subdirectory, IEnvironment, Environment, IScript, Script, IProject, Project, ITypeInfo, TypeInfo, TypeBase, ConcreteType, GenericType, SpecialType, IFunction, Function, FunctionBase, ConcreteFunction, GenericFunction, SpecialFunction, IGlobal, Global, GlobalBase, ConcreteGlobal 
+#define COMPONENT_NAMES IComponent, Component, IElement, Element, IFormula, BasicFormula, IDirectory, Directory, IRepository, Repository, ISubdirectory, Subdirectory, IEnvironment, Environment, IScript, Script, IProject, Project, ITypeInfo, TypeInfo, TypeBase, ConcreteType, GenericType, SpecialType, IFunction, Function, FunctionBase, ConcreteFunction, GenericFunction, SpecialFunction, IGlobal, Global, GlobalBase, ConcreteGlobal 
 
 /*GenericGlobal, SpecialGlobal*/
 

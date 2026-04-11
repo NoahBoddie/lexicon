@@ -394,9 +394,9 @@ void CONCAT(_event_class_,mc_counter)::CONCAT(_event_func_,mc_counter)()
 
 
 
-#define INITIALIZE(...) INITIALIZE__COUNTED(__COUNTER__,__VA_ARGS__)
+#define INITIALIZE(...) INITIALIZE__COUNTED(__LINE__,__VA_ARGS__)
 
-#define INITIALIZE_NOW(...) INITIALIZE__COUNTED(__COUNTER__,0,__VA_ARGS__)
+#define INITIALIZE_NOW(...) INITIALIZE__COUNTED(__LINE__,0,__VA_ARGS__)
 
 
 //inline static Initializer CONCAT(__init_,__LINE__) = []() -> void

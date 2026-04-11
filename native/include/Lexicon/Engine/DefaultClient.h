@@ -15,7 +15,7 @@ namespace LEX
 	using MessageFn = void(*)(uint64_t severity, std::string_view message, ProjectClient* sender);
 	using ScriptFormatFn = bool(*)(Script* script, std::string_view format, std::string_view name, std::string_view content);
 
-	struct DefaultClient : public ProjectClient
+	struct DefaultClient final : public ProjectClient
 	{
 		//Currently has an issue where failure is not descriptive if the location it failed in.
 
@@ -38,6 +38,10 @@ namespace LEX
 			
 			//Make synchorized client.
 
+			static DefaultClient singleton;
+
+			return &singleton;
+
 			if (Initializer::Finished() && !_client)
 				_client = new DefaultClient;
 
@@ -51,7 +55,21 @@ namespace LEX
 				_client = client;
 		}
 
+		std::string_view GetCompileOptions(size_t index) override
+		{
+			if (_options.size() > index)
+				return _options[index];
+
+			return {};
+		}
+
+		void AddCompileOptions(const std::string& option)
+		{
+			_options.push_back(option);
+		}
+
 	private:
+		std::vector<std::string> _options;
 		std::vector<MessageFn> _messengers;
 		std::vector<ScriptFormatFn> _formatterss;
 

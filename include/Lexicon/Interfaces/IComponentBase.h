@@ -20,6 +20,7 @@ namespace LEX
                 virtual const void* Cast(const void* self, ComponentType from, ComponentType to) const = 0;
 
             public:
+                virtual std::string_view GetName() const = 0;
 
                 virtual uint16_t GetComponentOffset() const = 0;
                 
@@ -27,7 +28,7 @@ namespace LEX
             };
         
             #define DEF_FUNC_IMPL_COMPONENT_1 \
-            MAP_UD(DEF_USING_IMPL,Component,GetComponent,GetComponentOffset,GetComponentType)
+            MAP_UD(DEF_USING_IMPL,Component,GetComponent,GetComponentOffset,GetComponentType,GetName)
         }
 
         CURRENT_VERSION(IComponentBase, 1);
@@ -60,7 +61,23 @@ namespace LEX
         const IComponentBase* GetComponentBase() const;
 
     public:
+        std::string GetFullName() //const
+        {
+            return {};
+            /*
+            std::string result = std::string{ GetName() };
 
+            IElement* element = GetParent();
+
+            while (element)
+            {
+                result = std::format("{}::{}", element->GetName(), result);
+                element = element->GetParent();
+            }
+
+            return result;
+            //*/
+        }
 
         //TODO: need to confirm this set up actually works on pointers.
 
@@ -181,7 +198,7 @@ namespace LEX
 
 
     #define DEF_FUNC_IMPL_COMPONENT_MAIN \
-    MAP_UD(DEF_USING_IMPL,Component,GetVariableType,As,GetAs,Is)
+    MAP_UD(DEF_USING_IMPL,Component,GetVariableType,As,GetAs,Is,GetFullName)
 
 
 

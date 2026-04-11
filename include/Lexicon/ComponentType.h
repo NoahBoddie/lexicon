@@ -20,7 +20,7 @@ namespace LEX
         TypeInfo,
         IGlobal,
         Global,
-
+        IFormula,
         kScriptedMax,
 
                 
@@ -47,10 +47,10 @@ namespace LEX
         ConcreteGlobal,
         GenericGlobal,
         SpecialGlobal,
+        BasicFormula,
 
 
-
-       kTotal,
+        kTotal,
     };
 
 }

@@ -2559,7 +2559,7 @@ namespace LEX
 
 
 
-		INITIALIZE()
+		INITIALIZE("main_init")
 		{
 			logger::info("test");
 

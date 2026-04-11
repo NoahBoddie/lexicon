@@ -16,11 +16,20 @@ namespace LEX
 
 		std::string_view name;
 		int no = 0;
-
+		int success = 0;
 		RegisterDump& operator=(bool result)
 		{
+			success += result;
 			logger::info("#{}({}) = {}", name, ++no, result);
 			return *this;
+		}
+
+		~RegisterDump()
+		{
+			if (no == success)
+				logger::info("Registered ({}/{})===========================", no, success);
+			else
+				logger::warn("Registered ({}/{})===========================", no, success);
 		}
 	};
 

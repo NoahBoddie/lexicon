@@ -2,7 +2,7 @@
 
 
 #include "Lexicon/Interfaces/FormulaManager.h"
-
+#include "Lexicon/IFormula.h"
 namespace LEX
 {
 
@@ -11,7 +11,9 @@ namespace LEX
 		if (auto formula = other._formula)
 		{
 			if (copy)
-				FormulaManager::instance->IncrementForumula(formula);
+				//FormulaManager::instance->IncrementForumula(formula);
+				formula->ModRefCount(true, {});
+
 			else
 				other._formula = nullptr;
 
@@ -23,7 +25,8 @@ namespace LEX
 	void FormulaHandler::Unhandle()
 	{
 		if (_formula) {
-			FormulaManager::instance->DecrementForumula(_formula);
+			//FormulaManager::instance->DecrementForumula(_formula);
+			_formula->ModRefCount(false, {});
 		}
 	}
 }
