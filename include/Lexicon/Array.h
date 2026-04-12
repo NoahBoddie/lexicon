@@ -5,6 +5,7 @@
 #include "Lexicon/Variable.h"
 #include "Lexicon/Revariable.h"
 #include "Lexicon/GenericArray.h"
+#include "Lexicon/TypeInfo.h"
 namespace LEX
 {
     class Variable; 

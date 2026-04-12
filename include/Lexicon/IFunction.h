@@ -2,7 +2,7 @@
 
 #include "ISpecial.h"
 #include "Lexicon/Interfaces/IElement.h"
-#include "Lexicon/Impl/ComponentDetails.h"
+#include "Lexicon/Interfaces/ComponentDetails.h"
 
 namespace LEX
 {

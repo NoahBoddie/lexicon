@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/ComponentType.h"
-#include "Lexicon/Impl/ComponentDetails.h"
+#include "Lexicon/Interfaces/ComponentDetails.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 namespace LEX
 {
@@ -50,7 +50,7 @@ namespace LEX
         //The way this would work is it would link to an engine file that handles the traits. 
         // This would make it so we wouldn't need to actually need to have the include the files to be
         // able to cast to it (or rather not ALL files at once, just the one we're casting to, so the normal rules)
-        const void* Cast(const void* self, ComponentType from, ComponentType to) const override final;
+        const void* Cast(const void* self, ComponentType from, ComponentType to) const override final INTERFACE_FUNCTION;
 
         void* Cast(const void* self, ComponentType from, ComponentType to) 
         {

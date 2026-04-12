@@ -5,7 +5,7 @@
 
 #include "Lexicon/ElementType.h"
 
-#include "Lexicon/Impl/ComponentDetails.h"
+#include "Lexicon/Interfaces/ComponentDetails.h"
 
 #include "Lexicon/Interfaces/IComponentBase.h"
 
@@ -71,18 +71,6 @@ namespace LEX
 #else
 		using sign_t = SignatureBase;
 #endif
-
-
-	protected:
-		IScript* GetScriptInfc() override final;
-		IProject* GetProjectInfc() override final;
-		IDirectory* GetParentInfc() override final;
-		IEnvironment* GetEnvironmentInfc() override final;
-		IDirectory* GetDirectoryInfc() override final;
-		IRepository* GetRepositoryInfc() override final;
-		IScript* GetCommonsInfc() override final;
-		IElement* GetElementFromPathInfc(std::string_view path, ElementType elem, SignatureBase* sign = nullptr) override final;
-
 
 
     public:
@@ -180,6 +168,17 @@ namespace LEX
 	protected:
 
 #ifdef LEX_SOURCE
+
+		IScript* GetScriptInfc() override final;
+		IProject* GetProjectInfc() override final;
+		IDirectory* GetParentInfc() override final;
+		IEnvironment* GetEnvironmentInfc() override final;
+		IDirectory* GetDirectoryInfc() override final;
+		IRepository* GetRepositoryInfc() override final;
+		IScript* GetCommonsInfc() override final;
+		IElement* GetElementFromPathInfc(std::string_view path, ElementType elem, SignatureBase* sign = nullptr) override final;
+
+
 		virtual Script* GetScriptImpl() = 0;
 		virtual Project* GetProjectImpl() = 0;
 		virtual Directory* GetParentImpl() = 0;

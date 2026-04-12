@@ -46,22 +46,33 @@ namespace LEX
 		DEFINE_COMPONENT_OFFSET(ComponentType::Component)
 
 	private:
+		struct LinkInfo
+		{
+			std::list<Component*> linkerList{};
+			std::map<Component*, std::vector<size_t>> dependencies{};
+			std::vector<Component*> entries{};
+		};
+		
+		enum ProcessState
+		{
+			kIdle,
+			kActive,
+			kWinddown,
+		};
 
 
 		inline static std::recursive_mutex link_mutex;//Used to prevent refresh and regular link from going off at once.
-		inline static bool isProcessing = false;
+		inline static ProcessState processState = kIdle;
 		inline static LinkFlag processingFlags{};//this seems really useless for the most part.
 		inline static LinkFlag reprisalFlags{};
 		inline static LinkFlag completedFlags{};
 		inline static LinkFlag waitingFlags{};//A list of the flags currently waiting to be processed.
 
-		inline static std::list<Component*> g_linkerList;
-
 		//Whenever an error is encountered that prevents this from finishing linking, it will put
 		// the message here so attempts to call upon it will preserve what the error was.
 		//inline static std::unordered_map<Component*, std::string> errorTable;
 
-		using iterator = decltype(g_linkerList)::iterator;
+		using iterator = decltype(LinkInfo::linkerList)::iterator;
 
 
 		//To handle link dependency is to handle linking that occurs when things are all complete. I think to that, dependency will fire when _linkCheckFlags
@@ -73,10 +84,7 @@ namespace LEX
 		// ^Definitely harder/longer to search but it will only need to be searched once.
 		//Core to the concept of this would be to pluck every the pair every time consideration is going off, and then to make the function recursive, and able
 		// to resolve other components questions.
-		inline static std::map<Component*, std::vector<size_t>> _dependencyMap{};
-
-		inline static std::vector<Component*> _dependeeList{};
-
+		inline static LinkInfo& _info = make_singleton<LinkInfo>();
 
 		//Limit the use of a recordless create by seeing if load from record has been implemented.
 		template<class D>
@@ -168,7 +176,12 @@ namespace LEX
 
 		static bool IsProcessing()
 		{
-			return isProcessing || GetProcessingFlags();
+			return processState || GetProcessingFlags();
+		}
+
+		static bool IsActive()
+		{
+			return processState == kActive || GetProcessingFlags();
 		}
 
 
@@ -199,7 +212,7 @@ namespace LEX
 					reprisalFlags |= links & CurrentFlags();
 				}
 
-				g_linkerList.emplace_back(this);
+				_info.linkerList.emplace_back(this);
 			}
 
 			return links;
@@ -209,9 +222,9 @@ namespace LEX
 		{
 			std::lock_guard lock(link_mutex);
 
-			if (g_linkerList.end() != it) {				
+			if (_info.linkerList.end() != it) {				
 				(*it)->FlagLinking(false);
-				return g_linkerList.erase(it);
+				return _info.linkerList.erase(it);
 			}
 
 			return it;
@@ -221,7 +234,7 @@ namespace LEX
 		auto FindLinkEntry()
 		{
 
-			return std::find_if(g_linkerList.begin(), g_linkerList.end(),
+			return std::find_if(_info.linkerList.begin(), _info.linkerList.end(),
 				[this](Component* it) {return it == this; });
 
 		}
@@ -338,7 +351,6 @@ namespace LEX
 		static void LinkComponentsImpl(LinkFlag flags)
 		{
 			processingFlags = flags;
-			
 
 			//Multiple different threads can use this
 
@@ -346,13 +358,15 @@ namespace LEX
 
 			bit_loop(flags)
 			{
-				if (~completedFlags & i) {
+				bool should_message = ~completedFlags & i;
+
+				if (should_message) {
 					report::link::info("Starting link stage: {} ", magic_enum::enum_name(i));
 				}
 
 				bool remove_waiting = true;
 
-				for (auto it = g_linkerList.begin(); it != g_linkerList.end();)
+				for (auto it = _info.linkerList.begin(); it != _info.linkerList.end();)
 				{
 					std::lock_guard lock(link_mutex);
 
@@ -372,14 +386,18 @@ namespace LEX
 					waitingFlags &= ~i;
 				}
 
-				if (~completedFlags & i) {
+				if (should_message) {
 					report::link::info("Finalized link stage: {} ", magic_enum::enum_name(i));
 				}
 
 				completedFlags |= i;
 				processingFlags &= ~i;
 
-				LinkMessenger::instance->Dispatch(i);
+				if (!processingFlags)
+					processState = kWinddown;
+
+				if (should_message)
+					LinkMessenger::instance->Dispatch(i);
 			}
 
 			//This removes messages for stuff we already sent.
@@ -424,8 +442,7 @@ namespace LEX
 					return;
 				}
 
-				
-				isProcessing = true;
+				processState = kActive;
 			}
 
 			while (send)
@@ -437,7 +454,7 @@ namespace LEX
 				}
 			}
 			
-			isProcessing = false;
+			processState = kIdle;
 		}
 
 		static void RelinkComponents()
@@ -445,10 +462,16 @@ namespace LEX
 			if (!completedFlags)
 				return;
 
-			//Should I be locking this? I want to prevent the completed from changing during this point.
-			//std::lock_guard lock(link_mutex);
-
-			LinkComponents(completedFlags);
+			if (IsActive() == false) {
+				//Should I be locking this? I want to prevent the completed from changing during this point.
+				//std::lock_guard lock(link_mutex);
+				processState = kActive;
+				LinkComponentsImpl(completedFlags & waitingFlags);
+				processState = kIdle;
+			}
+			else {
+				LinkComponents(completedFlags & waitingFlags);
+			}
 
 		}
 
@@ -457,7 +480,7 @@ namespace LEX
 		{
 			auto it = FindLinkEntry();
 
-			if (g_linkerList.end() != it) {
+			if (_info.linkerList.end() != it) {
 				LinkComponent(it, completedFlags, false);
 			}
 		}
@@ -600,17 +623,17 @@ namespace LEX
 public:
 		void AbsolveDependency() const
 		{
-			_dependencyMap.erase(const_cast<Component*>(this));
+			_info.dependencies.erase(const_cast<Component*>(this));
 			
-			if (auto it = std::find(_dependeeList.begin(), _dependeeList.end(), this); _dependeeList.end() != it)
+			if (auto it = std::find(_info.entries.begin(), _info.entries.end(), this); _info.entries.end() != it)
 				*it = nullptr;
 		}
 
 		static void ClearDependencies() 
 		{
-			_dependencyMap.clear();
-			_dependeeList.clear();
-			_dependeeList.shrink_to_fit();
+			_info.dependencies.clear();
+			_info.entries.clear();
+			_info.entries.shrink_to_fit();
 
 		}
 
@@ -618,11 +641,11 @@ public:
 		{
 			if (this)
 			{
-				size_t size = _dependeeList.size();
+				size_t size = _info.entries.size();
 
 				for (size_t i = 0; i < size; i++)
 				{
-					if (_dependeeList[i] == this)
+					if (_info.entries[i] == this)
 					{
 						return i;
 					}
@@ -638,8 +661,8 @@ public:
 
 			if (dep == max_value<size_t>)
 			{
-				dep = _dependeeList.size();
-				_dependeeList.push_back(this);
+				dep = _info.entries.size();
+				_info.entries.push_back(this);
 			}
 
 			return dep;
@@ -651,7 +674,7 @@ public:
 			{
 				size_t index = component->ObtainDependee();
 
-				if (auto it = _dependencyMap.find(this); _dependencyMap.end() != it)
+				if (auto it = _info.dependencies.find(this); _info.dependencies.end() != it)
 				{
 					auto& list = it->second;
 
@@ -666,7 +689,7 @@ public:
 		{
 			size_t index = component->GetDependee();
 
-			if (auto it = _dependencyMap.find(this); _dependencyMap.end() != it)
+			if (auto it = _info.dependencies.find(this); _info.dependencies.end() != it)
 			{
 				auto& list = it->second;
 
@@ -690,7 +713,7 @@ public:
 
 				if (index != max_value<size_t>)
 				{
-					if (auto it = _dependencyMap.find(const_cast<Component*>(this)); _dependencyMap.end() != it)
+					if (auto it = _info.dependencies.find(const_cast<Component*>(this)); _info.dependencies.end() != it)
 					{
 						auto& list = it->second;
 

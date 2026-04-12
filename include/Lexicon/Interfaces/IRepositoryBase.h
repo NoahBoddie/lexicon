@@ -5,7 +5,7 @@
 
 #include "Lexicon/ElementType.h"
 
-#include "Lexicon/Impl/ComponentDetails.h"
+#include "Lexicon/Interfaces/ComponentDetails.h"
 
 #include "Lexicon/Interfaces/IDirectoryBase.h"
 
@@ -30,13 +30,13 @@ namespace LEX
 			public:
 				virtual std::string_view GetFilepath() const = 0;
 
-			private:
+			protected:
 				
 
 				virtual IScript* FindScriptInfc(const std::string_view& name)= 0;
 				virtual ISubdirectory* FindSubdirectoryInfc(const std::string_view& name) = 0;
 				virtual IScript* CreateScriptInfc(const std::string_view& name, std::span<std::string_view> options, const std::string_view& path, std::optional<std::string_view> content) = 0;
-				virtual ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) = 0;
+				virtual ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, IScript* sub_to, std::span<std::string_view> options, std::string_view path) = 0;
 			};
 
 #define DEF_FUNC_IMPL_REPOSITORY_1 \
@@ -108,6 +108,12 @@ namespace LEX
 		}
 
 
+		auto CreateEmptyScript(const std::string_view& name)
+		{
+			std::string_view incremental = "incremental";
+
+			return CreateScript(name, std::span<std::string_view>{ &incremental, 1}, "", "");
+		}
 
 	protected:
 #ifdef LEX_SOURCE
@@ -116,12 +122,12 @@ namespace LEX
 		virtual Script* CreateScriptImpl(const std::string_view& name, std::span<std::string_view> options, const std::string_view& path, std::optional<std::string_view> content) = 0;
 		virtual Subdirectory* CreateSubdirectoryImpl(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) = 0;
 
-#endif
-
 		IScript* FindScriptInfc(const std::string_view& name) override final;
 		ISubdirectory* FindSubdirectoryInfc(const std::string_view& name) override final;
 		IScript* CreateScriptInfc(const std::string_view& name, std::span<std::string_view> options, const std::string_view& path, std::optional<std::string_view> content) override final;
-		ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path) override final;
+		ISubdirectory* CreateSubdirectoryInfc(const std::string_view& name, IScript* sub_to, std::span<std::string_view> options, std::string_view path) override final;
+
+#endif
 
 
 	};

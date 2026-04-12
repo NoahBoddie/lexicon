@@ -1,4 +1,4 @@
-#include "Lexicon/Impl/ComponentDetails.h"
+#include "Lexicon/Interfaces/ComponentDetails.h"
 
 #include "Lexicon/Engine/Impl/ComponentTraits.h"
 

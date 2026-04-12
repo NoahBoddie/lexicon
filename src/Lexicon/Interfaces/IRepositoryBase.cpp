@@ -19,7 +19,7 @@ namespace LEX
 		return CreateScriptImpl(name, options, path, content);
 	}
 
-	ISubdirectory* IRepositoryBase::CreateSubdirectoryInfc(const std::string_view& name, Script* sub_to, std::span<std::string_view> options, std::string_view path)
+	ISubdirectory* IRepositoryBase::CreateSubdirectoryInfc(const std::string_view& name, IScript* sub_to, std::span<std::string_view> options, std::string_view path)
 	{
 		return CreateSubdirectoryImpl(name, sub_to->As<Script>(), options, path);
 	}

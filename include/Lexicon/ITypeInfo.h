@@ -63,8 +63,6 @@ namespace LEX
 
 				virtual ObjectPolicy* GetObjectPolicy() const = 0;
 
-			INTERNAL:
-				
 				virtual ITypeInfo* CheckTypeInfo(ITemplatePart* args) = 0;
 			};
 		}

@@ -88,7 +88,7 @@ constexpr T max_value = std::numeric_limits<T>::max();
 #include "Lexicon/Interfaces/ProjectManager.h"
 #include "Lexicon/Interfaces/IScript.h"
 #include "Lexicon/Interfaces/LinkMessenger.h"
-
+#include "Lexicon/Interfaces/ISubdirectory.h"
 #include "Lexicon/ProcedureData.h"
 
 #include "Lexicon/Formula.h"

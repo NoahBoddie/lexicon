@@ -67,7 +67,7 @@ namespace LEX
 
 #ifndef LEX_SOURCE
 	//Only accessible outside of the source.
-	struct TypeInfo : public ITypeInfoAbstract {};
+	struct TypeInfo : public TypeInfoAbstract {};
 #endif
 
 

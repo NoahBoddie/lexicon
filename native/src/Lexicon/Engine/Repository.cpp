@@ -39,7 +39,7 @@ namespace LEX
 
 		std::string log = tree.Print();
 
-		RGL_LOG(debug, "{}{}", indent, log);
+		RGL_LOG(trace, "{}{}", indent, log);
 
 		indent += __dent;
 
@@ -589,6 +589,8 @@ namespace LEX
 		directory->SetFilepath(dir_path);
 
 		directory->LoadRepository(options);
+
+		_subdirectories.push_back(directory);
 
 		return directory;
 	}

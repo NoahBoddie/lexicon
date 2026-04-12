@@ -2,7 +2,7 @@
 
 #include "Lexicon/ComponentType.h"
 #include "Lexicon/Interfaces/Interface.h"
-#include "Lexicon/Impl/ComponentDetails.h"
+#include "Lexicon/Interfaces/ComponentDetails.h"
 #include "Lexicon/Interfaces/IDirectoryBase.h"
 
 namespace LEX

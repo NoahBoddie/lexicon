@@ -235,9 +235,6 @@ namespace LEX
 		
 		switch (flags)
 		{
-		case LinkFlag::Loaded:
-			logger::info("Loading environment: {}", GetName());
-			break;
 
 		case LinkFlag::Declaration:
 		{

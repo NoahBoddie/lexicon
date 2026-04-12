@@ -10,7 +10,7 @@ namespace LEX
 #ifdef LEX_SOURCE
 #define LEX_API extern "C" [[maybe_unused]] __declspec(dllexport)
 #else
-#define LEX_API
+#define LEX_API inline
 #endif
 
 
@@ -18,19 +18,23 @@ namespace LEX
 
 	
 	//Pulls the version of the server binary and returns if the client's version is compatible with the server
-	LEX_API Update PullVersion_Impl(uintptr_t client, uintptr_t& server);
+	LEX_API Update PullVersion_Impl(uintptr_t client, uintptr_t& server) INTERFACE_FUNCTION;
 
 
 	//Registers an interface under the given name
-	LEX_API bool RegisterInterface_Impl(Interface& ifc, std::string_view name);
+	LEX_API bool RegisterInterface_Impl(Interface& ifc, std::string_view name) INTERFACE_FUNCTION;
 	
 	//Attempts to pull an interface of a given version. If it's not a match, an interface will fail to be given
-	LEX_API Update RequestInterface_Impl(Interface*& out, std::string_view name, uintptr_t version);
+	LEX_API Update RequestInterface_Impl(Interface*& out, std::string_view name, uintptr_t version) INTERFACE_FUNCTION;
 	
 
-	LEX_API void ModInterfaceUseCount_Impl(bool inc);
+	LEX_API void ModInterfaceUseCount_Impl(bool inc) INTERFACE_FUNCTION;
 	
+
+#ifdef LEX_SOURCE
 #define TEST_INTERFACE
+#endif
+
 
 
 	struct InterfaceManager
