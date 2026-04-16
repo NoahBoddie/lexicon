@@ -279,10 +279,6 @@ namespace LEX
     using namespace RGL_INCLUDE_NAMESPACE;
 }
 
-//I'd really rather just move this
-#ifdef LEX_SOURCE
-#include "boost/regex.hpp"
-#endif
 
 
 

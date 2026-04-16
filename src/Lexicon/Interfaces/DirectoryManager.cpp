@@ -595,13 +595,13 @@ namespace LEX
 			SyntaxRecord path_record;
 
 			if (elem != ElementType::kTypeElement) {
-				if (auto result = LEX::Parser__::CreateSyntax<IdentifierParser>(path_record, path); !result) {
+				if (auto result = LEX::Parser::CreateSyntax<IdentifierParser>(path_record, path); !result) {
 					//Error here.
 					return nullptr;
 				}
 			}
 			else {
-				if (auto result = LEX::Parser__::CreateSyntax<HeaderParser>(path_record, path); !result) {
+				if (auto result = LEX::Parser::CreateSyntax<HeaderParser>(path_record, path); !result) {
 					//Error here.
 					return nullptr;
 				}

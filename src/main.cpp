@@ -182,10 +182,10 @@ void TestParse(Script* append_to = nullptr)
 
     PreprocessorParser parser;
 
-    //Record ast = Parser__::CreateSyntaxTree("Fake", "Script", contents, &parser);
+    //Record ast = Parser::CreateSyntaxTree("Fake", "Script", contents, &parser);
     Record ast;
 
-    if (Parser__::CreateSyntaxTree(ast, contents, "Script") == false)
+    if (Parser::CreateSyntaxTree(ast, contents, "Script") == false)
     {
         logger::info("not viable thing.");
         std::system("pause");
@@ -659,7 +659,7 @@ void TestingDumbness()
 
     SyntaxRecord it;
 
-    Parser__::CreateSyntax<LineParser>(it, "20");
+    Parser::CreateSyntax<LineParser>(it, "20");
 
     auto handler = LEX::detail::FormulaBase<Formula<int(Variable, Variable, int)>, int, StaticTargetTag, runtime_type, runtime_type, int>::Create(
         { "int","a1" },

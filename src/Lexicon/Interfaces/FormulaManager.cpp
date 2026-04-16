@@ -90,7 +90,7 @@ namespace LEX
 
 		SyntaxRecord ast;
 
-		if (Parser__::CreateSyntax<LineParser>(ast, routine, loc.line()) == false)
+		if (Parser::CreateSyntax<LineParser>(ast, routine, loc.line()) == false)
 		{
 			return 1;
 		}

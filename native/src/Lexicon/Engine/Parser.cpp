@@ -171,7 +171,7 @@ namespace LEX
 
 
 
-	bool Parser__::CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name, ParseModule* mdl, Line line, Column column)
+	bool Parser::CreateSyntaxTree(RecordBase& out, std::string_view text, std::string_view name, ParseModule* mdl, Line line, Column column)
 	{
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.
@@ -212,7 +212,7 @@ namespace LEX
 	}
 
 
-	bool Parser__::CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Line line, Column column)
+	bool Parser::CreateSyntax(RecordBase& out, std::string_view text, ParseModule* mdl, Line line, Column column)
 	{
 		//When parse is used, it should come with a type and a name. This type is what the top level type is. Only a few can be chosen,
 		// and it will determine what can be compiled, and also how valid it is.

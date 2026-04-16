@@ -12,12 +12,7 @@ namespace LEX
 
 	struct ProjectClient;
 
-	struct Format
-	{
-		std::string formatName;
-		std::string formatContent;
-		LEX::Script* formatScript = nullptr;
-	};
+	
 
 
 

@@ -602,6 +602,11 @@ namespace LEX
 			return true;
 		}
 
+		bool IsTask(LinkFlag flags) const
+		{
+			return flags & _tasks;
+		}
+
 
 	private:
 	

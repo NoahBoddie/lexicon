@@ -493,9 +493,9 @@ namespace LEX
 		PreprocessorParser direct_parse;
 
 
-		//tmp_directives = Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+		//tmp_directives = Parser::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
 
-		if (Parser__::CreateSyntaxTree(tmp_directives, contents, file, &direct_parse) == false) {
+		if (Parser::CreateSyntaxTree(tmp_directives, contents, file, &direct_parse) == false) {
 			return APIResult::CreationFailed;
 		}
 
@@ -508,7 +508,7 @@ namespace LEX
 
 
 
-		if (Parser__::CreateSyntaxTree(ast, contents, file) == false) {
+		if (Parser::CreateSyntaxTree(ast, contents, file) == false) {
 			return APIResult::CreationFailed;
 		}
 

@@ -424,7 +424,7 @@ namespace LEX
 
 		contents = director.Clear();
 
-		if (Parser__::CreateSyntaxTree(ast, contents, file) == false) {
+		if (Parser::CreateSyntaxTree(ast, contents, file) == false) {
 			return false;
 		}
 
@@ -674,4 +674,6 @@ namespace LEX
 		DeclareOrphan();
 		
 	}
+
+
 }

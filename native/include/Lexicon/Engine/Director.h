@@ -249,6 +249,9 @@ namespace LEX
                     if (auto project = director->_project) {
                         auto& name = data->values["name"];
                         auto& text = data->values["text"];
+                        script->AddFormat(name, text);
+                        return;
+
                         if (project->SendFormat(name, text, script) == false)
                             report::compile::warn("Format '{}' failed to be registered to {}.",
                                 name, script->GetFullName());
@@ -338,9 +341,9 @@ namespace LEX
             PreprocessorParser direct_parse;
 
 
-            //tmp_directives = Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
+            //tmp_directives = Parser::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
 
-            if (Parser__::CreateSyntaxTree(directives, _content, _name, &direct_parse, line, column) == false) {
+            if (Parser::CreateSyntaxTree(directives, _content, _name, &direct_parse, line, column) == false) {
                 return false;
             }
 

@@ -23,8 +23,45 @@
 namespace LEX
 {
 
+	void Format::SendFormat()
+	{
+		auto project = formatScript->GetProject();
+
+		if (project->SendFormat(this->formatName, formatContent, formatScript) == false)
+			report::compile::warn("Format '{}' failed to be registered to {}.",
+				formatName, formatScript->GetFullName());
+		
+	}
+
+	void FormatCache::SendFormats()
+	{
+		for (auto& format : formats)
+		{
+			format.SendFormat();
+		}
+	}
 
 
+
+	void Script::AddFormat(const std::string_view& name, const std::string_view& content)
+	{
+
+		Format format;
+		format.formatName = name;
+		format.formatContent = content;
+		format.formatScript = this;
+
+		if (IsTask(LinkFlag::Declaration) == false)
+			format.SendFormat();
+		
+		if (!_formats)
+			_formats = std::make_unique<FormatCache>();
+
+		//This makes me want to blow my head off my neck
+		_formats->formats.push_back(format);
+
+		report::debug("adding format {}", name);
+	}
 
 
 
@@ -210,7 +247,7 @@ namespace LEX
 		//Options is ignored for now. Basically does nothing. No compile time stuff either. No system for it.
 		SyntaxRecord ast;
 
-		if (Parser__::CreateSyntaxTree(ast, content, "") == false) {
+		if (Parser::CreateSyntaxTree(ast, content, "") == false) {
 			return false;
 		}
 
@@ -299,30 +336,22 @@ namespace LEX
 
 	LinkResult Script::OnLink(LinkFlag flags)
 	{
-		return __super::OnLink(flags);
-		if (flags != LinkFlag::Loaded)
-			return LinkResult::Success;
-
-
-		auto body = GetSyntaxTree()->FindChild(parse_strings::body);
-
-		if (!body) {
-			logger::warn("script {} is empty", GetName());
-			return LinkResult::Success;
+		switch (flags)
+		{
+		case LinkFlag::Declaration:
+			if (_formats) {
+				_formats->SendFormats();
+				_formats.reset();
+			}
+			break;
 		}
 
-		auto& children = body->children();
-
-		logger::info("Loading script: {}", GetName());
-
-		LoadFromSyntaxTree(children.begin(), children.end());
-
-		return LinkResult::Success;
+		return __super::OnLink(flags);
 	}
 
 	LinkFlag Script::GetLinkFlags()
 	{
-		return LinkFlag::Loaded;
+		return LinkFlag::Loaded | LinkFlag::Declaration;
 	}
 
 	Environment* Script::FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter)

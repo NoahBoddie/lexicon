@@ -55,7 +55,7 @@ namespace LEX
         //The way this would work is it would link to an engine file that handles the traits. 
         // This would make it so we wouldn't need to actually need to have the include the files to be
         // able to cast to it (or rather not ALL files at once, just the one we're casting to, so the normal rules)
-        const void* Cast(const void* self, ComponentType from, ComponentType to) const override INT_FINAL INTERFACE_FUNCTION;
+        const void* Cast(const void* self, ComponentType from, ComponentType to) const override INTERFACE_FUNCTION;
         
         void* Cast(const void* self, ComponentType from, ComponentType to) { return unconst(make_const(this)->Cast(self, from, to)); }
         

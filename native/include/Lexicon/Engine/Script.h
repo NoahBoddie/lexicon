@@ -22,6 +22,24 @@ namespace LEX
 	struct TypeBase;
 
 
+	struct Format
+	{
+		std::string formatName;
+		std::string formatContent;
+		LEX::Script* formatScript = nullptr;
+
+		void SendFormat();
+	};
+
+	struct FormatCache
+	{
+		std::vector<Format> formats;
+
+		void SendFormats();
+	};
+
+
+
 	class Script : public Environment, public IScript
 	{
 	public:
@@ -57,6 +75,7 @@ namespace LEX
 		//This is where scripts are refered
 		std::unordered_map<RelateType, std::vector<Directory*>> _relationMap;
 
+		std::unique_ptr<FormatCache> _formats;
 
 		auto& ObtainSubdirectoryList()
 		{
@@ -68,6 +87,8 @@ namespace LEX
 		}
 
 	public:
+
+		void AddFormat(const std::string_view& name, const std::string_view& content);
 
 
 		bool IsDefined() const;
