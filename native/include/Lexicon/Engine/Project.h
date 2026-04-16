@@ -44,8 +44,6 @@ namespace LEX
 
 		std::string _name;
 
-		std::vector<Format> formatList;
-
 
 		
 		//Linkage status, needs to link later depending on the performance of its commons
@@ -72,8 +70,10 @@ namespace LEX
 		void AddScript(Script* script) override;
 		//*/
 
+		bool SendFormat(const std::string_view& format, const std::string_view& content, Script* source);
+
 	private:
-		void AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source) override;
+		bool AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source) override;
 
 		Script* GetCommonsImpl() override;
 

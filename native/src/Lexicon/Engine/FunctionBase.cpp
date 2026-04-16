@@ -159,7 +159,7 @@ namespace LEX
             }
 
 
-            for (int64_t i = 0; auto& node : target.FindChild(parse_strings::parameters)->children())
+            for (int64_t i = 0; SyntaxRecord& node : target.FindChild(parse_strings::parameters)->children())
             {
                 
 

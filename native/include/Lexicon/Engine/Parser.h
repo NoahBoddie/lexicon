@@ -4,12 +4,14 @@
 #include "Lexicon/Engine/TokenStream.h"
 #include "Lexicon/Engine/Syntax.h"
 #include "Lexicon/Engine/SyntaxType.h"
+#include "Lexicon/Engine/Directive.h"
 #include "Lexicon/Engine/ParseHandler.h"
 
 #include "Lexicon/Engine/ParseModule.h"
 #include "Lexicon/Engine/ModuleChain.h"
 #include "Lexicon/Engine/Tokenizer.h"
 #include "Lexicon/Engine/parse_strings.h"
+
 namespace LEX
 {
 	class ParsingStream;
@@ -21,7 +23,7 @@ namespace LEX
 	using Iterator = std::string_view::const_iterator;
 
 
-	typedef Iterator(TokenParser)(ParsingStream*, Iterator& it, Iterator);
+	typedef Iterator(TokenParser)(ParsingStream*, Iterator& it, Iterator end);
 
 
 	//I'd like a macro system as a part of a preprocessor system that couples with handling the preprocessor inputs and where they occur
@@ -260,7 +262,7 @@ namespace LEX
 		}
 
 
-		RecordData next()
+		RecordData next_with(const std::function<TokenParser>& parser)
 		{
 			//Using this while eof should likely result in a parsing error.
 
@@ -269,7 +271,7 @@ namespace LEX
 			_memory.peek = {};//Should make a clear func for this.
 
 			if (!token) {
-				token = ReadNext(defaultParser);
+				token = ReadNext(parser);
 			}
 
 			_memory.prev = token;
@@ -277,15 +279,24 @@ namespace LEX
 			return CheckConditional(token);
 		}
 
-		RecordData peek() {
+		RecordData peek_with(const std::function<TokenParser>& parser) {
 			//So it's something 
 			if (!_memory.peek) {
 				//auto it = _current;
 				//_peek = _ReadNext(it);
-				_memory.peek = ReadNext(defaultParser);
+				_memory.peek = ReadNext(parser);
 			}
 
 			return CheckConditional(_memory.peek);
+		}
+
+
+		RecordData next() {
+			return next_with(defaultParser);
+		}
+
+		RecordData peek() {
+			return peek_with(defaultParser);
 		}
 
 
@@ -350,7 +361,7 @@ namespace LEX
 			if (token == "\n") {
 				type = TokenType::Whitespace;
 			}
-			else if (token.starts_with(parse_strings::format_start)) {
+			else if (false && token.starts_with(parse_strings::format_start)) {
 				type = TokenType::Format;
 			}
 			else if (token == "true" || token == "false" || token == "maybe") {
@@ -679,12 +690,23 @@ namespace LEX
 		static Record CreateExpression(RecordData data, Syntax expr, std::vector<Record> children = {});
 
 
+		static Record CreateExpression(std::string str, Directive expr, std::vector<Record> children = {});
+		static Record CreateExpression(RecordData data, Directive expr, std::vector<Record> children = {});
+
 
 		template<std::same_as<Record>... Rs>requires (sizeof...(Rs) != 0)
 			static Record CreateExpression(RecordData data, Syntax expr, Rs... records)
 		{
 			return CreateExpression(data, expr, { records... });
 		}
+
+		template<std::same_as<Record>... Rs>requires (sizeof...(Rs) != 0)
+			static Record CreateExpression(RecordData data, Directive expr, Rs... records)
+		{
+			return CreateExpression(data, expr, { records... });
+		}
+
+
 
 		ParseModule* GetBuiltModule(const std::type_info& ref) const
 		{

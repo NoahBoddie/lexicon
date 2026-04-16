@@ -157,7 +157,7 @@ namespace LEX
 
 			for (auto& child_rec : self->children())
 			{
-				child_rec.PrintSyntax(indent);
+				child_rec->PrintSyntax(indent);
 			}
 		}
 

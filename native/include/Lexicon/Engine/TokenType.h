@@ -16,6 +16,8 @@ namespace LEX
 		Keyword,
 		Operator,
 		Comment,		//Not actually used, just a used in searching. Later, there can perhaps be a tooltip system where it can preserve comments.
+		
+		//TODO: Format is slated for deletion.	
 		Format,			//Used to designate the inline language statement(s) of the script. One type per script.
 		Whitespace,		//Very rarely used, whitespace only exists when querying for preprocessors.
 		Custom,			//Used when custom parsing is detected, thus detecting the data type is on the user

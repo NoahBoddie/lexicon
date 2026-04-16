@@ -189,6 +189,29 @@ namespace LEX
 		}
 
 
+
+
+		constexpr static const char* ws = " \t\n\r\f\v";
+
+		// trim from end of string (right)
+		static std::string& RTrim(std::string& s, const char* t = ws)
+		{
+			s.erase(s.find_last_not_of(t) + 1);
+			return s;
+		}
+
+		// trim from beginning of string (left)
+		static std::string& LTrim(std::string& s, const char* t = ws)
+		{
+			s.erase(0, s.find_first_not_of(t));
+			return s;
+		}
+
+		// trim from both ends of string (right then left)
+		static std::string& Trim(std::string& s, const char* t = ws)
+		{
+			return LTrim(RTrim(s, t), t);
+		}
 		//I want a trait that poses itself as always being allowed
 	};
 }

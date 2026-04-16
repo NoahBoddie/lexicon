@@ -143,6 +143,11 @@ namespace LEX
 				return get();
 			}
 
+			operator T*() const
+			{
+				return get();
+			}
+
 			operator bool() const
 			{
 				//source never has to ask.
@@ -162,7 +167,7 @@ namespace LEX
 
 #ifdef LEX_SOURCE
 		//We only need to 
-
+		//Why isn't this in instance?
 		struct _ctor {
 			_ctor()
 			{

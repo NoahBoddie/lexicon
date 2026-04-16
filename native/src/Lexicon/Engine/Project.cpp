@@ -1,19 +1,40 @@
 #include "Lexicon/Engine/Project.h"
 #include "Lexicon/Engine/Script.h"
 #include "Lexicon/Engine/ProjectDirectory.h"
+#include "Lexicon/Interfaces/ProjectClient.h"
+#include "Lexicon/Interfaces/SharedClient.h"
 namespace LEX
 {
 
-	void Project::AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source)
+	bool Project::AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source)
 	{
+		return false;
+
 		Format format;
 		format.formatName = name;
 		format.formatContent = content;
 		format.formatScript = source;
 
-		formatList.push_back(format);
-
 		report::debug("adding format {}", name);
+	}
+
+
+
+	bool Project::SendFormat(const std::string_view& format, const std::string_view& content, Script* source)
+	{
+		bool sent = false;
+		if (_client) {
+			sent = _client->HandleFormat(source, format, content);
+		}
+		if (!sent) {
+			if (auto shared = GetShared(); shared && this != shared) {
+				sent = SharedClient::instance->HandleFormat(source, format, content);
+				
+				//sent = shared->SendFormat(format, content, source);
+			}
+		}
+
+		return sent;
 	}
 
 

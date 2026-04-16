@@ -4,7 +4,7 @@
 
 namespace LEX
 {
-	void IProject::AddFormatInfc(const std::string_view& name, const std::string_view& content, IScript* source)
+	bool IProject::AddFormatInfc(const std::string_view& name, const std::string_view& content, IScript* source)
 	{
 		return AddFormatImpl(name, content, source->As<Script>());
 	}

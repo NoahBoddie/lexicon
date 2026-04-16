@@ -62,10 +62,10 @@ namespace Version
 #define INTERFACE_FUNCTION 
 #else
 	//A macro that pivots between an invalid function call and a forward declared virtual function. Currently invalid call.
-#define INTERFACE_METHOD override { report::break_critical("Interface not created from lex source. Aborting.");}
+#define INTERFACE_METHOD override { report::break_critical("Interface function {} called from non-source file {}. Terminating program.", __FUNCTION__, GetModuleName());}
 
 //A macro that pivotes between an invalid function call and a forward declared non-virtual function. Currently invalid call.
-#define INTERFACE_FUNCTION  { report::break_critical("Interface not created from lex source. Aborting.");} 
+#define INTERFACE_FUNCTION  { report::break_critical("Interface function {} called from non-source file {}. Terminating program.", __FUNCTION__, GetModuleName()); } 
 #endif
 
 //Make only one interface function and use override where it is.

@@ -679,6 +679,8 @@ void TestingDumbness()
 
 }
 
+
+
 int main(int argc, char** argv) {
     
 
@@ -698,8 +700,7 @@ int main(int argc, char** argv) {
         } while (!IsDebuggerPresent() && input != IDCANCEL);
     }
 #endif
-    
-
+  
     Initializer::Execute("main_init");
     Initializer::Execute();
     //return 0;
@@ -708,9 +709,13 @@ int main(int argc, char** argv) {
     //LEX::Report<LEX::IssueType::Compile>::debug("The numbers {} and {} are {}", 69, 420, "nice");
     //std::system("pause");
     //return 0;
+    
+    SharedClient::instance->AddFormatter("TEST", [](IScript* script, const std::string_view& format, const std::string_view& content)
+        {
 
-    
-    
+            logger::info("format '{}' from '{}':\n{}", format, script->GetFullName(), content);
+            return true;
+        });
 
     SafeInvoke([&]() {
         //std::getline(std::cin >> std::ws, formula);
@@ -1029,3 +1034,5 @@ namespace LEX::Test
     };
 
 }
+
+#include "Lexicon/Engine/TestToss.h"

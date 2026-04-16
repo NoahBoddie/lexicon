@@ -86,7 +86,7 @@ namespace LEX
 			//This should be handled after declaration.
 			//static_assert(false);
 			if (auto derives = settings->FindChild(parse_strings::derives)) {
-				for (auto& inherit : derives->children()) {
+				for (SyntaxRecord& inherit : derives->children()) {
 
 					Environment* env = NULL_OP(NULL_Q(GetParent())->GetEnvironment());
 

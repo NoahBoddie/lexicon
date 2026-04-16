@@ -5,7 +5,7 @@
 
 #include "Lexicon/ElementType.h"
 
-#include "Lexicon/Interfaces/ComponentDetails.h"
+#include "Lexicon/Impl/ComponentDetails.h"
 
 #include "Lexicon/Interfaces/IComponentBase.h"
 
@@ -38,7 +38,7 @@ namespace LEX
         {
             struct M_INTERFACE_VERSION(IElementBase)
             {
-			protected:
+			public:
 				virtual IScript* GetScriptInfc() = 0;
 				virtual IProject* GetProjectInfc() = 0;
 				virtual IDirectory* GetParentInfc() = 0;
@@ -164,8 +164,7 @@ namespace LEX
 
 
 
-
-	protected:
+	public:
 
 #ifdef LEX_SOURCE
 

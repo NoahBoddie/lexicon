@@ -34,7 +34,7 @@ namespace LEX
         switch (flags)
         {
         case LinkFlag::Declaration: {
-            for (auto& temp : generic.children()) {
+            for (SyntaxRecord& temp : generic.children()) {
                 AddTemplate(temp.GetView());
             }
         }

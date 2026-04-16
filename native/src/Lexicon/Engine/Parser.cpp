@@ -152,6 +152,22 @@ namespace LEX
 		return Record{ data.GetTag(), expr, std::move(children) };
 	}
 
+	Record ParsingStream::CreateExpression(std::string str, Directive expr, std::vector<Record> children)
+	{
+		return Record{ str, expr, children };
+	}
+
+	//This has no reason to be in here specifically.
+	Record ParsingStream::CreateExpression(RecordData data, Directive expr, std::vector<Record> children)
+	{
+		auto tok = data.GetEnum<Token>();
+
+		expr.line = tok.line;
+		expr.column = tok.column;
+
+		return Record{ data.GetTag(), expr, std::move(children) };
+	}
+
 
 
 

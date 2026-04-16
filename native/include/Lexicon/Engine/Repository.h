@@ -6,6 +6,7 @@
 
 namespace LEX
 {
+	struct Director;
 	struct ISubdirectory;
 
 	struct Repository : public Directory, public IRepositoryBase
@@ -78,10 +79,10 @@ namespace LEX
 
 
 		bool CreateSyntaxTree(std::string_view file, std::string_view extension, std::string_view path,
-			std::vector<std::string_view>& options, SyntaxRecord& ast);
+			Director& director, SyntaxRecord& ast);
 
 		bool CreateSyntaxTreeFromString(std::string_view file, std::string_view contents,
-			std::vector<std::string_view>& options, SyntaxRecord& ast);
+			Director& director, SyntaxRecord& ast);
 
 
 

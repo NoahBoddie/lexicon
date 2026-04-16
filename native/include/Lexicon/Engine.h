@@ -58,7 +58,7 @@
 
 
 //Sort
-#include "Lexicon/Engine/DefaultClient.h"
+#include "Lexicon/Interfaces/SharedClient.h"
 
 #include "Lexicon/Engine/Component.h"
 #include "Lexicon/Engine/Element.h"

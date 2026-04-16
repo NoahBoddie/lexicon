@@ -14,7 +14,7 @@
 #include "Lexicon/Engine/Script.h"
 #include "Lexicon/Engine/Parser.h"
 #include "Lexicon/Engine/Syntax.h"
-#include "Lexicon/Engine/DefaultClient.h"
+#include "Lexicon/Interfaces/SharedClient.h"
 
 #include "Lexicon/Engine/SettingManager.h"
 
@@ -334,7 +334,7 @@ namespace LEX
 	{
 		bool enabled = CheckCondition(*it, options);
 
-		Line start = it->SYNTAX().line;
+		Line start = it->get().SYNTAX().line;
 		Line finish = 0;
 
 		bool cont = true;
@@ -343,19 +343,21 @@ namespace LEX
 		
 		while (++it != end && cont)
 		{
+			Record& record = *it;
 
-			if (it->SYNTAX().type != SyntaxType::Conditional) {
+
+			if (record.SYNTAX().type != SyntaxType::Conditional) {
 				if (!enabled)
-					it->SYNTAX().type = SyntaxType::Disposable;
+					record.SYNTAX().type = SyntaxType::Disposable;
 				
 				continue;
 			}
 			
 			//All conditionals are disposable regardless.
-			it->SYNTAX().type = SyntaxType::Disposable;
+			record.SYNTAX().type = SyntaxType::Disposable;
 
 
-			switch (Hash(it->GetTag()))
+			switch (Hash(it->get().GetTag()))
 			{
 			case "if"_h:
 				fin = ConditionalProcess(script, options, it, end);
@@ -363,7 +365,7 @@ namespace LEX
 				break;
 
 			case "endif"_h:
-				finish = it->SYNTAX().line;
+				finish = record.SYNTAX().line;
 				cont = false;
 				break;
 			}
@@ -418,24 +420,28 @@ namespace LEX
 		{
 			auto old = it;
 
-			auto line = it->SYNTAX().line;
+
+			Record& record = *it;
+
+
+			auto line = record.SYNTAX().line;
 
 			if (script.IsLineEnabled(line) == true)
 			{
-				script.SetLines(false, it->SYNTAX().line);
+				script.SetLines(false, record.SYNTAX().line);
 
-				switch (Hash(it->GetView()))
+				switch (Hash(record.GetView()))
 				{
 
 				}
 
-				switch (it->SYNTAX().type)
+				switch (record.SYNTAX().type)
 				{
 				case SyntaxType::Requirement:
 					result = RequireProcess(script, options, it, end);
 					break;
-					if (it->GetView() == parse_strings::option_req) {
-						auto& front = it->GetFront();
+					if (record.GetView() == parse_strings::option_req) {
+						auto& front = record.GetFront();
 
 						//if (tmp_CheckCompileOptions(front.GetView()) == false) {
 						if (std::find(_begin, _end, front.GetView()) == _end) {
@@ -862,7 +868,7 @@ namespace LEX
 		Project* project = nullptr;
 
 		//Shared has no client, mainly because without a client errors are sent here, and there's never a situation where it will want to use format.
-		auto result = CreateProject("Shared", DefaultClient::GetInstance(), project);
+		auto result = CreateProject("Shared", SharedClient::instance, project);
 
 		assert_if(!project) {
 			report::compile::critical("Couldn't generate shared project: {}", magic_enum::enum_name(result));

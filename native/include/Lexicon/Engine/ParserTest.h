@@ -2388,7 +2388,7 @@ namespace LEX
 			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 				
-				Record prep = ParsingStream::CreateExpression(parse_strings::preprocessor, SyntaxType::Directive);
+				Record prep = ParsingStream::CreateExpression(parse_strings::preprocessor, DirectiveType::Header);
 
 				while (stream->eof() == false) {
 					auto next = stream->next();
@@ -2466,143 +2466,6 @@ namespace LEX
 		
 		};
 
-		/*The Old version.
-		struct RequiresParser : public AutoProcessor<RequiresParser>
-		{
-			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override 
-			{ 
-				
-				return !target && stream->IsType(TokenType::Identifier, "requires");
-			}
-
-
-			enum Mode
-			{
-				kScript,		//A script that's loaded in this directory
-				kProject,	//A project exists
-				kOption,		//Script was loaded with a particular compiler option.
-				kDirectory,	//A file or folder loaded at this relative directory. Has to be loaded, meaning the sub directory has to be involved somehow.
-				kMacro
-			};
-
-
-			Record MakeRequirement(ParsingStream* stream, Mode mode)
-			{
-				std::string_view name;
-				
-				Record out;
-				parse_strings;
-				switch (mode)
-				{
-					case kScript:
-					{
-						name = parse_strings::script_req;
-
-						auto next = stream->next();
-
-						if (next.TOKEN().type == TokenType::String)
-							ClipString(next.GetTag(), 1, 1);
-
-						out = ParsingStream::CreateExpression(next, SyntaxType::None);
-
-
-
-						break;
-					}
-					case kProject:
-					{
-						name = parse_strings::project_req;
-						
-						stream->next();
-						out = ParsingStream::CreateExpression(stream->next(), SyntaxType::None);
-						stream->next();
-						break;
-					}
-					case kOption:
-					{
-						name = parse_strings::option_req;
-						
-						stream->next();
-
-						out = ParsingStream::CreateExpression(stream->next(), SyntaxType::None);
-						break;
-					}
-					case kDirectory:
-					{
-						name = parse_strings::directory_req;
-						stream->next();
-
-						out = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::None);
-						
-						Record* to = &out;
-
-						while (stream->SkipIfType(TokenType::Operator, "/") == true)
-						{
-							to = &to->EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::None));
-						}
-
-
-						break;
-					}
-				}
-				return ParsingStream::CreateExpression(name, SyntaxType::Requirement, { out });
-			}
-
-			Record HandleToken(ParsingStream* stream, Record* target) override
-			{
-				auto loc = stream->next();
-				
-				Mode mode;
-
-				if (stream->IsType(TokenType::String) == true)
-				{
-					mode = kScript;
-				}
-				else if (stream->IsType(TokenType::Punctuation, "...") == true)
-					mode = kDirectory;
-				else if (stream->IsType(TokenType::Punctuation, "/:") == true)
-					mode = kOption;
-				else if (stream->IsType(TokenType::Operator, "<") == true)
-					mode = kProject;
-				else {
-					stream->croak("unknown requirement");
-					mode = kScript;
-				}
-
-				auto result = MakeRequirement(stream, mode);
-
-				result.SYNTAX().line = loc.TOKEN().line;
-				result.SYNTAX().column = loc.TOKEN().column;
-				return result;
-			}
-
-		};
-		//*/
-
-#ifdef PREPROCESSOR_RELATE
-		struct RelationParser : public AutoProcessor<RelationParser>
-		{
-			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
-			{
-
-				return !target && ( stream->IsType(TokenType::Identifier, "import") || stream->IsType(TokenType::Identifier, "include") );
-			}
-
-
-			Record HandleToken(ParsingStream* stream, Record* target) override
-			{
-				auto relation = ParsingStream::CreateExpression(stream->next(), SyntaxType::Relationship);
-
-				auto next = stream->ConsumeType(TokenType::Identifier);
-
-
-				relation.EmplaceChild(ParsingStream::CreateExpression(next, SyntaxType::None));
-
-				return relation;
-			}
-
-		};
-#endif
 
 		struct RequiresParser : public AutoProcessor<RequiresParser>
 		{
@@ -2615,14 +2478,14 @@ namespace LEX
 			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
 
-				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Requirement);
+				auto result = ParsingStream::CreateExpression(stream->next(), DirectiveType::Requirement);
 
 
-				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
+				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), DirectiveType::Prefunc));
 
 				stream->SkipType(TokenType::Punctuation, "(");
 
-				child.EmplaceChild(ParsingStream::CreateExpression(stream->next(), SyntaxType::Identifier));
+				child.EmplaceChild(ParsingStream::CreateExpression(stream->next(), DirectiveType::None));
 
 				stream->SkipType(TokenType::Punctuation, ")");
 
@@ -2633,6 +2496,7 @@ namespace LEX
 
 		};
 
+		//TODO: Make PreIf a system for 
 		struct PreIfParser : public AutoProcessor<PreIfParser>
 		{
 			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
@@ -2642,7 +2506,7 @@ namespace LEX
 
 			Record HandleConditional(ParsingStream* stream)
 			{
-				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Conditional);
+				auto result = ParsingStream::CreateExpression(stream->next(), DirectiveType::Conditional);
 
 				//This should allow for the /: punctuator instead.
 				;
@@ -2650,11 +2514,11 @@ namespace LEX
 
 
 
-				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), SyntaxType::Prefunc));
+				auto& child = result.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier, "option"), DirectiveType::Prefunc));
 				
 				stream->SkipType(TokenType::Punctuation, "(");
 
-				child.EmplaceChild(ParsingStream::CreateExpression(stream->next(), SyntaxType::Identifier));
+				child.EmplaceChild(ParsingStream::CreateExpression(stream->next(), DirectiveType::None));
 
 				stream->SkipType(TokenType::Punctuation, ")");
 
@@ -2665,7 +2529,7 @@ namespace LEX
 
 			Record HandleEnd(ParsingStream* stream)
 			{
-				auto result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Conditional);
+				auto result = ParsingStream::CreateExpression(stream->next(), DirectiveType::Conditional);
 
 		
 				return result;
@@ -2691,4 +2555,64 @@ namespace LEX
 
 		};
 
+		//*
+		struct PreFormatParser : public AutoProcessor<PreFormatParser>
+		{
+			bool CanProcess(ParsingStream* stream, Record* target, ParseFlag) const override
+			{
+				return !target && (stream->IsType(TokenType::Identifier, "format") || stream->IsType(TokenType::Identifier, "endformat"));
+			}
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				auto peek = stream->peek();
+
+				if (peek.GetView() == "format")
+				{
+					stream->next();
+
+					auto next = stream->next_with([](ParsingStream* stream, Iterator& it, Iterator end) ->Iterator
+						{
+							Iterator res = it++;
+
+							bool inc_res = true;
+
+							while (it != end)
+							{
+								char ch = *it;
+								
+
+								if (ch == '\n') {
+									break;
+								}
+
+								if (inc_res && ch == ' ') {
+									res++;
+								}
+								else {
+									inc_res = false;
+								}
+								it++;
+							}
+
+							return res;
+						});
+
+					
+					ParseUtility::Trim(next.GetTag());
+
+					return ParsingStream::CreateExpression(next, DirectiveType::Format);
+				}
+				else if (peek.GetView() == "endformat")
+				{
+					return ParsingStream::CreateExpression(stream->next(), DirectiveType::Format);
+				}
+
+				stream->croak("shouldn't happen");
+				return{};
+			}
+
+
+		};
+		//*/
 }

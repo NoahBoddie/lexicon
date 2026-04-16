@@ -5,7 +5,7 @@
 
 #include "Lexicon/ElementType.h"
 
-#include "Lexicon/Interfaces/ComponentDetails.h"
+#include "Lexicon/Impl/ComponentDetails.h"
 
 #include "Lexicon/Interfaces/IDirectoryBase.h"
 

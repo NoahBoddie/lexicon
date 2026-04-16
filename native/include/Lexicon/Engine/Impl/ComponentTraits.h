@@ -2,6 +2,7 @@
 
 #include "Lexicon/ComponentType.h"
 
+#include "Lexicon/Interfaces/IComponentBase.h"
 #include "Lexicon/Interfaces/IComponent.h"
 #include "Lexicon/Interfaces/IElement.h"
 #include "Lexicon/Interfaces/IDirectory.h"
@@ -57,6 +58,8 @@ namespace LEX
     case mc_type::COMPONENT_TYPE:{\
         return RightComponentCast<T, mc_type>(self);\
     }
+//TODO: Make a warning when the true type can convert to the target type, but the access type can't convert to the true type.
+
 
 #define COMPONENT_TRAITS(mc_type) \
     case mc_type::COMPONENT_TYPE:\

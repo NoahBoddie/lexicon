@@ -223,7 +223,7 @@ namespace LEX
 	{
 		while (begin != end)
 		{
-			auto& node = *begin++;
+			SyntaxRecord& node = *begin++;
 		
 			if (auto& syntax = node.GetSyntax(); syntax.line)
 			{

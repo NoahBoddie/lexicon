@@ -26,7 +26,7 @@ namespace LEX
 	using Operator = RuntimeVariable(*)(RuntimeVariable&, RuntimeVariable, InstructType, const Runtime*);
 
 	//Directive is the term for components of instructions, like TEST or push_arg. They cannot be manually manipulated.
-	using Directive = void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
+	using Command = void(*)(RuntimeVariable&, Operand, Operand, InstructType, Runtime*);
 
 
 	//A revision to the above, Operator might be the left a runtime variable, and the right a const variable
@@ -35,7 +35,7 @@ namespace LEX
 	//Should probably call this instructions
 	//The public one are likely called operators, these just take variables. The other one is instructions or destiction like that.
 	// I have plenty of names for the inbetweens of them.
-	struct Operation : public ConstClassAlias<std::variant<std::monostate, Operator, Directive>>
+	struct Operation : public ConstClassAlias<std::variant<std::monostate, Operator, Command>>
 	{
 		Operation() = default;
 		ALIAS_HEADER;
@@ -66,7 +66,7 @@ namespace LEX
 			}
 			else if (index() == 2)
 			{
-				std::get<Directive>(*this)(result, a_lhs, a_rhs, type, process);
+				std::get<Command>(*this)(result, a_lhs, a_rhs, type, process);
 			}
 		}
 	};

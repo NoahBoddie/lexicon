@@ -1,12 +1,13 @@
 #pragma once
 
 #include "Lexicon/ComponentType.h"
-#include "Lexicon/Interfaces/ComponentDetails.h"
+#include "Lexicon/Impl/ComponentDetails.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 namespace LEX
 {
     struct TypeInfo;
     struct Component;
+    struct IComponent;
 
 
     namespace Version
@@ -17,6 +18,7 @@ namespace LEX
             {
             protected:
                 virtual const Component* GetComponent() const = 0;
+                virtual const IComponent* GetComponentBase() const = 0;
                 virtual const void* Cast(const void* self, ComponentType from, ComponentType to) const = 0;
 
             public:
@@ -46,38 +48,19 @@ namespace LEX
         virtual const Component* GetComponent() const = 0;
         Component* GetComponent() { return unconst(make_const(this)->GetComponent()); }
 
+        const IComponent* GetComponentBase() const override;
+        IComponent* GetComponentBase() { return unconst(make_const(this)->GetComponentBase()); }
+
     private:
         //The way this would work is it would link to an engine file that handles the traits. 
         // This would make it so we wouldn't need to actually need to have the include the files to be
         // able to cast to it (or rather not ALL files at once, just the one we're casting to, so the normal rules)
-        const void* Cast(const void* self, ComponentType from, ComponentType to) const override final INTERFACE_FUNCTION;
-
-        void* Cast(const void* self, ComponentType from, ComponentType to) 
-        {
-            return unconst(make_const(this)->Cast(self, from, to));
-        }
-
-        IComponentBase* GetComponentBase();
-        const IComponentBase* GetComponentBase() const;
-
+        const void* Cast(const void* self, ComponentType from, ComponentType to) const override INT_FINAL INTERFACE_FUNCTION;
+        
+        void* Cast(const void* self, ComponentType from, ComponentType to) { return unconst(make_const(this)->Cast(self, from, to)); }
+        
     public:
-        std::string GetFullName() //const
-        {
-            return {};
-            /*
-            std::string result = std::string{ GetName() };
-
-            IElement* element = GetParent();
-
-            while (element)
-            {
-                result = std::format("{}::{}", element->GetName(), result);
-                element = element->GetParent();
-            }
-
-            return result;
-            //*/
-        }
+        std::string GetFullName() const;
 
         //TODO: need to confirm this set up actually works on pointers.
 
@@ -111,7 +94,7 @@ namespace LEX
                     }
 
 
-                    return reinterpret_cast<To*>(a_this.Cast(ptr, std::remove_cvref_t<Self>::COMPONENT_TYPE, type));
+                    return reinterpret_cast<To*>(ptr->Cast(ptr, std::remove_cvref_t<Self>::COMPONENT_TYPE, type));
                 }
             }
 
@@ -144,7 +127,7 @@ namespace LEX
         {
 #define GET_AS_COMPONENT(mc_component) GetAs<::LEX::mc_component>(::LEX::ComponentType::mc_component)            
             if (Self* ptr = std::addressof(a_this)) {
-                return a_this.GetComponentBase()->As<T>(type);
+                return ptr->GetComponentBase()->As<T>(type);
             }
             return nullptr;
         }

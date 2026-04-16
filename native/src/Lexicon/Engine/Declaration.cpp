@@ -109,7 +109,7 @@ namespace LEX
 			//	_run(node); break;
 			//}
 			
-			for (auto& entry : node.children())
+			for (SyntaxRecord& entry : node.children())
 			{
 				std::string& name = entry.GetTag();
 
@@ -323,10 +323,10 @@ namespace LEX
 		KeywordType type = KeywordType::TypeQual;
 
 		//Need some fucking rules about this.
-		for (auto& node : header.children())
+		for (SyntaxRecord& node : header.children())
 		{
 
-			for (auto& child : node.children())
+			for (SyntaxRecord& child : node.children())
 			{
 				//std::string name = child.SYNTAX().type == SyntaxType::Declare ? 
 				std::string name;
@@ -394,7 +394,7 @@ namespace LEX
 		if (!declare.policy) {
 			std::string name;
 
-			for (auto& child : type_spec.children())
+			for (SyntaxRecord& child : type_spec.children())
 			{
 				if (name.empty() == false)
 					name += " ";

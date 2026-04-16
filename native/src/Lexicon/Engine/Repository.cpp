@@ -7,6 +7,7 @@
 #include "Lexicon/Engine/Project.h"
 #include "Lexicon/Engine/ParserTest.h"
 #include "Lexicon/Engine/Subdirectory.h"
+#include "Lexicon/Engine/Director.h"
 namespace LEX
 {
 
@@ -99,6 +100,18 @@ namespace LEX
 			auto& line = _lines[i];
 			return std::string_view{ line.begin, line.end };
 
+		}
+
+		std::string_view GetText(Line start, Line end, bool exclusive = false)
+		{
+			if (exclusive) {
+				start++;
+				end--;
+			}
+
+			auto first = _lines[start - 1].begin;
+			auto last = _lines[end - 1].end;
+			return std::string_view{ first, last };
 		}
 
 		bool IsLineEnabled(Line i)
@@ -215,11 +228,63 @@ namespace LEX
 
 	}
 
+
+
+	bool FormatProcess(ScriptString& script, Project* project, std::vector<std::string_view>& options, Record::Iterator it, Record::Iterator end)
+	{
+		Line start = it->get().SYNTAX().line;
+		Line finish = 0;
+
+		bool cont = true;
+
+		int fin = 1;
+
+		std::string_view format = it->get().GetView();
+		logger::trace("format:\n {}", format);
+		while (++it != end && cont)
+		{
+			Record& record = *it;
+
+			record.SYNTAX().type = SyntaxType::Disposable;
+
+
+			switch (Hash(record.GetTag()))
+			{
+			default:
+				++fin;
+				break;
+
+			case "endformat"_h:
+				if (--fin) {
+					break;
+				}
+				
+				finish = record.SYNTAX().line;
+				cont = false;
+				break;
+			}
+		}
+
+		std::string_view data = script.GetText(start, finish, true);
+
+		logger::info("format '{}':\n{}", format, data);
+
+		if (!finish) {
+			report::parse::warn("Un-ended #format detected.");
+			return false;
+		}
+
+		script.SetLines(false, start, finish);
+
+		return true;
+	}
+
+
 	bool ConditionalProcess(ScriptString& script, std::vector<std::string_view>& options, Record::Iterator it, Record::Iterator end)
 	{
 		bool enabled = CheckCondition(*it, options);
 
-		Line start = it->SYNTAX().line;
+		Line start = it->get().SYNTAX().line;
 		Line finish = 0;
 
 		bool cont = true;
@@ -229,18 +294,20 @@ namespace LEX
 		while (++it != end && cont)
 		{
 
-			if (it->SYNTAX().type != SyntaxType::Conditional) {
+			Record& record = *it;
+
+			if (record.SYNTAX().type != SyntaxType::Conditional) {
 				if (!enabled)
-					it->SYNTAX().type = SyntaxType::Disposable;
+					record.SYNTAX().type = SyntaxType::Disposable;
 
 				continue;
 			}
 
 			//All conditionals are disposable regardless.
-			it->SYNTAX().type = SyntaxType::Disposable;
+			record.SYNTAX().type = SyntaxType::Disposable;
 
 
-			switch (Hash(it->GetTag()))
+			switch (Hash(record.GetTag()))
 			{
 			case "if"_h:
 				fin = ConditionalProcess(script, options, it, end);
@@ -248,7 +315,7 @@ namespace LEX
 				break;
 
 			case "endif"_h:
-				finish = it->SYNTAX().line;
+				finish = record.SYNTAX().line;
 				cont = false;
 				break;
 			}
@@ -287,7 +354,7 @@ namespace LEX
 	}
 
 
-	bool GeneralProcess(ScriptString& script, Record& directives, std::vector<std::string_view>& options)
+	bool GeneralProcess(Project* project, ScriptString& script, Record& directives, std::vector<std::string_view>& options)
 	{
 		auto& dirs = directives.children();
 
@@ -301,26 +368,25 @@ namespace LEX
 
 		while (it != end && result)
 		{
+
+			Record& record = *it;
+
+
 			auto old = it;
 
-			auto line = it->SYNTAX().line;
+			auto line = record.SYNTAX().line;
 
 			if (script.IsLineEnabled(line) == true)
 			{
-				script.SetLines(false, it->SYNTAX().line);
+				script.SetLines(false, record.SYNTAX().line);
 
-				switch (Hash(it->GetView()))
-				{
-
-				}
-
-				switch (it->SYNTAX().type)
+				switch (record.SYNTAX().type)
 				{
 				case SyntaxType::Requirement:
 					result = RequireProcess(script, options, it, end);
 					break;
-					if (it->GetView() == parse_strings::option_req) {
-						auto& front = it->GetFront();
+					if (record.GetView() == parse_strings::option_req) {
+						auto& front = record.GetFront();
 
 						if (std::find(_begin, _end, front.GetView()) == _end) {
 							logger::break_warn("Requirement '{}' was not present for {} to load.", front.GetView(), script.name());
@@ -332,6 +398,8 @@ namespace LEX
 					result = ConditionalProcess(script, options, it, end);
 					break;
 
+				case SyntaxType::Format:
+					result = FormatProcess(script, project, options, it, end);
 				}
 			}
 
@@ -348,50 +416,17 @@ namespace LEX
 
 
 	bool Repository::CreateSyntaxTreeFromString(std::string_view file, std::string_view contents,
-		std::vector<std::string_view>& options, SyntaxRecord& ast)
+		Director& director, SyntaxRecord& ast)
 	{
 
-		Project* project = GetProject();
-
-		if (project)
-		{
-			tmp_AddCompileOptions(options, project);
-
-			if (project->IsShared() == false)
-			{
-				tmp_AddCompileOptions(options, ProjectManager::instance->GetShared());
-			}
-		}
-
-		ScriptString test_content{ file, contents };
-
-
-		Record tmp_directives;
-
-
-		PreprocessorParser direct_parse;
-
-
-		//tmp_directives = Parser__::CreateSyntaxTree(std::string{ project->GetName() }, std::string{ name }, contents, &direct_parse);
-
-		if (Parser__::CreateSyntaxTree(tmp_directives, contents, file, &direct_parse) == false) {
+		if (director.HandlePreprocess(contents) == false)
 			return false;
-		}
 
-		if (GeneralProcess(test_content, tmp_directives, options) == false)
-			return false;
-		else
-		{
-			contents = test_content.Clear();
-		}
-
-
+		contents = director.Clear();
 
 		if (Parser__::CreateSyntaxTree(ast, contents, file) == false) {
 			return false;
 		}
-
-		//ast.ObtainChild(parse_strings::body, SyntaxType::None).EmplaceChild(std::move(tmp_directives));
 
 		PrintAST(ast);
 
@@ -400,7 +435,7 @@ namespace LEX
 
 
 	bool Repository::CreateSyntaxTree(std::string_view file, std::string_view extension, std::string_view path,
-		std::vector<std::string_view>& options, SyntaxRecord& ast)
+		Director& director, SyntaxRecord& ast)
 	{
 		std::string script_path = std::format("{}/{}{}", path, file, extension);
 
@@ -418,7 +453,7 @@ namespace LEX
 
 		file_input.close();//Don't really need to do this, seeing as the destructor does, but eh
 
-		return CreateSyntaxTreeFromString(file, contents, options, ast);
+		return CreateSyntaxTreeFromString(file, contents, director, ast);
 
 	}
 
@@ -460,19 +495,19 @@ namespace LEX
 
 		std::vector<std::string_view> options{ opts.begin(), opts.end() };
 
-
-
+		//const std::string_view& nm, Project* pro, std::span<std::string_view> ops
+		Director director{ name, GetProject(), opts };
 
 		{
 			bool result;
 
 			if (content.has_value()) {
 				made_from_script = true;
-				result = CreateSyntaxTreeFromString(script_name, content.value(), options, ast);
+				result = CreateSyntaxTreeFromString(script_name, content.value(), director, ast);
 			}
 			else {
 				made_from_script = false;
-				result = CreateSyntaxTree(script_name, ".lsi", path, options, ast);
+				result = CreateSyntaxTree(script_name, ".lsi", path, director, ast);
 			}
 
 			if (!result){
@@ -481,20 +516,10 @@ namespace LEX
 		}
 
 		Script* script = is_commons ? Component::Create<CommonScript>(ast) : Component::Create<Script>(ast);
-
-		for (auto& entry : options)
-		{
-			constexpr std::string_view inc = "incremental";
-
-			if (strnicmp(entry.data(), inc.data(), inc.size()) == 0) {
-				script->SetIncremental(true);
-				report::debug("Script {} made incremental.", script->GetName());
-			}
-		}
-
-
-
+		
 		AddScript(script);
+
+		director.HandlePostprocess(script);
 
 		if (!is_commons && !IsBatchLoading())
 			Component::RelinkComponents();

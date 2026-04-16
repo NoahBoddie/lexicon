@@ -54,7 +54,7 @@ namespace LEX
 
 		for (auto& entry : node.children())
 		{
-			std::string& name = entry.GetTag();
+			std::string& name = entry->GetTag();
 
 			switch (Hash(name))
 			{
@@ -93,7 +93,7 @@ namespace LEX
 
 		for (auto& entry : node.children())
 		{
-			std::string& name = entry.GetTag();
+			std::string& name = entry->GetTag();
 
 			switch (Hash(name))
 			{
