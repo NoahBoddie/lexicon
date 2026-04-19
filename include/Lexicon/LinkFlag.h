@@ -10,9 +10,9 @@ namespace LEX
 		Declaration = 1 << 1,	//Used when all functions have finished being declared, meaning their names exist.
 		Definition = 1 << 2,	//Used when all functions have finished being defined, meaning they can be called. Also links external funcs.
 		// (for AVG, called in postpostload)
-		Object = 1 << 3,	//Used for objects who's reference of may not be visable on the spot.
 
-		External = 1 << 4,	//Used for the reference of properties or formulas and as such must be handled after load.
+		External = 1 << 3,	//Used for the reference of properties or formulas and as such must be handled after load.
+		Object = 1 << 4,	//Used for objects who's reference of may not be visable on the spot.
 
 		
 		Final = 1 << 6,		//Used when all other link flags have gone out.
