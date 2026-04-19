@@ -51,7 +51,7 @@ namespace LEX
 		format.formatContent = content;
 		format.formatScript = this;
 
-		if (IsTask(LinkFlag::Declaration) == false)
+		if (IsTask(LinkFlag::External) == false)
 			format.SendFormat();
 		
 		if (!_formats)
@@ -338,7 +338,7 @@ namespace LEX
 	{
 		switch (flags)
 		{
-		case LinkFlag::Declaration:
+		case LinkFlag::External:
 			if (_formats) {
 				_formats->SendFormats();
 				_formats.reset();
@@ -351,7 +351,7 @@ namespace LEX
 
 	LinkFlag Script::GetLinkFlags()
 	{
-		return LinkFlag::Loaded | LinkFlag::Declaration;
+		return LinkFlag::Loaded | LinkFlag::External;
 	}
 
 	Environment* Script::FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter)
