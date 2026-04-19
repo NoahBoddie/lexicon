@@ -59,6 +59,9 @@ namespace LEX
         
         void* Cast(const void* self, ComponentType from, ComponentType to) { return unconst(make_const(this)->Cast(self, from, to)); }
         
+        //Defined in Impl/ComponentDetails.cpp
+        static TypeInfo* GetTypeFromOffset(uint16_t offset);
+
     public:
         std::string GetFullName() const;
 
@@ -161,9 +164,7 @@ namespace LEX
             return GetComponentType() == type;
         }
 
-        //Defined in Impl/ComponentDetails.cpp
-        static TypeInfo* GetTypeFromOffset(uint16_t offset);
-
+       
 
         template<std::derived_from<IComponentBase> Comp>
         static TypeInfo* GetVariableType(const Comp* comp)
