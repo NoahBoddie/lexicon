@@ -75,7 +75,7 @@ namespace LEX
 		{
 			//TODO: This needs to be moved to ITypeInfo, because this is sorta wide spread in its use
 
-			auto result = GetConvertTo_Hierarchy(other, scope, out, flags);
+			ConvertResult result = GetConvertTo_Hierarchy(other, scope, out, flags);
 
 			if (result == ConversionResult::Ineligible) {
 				bool res = GetConvertTo_Intrinsic(other, out, flags & ConversionFlag::Explicit);
