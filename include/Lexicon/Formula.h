@@ -93,13 +93,24 @@ namespace LEX
 					//use uses_runtime
 					if constexpr (sizeof...(Args) && ((std::is_same_v<std::remove_cvref_t<Args>, runtime_type>) || ...))
 					{
-						size_t i = 0;
+						size_t index = 0;
 
 						auto& params = base.SignatureBase::parameters;
 
-						processed = ((params[i++].policy = std::is_same_v<std::remove_cvref_t<Args>, runtime_type> ?
-							script->GetTypeFromPath(get_view(parameters, true)) : params[i - 1].policy) && ...);
+						//processed = ((params[i++].policy = std::is_same_v<std::remove_cvref_t<Args>, runtime_type> ?
+						//	script->GetTypeFromPath(get_view(parameters, true)) : params[i - 1].policy) && ...);
 
+						processed = ([&]<typename T> [[msvc::forceinline]] -> bool	
+						{
+							auto i = index++;
+							if constexpr (std::is_same_v<std::remove_cvref_t<Args>, runtime_type>) {
+								return params[i].policy = script->GetTypeFromPath(get_view(parameters, true));
+							}
+							else {
+								return true;
+							}
+
+						}.operator()<Args>() && ...);
 					}
 
 					return processed;
