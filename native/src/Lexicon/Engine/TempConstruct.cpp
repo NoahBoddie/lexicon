@@ -48,6 +48,7 @@
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 #include "Lexicon/Array.h"
 
+#include "Lexicon/Engine/SettingManager.h"
 void TestFunction()
 {
 
@@ -783,8 +784,76 @@ namespace LEX
 
 			bool binary = target.SYNTAX().type == SyntaxType::Binary;
 
+			/*
+			
+
+			AddOperator("+=", OperatorType::Binary, 4);
+			AddOperator("-=", OperatorType::Binary, 4);
+			AddOperator("%=", OperatorType::Binary, 4);
+			AddOperator("^^=", OperatorType::Binary, 4);
+			AddOperator("^=", OperatorType::Binary, 4);
+			AddOperator("*=", OperatorType::Binary, 4);
+			AddOperator("|=", OperatorType::Binary, 4);
+			AddOperator("&=", OperatorType::Binary, 4);
+			AddOperator("<<=", OperatorType::Binary, 4);
+			AddOperator(">>=", OperatorType::Binary, 4);
+
+
+
+			AddOperator("=", OperatorType::Binary, 5);
+			AddOperator("||", OperatorType::Binary, 6);
+			AddOperator("&&", OperatorType::Binary, 7);
+
+
+			AddOperator("|", OperatorType::Binary, 9);
+			AddOperator("^", OperatorType::Binary, 10);
+			AddOperator("&", OperatorType::Binary, 11);
+
+
+
+			AddOperator("==", OperatorType::Binary, 12);
+			AddOperator("!=", OperatorType::Binary, 12);
+
+
+			AddOperator("<", OperatorType::Binary, 14);
+			AddOperator(">", OperatorType::Binary, 14);
+			AddOperator("<=", OperatorType::Binary, 14);
+			AddOperator(">=", OperatorType::Binary, 15);
+
+
+			AddOperator("<<", OperatorType::Binary, 16);
+			AddOperator(">>", OperatorType::Binary, 16);
+
+
+			AddOperator("+", OperatorType::Binary, 18);
+			AddOperator("-", OperatorType::Both, 18);//TODO: Should this be at this level of precedence?
+
+			AddOperator("*", OperatorType::Binary, 20);
+			AddOperator("/", OperatorType::Binary, 20);
+			AddOperator("%", OperatorType::Binary, 20);
+			AddOperator("^^", OperatorType::Binary, 22);
+			AddOperator("pow", OperatorType::Binary, 22);
+			AddOperator("*", OperatorType::Unary, 23);
+
+
+			AddOperator("++", OperatorType::Unary, 24);
+			AddOperator("--", OperatorType::Unary, 24);
+			AddOperator("+", OperatorType::Unary, 24);
+			AddOperator("-", OperatorType::Unary, 24);
+			AddOperator("!", OperatorType::Unary, 24);
+			AddOperator("~", OperatorType::Unary, 24);
+
+
+			AddOperator(".", OperatorType::Binary, 25);
+
+			AddOperator("++", OperatorType::PostUnary, 26);
+			AddOperator("--", OperatorType::PostUnary, 26);
+			//*/
 			switch (Hash(target.GetTag()))
 			{
+			case "!"_h:
+				return InstructType::LogicalNOT;
+
 			case "|"_h:
 			case "OR"_h:
 				return InstructType::BitwiseOR;
@@ -880,7 +949,7 @@ namespace LEX
 
 
 
-		Solution BasicUnaryGenerator(ExpressionCompiler* compiler, InstructType op, Solution it, Register out)
+		Solution BasicUnaryGenerator(ExpressionCompiler* compiler, InstructType op, Solution it, Register out, SyntaxRecord& target)
 		{
 			//Similar to the way operators and directives are seperated, I'd seek to have 2 types of operator generators,
 			// one that's basic and allows one to create values after it, and another that needs them raw
@@ -908,6 +977,12 @@ namespace LEX
 				// a helper function should help with this.
 
 				policy = common_type::boolean();
+
+				if (it.policy != policy)
+				{
+					if (CompUtil::HandleConversion(compiler, it, QualifiedType{ policy }, target, out) == false)
+						report::error("cannot convert to boolean");
+				}
 				break;
 
 			case InstructType::UnaryMinus:
@@ -1112,9 +1187,9 @@ namespace LEX
 				{
 					//Unary is a lot simpler to deal with
 					
-					lhs = compiler->CompileExpression(target.GetChild(0), Register::Left);
+					lhs = compiler->CompileExpression(ParseUtility::GetFrontExpression(target), Register::Left);
 					
-					return BasicUnaryGenerator(compiler, op, lhs, prefered);
+					return BasicUnaryGenerator(compiler, op, lhs, prefered, target);
 				}
 
 
@@ -1998,6 +2073,22 @@ namespace LEX
 		}
 
 
+
+		void PauseBreakProcess(RoutineCompiler* compiler, SyntaxRecord& target)
+		{
+			auto settings = SettingManager::GetSingleton();
+
+			if (settings->compilePauseBreak) {
+				DEBUG_BREAK;
+			}
+
+			//This only gets set if it will actually run.
+			if (settings->runtimePauseBreak)
+				compiler->PushInstruction(target, Instruction{ InstructType::PauseBreak });
+		}
+
+
+
 		Solution CastProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 
@@ -2565,6 +2656,7 @@ namespace LEX
 
 			//I would like something to make this assign a fuck ton easier
 
+			generatorList[SyntaxType::PauseBreak] = PauseBreakProcess;
 			generatorList[SyntaxType::Return] = ReturnProcess;
 			generatorList[SyntaxType::StateBlock] = StatementProcess;
 			generatorList[SyntaxType::ExpressBlock] = ExpressionProcess;
@@ -2625,6 +2717,13 @@ namespace LEX
 			instructList[InstructType::Division] = InstructWorkShop::BinaryMath<std::divides<>, false>;
 			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
 			instructList[InstructType::Exponent] = InstructWorkShop::BinaryMath<exponent, false>;
+			instructList[InstructType::BitwiseOR] = InstructWorkShop::BinaryMath<std::bit_or<>, false>;
+			instructList[InstructType::BitwiseAND] = InstructWorkShop::BinaryMath<std::bit_and<>, false>;
+			instructList[InstructType::BitwiseXOR] = InstructWorkShop::BinaryMath<std::bit_xor<>, false>;
+			instructList[InstructType::LogicalAND] = InstructWorkShop::BinaryMath<std::logical_and<>, false>;
+			instructList[InstructType::LogicalOR] = InstructWorkShop::BinaryMath<std::logical_or<>, false>;
+			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
+
 
 			instructList[InstructType::EqualTo] = InstructWorkShop::BinaryCompare<std::equal_to<>, "==">;
 			instructList[InstructType::NotEqualTo] = InstructWorkShop::BinaryCompare<std::not_equal_to<>, "!=">;
@@ -2633,13 +2732,11 @@ namespace LEX
 			instructList[InstructType::GreaterThan] = InstructWorkShop::BinaryCompare<std::greater<>, ">">;
 			instructList[InstructType::GreaterOrEqual] = InstructWorkShop::BinaryCompare<std::greater_equal<>, ">=">;
 
-			instructList[InstructType::Modulo] = InstructWorkShop::BinaryMath<std::modulus<>, false>;
-			//We not ready for this one.
-			//instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<void>>;
-			instructList[InstructType::UnaryMinus] = InstructWorkShop::UnaryMath<std::negate<void>>;
-			instructList[InstructType::Promote] = InstructWorkShop::CheckPromotion;
-
 			
+			instructList[InstructType::UnaryMinus] = InstructWorkShop::UnaryMath<std::negate<void>>;
+			instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<>>;
+			instructList[InstructType::BitwiseNOT] = InstructWorkShop::UnaryMath<std::bit_not<>>;
+			instructList[InstructType::Promote] = InstructWorkShop::CheckPromotion;
 
 			
 

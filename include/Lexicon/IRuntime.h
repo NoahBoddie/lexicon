@@ -5,7 +5,7 @@
 
 namespace LEX
 {
-
+	struct IRuntime;
 	struct Function;
 	class RuntimeVariable;
 	class Runtime;
@@ -36,6 +36,7 @@ namespace LEX
 
 				virtual ITemplateBody* AsBody() = 0;
 			
+				virtual void PauseBreak() = 0;
 			};
 		}
 

@@ -37,25 +37,25 @@ namespace LEX
 		std::string coreDir = "";
 		std::string reportDir = "";
 		std::string language = "english";
+
 		spdlog::level::level_enum level = spdlog::level::info;
 
+		bool parsePauseBreak = false;
+		bool compilePauseBreak = true;
+		bool runtimePauseBreak = true;
 
 		//For the logger filter, I'm thinking of making something that can help break apparent what exactly should be taken.
 		// Making a version for this that can handle arrays might be helpful for that. Then making something that splits a string up delimited by a character
 
 		//Having a script focused filter might be cool, but definitely not something I should focus on right now.
 
-		bool runtimeBreakpoint = true;
+		bool runtimeBreakpoint = false;
 
 		bool _initialized = false;
-
-		//Would like to use this for the break functions. Would need to cofirm it actually works first though.
-		bool systemPauseOnBreak = false;
 
 
 		static SettingManager* GetSingleton()
 		{
-			SETTING_PATH;
 			static SettingManager singleton;
 			singleton.Initialize();
 
@@ -70,6 +70,8 @@ namespace LEX
 
 			if (_initialized)
 				return;
+
+			_initialized = true;
 
 
 			//Even if an exception is encountered it only gets one shot to load this sort of stuff. That's it.
@@ -89,10 +91,12 @@ namespace LEX
 			SetValue(coreDir, ini, "General", "sCoreDir");
 			SetValue(reportDir, ini, "Debug", "sReportDir");
 			SetValue(language, ini, "Debug", "sLanguage");
+			SetValue(parsePauseBreak, ini, "Debug", "bParsePauseBreak");
+			SetValue(compilePauseBreak, ini, "Debug", "bCompilePauseBreak");
+			SetValue(runtimePauseBreak, ini, "Debug", "bRuntimePauseBreak");
 			SetValue(runtimeBreakpoint, ini, "Debug", "bRuntimeBreakpoint");
 			SetValue(level, ini, "Debug", "sDefaultLogLevel");
 
-			_initialized = true;
 		}
 	
 

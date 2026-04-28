@@ -213,7 +213,7 @@ namespace LEX
             int fin = 1;
 
             std::string_view format = it->get().GetView();
-            logger::trace("format:\n {}", format);
+            logger::trace("format: {}", format);
             while (++it != end && cont)
             {
                 DirectiveRecord& record = *it;

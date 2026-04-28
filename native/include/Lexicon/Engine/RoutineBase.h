@@ -47,6 +47,8 @@ namespace LEX
 		const char* name = nullptr;
 		std::vector<SourceLocation> locations;
 
+
+
 		std::function<LogEditor> Mutator(uint32_t i)
 		{
 			//return [this](LogParams& params, LogState state, LogResult&) -> void { if (state == LogState::Prep) params.suffix << GetAffix(); };
@@ -88,6 +90,15 @@ namespace LEX
 			//return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
 		}
 
+
+		SourceLocation GetLocation(uint32_t i)
+		{
+			if (locations.size() <= i) {
+				return {};
+			}
+
+			return locations[i];
+		}
 
 
 	};

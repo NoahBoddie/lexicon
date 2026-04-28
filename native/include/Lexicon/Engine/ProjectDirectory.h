@@ -20,7 +20,7 @@ namespace LEX
 
 		static ProjectDirectory* GetSingleton()
 		{
-			ProjectDirectory& singleton = make_singleton<ProjectDirectory>();
+			static ProjectDirectory& singleton = make_singleton();
 
 			return &singleton;
 		}

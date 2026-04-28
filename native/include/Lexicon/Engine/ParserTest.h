@@ -1040,6 +1040,31 @@ namespace LEX
 
 
 
+		struct PauseBreak : public AutoParser<PauseBreak>
+		{
+			bool IsAtomic() const override
+			{
+				return true;
+			}
+
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				if (target)
+					return false;
+
+				return stream->IsType(TokenType::Keyword, "pause_break");
+			}
+
+
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				return ParsingStream::CreateExpression(stream->next(), SyntaxType::PauseBreak);
+			}
+
+		};
+
 
 		struct DeclarationParser : public AutoParser<DeclarationParser>//, IdenDeclBoilerPlate
 		{
@@ -2399,7 +2424,8 @@ namespace LEX
 					
 					auto result = stream->ParseSyntax();
 
-					stream->SkipType(TokenType::Whitespace, "\n");
+					if (stream->eof() == false)
+						stream->SkipType(TokenType::Whitespace, "\n");
 
 					if (result)
 						prep.EmplaceChild(result);
