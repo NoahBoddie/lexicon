@@ -22,23 +22,6 @@ namespace LEX
 	struct TypeBase;
 
 
-	struct Format
-	{
-		std::string formatName;
-		std::string formatContent;
-		LEX::Script* formatScript = nullptr;
-
-		void SendFormat();
-	};
-
-	struct FormatCache
-	{
-		std::vector<Format> formats;
-
-		void SendFormats();
-	};
-
-
 
 	class Script : public Environment, public IScript
 	{
@@ -70,12 +53,10 @@ namespace LEX
 
 		SyntaxRecord _syntaxTree;
 
-		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList= nullptr;
+		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList = nullptr;
 
 		//This is where scripts are refered
 		std::unordered_map<RelateType, std::vector<Directory*>> _relationMap;
-
-		std::unique_ptr<FormatCache> _formats;
 
 		auto& ObtainSubdirectoryList()
 		{
@@ -88,7 +69,7 @@ namespace LEX
 
 	public:
 
-		void AddFormat(const std::string_view& name, const std::string_view& content);
+		void AddFormat(const std::string_view& name, const std::string_view& content) override;
 
 
 		bool IsDefined() const;
@@ -130,10 +111,6 @@ namespace LEX
 		void CompileExpression(Record& target);
 
 
-
-		LinkResult OnLink(LinkFlag flags);
-
-		LinkFlag GetLinkFlags();
 
 
 		Environment* FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter) override;

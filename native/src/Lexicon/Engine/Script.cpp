@@ -22,45 +22,18 @@
 
 namespace LEX
 {
-
-	void Format::SendFormat()
-	{
-		auto project = formatScript->GetProject();
-
-		if (project->SendFormat(this->formatName, formatContent, formatScript) == false)
-			report::compile::warn("Format '{}' failed to be registered to {}.",
-				formatName, formatScript->GetFullName());
-		
-	}
-
-	void FormatCache::SendFormats()
-	{
-		for (auto& format : formats)
-		{
-			format.SendFormat();
-		}
-	}
-
-
-
 	void Script::AddFormat(const std::string_view& name, const std::string_view& content)
 	{
+		auto project = GetProject();
 
-		Format format;
-		format.formatName = name;
-		format.formatContent = content;
-		format.formatScript = this;
+		if (project->SendFormat(name, content, this) == false) {
+			report::compile::warn("Format '{}' failed to be registered to {}.",
+				name, GetFullName());
+		}
+		else {
+			report::debug("adding format {}", name);
 
-		if (IsTask(LinkFlag::External) == false)
-			format.SendFormat();
-		
-		if (!_formats)
-			_formats = std::make_unique<FormatCache>();
-
-		//This makes me want to blow my head off my neck
-		_formats->formats.push_back(format);
-
-		report::debug("adding format {}", name);
+		}
 	}
 
 
@@ -118,17 +91,6 @@ namespace LEX
 	{
 		get_switch(node.GetSyntax().type)
 		{
-
-			case SyntaxType::Format: 
-				if constexpr (1)
-				{
-					Project* project = GetProject();
-					if (project)
-						project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
-				}
-				break;
-
-
 			case SyntaxType::Import:
 			case SyntaxType::Include:
 				if constexpr (1)
@@ -334,25 +296,6 @@ namespace LEX
 
 
 
-	LinkResult Script::OnLink(LinkFlag flags)
-	{
-		switch (flags)
-		{
-		case LinkFlag::External:
-			if (_formats) {
-				_formats->SendFormats();
-				_formats.reset();
-			}
-			break;
-		}
-
-		return __super::OnLink(flags);
-	}
-
-	LinkFlag Script::GetLinkFlags()
-	{
-		return LinkFlag::Loaded | LinkFlag::External;
-	}
 
 	Environment* Script::FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter)
 	{
