@@ -311,7 +311,7 @@ namespace LEX
 
 		bool Exists(ObjectData& self) override
 		{
-			if constexpr (requires(ObjectData & it) { it.get<T>() == true; }) {
+			if constexpr (requires(ObjectData& it) { { it.get<T>() } ->std::convertible_to<bool>; }) {
 				return self.get<T>();
 			}
 			else {
