@@ -5,62 +5,11 @@ namespace LEX
 	//inline static std::vector<ObjectPolicyImpl*> _policyList{};
 
 	//I actually may want these storing the pointers. Just need to access the index from there for the handles.
-	std::map<std::string_view, uint32_t> aliasList{};
+	std::map<std::string_view, uint32_t>& aliasList = make_singleton();
 
-	std::vector<ObjectPolicy*> _policyList{};
+	std::vector<ObjectPolicy*>& _policyList = make_singleton();
 
 	//std::vector<ObjectPolicy*> ObjectPolicyManager::_policyList{};
-
-
-	struct ObjectPolicyList
-	{
-		std::vector<ObjectPolicy*>* data = new std::vector<ObjectPolicy*>;
-		std::atomic<ptrdiff_t> refCount = 1;
-		bool destructed = false;
-
-
-
-		void TryDestroy()
-		{
-			if (!refCount) {
-				if (destructed) {
-					//logger::debug("successfully destructed ObjectPolicyList");
-				}
-				delete data;
-			}
-			
-		}
-
-		void ModRefCount(bool inc, bool destructing= false)
-		{
-			refCount += inc ? 1 : -1;
-
-			logger::trace("temp, {} to {}", inc ? "increment" : "decrement", refCount.load());
-			
-			assert(refCount >= 0);
-
-			if (refCount && destructed) {
-				//logger::debug("{} detected, {} refs remaining", inc ? "increment" : "decrement", refCount.load());
-			}
-			else assert_if(!refCount && !destructed && !destructing)
-			{
-				//report::fault::critical("ObjectPolicyManager ran out of uses outside of destruction, this should not happen");
-			}
-
-			TryDestroy();
-		}
-
-		~ObjectPolicyList()
-		{
-			ModRefCount(false, true);
-			destructed = true;
-
-			if (refCount) {
-				//logger::debug("Delaying destruction of ObjectPolicyList, {} refs remaining", refCount.load());
-			}
-		}
-
-	} singleton;
 
 
 	uint32_t ObjectPolicyManager::GetIndexFromName(std::string_view name)
