@@ -1033,6 +1033,285 @@ namespace LEX::Test
         }
     };
 
+
+    //This is used only for non-static fields and virtual methods
+    struct Members
+    {
+        std::vector<QualifiedType> fields;
+        std::vector<void*> methods;
+    };
+
+
+
+
+    namespace ClassStructSystem
+    {
+        //This type would serve for something to link to a function with generic structures.
+        // Like the ref types, this would basically alias the object. I don't think I'll require this however.
+        template <typename Type, StringLiteral... TempArgs>
+        using generic_type = int;
+
+        template <StringLiteral... TempParams>
+        struct GenericFunctionTag {};
+
+
+        //Will be used to represent custom class objects, preventing it from being instantiated
+        template <StringLiteral TypeName>
+        using class_type = int;
+
+        //Will be used to represent custom struct objects, preventing it from being instantiated
+        template <StringLiteral TypeName>
+        using struct_type = int;
+
+
+        //This represents an enum value, with the type
+        template <StringLiteral TypeName>
+        using enum_type = int;
+
+
+        struct test_struct_class
+        {
+
+
+            template <typename T>
+            T member(std::string_view name)
+            {
+                //This is how one would access a class struct, however, instead of doing it like this, I'd like something similar to a native_reference,
+                // a scripted reference. Which basically would conversely serve to take a native object and impose changes on a scripted variable.
+                // notably, by doing this, I can have referenciable return types
+                return {};
+            }
+        };
+
+
+
+        namespace complete_reference_coverage
+        {
+            //This is an idea by which external references can cover native to native, scripted to native, and native to scripted references.
+            // Think the issue of returning a reference parameter, but that parameter leads to a scripted object. That's what this attempts to resolve.
+            // An object that serves as the handler for that, something similar to the local ref types, aliasing themselves as that object while serving
+            // as a reference to either a scripted object or a native one.
+
+            //
+        }
+
+        template <typename T>
+        struct MemberData
+        {
+            //using T = Variable;
+
+            T* data;
+
+            void Destroy()
+            {
+                if (data) {
+                    delete[] data;
+                    data = nullptr;
+                }
+            }
+
+            void Create(uint32_t size)
+            {
+                Destroy();
+
+                data = new T[size];
+            }
+
+            void Transfer(T* other, uint32_t size, bool move = false)
+            {
+                for (int i = 0; i < size; i)
+                {
+                    if (move) {
+                        data[i] = std::move(other[i]);
+                    }
+                    else {
+                        data[i] = other[i];
+                    }
+                }
+            }
+            
+            void Transfer(const T* other, uint32_t size)
+            {
+                return Transfer(unconst(other), size);
+            }
+
+
+            void Transfer(const void* other, uint32_t size)
+            {
+                //Shouldn't happen, this is just a dump overload.
+            }
+        };
+
+
+        class ClassStruct
+        {
+
+            TypeInfo* type = nullptr;
+
+        private:
+            union
+            {
+                uintptr_t			_raw = 0;
+                MemberData<Variable>           memberList;
+                MemberData<RuntimeVariable>    runtimeList;
+            };
+            ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
+            size_t size = 0;
+
+            //I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
+            // switch what type it's percieved as.
+
+            //This might make it a pain however.
+
+            template <typename V>
+            decltype(auto) Visit(V visitor)
+            {
+                if (IsRuntimeType() == true)
+                    return visitor(runtimeList);
+                else
+                    return visitor(memberList);
+            }
+
+            template <typename V>
+            decltype(auto) Visit(V visitor) const
+            {
+                if (IsRuntimeType() == true)
+                    return visitor(runtimeList);
+                else
+                    return visitor(memberList);
+            }
+            
+            template <typename T> 
+            decltype(auto) GetOther(const T& other) 
+                requires(std::is_same_v<decltype(memberList), qualify_extracted_template_t<T, std::remove_cv_t>> ||
+                        std::is_same_v<decltype(runtimeList), qualify_extracted_template_t<T, std::remove_cv_t>>)
+            {
+                if constexpr (std::is_same_v<decltype(memberList), qualify_extracted_template_t<T, std::remove_cv_t>>)
+                {
+                    return memberList;
+                }
+                else if constexpr (std::is_same_v<decltype(runtimeList), qualify_extracted_template_t<T, std::remove_cv_t>>)
+                {
+                    return runtimeList;
+                }
+            }
+
+
+            void Instantiate(TypeInfo* self)
+            {
+
+            }
+
+
+
+            RuntimeVariable GetMember(MemberPointer member)
+            {
+                return {};
+            }
+
+            bool IsRuntimeType() const
+            {
+                return false;
+            }
+
+            void Revert()
+            {
+                Visit([](auto& it) { it.Destroy(); });
+                type = nullptr;
+                size = false;
+            }
+
+
+            void Transfer(const ClassStruct& other)
+            {
+                Revert();
+                type = other.type;
+                size = other.size;
+                Visit([&](auto& lhs) 
+                {  
+                    Visit([&](auto& rhs)
+                    {
+                        lhs.Create(other.size);
+                        lhs.Transfer(rhs.data, other.size);
+                    });
+                });
+
+
+            }
+
+        };
+
+
+        ENUM(InfoType)
+        {
+            Invalid,
+		    Local,
+		    Parameter,
+		    Global,
+		    Member,
+		    Function,//Doesn't differentiate between method or function
+        };
+        
+        struct Info
+        {
+            //The interface for fields
+            virtual ~Info() = default;
+
+            //Field sorta needs to remain a string because of the fact locals don't really have names. Despite this, it's a problem between plugins
+            // that string has different sizes. This needs to be solved.
+            //I think the info will have a name, but the field name will be basic
+            virtual std::string_view GetName() const = 0;
+            virtual InfoType GetInfoType() const = 0;
+
+
+
+
+
+        };
+
+        struct VarInfo : public Info
+        {
+            virtual ITypeInfo* GetType() = 0;
+        };
+
+
+        struct IndexedVarInfo : public VarInfo
+        {
+            ITypeInfo* type = nullptr;
+            Qualifier qualifiers;
+            std::string _name;
+            ParameterFlag _flags{};
+            uint32_t index;
+        };
+
+
+        //These 2 are likely going to be internal, they don't have anything that scripts need to know about.
+        // instead, I can just say if it's a parameter, local/global variable, or field
+        struct LocalInfo : public IndexedVarInfo
+        {
+
+            virtual uint32_t GetFieldIndex() const = 0;
+
+
+           
+        };
+
+        struct ParameterInfo : public LocalInfo
+        {
+            ParameterFlag _flags{};
+            std::unique_ptr<RoutineBase> defFunc{};
+        };
+
+        struct FieldInfo : public IndexedVarInfo
+        {
+
+        };
+
+        //Qualified will hold VarInfo.
+    }
+
+
+
 }
 
 #include "Lexicon/Engine/TestToss.h"

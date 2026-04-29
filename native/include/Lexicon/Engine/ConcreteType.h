@@ -127,7 +127,7 @@ namespace LEX
 
 
 	private:
-		//TODO: unique_ptr this bum. It takes more space than it's owed.
+		//TODO: Make this only for intrinsic types, nothing else needs it
 		Variable _default;
 
 	};
