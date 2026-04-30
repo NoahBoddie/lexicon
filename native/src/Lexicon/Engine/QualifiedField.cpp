@@ -5,54 +5,58 @@
 #include "Lexicon/Engine/Scope.h"
 namespace LEX
 {
+
 	Solution QualifiedField::AsSolution(ExpressionCompiler* compiler)
 	{
+		VarInfo* info = _target;
 		bool is_loc = true;
 
-		switch (GetFieldType())
+		switch (info->GetInfoType())
 		{
-		case FieldType::Parameter:
+
+
+
+		case InfoType::ParameterInfo:
 			is_loc = false;
 			[[fallthrough]];
-		case FieldType::Local: {
-			QualifiedType type{ GetType(), GetQualifiers() };
+		case InfoType::LocalInfo: {
+			LocalInfo* loc = info->As<LocalInfo>();
+
+			QualifiedType type{ loc->type, loc->qualifiers };
 			OperandType op;
 			Index index;
-			
-			
+
+
 			if (type.IsVariadic())
 			{
 				auto buffer = compiler->GetScope()->ObtainLocalVariable(parse_strings::variadic_buffer);
 				op = OperandType::Variable | OperandType::VariableIndex;
-				index = buffer->GetFieldIndex();
-				
+				index = buffer->index;
+
 			}
 			else
 			{
 				op = is_loc ? OperandType::Variable : OperandType::Parameter;
-				index = GetFieldIndex();
+				index = loc->index;
 			}
 
 			return Solution{ type, op, index };
 		}
 
-		case FieldType::Global: {
-			IGlobal* glob = static_cast<GlobalBase*>(_target)->AsGlobal();
-			
+		case InfoType::GlobalBase: {
+			GlobalBase* glob = info->As<GlobalBase>();
 
-			Solution result{ QualifiedType{ GetType(), GetQualifiers() }, OperandType::Global, glob };
+			Solution result{ QualifiedType{ glob->GetType(), glob->AsInfo()->GetQualifiers() }, OperandType::Global, glob->AsGlobal() };
 
 			return result;
 		}
-		
-		case FieldType::Member:
-		case FieldType::Function:
-		
+
+								 //case FieldType::Member:
+								 //case FieldType::Function:
+
 		default:
 			report::compile::error("cannot handle this type at this time");
 			return {};
 		}
-
-
 	}
 }

@@ -1792,7 +1792,7 @@ namespace LEX
 				
 				auto tmp = compiler->GetScope()->ObtainLocalVariable(parse_strings::arg_count_buffer);
 				auto reg = compiler->GetPrefered();
-				Operand buffer{ tmp->GetFieldIndex(), OperandType::Value };
+				Operand buffer{ tmp->index, OperandType::Value };
 				Operand pref{ reg, OperandType::Register };
 				compiler->PushInstruction(Instruction{ InstructType::ExpressData, reg,
 					Operand{ RuntimeData::ArgumentIndex, OperandType::Enum}, 
@@ -1965,7 +1965,7 @@ namespace LEX
 
 			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);
 
-			size_t loc_index = loc->_index;
+			size_t loc_index = loc->index;
 			if (SyntaxRecord* definition = target.FindChild(parse_strings::def_expression); definition) {
 				auto& def = definition->GetChild(0);
 				Solution result = compiler->CompileExpression(def, Register::Result);

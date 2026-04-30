@@ -58,7 +58,7 @@ namespace LEX
 
 			LocalInfo* tmp = compiler->GetScope()->ObtainLocalVariable(parse_strings::variadic_buffer);
 
-			Operand buffer{ tmp->GetFieldIndex(), OperandType::Value };
+			Operand buffer{ tmp->index, OperandType::Value };
 
 			//Allocate based on the location of the vard parameter, and move the value to the buffer
 			//result.push_back(Instruction{ InstructType::VardAlloc, buffer, vard_index });//I would like to face this out

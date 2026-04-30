@@ -68,7 +68,7 @@ namespace LEX
 
 
 			//out.convertType = ConversionEnum::TypeDefined;
-			out.index = (size_t)subject->GetFieldIndex() - HasTarget();
+			out.index = (size_t)subject->index - HasTarget();
 
 			out.type = sub_type;
 		}
@@ -142,7 +142,7 @@ namespace LEX
 
 			out.convertType = convertType;
 
-			out.index = (size_t)subject->GetFieldIndex() - HasTarget();
+			out.index = (size_t)subject->index - HasTarget();
 			out.type = sub_type;
 
 			if (convertType <= ConversionEnum::Failure) {
@@ -154,7 +154,7 @@ namespace LEX
 		{
 
 			out.convertType = ConversionResult::Ineligible;
-			out.index = (size_t)subject->GetFieldIndex() - HasTarget();
+			out.index = (size_t)subject->index - HasTarget();
 			return false;
 		}
 
@@ -362,7 +362,7 @@ namespace LEX
 			entry.routine = def_routine;
 			entry.convertType = ConversionEnum::Exact;
 			entry.type = param.GetQualifiedType();
-			entry.index = (size_t)param.GetFieldIndex() - HasTarget();
+			entry.index = (size_t)param.index - HasTarget();
 		}
 
 		return true;
@@ -394,7 +394,7 @@ namespace LEX
 
 				//Cancelling this for now. It should be used in Invoke, rather than here.
 				return;
-				int i = param.GetFieldIndex();
+				int i = param.index;
 
 				TypeInfo* expected = NULL_OP(NULL_Q(param.GetType())->GetTypeInfo(caller));
 
@@ -406,7 +406,7 @@ namespace LEX
 				RuntimeVariable check = args[i]->Convert(expected);
 
 				if (check.IsVoid() == true)
-					report::apply::critical("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
+					report::apply::critical("cannot convert argument into parameter {}, {} vs {}", param.GetName(), i, i);
 
 				args[i] = check;
 			});
@@ -500,7 +500,7 @@ namespace LEX
 		if constexpr (0)
 		VisitParameters([&](ParameterInfo& param)
 			{
-				int i = param.GetFieldIndex();
+				int i = param.index;
 
 				if (args.size() <= i)
 					return;
@@ -511,12 +511,12 @@ namespace LEX
 
 
 				if (!expected)
-					report::apply::error("null parameter type in {}", param.GetFieldName());
+					report::apply::error("null parameter type in {}", param.GetName());
 				//This should be done in Invoke, which has conversion checks.
 				Variable check = args[i]->Convert(expected);
 
 				if (check.IsVoid() == true)
-					report::apply::error("cannot convert argument into parameter {}, {} vs {}", param.GetFieldName(), i, i);
+					report::apply::error("cannot convert argument into parameter {}, {} vs {}", param.GetName(), i, i);
 
 				args[i].Ref() = std::move(check);
 			});

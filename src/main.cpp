@@ -792,7 +792,7 @@ namespace LEX::Test
         Number other;
         std::string lhs;
         String rhs;
-        
+
         Test test;
 
         //test + 1;
@@ -818,7 +818,7 @@ namespace LEX::Test
 
     struct __declspec(dllimport)TestImex
     {
-        int test=1;
+        int test = 1;
         [[maybe_unused]] virtual void TestFunc()
         {
             test = 2;
@@ -845,7 +845,7 @@ namespace LEX::Test
 
     struct ClassA : public virtual DeepA
     {
-        
+
     };
 
     struct DeepB
@@ -915,7 +915,7 @@ namespace LEX::Test
         //When activated
 
 
-        
+
         constexpr interface_ptr() noexcept = default;
 
         interface_ptr(pointer_type p) : _ptr{ p }
@@ -942,7 +942,7 @@ namespace LEX::Test
 
         operator pointer_type() noexcept { return get(); }
         operator const pointer_type() const noexcept { return get(); }
-        
+
         pointer_type operator->() { return get(); }
         const pointer_type operator->() const noexcept { return get(); }
 
@@ -984,7 +984,7 @@ namespace LEX::Test
 
     }
 
-   
+
 
     struct AssociationData
     {
@@ -1129,7 +1129,7 @@ namespace LEX::Test
                     }
                 }
             }
-            
+
             void Transfer(const T* other, uint32_t size)
             {
                 return Transfer(unconst(other), size);
@@ -1180,11 +1180,11 @@ namespace LEX::Test
                 else
                     return visitor(memberList);
             }
-            
-            template <typename T> 
-            decltype(auto) GetOther(const T& other) 
+
+            template <typename T>
+            decltype(auto) GetOther(const T& other)
                 requires(std::is_same_v<decltype(memberList), qualify_extracted_template_t<T, std::remove_cv_t>> ||
-                        std::is_same_v<decltype(runtimeList), qualify_extracted_template_t<T, std::remove_cv_t>>)
+            std::is_same_v<decltype(runtimeList), qualify_extracted_template_t<T, std::remove_cv_t>>)
             {
                 if constexpr (std::is_same_v<decltype(memberList), qualify_extracted_template_t<T, std::remove_cv_t>>)
                 {
@@ -1227,52 +1227,20 @@ namespace LEX::Test
                 Revert();
                 type = other.type;
                 size = other.size;
-                Visit([&](auto& lhs) 
-                {  
-                    Visit([&](auto& rhs)
+                Visit([&](auto& lhs)
                     {
-                        lhs.Create(other.size);
-                        lhs.Transfer(rhs.data, other.size);
+                        Visit([&](auto& rhs)
+                            {
+                                lhs.Create(other.size);
+                                lhs.Transfer(rhs.data, other.size);
+                            });
                     });
-                });
 
 
             }
 
         };
 
-
-        ENUM(InfoType)
-        {
-            Invalid,
-		    Local,
-		    Parameter,
-		    Global,
-		    Member,
-		    Function,//Doesn't differentiate between method or function
-        };
-        
-        struct Info
-        {
-            //The interface for fields
-            virtual ~Info() = default;
-
-            //Field sorta needs to remain a string because of the fact locals don't really have names. Despite this, it's a problem between plugins
-            // that string has different sizes. This needs to be solved.
-            //I think the info will have a name, but the field name will be basic
-            virtual std::string_view GetName() const = 0;
-            virtual InfoType GetInfoType() const = 0;
-
-
-
-
-
-        };
-
-        struct VarInfo : public Info
-        {
-            virtual ITypeInfo* GetType() = 0;
-        };
 
 
         struct IndexedVarInfo : public VarInfo
@@ -1293,7 +1261,7 @@ namespace LEX::Test
             virtual uint32_t GetFieldIndex() const = 0;
 
 
-           
+
         };
 
         struct ParameterInfo : public LocalInfo
@@ -1308,10 +1276,9 @@ namespace LEX::Test
         };
 
         //Qualified will hold VarInfo.
+
+
+
     }
-
-
-
 }
-
 #include "Lexicon/Engine/TestToss.h"

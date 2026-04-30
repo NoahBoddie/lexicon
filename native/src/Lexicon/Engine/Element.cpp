@@ -560,7 +560,7 @@ namespace LEX
 								//possible specialization here.
 
 								//return global;
-								result = QualifiedField{ var };
+								result = QualifiedField{ var->AsInfo() };
 
 								return true;
 							}
@@ -670,7 +670,7 @@ namespace LEX
 				return func ? func.GetBase() : nullptr;
 			}
 			case kGlobElement:
-				return dynamic_cast<GlobalBase*>(SearchFieldPath(a_this, path_record).GetField());
+				return SearchFieldPath(a_this, path_record).GetInfo()->As<GlobalBase>();
 
 			case kScrpElement:
 				return SearchScriptPath(a_this, path_record);
@@ -976,7 +976,7 @@ namespace LEX
 			return func ? func.GetBase() : nullptr;
 		}
 		case kGlobElement:
-			return dynamic_cast<GlobalBase*>(SearchFieldPath(a_this, path_record).GetField());
+			return SearchFieldPath(a_this, path_record).GetInfo()->As<GlobalBase>();
 		
 		case kScrpElement:
 			return SearchScriptPath(a_this, path_record);
@@ -1173,7 +1173,7 @@ namespace LEX
 						//possible specialization here.
 
 						//return global;
-						result = QualifiedField{ var };
+						result = QualifiedField{ var->AsInfo() };
 
 						return true;
 					}
