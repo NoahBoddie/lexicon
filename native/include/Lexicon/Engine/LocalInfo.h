@@ -1,7 +1,7 @@
 #pragma once
 
 #include "InfoBase.h"
-#include "Lexicon/Engine/IndexedVarInfo.h"
+#include "Lexicon/Engine/VarIndexInfo.h"
 namespace LEX
 {
 #ifdef  DONOT
@@ -71,9 +71,9 @@ namespace LEX
 #endif
 
 
-	struct LocalInfo : public IndexedVarInfo
+	struct LocalInfo : public VarIndexInfo
 	{
-		using IndexedVarInfo::IndexedVarInfo;
+		using VarIndexInfo::VarIndexInfo;
 
 
 		DEFINE_INFO_TYPE(InfoType::LocalInfo)

@@ -51,7 +51,7 @@ namespace LEX
 			/*
 			if constexpr (0)
 				if (auto temp = sub_type->AsTemplate()) {
-					if (auto type = overload.GetManualTemplateType(temp->index); type) {
+					if (auto type = overload.GetManualTemplateType(temp->GetIndex()); type) {
 						logger::info("template type already placed");
 						sub_type.policy = type;
 					}
@@ -68,7 +68,7 @@ namespace LEX
 
 
 			//out.convertType = ConversionEnum::TypeDefined;
-			out.index = (size_t)subject->index - HasTarget();
+			out.index = (size_t)subject->GetIndex() - HasTarget();
 
 			out.type = sub_type;
 		}
@@ -130,7 +130,7 @@ namespace LEX
 			/*
 			if constexpr (0)
 				if (auto temp = sub_type->AsTemplate()) {
-					if (auto type = overload.GetManualTemplateType(temp->index); type) {
+					if (auto type = overload.GetManualTemplateType(temp->GetIndex()); type) {
 						logger::info("template type already placed");
 						sub_type.policy = type;
 					}
@@ -142,7 +142,7 @@ namespace LEX
 
 			out.convertType = convertType;
 
-			out.index = (size_t)subject->index - HasTarget();
+			out.index = (size_t)subject->GetIndex() - HasTarget();
 			out.type = sub_type;
 
 			if (convertType <= ConversionEnum::Failure) {
@@ -154,7 +154,7 @@ namespace LEX
 		{
 
 			out.convertType = ConversionResult::Ineligible;
-			out.index = (size_t)subject->index - HasTarget();
+			out.index = (size_t)subject->GetIndex() - HasTarget();
 			return false;
 		}
 
@@ -261,7 +261,7 @@ namespace LEX
 
 
 			//out.convertType = ConversionEnum::TypeDefined;
-			out.index = subject->index;
+			out.index = subject->GetIndex();
 			out.type = QualifiedType{ subject };
 		}
 		else
@@ -313,7 +313,7 @@ namespace LEX
 
 
 			//out.convertType = ConversionEnum::TypeDefined;
-			out.index = subject->index;
+			out.index = subject->GetIndex();
 			out.type = QualifiedType{ subject };
 		}
 		else
@@ -362,7 +362,7 @@ namespace LEX
 			entry.routine = def_routine;
 			entry.convertType = ConversionEnum::Exact;
 			entry.type = param.GetQualifiedType();
-			entry.index = (size_t)param.index - HasTarget();
+			entry.index = (size_t)param.GetIndex() - HasTarget();
 		}
 
 		return true;
@@ -394,7 +394,7 @@ namespace LEX
 
 				//Cancelling this for now. It should be used in Invoke, rather than here.
 				return;
-				int i = param.index;
+				int i = param.GetIndex();
 
 				TypeInfo* expected = NULL_OP(NULL_Q(param.GetType())->GetTypeInfo(caller));
 
@@ -500,7 +500,7 @@ namespace LEX
 		if constexpr (0)
 		VisitParameters([&](ParameterInfo& param)
 			{
-				int i = param.index;
+				int i = param.GetIndex();
 
 				if (args.size() <= i)
 					return;

@@ -42,13 +42,7 @@ namespace LEX
 
 #define INFO_NAMES Info, VarInfo, LocalInfo, ParameterInfo, GlobalBase
 
-/*GenericGlobal, SpecialGlobal*/
-        using From = VarInfo;
-        using To = GlobalBase;
-        static constexpr bool test = std::is_base_of_v<Info, Info>;
-        static constexpr bool test2 = std::is_base_of_v<GlobalBase, VarInfo>&& std::is_convertible_v<GlobalBase, GlobalBase>;
-        static constexpr bool test3 = (std::is_base_of_v<GlobalBase, From> || std::is_base_of_v<From, GlobalBase>)
-        && std::is_base_of_v<To, GlobalBase>;
+
 
         template <typename From, typename To>
         static const To* RightInfoCast(const From* self)

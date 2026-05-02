@@ -1033,15 +1033,462 @@ namespace LEX::Test
         }
     };
 
+    struct MethodInfo : public Info
+    {
+        //Isn't treated as an actual function, instead needs to be turned into one maybe?
+    };
+
+
 
     //This is used only for non-static fields and virtual methods
     struct Members
     {
         std::vector<QualifiedType> fields;
-        std::vector<void*> methods;
+        
+        //I want to use I function for this, but it will need to be smoothed over with places that want a base
+        std::vector<IFunction*> methods;
+        //std::vector<>
+    };
+
+    
+
+    //The idea is whenever something is specialized and has generic entries, it will show what they've
+    // turned into. I think this works as a concept.
+    //It'll have to be loaded from the Special/GenericType
+    struct SpecTranslationUnit
+    { 
+        struct Translation
+        {
+            uint32_t unspecial;
+            uint32_t special;
+
+            constexpr auto operator <=>(const Translation& other) const noexcept = default;
+        };
+
+       
+        struct less {
+            constexpr auto operator()(Translation&& lhs, Translation&& rhs) const noexcept {
+                return lhs.unspecial < rhs.unspecial;
+            }
+
+            using is_transparent = int;
+        };
+
+        std::unordered_map<uint32_t, uint32_t> test2;
+        std::unique_ptr <std::unordered_map<uint32_t, uint32_t>>test;
+    };
+    //Nvm this shit is literally useless.
+    
+
+
+    struct InheritData_
+    {
+        //The hash is a value that represents memory wise, where said object can be considered within memory.
+        std::array<uint32_t, 2> hash{};
+
+
+        //Distance is -1 if virtually inherited
+        uint32_t distance = 0;
+        uint32_t _id = 0;
+        ITypeInfo* type = nullptr;
+
+
+        //This can possibly be unionized, with the sign bit being able to tell if one or the other.
+        uint32_t ownerIndex = 0;
+
+        uint32_t memberIndex = 0;
+
+        Access access;//
+        //I think I'll store internal access outside of this.
+        bool postAffixed = false;
+        bool isGeneric = false;//This differs if the id is an instance id or a type id.
+        bool virtInherited = false;
+
+        constexpr bool operator<(const InheritData& other) const
+        {
+            if (isGeneric != other.isGeneric)
+                return !isGeneric < !other.isGeneric;
+
+            return  distance < other.distance;
+        }
+
+        //Need to figure out how to move these.
+
+        //These are deprecated, as methods
+        //uint32_t memberRange [2];//This should be where this entries stuff starts, and then where it ends. same deal with the other.
+        //uint32_t methodRange [2];
+
+        Access GetAccess() const
+        {
+            return access & ~Access::Internal;
+        }
+
+        void SetAccess(Access a_acc)
+        {
+            auto pop = access & Access::Internal;
+            a_acc &= ~Access::Internal;
+            access = a_acc;
+            access |= pop;
+        }
+
+        //I want to merge a bunch of flags into where access is. Stuff like is generic or is internal, virtual inherited all can probably be shoved in there.
+
+        void SetInternal(bool v)
+        {
+            if (v) {
+                access |= Access::Internal;
+            }
+            else {
+                access &= ~Access::Internal;
+            }
+        }
+
+        void SetAffixed(bool v)
+        {
+            postAffixed = v;
+        }
+
+        bool IsAffixed() const
+        {
+            return postAffixed;
+        }
+
+
+        bool IsInternal() const
+        {
+            return access & Access::Internal;
+        }
+
+        bool IsVirtualInherited() const
+        {
+            return virtInherited;
+        }
+
     };
 
 
+
+
+    template <class T> requires(requires (T* ptr) { { ptr->Destroy() } -> std::same_as<void>; })
+        struct destroy_delete { // default deleter for unique_ptr
+        constexpr destroy_delete() noexcept = default;
+
+        template <class Ty, std::enable_if_t<std::is_convertible_v<Ty*, T*>, int> = 0>
+        constexpr destroy_delete(const destroy_delete<Ty>&) noexcept {}
+
+        constexpr void operator()(T* ptr) const noexcept {
+            static_assert(0 < sizeof(T), "can't delete an incomplete type");
+            ptr->Destroy();
+        }
+    };
+    template <typename T>
+    using destructible_ptr = std::unique_ptr<T, destroy_delete<T>>;
+
+
+
+#pragma region Template Type Containers (GenericBase)
+
+
+
+    struct TemplateContainer : public ITemplatePart
+    {
+        static constexpr uint32_t uninitialized = -1;
+        size_t GetSize() const override
+        { 
+            return GetParentSize() + templates.size(); 
+        }
+        ITypeInfo* GetPartArgument(size_t i) const 
+        { 
+            if (auto size = GetParentSize(); i < size) {
+                return parent->GetPartArgument(i);
+            }
+            else {
+                i -= size;
+            }
+            
+            return unconst(std::addressof(templates[i])); 
+        }
+
+        void Observe() noexcept
+        {
+            _ref++;
+        }
+        void Destroy() noexcept
+        {
+            if (--_ref == 0) {
+                TemplateContainer::Destroy();
+            }
+        }
+
+        uint32_t GetParentSize() const
+        {
+            if (_cachedSize == uninitialized) {
+                if (!parent)
+                    return 0;
+
+                _cachedSize = parent->GetParentSize();
+            }
+            return _cachedSize;
+        }
+
+
+
+    public:
+        //The parent will be what handles
+        TemplateContainer* parent = nullptr;
+        std::vector<TemplateType> templates;
+    private:
+        std::atomic<int32_t> _ref = 1;
+        mutable uint32_t _cachedSize = uninitialized;
+    };
+
+
+#pragma endregion
+
+
+#pragma region New Function Signature
+    //One half of the signature that would make up the signature that 
+    struct BasicCallSignature
+    {
+        QualifiedType _returnType = nullptr;
+        std::vector<ParameterInfo> parameters;
+
+    };
+
+
+
+    //Used exclusively to represent "this" rather than parameter
+    struct ThisInfo : public IVarIndexInfo
+    {
+        constexpr ThisInfo() noexcept = default;
+
+        ThisInfo(QualifiedType t) :
+            qualifiers{ t },
+            type{ t.policy }
+        {
+
+        }
+
+        std::string_view GetName() const override
+        {
+            return parse_strings::this_word;
+        }
+
+        ITypeInfo* GetType() const override
+        {
+            return type;
+        }
+
+        //These should have some qualifiers tacked on that are expected of "this"
+        Refness GetRefness() override
+        {
+            return qualifiers.reference;
+        }
+        Constness GetConstness() override
+        {
+            return qualifiers.constness;
+        }
+        QualifierFlag GetQualifierFlags() override
+        {
+            return qualifiers.flags;
+        }
+
+        constexpr size_t GetIndex() const noexcept override { return 0; }
+
+
+        ITypeInfo* type = nullptr;
+        Qualifier qualifiers;
+    };
+
+    enum struct FunctionBody
+    {
+        None,
+        Routine,
+        Procedure,
+    };
+
+
+
+    struct BasicCallableData_ : public BasicCallSignature
+    {
+        std::unique_ptr<ThisInfo> _thisInfo;
+
+    public:
+
+        union
+        {
+            intptr_t raw = 0;
+            RoutineBase* _routine;
+            Procedure _procedure;
+        };
+
+
+        
+        uint32_t vardIndex = (uint32_t)-1;
+        uint32_t defaultIndex = (uint32_t)-1;
+
+        void VisitParameters(std::function<void(VarInfo&)> func)
+        {
+            if (_thisInfo)
+                func(*_thisInfo);
+
+            for (auto& param : parameters)
+            {
+                func(param);
+            }
+        }
+
+    };
+
+
+    //This is basically something that only handles routines, and will create and destroy the routine when loaded and destroyed
+    // This is for formulas primarily.
+    struct RoutineData : public BasicCallableData_
+    {
+        RoutineData()
+        {
+            _routine = new RoutineBase;
+        }
+
+        ~RoutineData()
+        {
+            if (_routine)
+                delete _routine;
+        }
+
+        RoutineBase* GetRoutine()
+        {
+            //This plans to be a pointer later, as this will end up just being
+            return _routine;
+        }
+    };
+
+    struct FunctionData_ : public BasicCallableData_
+    {
+        std::string _name;
+
+        //TODO: Please move Overload functionality back to base. Instead, give this a generic base
+        GenericBase* base = nullptr;
+
+        uint64_t procedureData = 0;
+
+
+
+        
+        //formulas won't have defaults, they don't have names, and they don't have procedures (such would defy the point of them.
+
+
+        constexpr bool HasProcedure() const noexcept
+        {
+            return procedureData;
+        }
+
+        std::optional<Procedure> GetProcedure()
+        {
+            return HasProcedure() ? std::make_optional(_procedure) : std::nullopt;
+        }
+
+
+        RoutineBase* GetRoutine()
+        {
+            //This plans to be a pointer later, as this will end up just being 
+            return !HasProcedure() ? _routine : nullptr;
+        }
+
+
+        std::string_view name() const
+        {
+            return _name;
+        }
+
+
+    };
+
+
+
+
+
+    struct FunctionSignature
+    {
+        //The uses of these will be self managing, so I'd like to find some method to prevent them
+        // from dying, but only if they've been instantiated.
+        ThisInfo* thisInfo = nullptr;
+        BasicCallSignature* callSignature = nullptr;
+        TemplateContainer* genericSignature = nullptr;
+        Specifier specifiers{};
+
+    };
+
+#pragma endregion
+
+
+#pragma region New FunctionInfo
+
+
+    //struct FunctionNode
+
+
+    //This is used both for the function info but also the other side
+    struct FunctionInfo : public Interface, public Info
+    {
+        
+    };
+
+    struct OverloadInfo : public FunctionInfo, public OverloadParameter
+    {
+        virtual void Destroy() {}
+    };
+
+    //struct FunctionBase : public OverloadInfo {};
+
+  
+    //This is used if a method is stored there
+
+
+
+    struct VirtualInfo : public OverloadInfo
+    {
+        void Destroy() override { delete this; }
+        std::string name;
+        MemberPointer method;
+        ThisInfo* thisInfo = nullptr;
+        BasicCallSignature* callSign = nullptr;
+        TemplateContainer* genSign = nullptr;
+        Specifier specifiers{};
+        
+        bool IsPure() const
+        {
+            //The virtual flag is removed once when this is created, and is added in whenever transfered
+            // if it's still press
+            return specifiers.flags & SpecifierFlag::Virtual;
+        }
+
+        ~VirtualInfo()
+        {
+            if (IsPure() == true) {
+                delete thisInfo;
+                delete callSign;
+            }
+
+            if (genSign)
+                genSign->Destroy();
+        }
+    };
+
+
+    
+
+    struct FakeEnvironment
+    {
+        //This should be unique pointers that call destroy when complete. Destry will only destroy nodes, but ignore functions.
+        std::map<std::string_view, destructible_ptr<OverloadInfo>> functions;
+    };
+
+
+    //NOTE: I would like to hash the string for function names and store them that way. This makes sense considering the name has what I need.
+    // it also saves a bit of space.
+
+#pragma endregion
 
 
     namespace ClassStructSystem
@@ -1243,7 +1690,7 @@ namespace LEX::Test
 
 
 
-        struct IndexedVarInfo : public VarInfo
+        struct VarIndexInfo : public VarInfo
         {
             ITypeInfo* type = nullptr;
             Qualifier qualifiers;
@@ -1255,7 +1702,7 @@ namespace LEX::Test
 
         //These 2 are likely going to be internal, they don't have anything that scripts need to know about.
         // instead, I can just say if it's a parameter, local/global variable, or field
-        struct LocalInfo : public IndexedVarInfo
+        struct LocalInfo : public VarIndexInfo
         {
 
             virtual uint32_t GetFieldIndex() const = 0;
@@ -1270,7 +1717,7 @@ namespace LEX::Test
             std::unique_ptr<RoutineBase> defFunc{};
         };
 
-        struct FieldInfo : public IndexedVarInfo
+        struct FieldInfo : public VarIndexInfo
         {
 
         };

@@ -25,6 +25,8 @@ namespace LEX
 	//Or maybe it should be an enum.
 	using Procedure = void(*)(RuntimeVariable&, Variable*, std::span<Variable*>, ProcedureData&);
 	
+	
+
 	struct BasicCallableData
 	{
 		QualifiedType _returnType = nullptr;

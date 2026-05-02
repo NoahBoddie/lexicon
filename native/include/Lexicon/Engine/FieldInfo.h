@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Lexicon/Engine/IndexedVarInfo.h"
+#include "Lexicon/Engine/VarIndexInfo.h"
 
 namespace LEX
 {
 
-	struct LocalInfo : public IndexedVarInfo
+	struct FieldInfo : public VarIndexInfo
 	{
 		DEFINE_INFO_TYPE(InfoType::FieldInfo)
 	public:

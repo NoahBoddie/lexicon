@@ -4,12 +4,17 @@
 #include "Lexicon/Engine/QualifiedType.h"
 namespace LEX
 {
+	struct IVarIndexInfo : public VarInfo
+	{
+		virtual size_t GetIndex() const noexcept = 0;
+	};
 
-    struct IndexedVarInfo : public VarInfo
+
+    struct VarIndexInfo : public IVarIndexInfo
     {
-		constexpr IndexedVarInfo() noexcept = default;
+		constexpr VarIndexInfo() noexcept = default;
 
-		IndexedVarInfo(QualifiedType t, uint32_t i) :
+		VarIndexInfo(QualifiedType t, uint32_t i) :
 			qualifiers{ t },
 			type{ t.policy },
 			index{ i }
@@ -39,10 +44,16 @@ namespace LEX
 		{
 			return qualifiers.flags;
 		}
+
+		size_t GetIndex() const noexcept override
+		{
+			return index;
+		}
 	
         std::string _name;
         ITypeInfo* type = nullptr;
         Qualifier qualifiers;
+	protected:
         uint32_t index;
     };
 }

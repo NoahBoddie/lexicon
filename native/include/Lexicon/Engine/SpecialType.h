@@ -16,8 +16,15 @@ namespace LEX
 	struct SpecialType : public TypeInfo, public SpecialBase
 	{
 		DEFINE_COMPONENT_TYPE(ComponentType::SpecialType)
+	public:
+
+
 
 		ITypeInfo* _self = nullptr;
+
+
+
+
 
 		//SpecialType(GenericBase* base, ITypeInfo* type, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ type }
 		//{

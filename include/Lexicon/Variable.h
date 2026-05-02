@@ -31,6 +31,7 @@ namespace LEX
 		String,
 		Object,
 		IComponent*
+		//,Info
 		>;
 
 

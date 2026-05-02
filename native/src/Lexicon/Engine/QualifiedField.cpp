@@ -31,13 +31,13 @@ namespace LEX
 			{
 				auto buffer = compiler->GetScope()->ObtainLocalVariable(parse_strings::variadic_buffer);
 				op = OperandType::Variable | OperandType::VariableIndex;
-				index = buffer->index;
+				index = buffer->GetIndex();
 
 			}
 			else
 			{
 				op = is_loc ? OperandType::Variable : OperandType::Parameter;
-				index = loc->index;
+				index = loc->GetIndex();
 			}
 
 			return Solution{ type, op, index };
