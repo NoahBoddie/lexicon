@@ -444,6 +444,7 @@ namespace LEX
 		scriptTokens.AddKeyword("requires");
 		scriptTokens.AddKeyword("subdirectory");
 		scriptTokens.AddKeyword("subproject");
+		scriptTokens.AddKeyword("pause_break");
 
 		scriptTokens.AddConditional("maybe");
 

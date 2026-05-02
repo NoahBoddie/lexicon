@@ -29,9 +29,15 @@ if (PARENT_NAME STREQUAL PROJECT_NAME)
 	set(PARENT_VERSION_TWEAK "${PROJECT_VERSION_TWEAK}")
 endif()
 
-if (NOT PARENT_VERSION)
+if (PARENT_NAME STREQUAL PROJECT_NAME)
+	set(PARENT_NAME "${PROJECT_NAME}")	
 	set(PARENT_VERSION "${PROJECT_VERSION}")
+	set(PARENT_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+	set(PARENT_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+	set(PARENT_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+	set(PARENT_VERSION_TWEAK "${PROJECT_VERSION_TWEAK}")
 endif()
+
 
 
 
@@ -151,7 +157,7 @@ set(headers
 	"include/Lexicon/IElementProxy.h"
 	"include/Lexicon/Issue.h"
 	"include/Lexicon/Interfaces/LinkMessenger.h"
-  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h"   "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h"   "include/Lexicon/ComponentType.h" "include/Lexicon/Interfaces/IComponentBase.h" "include/Lexicon/Interfaces/IComponent.h" "include/Lexicon/Interfaces/IElementBase.h" "include/Lexicon/Impl/ComponentDetails.h" "include/Lexicon/Impl/Utility.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IDirectoryBase.h" "include/Lexicon/Interfaces/IDirectory.h" "native/include/Lexicon/Engine/GlobalImpl.h" "include/Lexicon/Interfaces/IRepository.h" "include/Lexicon/Interfaces/IRepositoryBase.h" "include/Lexicon/Interfaces/ISubdirectory.h" "include/Lexicon/Interfaces/DirectoryManager.h" "include/Lexicon/Interfaces/SharedClient.h")
+  "include/Lexicon/IssueCode.h" "include/Lexicon/IniHandler.h"   "include/Lexicon/LinkFlag.h" "include/Lexicon/NativeReference.h"  "include/Lexicon/ITemplateBodyPart.h" "include/Lexicon/GenericArray.h" "include/Lexicon/AnnotatedType.h"   "include/Lexicon/Revariable.h" "include/Lexicon/ProxyGuide.h"   "include/Lexicon/MergeTemplate.h"  "include/Lexicon/variadic.h"   "include/Lexicon/ComponentType.h" "include/Lexicon/Interfaces/IComponentBase.h" "include/Lexicon/Interfaces/IComponent.h" "include/Lexicon/Interfaces/IElementBase.h" "include/Lexicon/Impl/ComponentDetails.h" "include/Lexicon/Impl/Utility.h" "include/Lexicon/Interfaces/IEnvironment.h" "include/Lexicon/Interfaces/IDirectoryBase.h" "include/Lexicon/Interfaces/IDirectory.h" "native/include/Lexicon/Engine/GlobalImpl.h" "include/Lexicon/Interfaces/IRepository.h" "include/Lexicon/Interfaces/IRepositoryBase.h" "include/Lexicon/Interfaces/ISubdirectory.h" "include/Lexicon/Interfaces/DirectoryManager.h" "include/Lexicon/Interfaces/SharedClient.h" "include/Lexicon/InfoType.h" "include/Lexicon/Impl/InfoDetails.h" "include/Lexicon/Interfaces/Info.h" "include/Lexicon/Interfaces/VarInfo.h")
 
 
 set(sources
@@ -286,7 +292,7 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/Conversion.h"
 		"native/include/Lexicon/Engine/Convert.h"
 
-	 "native/include/Lexicon/Engine/NullType.h"    "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "native/include/Lexicon/Engine/FunctionImpl.h" "native/include/Lexicon/Engine/Repository.h" "native/include/Lexicon/Engine/Subdirectory.h" "native/include/Lexicon/Engine/ProjectDirectory.h" "native/include/Lexicon/Engine/TestToss.h" "native/include/Lexicon/Engine/DirectiveRecord.h" "native/include/Lexicon/Engine/Directive.h" "native/include/Lexicon/Engine/Director.h")
+	 "native/include/Lexicon/Engine/NullType.h"    "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "native/include/Lexicon/Engine/FunctionImpl.h" "native/include/Lexicon/Engine/Repository.h" "native/include/Lexicon/Engine/Subdirectory.h" "native/include/Lexicon/Engine/ProjectDirectory.h" "native/include/Lexicon/Engine/TestToss.h" "native/include/Lexicon/Engine/DirectiveRecord.h" "native/include/Lexicon/Engine/Directive.h" "native/include/Lexicon/Engine/Director.h" "native/include/Lexicon/Engine/VarIndexInfo.h" "native/include/Lexicon/Engine/FieldInfo.h" "native/include/Lexicon/Engine/Impl/InfoTraits.h")
 		
 
 	set(sources
@@ -352,7 +358,7 @@ if(LEXICON_SOURCE)
 		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
 		"src/Lexicon/Interfaces/IElementBase.cpp"
 		"native/src/Lexicon/Engine/Subdirectory.cpp"
-		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp" "src/Lexicon/Interfaces/DirectoryManager.cpp" "native/src/Lexicon/Engine/ProjectDirectory.cpp"  "native/src/Lexicon/Engine/Directory.cpp" "native/src/Lexicon/Engine/DirectiveRecord.cpp" "src/Lexicon/Interfaces/SharedClient.cpp" "src/Lexicon/Interfaces/IComponentBase.cpp")
+		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp" "src/Lexicon/Interfaces/DirectoryManager.cpp" "native/src/Lexicon/Engine/ProjectDirectory.cpp"  "native/src/Lexicon/Engine/Directory.cpp" "native/src/Lexicon/Engine/DirectiveRecord.cpp" "src/Lexicon/Interfaces/SharedClient.cpp" "src/Lexicon/Interfaces/IComponentBase.cpp" "src/Lexicon/Interfaces/Info.cpp")
 endif()
 
 source_group(
@@ -637,8 +643,8 @@ target_compile_definitions(
 target_compile_definitions(
 	"${PROJECT_NAME}"
 	PUBLIC
-		LEX_VERSION=${PROJECT_VERSION_TWEAK}ULL<<0|${PROJECT_VERSION_PATCH}ULL<<8|${PROJECT_VERSION_MINOR}ULL<<16|${PROJECT_VERSION_MAJOR}ULL<<24
-
+		LEX_VERSION=${PARENT_VERSION_TWEAK}ULL<<0|${PARENT_VERSION_PATCH}ULL<<8|${PARENT_VERSION_MINOR}ULL<<16|${PARENT_VERSION_MAJOR}ULL<<24
+		LEX_VERSION_INTERNAL=${PROJECT_VERSION_TWEAK}ULL<<0|${PROJECT_VERSION_PATCH}ULL<<8|${PROJECT_VERSION_MINOR}ULL<<16|${PROJECT_VERSION_MAJOR}ULL<<24
 	)
 
 

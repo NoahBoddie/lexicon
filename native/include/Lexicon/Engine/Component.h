@@ -84,7 +84,7 @@ namespace LEX
 		// ^Definitely harder/longer to search but it will only need to be searched once.
 		//Core to the concept of this would be to pluck every the pair every time consideration is going off, and then to make the function recursive, and able
 		// to resolve other components questions.
-		inline static LinkInfo& _info = make_singleton<LinkInfo>();
+		inline static LinkInfo& _info = make_singleton();
 
 		//Limit the use of a recordless create by seeing if load from record has been implemented.
 		template<class D>
@@ -600,6 +600,11 @@ namespace LEX
 			_valid |= ValidationFlag::Complete;
 			
 			return true;
+		}
+
+		bool IsTask(LinkFlag flags) const
+		{
+			return flags & _tasks;
 		}
 
 

@@ -22,9 +22,19 @@
 
 namespace LEX
 {
+	void Script::AddFormat(const std::string_view& name, const std::string_view& content)
+	{
+		auto project = GetProject();
 
+		if (project->SendFormat(name, content, this) == false) {
+			report::compile::warn("Format '{}' failed to be registered to {}.",
+				name, GetFullName());
+		}
+		else {
+			report::debug("adding format {}", name);
 
-
+		}
+	}
 
 
 
@@ -81,17 +91,6 @@ namespace LEX
 	{
 		get_switch(node.GetSyntax().type)
 		{
-
-			case SyntaxType::Format: 
-				if constexpr (1)
-				{
-					Project* project = GetProject();
-					if (project)
-						project->AddFormat(node.GetFront().GetTag(), node.GetTag(), this);
-				}
-				break;
-
-
 			case SyntaxType::Import:
 			case SyntaxType::Include:
 				if constexpr (1)
@@ -210,7 +209,7 @@ namespace LEX
 		//Options is ignored for now. Basically does nothing. No compile time stuff either. No system for it.
 		SyntaxRecord ast;
 
-		if (Parser__::CreateSyntaxTree(ast, content, "") == false) {
+		if (Parser::CreateSyntaxTree(ast, content, "") == false) {
 			return false;
 		}
 
@@ -297,33 +296,6 @@ namespace LEX
 
 
 
-	LinkResult Script::OnLink(LinkFlag flags)
-	{
-		return __super::OnLink(flags);
-		if (flags != LinkFlag::Loaded)
-			return LinkResult::Success;
-
-
-		auto body = GetSyntaxTree()->FindChild(parse_strings::body);
-
-		if (!body) {
-			logger::warn("script {} is empty", GetName());
-			return LinkResult::Success;
-		}
-
-		auto& children = body->children();
-
-		logger::info("Loading script: {}", GetName());
-
-		LoadFromSyntaxTree(children.begin(), children.end());
-
-		return LinkResult::Success;
-	}
-
-	LinkFlag Script::GetLinkFlags()
-	{
-		return LinkFlag::Loaded;
-	}
 
 	Environment* Script::FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter)
 	{

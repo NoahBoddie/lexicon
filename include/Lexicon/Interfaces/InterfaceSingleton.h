@@ -106,8 +106,10 @@ namespace LEX
 		{
 
 #ifdef LEX_SOURCE
-			static _unprotect& singleton = make_singleton<_unprotect>();
+			//static _unprotect& singleton = make_singleton<_unprotect>();
 			//static _unprotect singleton{};
+			
+			static T& singleton = make_singleton();
 
 			return singleton;
 
@@ -158,28 +160,20 @@ namespace LEX
 				return CheckSingleton(true) == Update::Match;
 #endif
 			}
-		};
-	public:
-		//inline static T& instance = GetSingleton();
-		inline static _instance instance = _instance{};
-		
+
 
 
 #ifdef LEX_SOURCE
-		//We only need to 
-		//Why isn't this in instance?
-		struct _ctor {
-			_ctor()
+			_instance()
 			{
 				auto& singleton = GetSingleton();
 				InterfaceManager::RegisterInterface(singleton);
 			}
-		};
-
-
-		inline static _ctor _init{};
-
 #endif
+		};
+	public:
+
+		inline static _instance instance = _instance{};
 	};
 
 }

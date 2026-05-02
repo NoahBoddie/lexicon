@@ -12,12 +12,7 @@ namespace LEX
 
 	struct ProjectClient;
 
-	struct Format
-	{
-		std::string formatName;
-		std::string formatContent;
-		LEX::Script* formatScript = nullptr;
-	};
+	
 
 
 
@@ -73,7 +68,6 @@ namespace LEX
 		bool SendFormat(const std::string_view& format, const std::string_view& content, Script* source);
 
 	private:
-		bool AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source) override;
 
 		Script* GetCommonsImpl() override;
 

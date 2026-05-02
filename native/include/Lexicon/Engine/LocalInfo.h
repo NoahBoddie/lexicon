@@ -1,10 +1,10 @@
 #pragma once
 
 #include "InfoBase.h"
-
+#include "Lexicon/Engine/VarIndexInfo.h"
 namespace LEX
 {
-
+#ifdef  DONOT
 	class LocalInfo : public InfoBase
 	{
 	public:
@@ -66,6 +66,53 @@ namespace LEX
 		ITypeInfo* _type = nullptr;
 
 
+
+	};
+#endif
+
+
+	struct LocalInfo : public VarIndexInfo
+	{
+		using VarIndexInfo::VarIndexInfo;
+
+
+		DEFINE_INFO_TYPE(InfoType::LocalInfo)
+	public:
+
+		void MutateReference(Refness ref)
+		{
+			if (qualifiers.reference == Refness::Generic)
+			{
+				switch (ref)
+				{
+				case Refness::Static:
+					qualifiers.reference = Refness::Global;
+					break;
+
+
+				case Refness::Global:
+				case Refness::Local:
+				case Refness::Scoped:
+					qualifiers.reference = ref;
+					break;
+					//return true;
+
+				default:
+					report::error("cant do this '{}' not recognized", magic_enum::enum_name(ref));
+					qualifiers.reference = Refness::Local;
+					break;
+					//return false;
+				}
+			}
+
+			//return 
+		}
+
+		operator bool() const
+		{
+			//Should this be and?
+			return type;
+		}
 
 	};
 }

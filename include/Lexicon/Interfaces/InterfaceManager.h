@@ -29,10 +29,12 @@ namespace LEX
 	
 
 	LEX_API void ModInterfaceUseCount_Impl(bool inc) INTERFACE_FUNCTION;
-	
+
 
 #ifdef LEX_SOURCE
+#ifndef NDEBUG
 #define TEST_INTERFACE
+#endif
 #endif
 
 
@@ -65,7 +67,7 @@ namespace LEX
 #if !defined(LEX_SOURCE) || defined(TEST_INTERFACE)
 
 			uintptr_t client = LEX_VERSION;
-
+	
 			if (SafeInvoke<RequestError>([&]()
 				{
 					ExternCall<PullVersion_Impl, RequestError>(FILE_FORMAT(LEX_BINARY_MODULE),

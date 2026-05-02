@@ -57,16 +57,14 @@ namespace LEX
 			if (index() == 1)
 			{
 				RuntimeVariable left = a_lhs.GetVariable(process);
-
 				RuntimeVariable right = a_rhs.GetVariable(process);
-
-				//do stuff that makes this operator.
-				//Note, the routine process should likely handle the base transfer to turn the index into a variable.
-				result = std::get<Operator>(*this)(left, right, type, process);
+				auto& it = std::get<Operator>(*this);
+				result = it(left, right, type, process);
 			}
 			else if (index() == 2)
 			{
-				std::get<Command>(*this)(result, a_lhs, a_rhs, type, process);
+				auto& it = std::get<Command>(*this);
+				it(result, a_lhs, a_rhs, type, process);
 			}
 		}
 	};

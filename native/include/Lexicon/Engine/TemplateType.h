@@ -48,6 +48,13 @@ namespace LEX
 		TemplateType* AsTemplate() override { return this; }
 		std::vector<TemplateType*> GetTemplateInputs() override { return { this }; }
 
+
+		//I'd like this function to move based upon the parent of the generic base.
+		size_t GetIndex()
+		{
+			return index;
+		}
+
 		virtual bool IsResolved() const { return false; }
 
 		virtual TypeID GetTypeID() const { return _tupleData ? Tuple : Trival; }

@@ -14,6 +14,10 @@ namespace LEX
 	//*/
 
 
+	typedef unsigned long long MemberHash;
+	
+	using InstanceID = uint32_t;
+
 	//TODO: Member pointer should PORBABLY be engine. Also, I'd like to use bitfields to allow for a virtual mode and non-virtual mode.
 	// Maybe will use unions to help with that
 	struct MemberPointer
@@ -29,8 +33,25 @@ namespace LEX
 		uint16_t spec = 0;//This would be so I can search for the specific specialization. Might not need this if I restrict what it can inherit.
 		uint16_t index = 0;
 
+		struct Alternative
+		{
+			union
+			{
+				TypeID typeID;
+				//InstanceID;
+			};
+		};
+
 
 		//Should have an option to ctor who it came from.
+
+		constexpr operator MemberHash() const
+		{
+			return std::bit_cast<MemberHash>(*this);
+		}
 	};
 	static_assert(sizeof(MemberPointer) == 0x8);
+
+
+
 }

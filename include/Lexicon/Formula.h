@@ -17,10 +17,10 @@ namespace LEX
 {
 	struct IScript;
 
-	
+
 	template <typename T>// requires(detail::reference_type_v<T, true> == detail::kNoRef)
 	struct Formula;
-	
+
 	//I want a good way to prevent these from having a reference return type.
 
 	/*
@@ -30,8 +30,8 @@ namespace LEX
 	template <is_ref T>
 	struct Formula<T> {};
 	//*/
-	
-	
+
+
 
 
 
@@ -93,13 +93,24 @@ namespace LEX
 					//use uses_runtime
 					if constexpr (sizeof...(Args) && ((std::is_same_v<std::remove_cvref_t<Args>, runtime_type>) || ...))
 					{
-						size_t i = 0;
+						size_t index = 0;
 
 						auto& params = base.SignatureBase::parameters;
 
-						processed = ((params[i++].policy = std::is_same_v<std::remove_cvref_t<Args>, runtime_type> ?
-							script->GetTypeFromPath(get_view(parameters, true)) : params[i - 1].policy) && ...);
+						//processed = ((params[i++].policy = std::is_same_v<std::remove_cvref_t<Args>, runtime_type> ?
+						//	script->GetTypeFromPath(get_view(parameters, true)) : params[i - 1].policy) && ...);
 
+						processed = ([&]<typename T> [[msvc::forceinline]] -> bool
+						{
+							auto i = index++;
+							if constexpr (std::is_same_v<std::remove_cvref_t<Args>, runtime_type>) {
+								return params[i].policy = script->GetTypeFromPath(get_view(parameters, true));
+							}
+							else {
+								return true;
+							}
+
+						}.operator() < Args > () && ...);
 					}
 
 					return processed;
@@ -287,7 +298,7 @@ namespace LEX
 
 	}
 
-	
+
 
 
 
@@ -374,7 +385,7 @@ namespace LEX
 
 
 	template <typename R, typename... Args>
-	struct Formula<R(Args...)> : 
+	struct Formula<R(Args...)> :
 		public detail::FormulaBase<Formula<detail::remove_runtype_t<R, Voidable>(detail::remove_runtype_t<Args>...)>, R, StaticTargetTag, Args...>,
 		public FormulaHandler
 	{
@@ -384,7 +395,7 @@ namespace LEX
 
 		//operator Self() { return *reinterpret_cast<Self*>(this); }
 		//operator const Self() const { return *reinterpret_cast<const Self*>(this); }
-		
+
 		constexpr Formula() noexcept = default;
 		inline Formula& operator=(const Self& self) { FormulaHandler::operator=(self); return *this; }
 		inline Formula& operator=(Self&& self) { FormulaHandler::operator=(std::move(self)); return *this; }
@@ -409,7 +420,7 @@ namespace LEX
 				bool def_value = def.has_value();
 
 
-				report::log("Formula is null cannot call function.", std::source_location::current(), 
+				report::log("Formula is null cannot call function.", std::source_location::current(),
 					IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
 
 
@@ -460,8 +471,8 @@ namespace LEX
 	};
 
 
-	
-	
+
+
 	namespace detail
 	{
 
@@ -471,14 +482,14 @@ namespace LEX
 
 
 		template <typename T> requires (!detail::function_has_var_type<T> && !detail::function_has_var_type<T*>)
-		struct expected_var_type<T> { using type = void; };
+			struct expected_var_type<T> { using type = void; };
 
 
 		template <typename T> requires (detail::function_has_var_type<T>)
-		struct expected_var_type<T> { using type = T; };
+			struct expected_var_type<T> { using type = T; };
 		//*/
 		template <typename T> requires (detail::function_has_var_type<T*>)
-		struct expected_var_type<T> { using type = T*; };
+			struct expected_var_type<T> { using type = T*; };
 
 		template <typename T>
 		using expected_var_type_t = expected_var_type<T>::type;
@@ -489,7 +500,7 @@ namespace LEX
 	//using TEVE = void(std::string::*)() const;
 
 	template <typename R, typename T, typename... Args>
-	struct Formula<R(T::*)(Args...)> : 
+	struct Formula<R(T::*)(Args...)> :
 		public detail::FormulaBase<Formula<detail::remove_runtype_t<R, Voidable>(detail::remove_runtype_t<T>::*)(detail::remove_runtype_t<Args>...)>,
 		R, detail::expected_var_type_t<T>, Args...>,
 		public FormulaHandler
@@ -503,7 +514,7 @@ namespace LEX
 		using Base = detail::FormulaBase<Self, R, detail::expected_var_type_t<T>, Args...>;
 
 
-		using TarType = std::conditional_t<std::is_pointer_v<Target>,Target, Target&>;
+		using TarType = std::conditional_t<std::is_pointer_v<Target>, Target, Target&>;
 
 		using Ry = std::conditional_t<std::is_void_v<R>, Void, Ret>;
 
@@ -511,7 +522,7 @@ namespace LEX
 		//operator const Self() const { return *reinterpret_cast<const Self*>(this); }
 
 		constexpr Formula() noexcept = default;
-		
+
 		inline Formula& operator=(const Self& self) { FormulaHandler::operator=(self); return *this; }
 		inline Formula& operator=(Self&& self) { FormulaHandler::operator=(std::move(self)); return *this; }
 		Formula(const Self& self) : FormulaHandler{ self } {}
@@ -532,7 +543,7 @@ namespace LEX
 			//Prevent these from being transfered
 
 
-		
+
 			IFormula* call_unit = nullptr;
 			TarType target;
 		};
@@ -541,7 +552,7 @@ namespace LEX
 		struct ThisHelper : public HelperBase
 		{
 			using HelperBase::HelperBase;
-		
+
 			void* operator->() = delete;
 
 			Ret Call(detail::remove_runtype_t<Args>... args, std::optional<Ry> def = std::nullopt)
@@ -593,7 +604,7 @@ namespace LEX
 		// Basically, think of this as a std::function. it should then translate all the rest of the bullshit around it.
 
 		//Basically, this is a wrapper for a given IFormula.
-		
+
 		/*
 		R Call(TarType tar, Args&&... args, std::optional<Ry> def = std::nullopt)
 		{
@@ -604,7 +615,7 @@ namespace LEX
 				bool def_value = def.has_value();
 
 
-				report::log("Formula is null cannot call function.", std::source_location::current(), 
+				report::log("Formula is null cannot call function.", std::source_location::current(),
 					IssueType::Apply, def_value ? IssueLevel::Failure : IssueLevel::Error);
 
 
@@ -650,8 +661,8 @@ namespace LEX
 				return ThisHelper{ target, formula() };
 			}
 		}
-	
-public:
+
+	public:
 
 		auto operator()(TarType target)
 		{
@@ -668,7 +679,7 @@ public:
 		// So something like formula(target)->Call();  or formula(target)(); Or, I'll just allow the target to be one with the calls. Seems better that way.
 
 		/*
-		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt, 
+		static Self Create(change_to_t<Args, std::string_view>... parameters, std::string_view routine, std::optional<IScript*> from = std::nullopt,
 			const std::source_location& loc = std::source_location::current())
 		{
 
@@ -694,6 +705,18 @@ public:
 			return self;
 		}
 		//*/
+	};
+
+	struct DynamicFormula : public FormulaHandler
+	{
+		using FormulaHandler::FormulaHandler;
+		using FormulaHandler::operator=;
+
+		template <specialization_of<Formula> F>
+		F& As() noexcept { return *reinterpret_cast<F*>(this); }
+		
+		template <specialization_of<Formula> F>
+		const F& As() const noexcept { return *reinterpret_cast<F*>(this); }
 	};
 
 

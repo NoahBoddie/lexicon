@@ -78,5 +78,7 @@ namespace LEX
 		{
 			return value;
 		}
+
+		constexpr auto operator<=>(const IssueCode& other) const noexcept { return value <=> other.value; }
 	};
 }

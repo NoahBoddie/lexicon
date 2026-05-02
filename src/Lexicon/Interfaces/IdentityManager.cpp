@@ -60,12 +60,6 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 	};
 	
-	struct PolicyEntry
-	{
-		TypeBase* policy = nullptr;
-		uint32_t index = 0;//Index serves as easy access to a category.
-
-	};
 
 
 	std::vector<IdentityData>& GetDataList()
@@ -80,10 +74,15 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 
 
+
 	inline std::mutex _lock;
 	//inline std::vector<IdentityData> dataList;
 	//Policy list starts with an entry immediately. The void policy.
 	inline std::vector<TypeBase*> policyList{};
+
+	//inline std::vector<TypeBase*> instanceList{};
+
+	//std::vector<>
 
 	//TODO: Instead of having to search every identity list, I think I may make a second list that basically points to what index it goes to. 
 	// This is easier to do, but also with the advent of so many different generated object types, it will become more performant to just do this.

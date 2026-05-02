@@ -631,7 +631,7 @@ namespace LEX
 		bool IsValueZero() const
 		{
 			if (policy)
-				return policy->Exists(data());
+				return !policy->Exists(data());
 			else
 				return true;
 		}

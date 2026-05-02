@@ -34,6 +34,7 @@ namespace LEX
 		//Operators
 		//Assign,
 		Unary,
+		Postfix,
 		Binary,
 		Cast,	//X?		//Basically an operator I guess. Might be binary. Basically only for down casting
 		//Statements
@@ -56,7 +57,7 @@ namespace LEX
 		//THE NEW SYNTAX
 
 		ProjectName,
-		
+		PauseBreak,
 
 		Total,//Any syntax greater or equal to this isn't able to be used within compiling functions.
 		

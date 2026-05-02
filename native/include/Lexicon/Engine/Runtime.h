@@ -9,6 +9,9 @@
 //To be in impl probably.
 
 #include "Lexicon/Function.h"
+
+//*src
+#include "Lexicon/Engine/SettingManager.h"
 namespace LEX
 {
 
@@ -35,7 +38,7 @@ namespace LEX
 
 			//NamedFlags
 			TestBit = Bit1,
-
+			BreakBit = Bit2,
 			IncBit = Bit7,
 			RetBit = Bit8
 			//E
@@ -114,14 +117,23 @@ namespace LEX
 		//These will honestly do nothing for a long time, but I'll make them at some point.
 		Column GetColumn() const override
 		{
+			if (_records)
+				return _records->GetLocation(_rsp).column;
+
 			return 0;
 		}
 		virtual Line GetLine() const override
 		{
+			if (_records)
+				return _records->GetLocation(_rsp).line;
+
 			return 0;
 		}
 		virtual std::string_view GetFile() const override
 		{
+			if (_records)
+				return _records->file;
+
 			return "<No file found>";
 		}
 
@@ -155,6 +167,14 @@ namespace LEX
 			_records->Log(std::string{ message }, loc, level, _data[_rsp].index);
 		}
 
+		void PauseBreak() override
+		{
+			_flags.Set(RuntimeFlag::BreakBit, true);
+		}
+		bool ShouldBreak()
+		{
+			return _flags.Pop(RuntimeFlag::BreakBit);
+		}
 
 
 
@@ -266,6 +286,8 @@ namespace LEX
 		{
 			return (GetParameterCount() - index - 1) + variadicCount;
 		}
+
+
 
 		//
 		Function* _function = nullptr;
@@ -553,6 +575,12 @@ namespace LEX
 
 			size_t loop_no = 1;
 
+			auto settings = SettingManager::GetSingleton();
+			
+			
+			bool force_break = settings->runtimeBreakpoint;
+			bool can_break = force_break || settings->runtimePauseBreak;
+
 			if (_rsp != max_value<size_t>)
 			{
 				//I'm unsure if I'll want to move this to being  member or something.
@@ -570,7 +598,18 @@ namespace LEX
 					//Operate(_data[_rsp]);
 					//TODO: I want to make a break point here to simulate walking through the system, but enable and disable it somehow.
 					Trace("Logging");
-					_data[_rsp].Execute(this);
+
+					auto& instruction = _data[_rsp];
+
+					bool breaking = ShouldBreak();
+
+					if (breaking || can_break) {
+						if (breaking || force_break || instruction.IsPauseBreak() == true) {
+							DEBUG_BREAK;
+						}
+					}
+					
+					instruction.Execute(this);
 					
 
 					if (_psp > _vsp) {

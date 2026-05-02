@@ -9,7 +9,8 @@ namespace LEX
 	{
 		None = 0,
 		Unary = 1 << 0,
-		Binary = 1 << 1,
+		PostUnary = 1 << 1,
+		Binary = 1 << 2,
 		Both,
 	};
 
@@ -104,26 +105,73 @@ namespace LEX
 		"|=",
 		"&=",
 		//*/
+		int test = 1;
+		auto test2 = +test;
 
 		AddOperator("=>", OperatorType::Binary, 1);
-		AddOperator("=", OperatorType::Binary, 2);
-		AddOperator("||", OperatorType::Binary, 3);
-		AddOperator("&&", OperatorType::Binary, 4);
-		AddOperator("<", OperatorType::Binary, 7);
-		AddOperator(">", OperatorType::Binary, 7);
-		AddOperator("<=", OperatorType::Binary, 7);
-		AddOperator(">=", OperatorType::Binary, 7);
-		AddOperator("==", OperatorType::Binary, 7);
-		AddOperator("!=", OperatorType::Binary, 7);
-		AddOperator("+", OperatorType::Binary, 10);
-		AddOperator("-", OperatorType::Both, 10);
+
+
+		AddOperator("+=", OperatorType::Binary, 4);
+		AddOperator("-=", OperatorType::Binary, 4);
+		AddOperator("%=", OperatorType::Binary, 4);
+		AddOperator("^^=", OperatorType::Binary, 4);
+		AddOperator("^=", OperatorType::Binary, 4);
+		AddOperator("*=", OperatorType::Binary, 4);
+		AddOperator("|=", OperatorType::Binary, 4);
+		AddOperator("&=", OperatorType::Binary, 4);
+		AddOperator("<<=", OperatorType::Binary, 4);
+		AddOperator(">>=", OperatorType::Binary, 4);
+
+
+
+		AddOperator("=", OperatorType::Binary, 5);
+		AddOperator("||", OperatorType::Binary, 6);
+		AddOperator("&&", OperatorType::Binary, 7);
+		
+
+		AddOperator("|", OperatorType::Binary, 9);
+		AddOperator("^", OperatorType::Binary, 10);
+		AddOperator("&", OperatorType::Binary, 11);
+
+
+
+		AddOperator("==", OperatorType::Binary, 12);
+		AddOperator("!=", OperatorType::Binary, 12);
+
+
+		AddOperator("<", OperatorType::Binary, 14);
+		AddOperator(">", OperatorType::Binary, 14);
+		AddOperator("<=", OperatorType::Binary, 14);
+		AddOperator(">=", OperatorType::Binary, 15);
+		
+
+		AddOperator("<<", OperatorType::Binary, 16);
+		AddOperator(">>", OperatorType::Binary, 16);
+
+
+		AddOperator("+", OperatorType::Binary, 18);
+		AddOperator("-", OperatorType::Both, 18);//TODO: Should this be at this level of precedence?
+
 		AddOperator("*", OperatorType::Binary, 20);
 		AddOperator("/", OperatorType::Binary, 20);
 		AddOperator("%", OperatorType::Binary, 20);
 		AddOperator("^^", OperatorType::Binary, 22);
 		AddOperator("pow", OperatorType::Binary, 22);
 		AddOperator("*", OperatorType::Unary, 23);
+
+
+		AddOperator("++", OperatorType::Unary, 24);
+		AddOperator("--", OperatorType::Unary, 24);
+		AddOperator("+", OperatorType::Unary, 24);
+		AddOperator("-", OperatorType::Unary, 24);
+		AddOperator("!", OperatorType::Unary, 24);
+		AddOperator("~", OperatorType::Unary, 24);
+
+
 		AddOperator(".", OperatorType::Binary, 25);
+
+		AddOperator("++", OperatorType::PostUnary, 26);
+		AddOperator("--", OperatorType::PostUnary, 26);
 	};
 
 

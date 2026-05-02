@@ -10,6 +10,7 @@
 
 namespace LEX
 {
+	//TODO: merge with QualifiedType, just hide the functions not related to it.
 	struct AnnotatedType : public Qualifier
 	{
 		//Within the compiling process, this is more often than not what should be used.

@@ -96,8 +96,8 @@ namespace LEX
 	{
 		//Handles the conversions of strings and bool
 
-		if (out && exp) {
-			if (common_type::string() == other) {
+		if (out) {
+			if (exp && common_type::string() == other) {
 				constexpr auto func = [](const RuntimeVariable& var, Runtime*) -> RuntimeVariable {return var->PrintString(); };
 				out->SetUserImpl(func);
 				return true;

@@ -39,7 +39,7 @@ namespace LEX
                         return lhs mc_symbol rhs;                                                               \
                     }                                                                                           \
                     else {                                                                                      \
-                        report::runtime::break_critical("invalid ops used on each other.");                     \
+                        report::runtime::break_error("invalid ops used on each other.");                        \
                         return lhs;/*This just helps the thing know it definitely has a return type.*/          \
                     }                                                                                           \
                 });                                                                                             \
@@ -50,6 +50,26 @@ namespace LEX
             return (*this) = operator mc_symbol(other);                                                        \
         }
 
+#define BINARY_INT_OPERATOR(mc_symbol, ...)                                                                     \
+        operator mc_symbol(const Number& other)                                                                 \
+        {                                                                                                       \
+            Number result = Operator(other,                                                                     \
+                [](auto lhs, auto rhs)                                                                          \
+                {                                                                                               \
+                    if constexpr (true __VA_OPT__(&&) __VA_ARGS__) {                                            \
+                        return lhs mc_symbol rhs;                                                               \
+                    }                                                                                           \
+                    else {                                                                                      \
+                        report::runtime::break_error("invalid ops used on each other.");                        \
+                        return lhs;/*This just helps the thing know it definitely has a return type.*/          \
+                    }                                                                                           \
+                }, true);                                                                                       \
+            return result;                                                                                      \
+        }                                                                                                       \
+        Number& operator mc_symbol##=(const Number& other)                                                      \
+        {                                                                                                       \
+            return (*this) = operator mc_symbol(other);                                                        \
+        }
 
 
     //Needs work, as this can assign with ++
@@ -63,10 +83,28 @@ namespace LEX
                         return mc_symbol self;                                                              \
                     }                                                                                       \
                     else {                                                                                  \
-                        report::runtime::break_critical("invalid ops used on each other.");                 \
+                        report::runtime::break_error("invalid ops used on each other.");                    \
                         return self;                                                                        \
                     }                                                                                       \
                 });                                                                                         \
+            return result;                                                                                  \
+        }
+
+
+#define PRE_UNARY_INT_OPERATOR(mc_symbol, ...)                                                     \
+        operator mc_symbol()                                                                                \
+        {                                                                                                   \
+            Number result = Operator([](auto self)                                                          \
+                {                                                                                           \
+                    if constexpr (true __VA_OPT__(&&) __VA_ARGS__)                                          \
+                    {                                                                                       \
+                        return mc_symbol self;                                                              \
+                    }                                                                                       \
+                    else {                                                                                  \
+                        report::runtime::break_error("invalid ops used on each other.");                    \
+                        return self;                                                                        \
+                    }                                                                                       \
+                }, true);                                                                                   \
             return result;                                                                                  \
         }
         
@@ -276,6 +314,7 @@ namespace LEX
     inline NumberLimit limitMap[NumeralType::Total][Signage::Total][Size::Total];
 
 
+    //I'd this job to be given to a function instead.
     inline void InitLimitMap()
     {
         static bool init = false;
@@ -680,12 +719,18 @@ namespace LEX
         {
         }
 
-        Number BINARY_OPERATOR(+);
-        Number BINARY_OPERATOR(/);
-        Number BINARY_OPERATOR(*);
-        Number BINARY_OPERATOR(-);
-        Number BINARY_OPERATOR(%, std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>);
-        Number PRE_UNARY_OPERATOR(-);
+        Number BINARY_OPERATOR(+)
+        Number BINARY_OPERATOR(/)
+        Number BINARY_OPERATOR(*)
+        Number BINARY_OPERATOR(-)
+        Number PRE_UNARY_OPERATOR(-)
+
+        Number BINARY_INT_OPERATOR(%, std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>)
+        Number BINARY_INT_OPERATOR(|, std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>)
+        Number BINARY_INT_OPERATOR(& , std::is_integral_v<decltype(lhs)>&& std::is_integral_v<decltype(rhs)>)
+   
+        Number BINARY_INT_OPERATOR(^, std::is_integral_v<decltype(lhs)> && std::is_integral_v<decltype(rhs)>)
+        Number PRE_UNARY_INT_OPERATOR(~, std::is_integral_v<decltype(self)>)
         
 
 
@@ -697,7 +742,6 @@ namespace LEX
 
         constexpr std::strong_ordering operator <=> (Number other) const
         {
-            
             return Visit([&](auto lhs)
             {
                 return other.Visit([&](auto rhs)
@@ -1047,7 +1091,7 @@ namespace LEX
 		}
 
 		template <typename Func>
-		Number Operator(Func func)
+		Number Operator(Func func, bool no_limit_check = false)
 		{
 			using Result = std::invoke_result_t<Func, int8_t>;
 
@@ -1059,11 +1103,6 @@ namespace LEX
             Number result = bool_settings == res_settings ? res_settings : CompareSettings(*this, res_settings);
 
 
-			constexpr bool no_limit_check = requires(int self)
-			{
-				func(self, 0);
-			};
-
 			double comp;
 
 
@@ -1074,7 +1113,7 @@ namespace LEX
                         res = func(self);
 
                         //This should also check if doubles can play.
-                        if constexpr (!no_limit_check)
+                        if (!no_limit_check)
                             comp = func((double)self);
 					});
 				});
@@ -1083,7 +1122,7 @@ namespace LEX
 
 			//Should require an integral
 
-			if constexpr (!no_limit_check)
+			if (!no_limit_check)
 			{
 				int overflow = result.Visit([comp]<typename T>(T res) -> int
 				{
@@ -1104,7 +1143,7 @@ namespace LEX
 
 
         template <typename Func>
-        Number Operator(const Number& other, Func func)
+        Number Operator(const Number& other, Func func, bool no_limit_check = false)
         {
             using Result = std::invoke_result_t<Func, int8_t, int8_t>;
 
@@ -1115,11 +1154,6 @@ namespace LEX
 
             Number result = bool_settings == res_settings ? res_settings : CompareSettings(other, res_settings);
 
-
-            constexpr bool no_limit_check = requires(int lhs, int rhs)
-            {
-                func(lhs, rhs, 0);
-            };
 
             double comp;
 
@@ -1132,8 +1166,10 @@ namespace LEX
                         {
                             res = func(lhs, rhs);
 
-                            if constexpr (!no_limit_check)
+                            if (!no_limit_check) {
                                 comp = func((double)lhs, (double)rhs);
+                            
+                            }
                         });
                     });
                 });
@@ -1142,7 +1178,7 @@ namespace LEX
 
             //Should require an integral
 
-            if constexpr (!no_limit_check)
+            if (!no_limit_check)
             {
                 int overflow = result.Visit([comp]<typename T>(T res) -> int
                 {

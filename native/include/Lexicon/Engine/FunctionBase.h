@@ -117,7 +117,11 @@ namespace LEX
 
 
 
-			QualifiedType sub_type = NULL_OP(NULL_Q(subject)->GetQualifiedType());
+			QualifiedType sub_type;
+			
+			if (subject) {
+				sub_type = QualifiedType{ subject->GetType(), subject->GetQualifiers() };
+			}
 
 
 
@@ -151,7 +155,7 @@ namespace LEX
 
 
 				//out.convertType = ConversionEnum::TypeDefined;
-				out.index = subject->GetFieldIndex();
+				out.index = subject->GetIndex();
 				out.type = sub_type;
 			}
 			else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
@@ -194,7 +198,7 @@ namespace LEX
 				return false;
 			}
 
-			QualifiedType sub_type = NULL_OP(NULL_Q(subject)->GetQualifiedType());
+			QualifiedType sub_type = subject->GetQualifiedType();
 
 
 
@@ -224,7 +228,7 @@ namespace LEX
 
 				out.convertType = convertType;
 
-				out.index = subject->GetFieldIndex();
+				out.index = subject->GetIndex();
 				out.type = sub_type;
 
 				if (convertType <= ConversionEnum::Failure) {
@@ -236,7 +240,7 @@ namespace LEX
 			{
 
 				out.convertType = ConversionResult::Ineligible;
-				out.index = subject->GetFieldIndex();
+				out.index = subject->GetIndex();
 				return false;
 			}
 
@@ -270,7 +274,7 @@ namespace LEX
 				entry.routine = def_routine;
 				entry.convertType = ConversionEnum::Exact;
 				entry.type = param.GetQualifiedType();
-				entry.index = param.GetFieldIndex();
+				entry.index = param.GetIndex();
 			}
 
 			return true;

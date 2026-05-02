@@ -77,11 +77,24 @@ namespace LEX
 			return data <= ConversionEnum::Failure;
 		}
 
+		void Test()
+		{
+			data <=> data;
+			message <=> message;
+		}
+
 		operator bool() const
 		{
 			return !IsFailure();
 		}
+		constexpr auto operator <=>(const ConvertResult& other) const noexcept
+		{
+			if (auto res = data <=> other.data; res != std::strong_ordering::equal) {
+				return res;
+			}
 
+			return message <=> other.message;
+		}
 		constexpr auto operator <=>(ConversionEnum e) const
 		{
 			return data <=> e;
@@ -97,7 +110,7 @@ namespace LEX
 		{
 			return data != e;
 		}
-
+		
 
 		//Want to make an ease of use constructor to make this, all you'd need to do is give it what you'd intend to use with it, ref
 		// constness, etc and such.

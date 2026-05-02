@@ -25,6 +25,8 @@ namespace LEX
 	//Or maybe it should be an enum.
 	using Procedure = void(*)(RuntimeVariable&, Variable*, std::span<Variable*>, ProcedureData&);
 	
+	
+
 	struct BasicCallableData
 	{
 		QualifiedType _returnType = nullptr;
@@ -180,7 +182,7 @@ namespace LEX
 			}
 
 			auto end = parameters.end();
-			auto it = std::find_if(parameters.begin(), end, [&](ParameterInfo& q) { return q.GetFieldName() == a_name; });
+			auto it = std::find_if(parameters.begin(), end, [&](ParameterInfo& q) { return q.GetName() == a_name; });
 			if (it != end) {
 				return &*it;
 			}

@@ -114,7 +114,7 @@ namespace LEX
             break;
         }
 
-        case LinkFlag::External://This should be final, but I haven't gotten around to it.
+        case LinkFlag::Object://This should be final, but I haven't gotten around to it.
         {
             
 
@@ -139,7 +139,7 @@ namespace LEX
 
 	LinkFlag GlobalBase::GetLinkFlags()
 	{
-		return LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::External;
+		return LinkFlag::Declaration | LinkFlag::Definition | LinkFlag::Object;
 	}
 
 }

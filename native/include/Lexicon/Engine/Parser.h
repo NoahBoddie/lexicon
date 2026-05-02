@@ -12,6 +12,9 @@
 #include "Lexicon/Engine/Tokenizer.h"
 #include "Lexicon/Engine/parse_strings.h"
 
+#include "boost/regex.hpp"
+//#include "srell.hpp"
+
 namespace LEX
 {
 	class ParsingStream;
@@ -33,7 +36,7 @@ namespace LEX
 	public:
 
 		//Friends with just the parse module
-		friend class Parser__;
+		friend class Parser;
 		friend class ParseModule;
 
 
@@ -99,15 +102,44 @@ namespace LEX
 
 			tokenizer = mdl->GetTokenizer();
 
-			boost::regex regex{ tokenizer->CompilePattern() };
+			auto string = tokenizer->CompilePattern();
 
-			defaultParser = [regex](ParsingStream* stream, Iterator& it, Iterator end) -> Iterator
+			boost::regex regex_old{ string };
+
+			//TODO: Try re2 instead. This thing gives me a head ache.
+			//srell::regex regex{ string };
+
+			defaultParser = [regex_old](ParsingStream* stream, Iterator& it, Iterator end) -> Iterator
 			{
+#ifdef USING_SRELL
+				if (it != end)
+				{
+					srell::match_results<Iterator> what;
+
+					if (srell::regex_search(it, end, what, regex) == true) {
+
+						auto& subject = what[0];
+
+
+						if (subject.length() == 0)
+							stream->croak(std::format("empty string found in parse results {}", std::string_view(it, end)));
+
+						it = subject.second;
+
+						return subject.first;
+					}
+
+					it = end;
+				}
+					
+				return end;
+#endif
+
 				if (it != end)
 				{
 					boost::match_results<Iterator> what;
 
-					if (boost::regex_search(it, end, what, regex) == true) {
+					if (boost::regex_search(it, end, what, regex_old) == true) {
 
 						auto& subject = what[0];
 
@@ -682,7 +714,7 @@ namespace LEX
 
 
 
-		//Would like to seperate these from parser(steam) and move it to Parser__ (to be named ParsingStream)
+		//Would like to seperate these from parser(steam) and move it to Parser (to be named ParsingStream)
 		//Would also like to remove the expression from this, there's no reason for it to be.
 		static Record CreateExpression(std::string str, Syntax expr = SyntaxType::None, std::vector<Record> children = {});
 
@@ -801,7 +833,7 @@ namespace LEX
 	//TODO:The initial use of parse (somehow depending) should be establishing that the top most record is a script.
 
 
-	struct Parser__
+	struct Parser
 	{
 		//Syntax created from this is likely at runtime, and genarally will lack any kind of header behaviour. This is primarily to be used for loose
 		// formulas. The module unlike below has to be specified.

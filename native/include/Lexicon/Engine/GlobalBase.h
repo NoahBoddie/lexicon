@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lexicon/Global.h"
+#include "Lexicon/Interfaces/VarInfo.h"
 #include "Lexicon/Engine/Field.h"
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/GlobalData.h"
@@ -9,18 +10,17 @@ namespace LEX
 {
 	struct ICallableUnit;
 
-
 	
-	struct GlobalBase : public SecondaryElement, public GlobalData, public Field
+	struct GlobalBase : public SecondaryElement, public GlobalData, private VarInfo
 	{
-	public:
+		friend class InfoTraits;
+		DEFINE_INFO_TYPE(InfoType::GlobalBase)
 		DEFINE_COMPONENT_TYPE(ComponentType::GlobalBase)
 
-
+	public:
+		
 		virtual IGlobal* AsGlobal() = 0;
 		virtual const IGlobal* AsGlobal() const = 0;
-
-		virtual std::string_view GetName() const = 0;
 
 		//Attempts to revert value. If the global is const or a special part, it will fail to revert.
 		// If reverted just with default it will create the default value, if not, it will attempt to use a routine to set
@@ -41,44 +41,40 @@ namespace LEX
 
 		virtual LinkFlag GetLinkFlags() override;
 
+#pragma region VariableInfo
 
+		virtual std::string_view GetName() const = 0;
 
-		virtual std::string GetFieldName() const override
-		{
-			return _name;
-		}
-
-		virtual FieldType GetFieldType() const override
-		{
-			return FieldType::Global;
-		}
-
-		virtual uint32_t GetFieldIndex() const override
-		{
-			return -1;
-		}
-
-
-		virtual Qualifier GetQualifiers() const override
-		{
-			return _declared;
-		}
-
-		virtual Specifier GetSpecifiers() const override
-		{
-			return _declared.CopyWithFlags(SpecifierFlag::Static);
-		}
-
-		virtual ITypeInfo* GetType() const
+		ITypeInfo* GetType() const override
 		{
 			return _declared.policy;
 		}
 
+		Refness GetRefness() override
+		{
+			return _declared.reference;
+		}
+		Constness GetConstness() override
+		{
+			return _declared.constness;
+		}
+		QualifierFlag GetQualifierFlags() override
+		{
+			return _declared.Qualifier::flags;
+		}
 
-
+		//virtual Specifier GetSpecifiers() const override
+		//{
+		//	return _declared.CopyWithFlags(SpecifierFlag::Static);
+		//}
+#pragma endregion
 
 		
+		VarInfo* AsInfo() noexcept { return this; }
+		const VarInfo* AsInfo() const noexcept { return this; }
+		
 	};
+
 
 
 

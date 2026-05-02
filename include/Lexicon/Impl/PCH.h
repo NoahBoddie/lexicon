@@ -279,10 +279,6 @@ namespace LEX
     using namespace RGL_INCLUDE_NAMESPACE;
 }
 
-//I'd really rather just move this
-#ifdef LEX_SOURCE
-#include "boost/regex.hpp"
-#endif
 
 
 
@@ -616,11 +612,12 @@ namespace LEX
 
 //Source code macros
 #ifdef LEX_SOURCE
+#define SOURCE_BLOCK struct
 #define SOURCE_CODE(...) __VA_ARGS__
 #define INTERN_METHOD(...) __VA_ARGS__ 
 
 #else
-
+#define SOURCE_BLOCK struct CONCAT(hidden_,__COUNTER__)
 #define SOURCE_CODE(...) 
 #define INTERN_METHOD(...) virtual void CONCAT(_intMethod, __COUNTER__)(void){};
 

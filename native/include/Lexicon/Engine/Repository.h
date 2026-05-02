@@ -8,6 +8,10 @@ namespace LEX
 {
 	struct Director;
 	struct ISubdirectory;
+	
+	struct ProjectClient;
+
+
 
 	struct Repository : public Directory, public IRepositoryBase
 	{
@@ -110,6 +114,7 @@ namespace LEX
 
 		virtual void AddScript(Script* script);
 
+	
 		std::vector<Subdirectory*> _subdirectories;
 		std::vector<Script*> _scripts;
 		std::string _filePath;

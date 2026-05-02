@@ -309,6 +309,16 @@ namespace LEX
 			}
 		}
 
+		bool Exists(ObjectData& self) override
+		{
+			if constexpr (requires(ObjectData& it) { { it.get<T>() } ->std::convertible_to<bool>; }) {
+				return self.get<T>();
+			}
+			else {
+				return ObjectVTable::Exists(self);
+			}
+		}
+
 
 		//it would be neat if this would make it so object data no longer had to be used by obscuring the old versions of the functions
 		// and calling new ones. 

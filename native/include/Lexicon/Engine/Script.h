@@ -22,6 +22,7 @@ namespace LEX
 	struct TypeBase;
 
 
+
 	class Script : public Environment, public IScript
 	{
 	public:
@@ -52,11 +53,10 @@ namespace LEX
 
 		SyntaxRecord _syntaxTree;
 
-		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList= nullptr;
+		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList = nullptr;
 
 		//This is where scripts are refered
 		std::unordered_map<RelateType, std::vector<Directory*>> _relationMap;
-
 
 		auto& ObtainSubdirectoryList()
 		{
@@ -68,6 +68,8 @@ namespace LEX
 		}
 
 	public:
+
+		void AddFormat(const std::string_view& name, const std::string_view& content) override;
 
 
 		bool IsDefined() const;
@@ -109,10 +111,6 @@ namespace LEX
 		void CompileExpression(Record& target);
 
 
-
-		LinkResult OnLink(LinkFlag flags);
-
-		LinkFlag GetLinkFlags();
 
 
 		Environment* FindEnvironment(SyntaxRecord& path, ITemplateInserter& inserter) override;

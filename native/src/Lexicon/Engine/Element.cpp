@@ -273,19 +273,19 @@ namespace LEX
 
 			auto first = ParseUtility::PeekCurrentPath(rec);
 
+			bool is_shared = a_this ? a_this->IsShared() : false;
 
 
 			Element* target = a_this ? a_this : ProjectDirectory::GetSingleton();
 
-
 			std::set<Element*> searched{};
+
+			bool force_break = false;
 
 			do
 			{
 				auto _focus = first;
 
-
-				bool cont = false;
 
 				//Each find will have something shaved off, so it will use a seperate set.
 				//Don't remember how to apply this, but replicate the use of it. I think it's used for whenever we have to find a specific part first.
@@ -349,10 +349,18 @@ namespace LEX
 						return true;
 				}
 
-				if (is_direct)
+				if (is_direct || force_break)
 					break;
 
-				target = NULL_OP(NULL_Q(target)->GetParent());
+				if (target) {
+					target = target->GetParent();
+
+					if (!target && is_shared) {
+						target = ProjectDirectory::GetSingleton();
+						force_break = true;
+					}
+				}
+				
 			} while (target);
 
 
@@ -552,7 +560,7 @@ namespace LEX
 								//possible specialization here.
 
 								//return global;
-								result = QualifiedField{ var };
+								result = QualifiedField{ var->AsInfo() };
 
 								return true;
 							}
@@ -584,7 +592,7 @@ namespace LEX
 						//}
 
 						//Later this will handle this a bit differently.
-						Script* script = env->GetProject()->FindScript(path.GetView());
+						Script* script = env->GetRepository()->FindScript(path.GetView());
 
 						if (script)
 						{
@@ -609,13 +617,13 @@ namespace LEX
 			SyntaxRecord path_record;
 
 			if (elem != ElementType::kTypeElement) {
-				if (auto result = LEX::Parser__::CreateSyntax<IdentifierParser>(path_record, path); !result) {
+				if (auto result = LEX::Parser::CreateSyntax<IdentifierParser>(path_record, path); !result) {
 					//Error here.
 					return nullptr;
 				}
 			}
 			else {
-				if (auto result = LEX::Parser__::CreateSyntax<HeaderParser>(path_record, path); !result) {
+				if (auto result = LEX::Parser::CreateSyntax<HeaderParser>(path_record, path); !result) {
 					//Error here.
 					return nullptr;
 				}
@@ -662,7 +670,7 @@ namespace LEX
 				return func ? func.GetBase() : nullptr;
 			}
 			case kGlobElement:
-				return dynamic_cast<GlobalBase*>(SearchFieldPath(a_this, path_record).GetField());
+				return SearchFieldPath(a_this, path_record).GetInfo()->As<GlobalBase>();
 
 			case kScrpElement:
 				return SearchScriptPath(a_this, path_record);
@@ -915,13 +923,13 @@ namespace LEX
 		SyntaxRecord path_record;
 		
 		if (elem != ElementType::kTypeElement) {
-			if (auto result = LEX::Parser__::CreateSyntax<IdentifierParser>(path_record, path); !result) {
+			if (auto result = LEX::Parser::CreateSyntax<IdentifierParser>(path_record, path); !result) {
 				//Error here.
 				return nullptr;
 			}
 		}
 		else {
-			if (auto result = LEX::Parser__::CreateSyntax<HeaderParser>(path_record, path); !result) {
+			if (auto result = LEX::Parser::CreateSyntax<HeaderParser>(path_record, path); !result) {
 				//Error here.
 				return nullptr;
 			}
@@ -968,7 +976,7 @@ namespace LEX
 			return func ? func.GetBase() : nullptr;
 		}
 		case kGlobElement:
-			return dynamic_cast<GlobalBase*>(SearchFieldPath(a_this, path_record).GetField());
+			return SearchFieldPath(a_this, path_record).GetInfo()->As<GlobalBase>();
 		
 		case kScrpElement:
 			return SearchScriptPath(a_this, path_record);
@@ -1165,7 +1173,7 @@ namespace LEX
 						//possible specialization here.
 
 						//return global;
-						result = QualifiedField{ var };
+						result = QualifiedField{ var->AsInfo() };
 
 						return true;
 					}

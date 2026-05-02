@@ -99,7 +99,7 @@ namespace LEX
 		OperandType _ltype = OperandType::None;//1
 		OperandType _rtype = OperandType::None;//1	
 
-		InstructType _instruct = InstructType::Invalid;//2?
+		InstructType _instruct = InstructType::PauseBreak;//2?
 
 		Register _out = Register::Invalid;//1
 
@@ -109,6 +109,12 @@ namespace LEX
 		//The record code is really just an integer.
 		
 		RecordIndex index{};
+
+
+		constexpr bool IsPauseBreak() const noexcept
+		{
+			return _instruct == InstructType::PauseBreak;
+		}
 
 		/*
 		std::array<uint8_t, 3> recordCode{ 255, 255, 255 };

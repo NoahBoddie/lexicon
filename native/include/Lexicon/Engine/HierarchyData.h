@@ -20,6 +20,7 @@ namespace LEX
 		//Id like it if in a test of ambiguity this always wins, but that might not be possible in this set up.
 		ITypeInfo* _extends = nullptr;//Deprecated* extends = nullptr;
 
+		//Inherit data should be ordered if I can so I can binary search for the given id
 		std::vector<InheritData> inheritance;
 
 		//This should actually be a kind of field

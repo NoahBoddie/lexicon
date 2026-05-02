@@ -17,6 +17,8 @@ namespace LEX
 
 	struct ITypeInfo;
 
+	
+
 	using TypeOffsetFn = TypeOffset(*)(const std::string_view&, const std::span<std::string_view>& args);
 
 	namespace Version

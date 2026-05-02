@@ -1,5 +1,6 @@
 #pragma once
 #include "Lexicon/Engine/Field.h"
+#include "Lexicon/Interfaces/VarInfo.h"
 
 #include "Lexicon/Qualifier.h"
 
@@ -16,32 +17,32 @@ namespace LEX
 	struct Solution;
 	struct ExpressionCompiler;
 
-	struct QualifiedField : public Field
+	struct QualifiedField : public VarInfo
 	{
 
 
 		//The qualified type could be anything qualifiable, but type seems to be the most likely to pull (well solution, but solutions are type qualified).
-		QualifiedField(Field* field, QualifiedType type = nullptr) : _target{ field }
+		QualifiedField(VarInfo* info, QualifiedType type = nullptr) : _target{ info }
 		{
 			//By this point, it's expected that the calling has already emplaced it's rules on what this is.
 
 			if (type)
 			{
-				auto qualifiers = field->GetQualifiers();
+				auto qualifiers = info->GetQualifiers();
 				_constState = qualifiers.constness;
 				_refState = qualifiers.reference;
 
 			}
 		}
 
-		QualifiedField(Field& field, QualifiedType type = nullptr) : QualifiedField{ &field, type }
+		QualifiedField(VarInfo& info, QualifiedType type = nullptr) : QualifiedField{ &info, type }
 		{			
 		
 		}
 		
 
 
-		Field* _target = nullptr;
+		VarInfo* _target = nullptr;
 
 		Constness _constState = Constness::Modable;
 
@@ -50,14 +51,9 @@ namespace LEX
 
 
 
-		uint32_t GetFieldIndex() const override
+		std::string_view GetName() const override
 		{
-			return _target->GetFieldIndex();
-		}
-
-		FieldType GetFieldType() const override
-		{
-			return _target->GetFieldType();
+			return _target->GetName();
 		}
 
 		ITypeInfo* GetType() const override
@@ -65,46 +61,39 @@ namespace LEX
 			return _target->GetType();
 		}
 
-		Qualifier GetRawQualifiers() const
+
+		Refness GetRefness() override
 		{
-			return _target->GetQualifiers();
-		}
-
-		Qualifier GetQualifiers() const override
-		{
-			auto result = GetRawQualifiers();
-
-
-			if (result.constness < _constState)
-			{
-				result.constness = _constState;
-			}
-
-
 			if (_refState != Refness::Temp)
 			{
-				result.reference = _refState;
+				return _refState;
 			}
 
-
-			return result;
+			return _target->GetRefness();
 		}
-		Specifier GetSpecifiers() const override
+		Constness GetConstness() override
 		{
-			return _target->GetSpecifiers();
-		}
+			auto constness = _target->GetConstness();
 
-		std::string GetFieldName() const override
+			if (constness < _constState) {
+				constness = _constState;
+			}
+
+			return constness;
+		}
+		QualifierFlag GetQualifierFlags() override
 		{
-			return _target->GetFieldName();
+			return _target->GetQualifierFlags();
 		}
 
-		operator Field* () const
+
+
+		operator VarInfo* () const
 		{
 			return _target;
 		}
 
-		Field* GetField() const
+		VarInfo* GetInfo() const
 		{
 			return _target;
 		}
@@ -118,5 +107,5 @@ namespace LEX
 		}
 	};
 
-
+	struct QualifiedVar;
 }

@@ -20,7 +20,7 @@ namespace LEX
 
 			if (!value)
 			{
-				report::apply::warn("cannot find value for {}::{}. Using default.", category, key);
+				//report::apply::warn("cannot find value for {}::{}. Using default.", category, key);
 				return;
 			}
 
@@ -30,7 +30,7 @@ namespace LEX
 
 				if (opt_enum.has_value() == false)
 				{
-					report::warn("Value for {}::{} is invalid. No enum under '{}'", category, key, value);
+					//report::warn("Value for {}::{} is invalid. No enum under '{}'", category, key, value);
 				}
 				else {
 					to = opt_enum.value();
@@ -57,7 +57,7 @@ namespace LEX
 					}
 					catch (std::invalid_argument& error)
 					{
-						report::apply::warn("Value for {}::{} is invalid.", category, key);
+						//report::apply::warn("Value for {}::{} is invalid.", category, key);
 						return;
 					}
 					break;
@@ -80,7 +80,7 @@ namespace LEX
 
 			if (!value)
 			{
-				report::apply::warn("cannot find value for {}::{}. Using default.", category, key);
+				//report::apply::warn("cannot find value for {}::{}. Using default.", category, key);
 				return;
 			}
 

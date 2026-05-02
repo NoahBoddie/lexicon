@@ -55,10 +55,13 @@ namespace LEX
         //The way this would work is it would link to an engine file that handles the traits. 
         // This would make it so we wouldn't need to actually need to have the include the files to be
         // able to cast to it (or rather not ALL files at once, just the one we're casting to, so the normal rules)
-        const void* Cast(const void* self, ComponentType from, ComponentType to) const override INT_FINAL INTERFACE_FUNCTION;
+        const void* Cast(const void* self, ComponentType from, ComponentType to) const override INTERFACE_FUNCTION;
         
         void* Cast(const void* self, ComponentType from, ComponentType to) { return unconst(make_const(this)->Cast(self, from, to)); }
         
+        //Defined in Impl/ComponentDetails.cpp
+        static TypeInfo* GetTypeFromOffset(uint16_t offset);
+
     public:
         std::string GetFullName() const;
 
@@ -161,9 +164,7 @@ namespace LEX
             return GetComponentType() == type;
         }
 
-        //Defined in Impl/ComponentDetails.cpp
-        static TypeInfo* GetTypeFromOffset(uint16_t offset);
-
+       
 
         template<std::derived_from<IComponentBase> Comp>
         static TypeInfo* GetVariableType(const Comp* comp)

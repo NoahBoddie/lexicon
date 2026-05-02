@@ -17,7 +17,6 @@ namespace LEX
 			struct INTERFACE_VERSION(IProject)
 			{
 			private:
-				virtual bool AddFormatInfc(const std::string_view& name, const std::string_view& content, IScript* source) = 0;
 
 			};
 		}
@@ -39,24 +38,10 @@ namespace LEX
 #endif	
 	public:
 
-		auto AddFormat(const std::string_view& name, const std::string_view& content, script_t* source)
-		{
-#ifdef LEX_SOURCE
-			return AddFormatImpl(name, content, source);
-#else
-			return AddFormatInfc(name, content, source);
-#endif	
-		}
-
 
 
 
 	private:
-#ifdef LEX_SOURCE
-		virtual bool AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source) = 0;
-#endif
-
-		bool AddFormatInfc(const std::string_view& name, const std::string_view& content, IScript* source) override;
 
 	};
 }

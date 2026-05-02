@@ -2,7 +2,7 @@
 
 #include "Token.h"
 #include "Lexicon/Exception.h"
-
+#include "boost/regex.hpp"
 //*tmp
 #include "Lexicon/Engine/ProcessContext.h"
 

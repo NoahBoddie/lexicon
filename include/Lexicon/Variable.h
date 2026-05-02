@@ -31,6 +31,7 @@ namespace LEX
 		String,
 		Object,
 		IComponent*
+		//,Info
 		>;
 
 
@@ -300,7 +301,7 @@ namespace LEX
 					return lhs.IsValueZero();
 				}
 				else if constexpr (std::is_convertible_v<decltype(lhs), bool>) {
-					return !!lhs;
+					return !lhs;
 				}
 				else {
 					return false;

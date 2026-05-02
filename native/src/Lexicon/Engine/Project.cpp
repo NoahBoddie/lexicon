@@ -6,18 +6,6 @@
 namespace LEX
 {
 
-	bool Project::AddFormatImpl(const std::string_view& name, const std::string_view& content, Script* source)
-	{
-		return false;
-
-		Format format;
-		format.formatName = name;
-		format.formatContent = content;
-		format.formatScript = source;
-
-		report::debug("adding format {}", name);
-	}
-
 
 
 	bool Project::SendFormat(const std::string_view& format, const std::string_view& content, Script* source)

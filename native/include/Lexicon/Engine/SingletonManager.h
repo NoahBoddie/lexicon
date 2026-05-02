@@ -2,6 +2,8 @@
 
 namespace LEX
 {
+    //TODO: move this to rogues gallery, pretty much 0 reason I can't have this in other places.
+
 
     //Shared singleton is init'd both by meyers singleton, and also static initialization, attempting to
     // be first in either.
@@ -123,75 +125,114 @@ namespace LEX
     };
 
 
-    template<typename T, typename... Args>
-    auto&& make_singleton(Args&&... args)
+#ifdef TEHTEGASG
+    template <typename... Args>
+    struct auto_singleton_
     {
-        struct token
+        std::tuple<Args...> _args;
+
+        template<typename T>
+        operator T& ()
         {
-        private:
-            ~token() = default;
+            return std::apply(make_singleton<T>, std::forward<std::tuple<Args...>>(_args));
+        }
 
-        public:
-            token() = default;
-            token(T& t) : result{ &t } {}
+        //Should want to move these probs
+        auto_singleton_(Args&&... args) : _args{ std::make_tuple(std::forward<Args>(args)...) }
+        {
 
-            constexpr operator T& () noexcept
+        }
+
+    };
+
+    template <typename... Args>
+    auto auto_singleton(Args&&... args)
+    {
+        return auto_singleton_(std::forward<Args>(args)...);
+    }
+#endif
+
+
+    namespace detail
+    {
+
+
+
+
+        template<typename T, typename... Args>
+        inline auto& make_singleton_impl(Args&&... args)
+        {
+           
+
+            constexpr bool k_can_inherit = !std::is_final_v<T> && std::is_class_v<T>;
+
+            //struct _unprotect : public std::conditional_t<k_can_inherit, T, detail::not_implemented> {
+            //    using Base = std::conditional_t<k_can_inherit, T, detail::not_implemented>;
+            //    _unprotect(Args...args) requires(do_the_thing) : Base(std::forward<Args>(args)...) {}
+            //};
+
+
+            std::unique_ptr<SingletonManager::IEntry> entry;
+
+            T* result = nullptr;
+
+            if constexpr (!std::is_final_v<T> && std::is_class_v<T>)
             {
-                return *result;
+                struct _unprotect : public T {
+                    _unprotect(Args...args) : T(std::forward<Args>(args)...) {}
+                };
+
+                using Entry = SingletonManager::BasicEntry<_unprotect>;
+
+                std::unique_ptr<Entry> dtor = std::make_unique<Entry>(std::forward<Args>(args)...);
+
+
+                result = std::addressof(dtor->value);
+                entry = std::move(dtor);
+            }
+            else
+            {
+                using Entry = SingletonManager::BasicEntry<T>;
+
+                std::unique_ptr<Entry> dtor = std::make_unique<Entry>(std::forward<Args>(args)...);
+
+                result = std::addressof(dtor->value);
+                entry = std::move(dtor);
             }
 
 
-        private:
-            T* result = nullptr;
-        };
+            SingletonManager::singleton->Place(std::move(entry));
 
-        constexpr bool do_the_thing = !std::is_final_v<T> && std::is_class_v<T>;
-
-        struct _unprotect : public std::conditional_t<do_the_thing, T, detail::not_implemented> {
-            using Base = std::conditional_t<do_the_thing, T, detail::not_implemented>;
-            
-            _unprotect(Args...args) requires(do_the_thing) : Base(std::forward<Args>(args)...) {}
-        };
-
-
-
-
-        using Entry = SingletonManager::BasicEntry<std::conditional_t<do_the_thing, _unprotect, T>>;
-
-
-        token result;
-
-        std::unique_ptr<SingletonManager::IEntry> entry;
-
-        if constexpr (!std::is_final_v<T> && std::is_class_v<T>)
-        {
-            struct _unprotect : public T {
-                _unprotect(Args...args) : T(std::forward<Args>(args)...) {}
-            };
-
-            using Entry = SingletonManager::BasicEntry<std::conditional_t<do_the_thing, _unprotect, T>>;
-
-            std::unique_ptr<Entry> dtor = std::make_unique<Entry>(std::forward<Args>(args)...);
-
-
-            result = token{ dtor->value };
-            entry = std::move(dtor);
-        }
-        else
-        {
-            using Entry = SingletonManager::BasicEntry<T>;
-
-            std::unique_ptr<Entry> dtor = std::make_unique<Entry>(std::forward<Args>(args)...);
-
-            result = token{ dtor->value };
-
-            entry = std::move(dtor);
+            return *result;
         }
 
 
-        SingletonManager::singleton->Place(std::move(entry));
+        template <typename... Args>
+        struct singleton_deducer
+        {
+            std::tuple<Args...> _args;
 
-        return std::move(result);
+            //Need some kind of requires here to prevent possible construction error.
+            template<typename T>
+            operator T& ()
+            {
+                return std::apply(make_singleton_impl<T>, std::forward<std::tuple<Args...>>(_args));
+            }
+
+            //Should want to move these probs
+            singleton_deducer(Args&&... args) : _args{ std::make_tuple(std::forward<Args>(args)...) }
+            {
+
+            }
+
+        };
+
+    }
+
+    template<typename... Args>
+    auto make_singleton(Args&&... args)
+    {
+        return detail::singleton_deducer(std::forward<Args>(args)...);
     }
 
 }

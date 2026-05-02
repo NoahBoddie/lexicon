@@ -211,13 +211,13 @@ namespace LEX
 			second = true;
 
 			if (data.type == self) {
-				report::compile::critical("Type '{}' cannot inherit from itself", self->GetName());
+				report::compile::error("Type '{}' cannot inherit from itself", self->GetName());
 			}
 
 			InheritData* prev_data = _InheritData(data);
 
 			if (prev_data && prev_data->distance == 1 && prev_data->ownerIndex == 1 && data.distance == 1 && data.ownerIndex == 0) {
-				report::compile::critical("Type '{}' inherits {} directly multiple times.", self->GetName(), prev_data->type->GetName());
+				report::compile::error("Type '{}' inherits {} directly multiple times.", self->GetName(), prev_data->type->GetName());
 			}
 
 
@@ -385,8 +385,8 @@ namespace LEX
 			//OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
 			//OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);
 		}
-
-		logger::info("left({}/{}), right({}/{})", left.hash[0], left.hash[1], right.hash[0], right.hash[1]);
+		
+		logger::trace("left({}/{}), right({}/{})", left.hash[0], left.hash[1], right.hash[0], right.hash[1]);
 
 		if (left.hash[0] <= right.hash[1] && left.hash[1] >= right.hash[0]) {
 			return left.distance - right.distance;
