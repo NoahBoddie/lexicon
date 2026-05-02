@@ -7,10 +7,8 @@ namespace LEX
 {
 	class Variable;
 
-	//TODO: Revise literal to take a literal holder, an interface that can store Literals, including temporary formulas.
 
-
-
+	//If I can, I'd like to find a way to remove hash and type info.
 	struct Literal
 	{
 		Literal(bool object)

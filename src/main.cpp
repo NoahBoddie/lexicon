@@ -1190,17 +1190,19 @@ namespace LEX::Test
 
 
 
-    struct TemplateContainer : public ITemplatePart
+    struct TemplateContainer
     {
         static constexpr uint32_t uninitialized = -1;
-        size_t GetSize() const override
+
+        size_t size() const
         { 
             return GetParentSize() + templates.size(); 
         }
-        ITypeInfo* GetPartArgument(size_t i) const 
+
+        ITypeInfo* at(size_t i) const 
         { 
             if (auto size = GetParentSize(); i < size) {
-                return parent->GetPartArgument(i);
+                return parent->at(i);
             }
             else {
                 i -= size;
@@ -1222,11 +1224,12 @@ namespace LEX::Test
 
         uint32_t GetParentSize() const
         {
-            if (_cachedSize == uninitialized) {
-                if (!parent)
-                    return 0;
+            if (!parent)
+                return 0;
 
-                _cachedSize = parent->GetParentSize();
+
+            if (_cachedSize == uninitialized) {               
+                _cachedSize = parent->size();
             }
             return _cachedSize;
         }
@@ -1489,6 +1492,71 @@ namespace LEX::Test
     // it also saves a bit of space.
 
 #pragma endregion
+
+
+#pragma region Constants
+
+    constexpr int TestConstexpr1();
+    constexpr int TestConstexpr2()
+    {
+        return 1 + TestConstexpr1();
+    }
+
+    constexpr int TestConstexpr1()
+    {
+        return TestConstexpr2() - 1;
+    }
+
+    //constexpr int test_constexpr = TestConstexpr1();
+
+
+
+    //Here's a concept that I'll be doing when it comes to const things, first, constant functions and constant variables exist 
+    // on another plane basically. They cannot be external.  (Im unsure if I want to include object literals.)
+    // But in linkage, it will link on definition but instead of declaration, it will link on a new linkage called constant.
+    //When compiling for something that has a compiler option of  of constant, it can only use constant values, and expressions deemed constant.
+    // Or rather, specific things will have a qualifier flag of "NotConstant" to mark that it cannot be used. Example would be, return from a non
+    // const function, object literals. Also probably things that pull stuff like object infos and such.
+    //Note, const stuff should be able to be saved into the script.
+
+    //However, alternatively, I think one thing I can do is possibly have them link to a literal instead. it depends on where it's intended to be used.
+
+    //Also, a rule on constant functions. They can be called any old way, even by non-constant functions obviously, however. When called from a constant
+    // space, they can only be loaded with things and with methods that we know are constant.
+
+    //Lastly, I'd like something called intrinsic for external functions. This means that the definition of the function is known at compile time
+    // because the function is a core one, and thus can be used. The rule for this will likely just be thus, if the function is constant it
+    // MUST be defined by the time constant occurs. If it hits constant, it will fail.
+
+    //I want to consider situations in which I can allow it to have non-primative constants. But I'm not pressed about it.
+
+    struct Constant;
+
+
+    
+
+
+    struct Constant : public VarInfo
+    {
+        std::string_view GetName() const override
+        {
+            return "<constant>";
+        }
+
+
+        Literal* literal = nullptr;
+    };
+
+    //Constants are loaned out based on a literal they subscribe to.
+    struct ConstantManager
+    {
+        std::map <Literal*, Constant> constants;
+    };
+
+
+
+
+#pragma endregion 
 
 
     namespace ClassStructSystem
