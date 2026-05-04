@@ -13,6 +13,9 @@ namespace LEX
 	
 	public:
 
+		IDirectory* FindDirectory(SyntaxRecord& record) { return nullptr; };
+		//std::vector<IDirectory*> GetAssociates(RelateType) = 0;
+
 		virtual Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) = 0;
 
 

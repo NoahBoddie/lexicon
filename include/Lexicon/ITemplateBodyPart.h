@@ -69,6 +69,19 @@ namespace LEX
 			return this;
 		}
 
+
+		static bool AllResolved(const std::span<ITypeInfo*const>& types)
+		{
+			for (auto type : types)
+			{
+				if (type->IsResolved() == false) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+
 	protected:
 		mutable State _state = State::kUnknown;
 	};

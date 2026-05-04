@@ -89,6 +89,7 @@ namespace LEX
 	struct ITypeInfo : public ITypeInfoAbstract {};
 #endif
 
+	using IType = ITypeInfo;
 
 }
 

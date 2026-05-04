@@ -5,8 +5,17 @@
 
 namespace LEX
 {
-	struct TypeInfo : public TypeInfoAbstract
+	struct IMPL_A_VERSION(TypeInfo)
 	{
+	public:
+		TypeInfo* GetTypeInfo(ITemplateBody* args) override
+		{
+			return reinterpret_cast<TypeInfo*>(this);
+		}
+
+
+
+
 		virtual void SetDefault(const Variable&) = 0;
 
 		void EmplaceDefault(const Variable& var);

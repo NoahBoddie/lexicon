@@ -517,7 +517,8 @@ namespace LEX
 							//Index will be useless right now
 							//result = info->CreateNode(pair->second);
 							MergeTemplate merger{ pair->second, out };
-
+							//TODO: in the future system, the merger will no longer be necessary. Instead, that will be handled
+							// by the parentage system.
 							//result = info->CreateNode(genericList[0].second);
 							result = info->CreateNode(merger);
 							return true;

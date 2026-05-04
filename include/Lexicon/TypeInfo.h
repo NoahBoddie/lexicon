@@ -33,8 +33,13 @@ namespace LEX
 	
 	struct __declspec(novtable) IMPL_VERSION_DERIVES(TypeInfoAbstract, TypeInfo, ITypeInfo)
 	{	
-		DEFINE_COMPONENT_OFFSET(ComponentType::TypeInfo)
+	
+	};
 
+	struct ABS_VERSION(TypeInfo, ITypeInfo)
+	{
+		DEFINE_COMPONENT_OFFSET(ComponentType::TypeInfo)
+	public:
 
 		//This might come with hierarchy data automatically.
 
@@ -45,29 +50,26 @@ namespace LEX
 		//TODO: ABSOLUTELY change the name "TypeInfo::IsAbstract". Perhaps "IsImplemented". Which this should never not be implemented.
 		// Also, probably base that off something like the interface this comes from.
 
-		TypeInfo* GetTypeInfo(ITemplateBody* args) override
-		{
-			return reinterpret_cast<TypeInfo*>(this);
-		}
-
-
+		//Move this to the impl file
 		
+
 		virtual Variable GetDefault() = 0;
-		
+
 	public:
 		//Make these work like an actual emplace function, where it basically does the construction elsewhere.
 		// Move into function base? Largely non-basic structures depend on something else for this shit.
 		//REMOVE THIS PLEASE.
-		
+
 		virtual TypeInfo* GetExtends() = 0;
 
-		
+
 	};
 
 
 #ifndef LEX_SOURCE
 	//Only accessible outside of the source.
-	struct TypeInfo : public TypeInfoAbstract {};
+
+	struct IMPL_A_VERSION(TypeInfo){};
 #endif
 
 

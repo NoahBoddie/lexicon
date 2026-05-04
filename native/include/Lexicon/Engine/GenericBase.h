@@ -5,12 +5,13 @@
 #include "Lexicon/Engine/ISpecializable.h"
 
 #include "Lexicon/Engine/SpecialBase.h"
-
+#include "Lexicon/Impl/destroy_delete.h"
 
 //*src
+#include "Lexicon/Engine/TemplateContainer.h"
 #include "Lexicon/Engine/ITypeInfoImpl.h"
-#include "Lexicon/ITemplateBody.h"
 #include "Lexicon/Engine/Element.h"
+#include "Lexicon/ITemplateBody.h"
 
 namespace LEX
 {
@@ -38,12 +39,12 @@ namespace LEX
 
 		size_t GetSize() const override
 		{
-			return _templates.size();
+			return _templates->size();
 		}
 
 		ITypeInfo* GetPartArgument(size_t i) const override
 		{
-			return const_cast<TemplateType*>(std::addressof(_templates.at(i)));
+			return _templates->at(i);
 		}
 
 
@@ -132,13 +133,13 @@ namespace LEX
 
 		TemplateType* GetTemplateAt(size_t i)
 		{
-			return &_templates[i];
+			return _templates->at(i);
 		}
 
 
 		TemplateType* GetTemplateByName(const std::string_view& name)
 		{
-			for (auto& temp_type : _templates)
+			for (auto& temp_type : _templates->entries)
 			{
 				if (temp_type.name == name) {
 					return &temp_type;
@@ -152,13 +153,13 @@ namespace LEX
 
 		const std::vector<TemplateType>& templates() const
 		{
-			return _templates;
+			return _templates->entries;
 		}
 
 
 		void AddTemplate(const std::string_view& name)//Might have types later
 		{
-			auto& temp = _templates.emplace_back(this, name, _templates.size());
+			auto& temp = _templates->entries.emplace_back(this, name, _templates->entries.size());
 			temp.HandleInheritance();
 		}
 	
@@ -172,8 +173,14 @@ namespace LEX
 		//std::vector<uint32_t> inheritGroups{};
 
 		//std::vector<TemplateType*> _inheritedTemplates;//This is to be used when it inherits templates. Inherit groups not required.
-		std::vector<TemplateType> _templates;
+		destructible_ptr<TemplateContainer> _templates{ new TemplateContainer };
 		
+		//Here, have template aliases, places where one can have names translated into a different name
+		// but only on this aspect. Actually, this would be more for functions. Something like,
+		// "LaunderTemplateName"
+
+
+
 		//I'm actually unsure how needed incomplete is. We have to specialize stuff as it's getting used,
 		// so it would likely be specialized in the moment
 		std::vector<std::unique_ptr<SpecialBase>> incomplete;

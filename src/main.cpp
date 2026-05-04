@@ -1559,6 +1559,93 @@ namespace LEX::Test
 #pragma endregion 
 
 
+#pragma region GenericSignature
+    
+    
+    
+    
+    struct SpecialArgument : public ITemplateBodyPart
+    {
+        inline static std::set<SpecialArgument> arguments;
+
+        [[nodiscard]] static SpecialArgument* EmplaceArgument(std::span<ITypeInfo*> entries)
+        {
+            SpecialArgument arg{};
+
+            arg._types = { entries.begin(), entries.end() };
+
+            auto it = arguments.emplace(arg);
+
+            return unconst(&*it.first);
+        }
+
+
+        virtual size_t GetSize() const { return _types.size(); }
+
+
+        ITypeInfo* GetPartArgument(size_t i) const override
+        {
+            return _types[i];
+        }
+
+        TypeInfo* GetBodyArgument(size_t i) const override
+        {
+            if (GetState())
+            {
+                auto& type = _types[i];
+
+
+                return NULL_OP(NULL_Q(type)->GetTypeInfo(nullptr));
+            }
+
+            return nullptr;
+        }
+
+
+
+        bool IsResolved() const override
+        {
+            //This is rare to ever actually be used, it merely exists on the one situation where it is.
+            if (_state == kUnknown)
+            {
+                return AllResolved(_types);
+            }
+
+            return _state == kBody;
+        }
+
+
+
+        auto operator<=>(const SpecialArgument& other) const noexcept = default;
+
+    private:
+        std::vector<ITypeInfo*> _types;
+
+    };
+
+    void test_equal()
+    {
+        SpecialArgument test;
+        SpecialArgument* test1;
+        SpecialArgument* test2;
+
+        *test1 == *test2;
+    }
+
+    
+    struct GenericArugment : public ITemplatePart
+    {
+        std::set<SpecialArgument> arguments;
+    };
+    
+    //A singleton type that basically is a stand in for the arguments of a given type.
+    // The idea is depending on how many arguments 
+    
+
+
+#pragma endregion
+
+
     namespace ClassStructSystem
     {
         //This type would serve for something to link to a function with generic structures.

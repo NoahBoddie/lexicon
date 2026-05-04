@@ -6,22 +6,22 @@
 namespace LEX
 {
 
-	BasicRecord<Syntax, SyntaxBody>* SyntaxBody::GetSelf()
+	//BasicRecord<Syntax, SyntaxRecord>* SyntaxRecord::GetSelf()
+	//{
+	//	return reinterpret_cast<Self*>(this);
+	//}
+
+	Element* SyntaxRecord::GetParent()
 	{
-		return reinterpret_cast<Self*>(this);
+		return RecordBase::GetParent<Element*>();
 	}
 
-	Element* SyntaxBody::GetParent()
+	Syntax& SyntaxRecord::GetSyntax()
 	{
-		return GetSelf()->RecordBase::GetParent<Element*>();
+		return GetEnumFromRecord();
 	}
 
-	Syntax& SyntaxBody::GetSyntax()
-	{
-		return GetSelf()->GetEnumFromRecord();
-	}
-
-	bool SyntaxBody::IsPath()
+	bool SyntaxRecord::IsPath()
 	{
 		switch (GetSyntax().type)
 		{
@@ -42,7 +42,7 @@ namespace LEX
 
 
 
-	std::string SyntaxBody::GetAffix()
+	std::string SyntaxRecord::GetAffix()
 	{
 		//Add project
 		Script* script = NULL_OP(NULL_Q(GetParent())->GetScript());
@@ -55,7 +55,7 @@ namespace LEX
 		return std::format(" <{}{}: (line: {} / col: {})>", name, extension, syntax.line, syntax.column);
 	}
 
-	std::function<LogEditor> SyntaxBody::Mutator()
+	std::function<LogEditor> SyntaxRecord::Mutator()
 	{
 		//return [this](LogParams& params, LogState state, LogResult&) -> void { if (state == LogState::Prep) params.suffix << GetAffix(); };
 		return [this](LogParams& params, LogState state, LogResult&) -> void

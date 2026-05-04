@@ -12,7 +12,7 @@ namespace LEX
 	class Script;
 	struct Element;
 
-
+#ifdef DISABLE_THIS
 	struct SyntaxBody
 	{
 		//TODO: I would like to make make access functions for certain common ground stuff like return types and such.
@@ -262,6 +262,137 @@ namespace LEX
 
 
 	};
+#endif
 
-	using SyntaxRecord = BasicRecord<Syntax, SyntaxBody>;
+
+	struct SyntaxRecord : public TopLayer<SyntaxRecord, Syntax>
+	{
+		using Top::TopLayer;
+
+
+		//TODO: I would like to make make access functions for certain common ground stuff like return types and such.
+
+		//I would like to make an over version of syntax record that basically copies all the functions and makes it into a new version, that way find
+		// and the rest of that stuff doesn't have so many issues.
+
+		//Actually, pause, I think I'll make a "basic_record" that takes what type of record it is. Largely, the concept would be there'd be no difference
+		// but it would help determine what returns there are. The template record is what would do all the accessing and such maybe?
+
+
+
+		//What I basically want of this it accumulate messages, and their source locations and such. So it will handle that sort of this.
+
+		//inline static std::unordered_map<size_t, Script*> selfList;
+
+		inline static size_t hash = 0;
+
+
+		void Tester()
+		{
+			std::hash<std::thread::id> hasher{};
+
+			size_t hash = hasher(std::this_thread::get_id());
+
+		}
+
+	public:
+
+		Element* GetParent();
+
+		Syntax& GetSyntax();
+
+		bool IsPath();
+
+
+		std::string GetAffix();
+
+		std::function<LogEditor> Mutator();
+
+
+		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts> void Log(const std::string& message, std::source_location& src, IssueLevel level, Ts&&... args)
+		{
+			auto handle = ReportManager::instance->AddEditor(Mutator());
+
+			return report::log(message, src, ReportManager::instance->GetIssueType(), level, args...);
+			//return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+		}
+
+		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts> void Log(IssueCode code, std::source_location& src, IssueLevel level, Ts&&... args)
+		{
+			auto handle = ReportManager::instance->AddEditor(Mutator());
+
+			return report::log(code, src, ReportManager::instance->GetIssueType(), level, args...);
+			//return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+		}
+
+		//scoped_logger log(Mutator(), LogState::Prep); 
+
+#define DECLARE_SYNTAX_LOGGER(mc_name, mc_level,...)\
+		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
+		void mc_name(SourceAndProxy<std::string> message, Ts&&... args)\
+		{\
+			return Log<Issue>(message.prox, message.src, IssueLevel::mc_level, args...);\
+		}\
+		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
+		void mc_name(std::string& message, std::source_location loc, Ts&&... args)\
+		{\
+			return Log<Issue>(message, loc, IssueLevel::mc_level, args...);\
+		}\
+		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
+		void mc_name(IssueCode code, Ts&&... args)\
+		{\
+			return Log<Issue>(code, IssueLevel::mc_level, args...);\
+		}\
+		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
+		void mc_name(IssueCode code, std::source_location loc, Ts&&... args)\
+		{\
+			return Log<Issue>(code, loc, IssueLevel::mc_level, args...);\
+		}
+
+
+
+
+		DECLARE_SYNTAX_LOGGER(critical, Critical);
+
+		DECLARE_SYNTAX_LOGGER(info, Info);
+		DECLARE_SYNTAX_LOGGER(debug, Debug);
+		DECLARE_SYNTAX_LOGGER(error, Error);
+
+		template <is_not<std::source_location>... Ts> void Note(SourceAndProxy<std::string> message, Ts&&... args)
+		{
+			auto handle = ReportManager::instance->AddEditor(Mutator());
+
+			return report::log(message.prox, message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+			//return report::log(message.prox, GetAffix(), message.src, ReportManager::instance->GetIssueType(), IssueLevel::Debug, args...);
+		}
+
+
+
+
+		void PrintSyntax(std::string indent)
+		{
+			constexpr std::string_view __dent = "| ";
+
+			std::string log = Print();
+
+			logger::debug("{}{}", indent, log);
+			indent += __dent;
+
+			for (auto& child_rec : children())
+			{
+				child_rec->PrintSyntax(indent);
+			}
+		}
+
+
+		void PrintSyntax()
+		{
+			PrintSyntax("");
+
+			logger::debug("Record uses {} Kilobytes", GetMemoryUsage() / 1000.f);
+		}
+	};
+
+
+	//using SyntaxRecord = BasicRecord<Syntax, SyntaxBody>;
 }

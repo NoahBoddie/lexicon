@@ -32,9 +32,9 @@ namespace LEX
 
 		std::vector<TemplateType*> GetTemplateInputs() override
 		{
-			std::vector<TemplateType*> result{ _templates.size() };
+			std::vector<TemplateType*> result{ _templates->entries.size() };
 
-			std::transform(_templates.begin(), _templates.end(), result.begin(), [](TemplateType& it) { return std::addressof(it); });
+			std::transform(_templates->entries.begin(), _templates->entries.end(), result.begin(), [](TemplateType& it) { return std::addressof(it); });
 
 			return result;
 		}

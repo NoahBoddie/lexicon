@@ -57,7 +57,7 @@ namespace LEX
 	{
 		//This expects a completed template btw.
 
-		auto size = _templates.size();
+		auto size = _templates->size();
 
 
 
@@ -66,7 +66,7 @@ namespace LEX
 
 		for (int i = 0; i < size; i++)
 		{
-			TemplateType& param = _templates[i];
+			TemplateType& param = *_templates->at(i);
 
 			//This would be the thing it should be trying to turn into
 			ITypeInfo* _param = &param;

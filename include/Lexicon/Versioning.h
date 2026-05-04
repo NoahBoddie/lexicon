@@ -124,6 +124,11 @@ namespace Version
 #define IMPL_VERSION(mc_type,...) IMPL_VERSION_DERIVES(mc_type, mc_type,__VA_ARGS__)
 
 
+#define ABS_VERSION(mc_type,...) __declspec(novtable) IMPL_VERSION_DERIVES(CONCAT(ABS_,mc_type), mc_type,__VA_ARGS__)
+#define IMPL_A_VERSION(mc_type,...) mc_type : public InterfaceLayer<CONCAT(ABS_,mc_type) __VA_OPT__(,)__VA_ARGS__>
+
+
+
 
 #define IMPL_SINGLETON_DERIVES_NO_SFX(mc_name, mc_type,...) IMPL_VERSION_DERIVES_NO_SFX(mc_name,mc_type,__VA_ARGS__), public InterfaceSingleton<mc_name>
 #define IMPL_SINGLETON_DERIVES(mc_name,mc_type,...) IMPL_VERSION_DERIVES(mc_name,mc_type,__VA_ARGS__), public InterfaceSingleton<mc_name>

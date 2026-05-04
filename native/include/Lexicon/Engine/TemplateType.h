@@ -32,6 +32,12 @@ namespace LEX
 			HierarchyData* other = dynamic_cast<HierarchyData*>(test);
 		}
 
+
+		size_t GetIndex() const
+		{
+			return index;
+		}
+
 		std::string name;
 		GenericBase* _owner = nullptr;
 		size_t index = -1;
