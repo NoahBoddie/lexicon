@@ -26,21 +26,13 @@ namespace LEX
 
 #define INFO_TRAITS(mc_type) \
     case mc_type::INFO_TYPE:\
-        if constexpr (std::is_convertible_v<const mc_type*, const From*> &&\
-            std::is_convertible_v<const mc_type*, const To*>){\
-            return static_cast<const mc_type*>(self);\
-        }\
-        break;
-
-#define INFO_TRAITS(mc_type) \
-    case mc_type::INFO_TYPE:\
         if constexpr ((std::is_base_of_v<mc_type, From> || std::is_base_of_v<From, mc_type>) &&\
             std::is_base_of_v<To, mc_type>){\
             return static_cast<const mc_type*>(self);\
         }\
         break;
 
-#define INFO_NAMES Info, VarInfo, LocalInfo, ParameterInfo, GlobalBase
+#define INFO_NAMES Info, VarInfo, LocalInfo, ParameterInfo, ThisInfo, GlobalBase
 
 
 

@@ -466,7 +466,7 @@ namespace LEX
 		}
 
 
-		ParameterInfo* FindParameter(const std::string_view& a_name)
+		IVarIndexInfo* FindParameter(const std::string_view& a_name)
 		{
 			return _callData ? _callData->FindParameter(a_name) : nullptr;
 		}

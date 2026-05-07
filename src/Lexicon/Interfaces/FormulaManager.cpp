@@ -31,7 +31,7 @@ namespace LEX
 		auto parameters = base.parameters();
 
 		if (auto target = base.target(); target) {
-			formula->_thisInfo = std::make_unique<ParameterInfo>(target, parse_strings::this_word, 0);
+			formula->_thisInfo = std::make_unique<ThisInfo>(target);
 		}
 
 		if (params.empty() == false)
@@ -62,7 +62,7 @@ namespace LEX
 
 
 		//This needs to confirm it's proper
-		if (RoutineCompiler::Compile(formula->_routine, records, formula.get(), perspective, nullptr, name) == false) {
+		if (RoutineCompiler::Compile(formula->GetRoutine(), records, formula.get(), perspective, nullptr, name) == false) {
 			return 3;
 		}
 		formula->SetName(name);

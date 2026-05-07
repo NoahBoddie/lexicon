@@ -1517,7 +1517,7 @@ namespace LEX::Test
 
 
 
-    struct BasicCallableData_ : public BasicCallSignature
+    struct BasicCallableData : public BasicCallSignature
     {
         std::unique_ptr<ThisInfo> _thisInfo;
 
@@ -1551,7 +1551,7 @@ namespace LEX::Test
 
     //This is basically something that only handles routines, and will create and destroy the routine when loaded and destroyed
     // This is for formulas primarily.
-    struct RoutineData : public BasicCallableData_
+    struct RoutineData : public BasicCallableData
     {
         RoutineData()
         {
@@ -1571,7 +1571,7 @@ namespace LEX::Test
         }
     };
 
-    struct FunctionData : public BasicCallableData_
+    struct FunctionData : public BasicCallableData
     {
         std::string _name;
 
@@ -1708,19 +1708,10 @@ namespace LEX::Test
         std::map<std::string_view, std::vector<destructible_ptr<OverloadInfo>>> functions;
         
         //This stores globals and fields from types. Only globals are destructible.
-        std::map<std::string_view, VarInfo*> variables;
+        //NOTE: this needs to load AFTER members have been added in the case
+        std::map<std::string_view, destructible_ptr<DestructibleVarInfo>> variables;
 
 
-        ~FakeEnvironment()
-        {
-            for (auto [name, info] : variables)
-            {
-                //Has to be manually deleted due to field info being owned by something else.
-                // Annoying but making a type for this would be worse because destruction might be unreliable.
-                auto global = info->As<GlobalBase>();
-                if (global) delete global;
-            }
-        }
     };
 
 

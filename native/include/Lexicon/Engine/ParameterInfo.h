@@ -69,7 +69,7 @@ namespace LEX
 
 		DEFINE_INFO_TYPE(InfoType::ParameterInfo)
 	public:
-		bool IsOptional() const
+		bool IsOptional() const override
 		{
 			return _flags & ParameterFlag::Default || _flags & ParameterFlag::Params;
 		}

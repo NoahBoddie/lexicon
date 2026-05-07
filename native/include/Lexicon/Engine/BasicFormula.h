@@ -11,7 +11,7 @@
 namespace LEX
 {
 
-	class BasicFormula : public Component, public IFormula, public BasicCallableData
+	class BasicFormula : public Component, public IFormula, public RoutineData
 	{
 	public:
 		DEFINE_COMPONENT_OFFSET(ComponentType::BasicFormula)
@@ -38,12 +38,12 @@ namespace LEX
 		virtual void SetName(const std::string_view& name) override
 		{
 			text = name;
-			_routine.name = text.data();
+			GetRoutine().name = text.data();
 		}
 
 		void SetFile(const char* file)
 		{
-			_routine.file = file;
+			GetRoutine().file = file;
 		}
 
 		std::string text;

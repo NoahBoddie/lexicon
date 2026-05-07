@@ -9,11 +9,12 @@ namespace LEX
 
 		Info = 0,
 		VarInfo,
-		
+		FunctionInfo,
 		kScriptedMax,
 
 		LocalInfo,
 		ParameterInfo,
+		ThisInfo,
 		FieldInfo,
 		GlobalBase,
 

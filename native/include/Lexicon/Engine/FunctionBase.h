@@ -112,7 +112,7 @@ namespace LEX
 
 			CheckDefault(index, offset, flags);
 
-			ParameterInfo* subject = FindParameterByPos(index);
+			IVarIndexInfo* subject = FindParameterByPos(index);
 
 
 
@@ -186,7 +186,7 @@ namespace LEX
 			//	&parameters[index + HasTarget()] : HasTarget() ?
 			//	&parameters[0] : nullptr;
 
-			ParameterInfo* subject = FindParameter(name);
+			IVarIndexInfo* subject = FindParameter(name);
 
 			if (!subject) {
 				report::failure("Couldn't find parameter '{}'.", name);
@@ -307,13 +307,6 @@ namespace LEX
 			_procedure = proc;
 			procedureData = data;
 		}
-
-
-	protected:
-		//If not 0, this is a procedure. This data is used by the procedure. May use to help handle if 
-		//If -1 its likely waiting for a procedure to claim it.
-		uint64_t procedureData = 0;
-
 	};
 
 

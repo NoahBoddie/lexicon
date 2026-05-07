@@ -2,11 +2,14 @@
 #include "Lexicon/Qualifier.h"
 #include "Lexicon/Interfaces/VarInfo.h"
 #include "Lexicon/Engine/QualifiedType.h"
+#include "Lexicon/Engine/DestructibleVarInfo.h"
 namespace LEX
 {
-	struct IVarIndexInfo : public VarInfo
+	struct IVarIndexInfo : public DestructibleVarInfo
 	{
 		virtual size_t GetIndex() const noexcept = 0;
+
+		virtual bool IsOptional() const { return false; }
 	};
 
 

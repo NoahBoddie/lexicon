@@ -5,13 +5,14 @@
 #include "Lexicon/Engine/Field.h"
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/GlobalData.h"
+#include "Lexicon/Engine/DestructibleVarInfo.h"
 
 namespace LEX
 {
 	struct ICallableUnit;
 
 	
-	struct GlobalBase : public SecondaryElement, public GlobalData, private VarInfo
+	struct GlobalBase : public SecondaryElement, public GlobalData, private DestructibleVarInfo
 	{
 		friend class InfoTraits;
 		DEFINE_INFO_TYPE(InfoType::GlobalBase)
@@ -73,6 +74,11 @@ namespace LEX
 		VarInfo* AsInfo() noexcept { return this; }
 		const VarInfo* AsInfo() const noexcept { return this; }
 		
+
+		void Destroy() override
+		{
+			return delete this;
+		}
 	};
 
 

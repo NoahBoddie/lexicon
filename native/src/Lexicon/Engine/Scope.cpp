@@ -58,7 +58,7 @@ namespace LEX
 				return _parent->SearchFieldPath(_path, key);
 			}
 
-			if (ParameterInfo* field = process->FindParameter(name); field) {
+			if (IVarIndexInfo* field = process->FindParameter(name); field) {
 				return field;
 			}
 		}

@@ -15,14 +15,14 @@ namespace LEX
 		{
 
 
-
+		case InfoType::ThisInfo:
 		case InfoType::ParameterInfo:
 			is_loc = false;
 			[[fallthrough]];
 		case InfoType::LocalInfo: {
-			LocalInfo* loc = info->As<LocalInfo>();
+			IVarIndexInfo* loc = static_cast<IVarIndexInfo*>(info);
 
-			QualifiedType type{ loc->type, loc->qualifiers };
+			QualifiedType type{ loc->GetType(), loc->GetQualifiers() };
 			OperandType op;
 			Index index;
 
@@ -51,8 +51,8 @@ namespace LEX
 			return result;
 		}
 
-								 //case FieldType::Member:
-								 //case FieldType::Function:
+		//case FieldType::Member:
+		//case FieldType::Function:
 
 		default:
 			report::compile::error("cannot handle this type at this time");

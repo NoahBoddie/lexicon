@@ -106,7 +106,7 @@ namespace LEX
             }
             else
             {
-                _routine.name = GetName().data();
+                ObtainRoutine()->name = GetName().data();
             }
 
             //ITypeInfo* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
@@ -154,7 +154,7 @@ namespace LEX
                 //Include things like whether this is
 
                 
-                _thisInfo = std::make_unique<ParameterInfo>(QualifiedType{ self_type }, parse_strings::this_word, 0);
+                _thisInfo = std::make_unique<ThisInfo>(QualifiedType{ self_type });
                 self_type->SetSelfQualifiers(_thisInfo->qualifiers);
             }
 
@@ -212,20 +212,21 @@ namespace LEX
 
         case LinkFlag::Definition:
         {
-            if (!procedureData || procedureData != -1) {
+            if (GetBodyType() == FunctionBody::Routine) {
                 if (target.FindChild(parse_strings::code) == nullptr)
                     report::compile::error("Function '{}' doesn't have a body", GetName());
 
-                if (RoutineCompiler::Compile(_routine, target, this) == false){
+                if (RoutineCompiler::Compile(*ObtainRoutine(), target, this) == false) {
                     return LinkResult::Failure;
                 }
             }
+
             break;
         }
 
         case LinkFlag::Final:
         {
-            if (_procedure.has_value() && _procedure.value() == nullptr) {
+            if (GetBodyType() == FunctionBody::Procedure && !_procedure) {
                 report::link::failure("Function '{}' did not register a procedure.");
                 return LinkResult::Failure;
             }
@@ -253,7 +254,17 @@ namespace LEX
 
     bool FunctionBase::GetValid() const
     {
-        return !_procedure.has_value() || _procedure.value();
+        switch (GetBodyType())
+        {
+        case FunctionBody::Routine:
+            return true;
+
+        case FunctionBody::Procedure:
+            return _procedure;
+
+        default:
+            return false;
+        }
     }
 
     LinkFlag FunctionBase::GetLinkFlags() 
