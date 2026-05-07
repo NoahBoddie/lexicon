@@ -46,6 +46,8 @@ namespace LEX
 		//Should be inherited, only one can exist.
 		ObjectPolicy* policy = nullptr;
 
+
+		//I'd like to carry this via pointer actually. Or string view.
 		std::string category;
 		TypeOffset offset;
 
