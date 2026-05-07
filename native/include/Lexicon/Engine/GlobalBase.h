@@ -71,8 +71,8 @@ namespace LEX
 #pragma endregion
 
 		
-		VarInfo* AsInfo() noexcept { return this; }
-		const VarInfo* AsInfo() const noexcept { return this; }
+		DestructibleVarInfo* AsInfo() noexcept { return this; }
+		const DestructibleVarInfo* AsInfo() const noexcept { return this; }
 		
 
 		void Destroy() override

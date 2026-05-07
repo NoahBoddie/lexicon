@@ -87,7 +87,7 @@ namespace LEX
 				throw nullptr;
 			}
 
-			auto end = functionMap.end();
+			auto end = functions.end();
 
 			auto name = tar->GetName();
 
@@ -96,7 +96,7 @@ namespace LEX
 			//	throw nullptr;
 			//}
 			//else {
-				auto& info = functionMap[name].emplace_back(tar);
+				auto& info = functions[name].emplace_back(tar);
 				DeclareParentTo(tar);
 			//}
 
@@ -111,12 +111,11 @@ namespace LEX
 
 			auto name = tar->GetName();
 
-			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
+			if (auto it = std::find_if(variables.begin(), end, [&](auto& i) {return name == i.first; }); end != it) {
 				report::compile::error("Variable {} already existed", name);
-				throw nullptr;
 			}
 			else {
-				variables.emplace_back(tar);
+				variables[name].reset(tar->AsInfo());
 				DeclareParentTo(tar);
 			}
 		}
@@ -125,10 +124,10 @@ namespace LEX
 		{
 			//std::vector<FunctionInfo*> result{};
 
-			auto end = functionMap.end();
+			auto end = functions.end();
 
 			//TODO: FindFunctions is busted because I need to LoadFromRecord for a name but needs to be added to Load.
-			if (auto it = functionMap.find(name); end != it) {
+			if (auto it = functions.find(name); end != it) {
 			//if (auto it = std::find_if(functionMap.begin(), functionMap.end(), [&](auto i) { return name == i.second.Get()->GetName(); }); end != it) {
 				return reinterpret_cast<const std::vector<OverloadInfo*>&>(it->second);
 			}
@@ -140,17 +139,17 @@ namespace LEX
 
 
 		
-		GlobalBase* Environment::FindVariable(std::string_view name)
+		std::vector<VarInfo*> Environment::FindVariables(const std::string_view& name)
 		{
 			
 			auto end = variables.end();
 
-			if (auto it = std::find_if(variables.begin(), end, [&](auto i) {return name == i->GetName(); }); end != it) {
-				return *it;
-				return nullptr;
+			if (auto it = std::find_if(variables.begin(), end, [&](auto& i) {return name == i.first; }); 
+				end != it) {
+				return { it->second.get() };
 			}
 			else {
-				return nullptr;
+				return {};
 			}
 		}
 

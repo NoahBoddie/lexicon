@@ -553,19 +553,18 @@ namespace LEX
 						if (auto env = dir->As<Environment>())
 						{
 							//There's no situation where multiple can be observed, so it only needs the one.
-							GlobalBase* var = env->FindVariable(path.GetView());
+							std::vector<VarInfo*> vars = env->FindVariables(path.GetView());
 
-							if (var)
-							{
-								//possible specialization here.
+							auto size = vars.size();
 
-								//return global;
-								result = QualifiedField{ var->AsInfo() };
-
+							if (size == 1) {
+								result = QualifiedField{ vars[0] };
 								return true;
 							}
-							//This isn't needed to qualify this because it doesn't matter what the target is for a global.
-							//NULL_OP(key)->GetTarget();
+							else if (size > 1) {
+								//Give an error
+								return false;
+							}
 						}
 					}
 
@@ -1008,34 +1007,6 @@ namespace LEX
 	QualifiedField Element::SearchFieldPath(Element* a_this, SyntaxRecord& path)
 	{
 		return NEW::SearchFieldPath(a_this, path);
-	
-		QualifiedField result{ nullptr };
-
-		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
-			{
-				for (auto env : query)
-				{
-					//There's no situation where multiple can be observed, so it only needs the one.
-					GlobalBase* var = env->FindVariable(path.GetView());
-
-					if (var)
-					{
-						//possible specialization here.
-
-						//return global;
-						result = QualifiedField{ var->AsInfo() };
-
-						return true;
-					}
-					//This isn't needed to qualify this because it doesn't matter what the target is for a global.
-					//NULL_OP(key)->GetTarget();
-				}
-
-				return false;
-			});
-
-
-		return result;
 	}
 	
 	Script* Element::SearchScriptPath(Element* a_this, SyntaxRecord& path)

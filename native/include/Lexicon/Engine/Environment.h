@@ -92,59 +92,6 @@ namespace LEX
 	// look exactly the same.
 
 
-	struct DataTypeMembersAndMethods
-	{
-
-		struct Method
-		{
-			//This is a type that you'd only ever deal with 
-			MemberPointer memberID;
-			IFunction* function;
-		};
-
-		struct TestFunctionHolder
-		{
-			//>-------------------------
-			//This is for environment
-
-			std::map<std::string, std::vector<FunctionInfo*>> functionMap;
-
-			//>------------------------
-			//This is for classes.
-
-			//This is basically exclusively used for compiled code, 
-			// also, if the memberpointer both matches the type and specialization of the policy inspected, 
-			std::vector<Method> methods;
-
-			size_t overrideIndex;//This is the index to start at if you're trying to search for an overriden function.
-
-		};
-
-		struct TestVariableHolder
-		{
-			//>-------------------------
-			//This is for environment
-			std::map<std::string, TypeBase*> typeMap;
-			std::vector<GlobalBase*> variables;//should be global variables
-
-
-
-			//>------------------------
-			//This is for classes.
-
-
-
-			//This is what is used when searching 
-			std::vector<VariableInfo> member;
-
-			uint32_t _varIndex;//used to tell where the first index actually is, helps shift where exactly the variable is.
-
-		};
-
-
-	};
-
-
 
 
 
@@ -201,7 +148,7 @@ namespace LEX
 
 
 		//TODO: Change name to find field, and use a variableInfo for this.
-		virtual GlobalBase* FindVariable(std::string_view name);
+		virtual std::vector<VarInfo*> FindVariables(const std::string_view& name);
 
 		virtual std::vector<TypeBase*> FindTypes(std::string_view name);
 
@@ -278,28 +225,18 @@ namespace LEX
 	protected: //Some might be private, will address later.
 		Directory* _parent = nullptr;//can be project or script/class
 
-		//private:
-		//>-------------------------
-		//This is for environment
-
-
-
-		std::map<std::string_view, std::vector<destructible_ptr<OverloadInfo>>> functionMap;
+		std::map<std::string_view, std::vector<destructible_ptr<OverloadInfo>>> functions;
 
 
 		//>-------------------------
 		//This is for environment
+		//Later this will use type infos
 		std::map<std::string_view, TypeBase*> typeMap;
 
 
 		
-		std::vector<GlobalBase*> variables;//should be global variables
-			
-
-
-		//The idea here is the virtual methods go here. But within a type.
-		//Should be a more map like structure though.
-		//std::vector<IFunction*> methods;
+		//std::vector<GlobalBase*> variables;//should be global variables
+		std::map<std::string_view, destructible_ptr<DestructibleVarInfo>> variables;
 
 	};
 

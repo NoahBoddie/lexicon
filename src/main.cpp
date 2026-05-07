@@ -1390,7 +1390,7 @@ namespace LEX::Test
 #pragma endregion
 
 
-
+//DONE
 #pragma region Template Type Containers (GenericBase)
 
 
@@ -1681,7 +1681,7 @@ namespace LEX::Test
 #pragma endregion
 
 
-
+//Never needed to be done.
 #pragma region New VariableInfo
 
     //Imagine global derives from this as well as field.
@@ -1701,7 +1701,7 @@ namespace LEX::Test
 
 
 
-
+    //DONE
     struct FakeEnvironment
     {
         //This should be unique pointers that call destroy when complete. Destry will only destroy nodes, but ignore functions.
@@ -1756,8 +1756,9 @@ namespace LEX::Test
 
     
 
-
-    struct Constant : public VarInfo
+    //The idea with constants should be that they all essentially go to the same spot, the same as
+    // literals, only there's a wrapper for them so they can be accessed in normal situations.
+    struct Constant : public DestructibleVarInfo
     {
         std::string_view GetName() const override
         {
@@ -1867,7 +1868,7 @@ namespace LEX::Test
 #pragma endregion
 
 
-
+//NEXT
 #pragma region New Relation
     
     //Allows for a shared pointer kind of situation
