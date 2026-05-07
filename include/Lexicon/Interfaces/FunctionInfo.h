@@ -8,17 +8,17 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct M_INTERFACE_VERSION(FunctionInfo_)
+			struct M_INTERFACE_VERSION(FunctionInfo)
 			{
 
 			};
 		}
 
-		CURRENT_VERSION(FunctionInfo_, 1);
+		CURRENT_VERSION(FunctionInfo, 1);
 	}
 
 
-	struct IMPL_VERSION(FunctionInfo_, Info)
+	struct IMPL_VERSION(FunctionInfo, Info)
 	{
 		DEFINE_INFO_OFFSET(InfoType::FunctionInfo)
 	public:

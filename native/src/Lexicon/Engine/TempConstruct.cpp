@@ -35,7 +35,7 @@
 
 #include "Lexicon/Engine/parse_strings.h"
 
-#include "Lexicon/Engine/FunctionInfo.h"
+#include "Lexicon/Interfaces/FunctionInfo.h"
 
 #include "Lexicon/ProcedureData.h"
 

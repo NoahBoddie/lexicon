@@ -3,7 +3,7 @@
 #include "Overload.h"
 #include "OverloadKey.h"
 #include "OverloadFlag.h"
-#include "OverloadClause.h"
+#include "OverloadParameter.h"
 
 #include "Lexicon/SignatureBase.h"
 

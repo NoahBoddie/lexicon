@@ -672,6 +672,7 @@ namespace LEX
 			}
 		}
 
+		//Try to move these back if you can.
 
 		bool MatchImpliedEntryConcrete(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
 
@@ -679,9 +680,10 @@ namespace LEX
 
 
 
-
+		//TODO: These functions need to have TemplateContainers sent instead of using the base. 
+		// This way I can get a signature to handle this as well. Lo
 		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags);
-
+		
 		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags);
 
 		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags);
@@ -696,7 +698,7 @@ namespace LEX
 
 		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
 		{
-			return __super::BasicExecute(self, body, args, caller, def, GetBodyType());
+			return BasicCallableData::BasicExecute(self, body, args, caller, def, GetBodyType());
 		}
 
 	};

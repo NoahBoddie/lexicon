@@ -1,30 +1,45 @@
 #pragma once
 
-#include "Lexicon/Engine/MemberInfo.h"
-#include "Lexicon/Engine/FunctionBase.h"
-#include "Lexicon/MemberPointer.h"
+#include "Lexicon/Interfaces/FunctionInfo.h"
+#include "Lexicon/Engine/OverloadParameter.h"
 
+#include "Lexicon/Engine/MemberInfo.h"
 namespace LEX
 {
 
+	struct FunctionNode;
+	struct ITemplatePart;
+
+    struct OverloadInfo : public FunctionInfo, public OverloadParameter
+    {
+        virtual void Destroy() {}
 
 
-	struct FunctionInfo : public MemberInfo, public OverloadParameter
+		virtual FunctionNode CreateNode(ITemplatePart* part) = 0;
+		virtual bool IsOverloadUsuable() const { return true; }
+		//virtual BasicCallSignature* GetCallSignature() = 0;
+		//virtual TemplateContainer* GetGenericSignature() = 0;
+    };
+
+
+#ifdef KILL_THIS_WHEN_DONE
+	//Siphon data from this pls
+	struct FunctionInfo_OLD : public MemberInfo, public OverloadParameter
 	{
 		using FunctionType = FunctionBase;
-		
+
 
 		struct {
 
 			FunctionData* signature = nullptr;
 			//uint64_t signatureCode = 0;
-			
+
 			struct
 			{
 				uint64_t _raw = 0;
 				FunctionType* function;
 				MemberPointer method;//prefered, works with the other.
-				
+
 			};
 		};
 
@@ -33,13 +48,13 @@ namespace LEX
 			return specifiers.flags & SpecifierFlag::Virtual;
 		}
 
-		FunctionNode CreateNode(ITemplatePart* part)
-		{
-			if (IsVirtual() == true)
-				return FunctionNode{ nullptr, signature, method };
-			else
-				return FunctionNode{ function, signature, function->AsFunction()->CheckFunction(part) };
-		}
+		FunctionNode CreateNode(ITemplatePart* part);
+		//{
+		//	if (IsVirtual() == true)
+		//		return FunctionNode{ nullptr, signature, method };
+		//	else
+		//		return FunctionNode{ function, signature, function->AsFunction()->CheckFunction(part) };
+		//}
 
 
 		FunctionData* tmpSignature()
@@ -56,14 +71,14 @@ namespace LEX
 		IFunction* GetFunction() const
 		{
 			if (IsVirtual() == false)
-			return function->AsFunction();
+				return function->AsFunction();
 			return nullptr;
 		}
 
 		IFunction* GetFunction(ITemplatePart* part) const
 		{
 			if (IsVirtual() == false)
-			return function->AsFunction()->CheckFunction(part);
+				return function->AsFunction()->CheckFunction(part);
 			nullptr;
 		}
 
@@ -132,4 +147,5 @@ namespace LEX
 	};
 
 
+#endif
 }

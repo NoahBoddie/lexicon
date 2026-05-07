@@ -9,7 +9,7 @@
 
 //*src
 #include "Overload.h"
-#include "OverloadClause.h"
+#include "OverloadParameter.h"
 #include "TargetObject.h"
 namespace LEX
 {

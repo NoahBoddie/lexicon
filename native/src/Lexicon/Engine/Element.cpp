@@ -8,7 +8,7 @@
 
 #include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/ParserTest.h"
-#include "Lexicon/Engine/FunctionInfo.h"
+#include "Lexicon/Engine/OverloadInfo.h"
 #include "Lexicon/Engine/GlobalBase.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
 
@@ -426,7 +426,7 @@ namespace LEX
 		}
 
 
-		size_t CheckOverload2(OverloadArgument& input, std::vector<FunctionInfo*> clauses, Overload& ret)
+		size_t CheckOverload2(OverloadArgument& input, std::vector<OverloadInfo*> clauses, Overload& ret)
 		{
 			Overload* last = nullptr;
 
@@ -475,7 +475,7 @@ namespace LEX
 				{
 					std::vector<std::pair<size_t, ITemplatePart*>> genericList;
 
-					std::vector<FunctionInfo*> funcs{};
+					std::vector<OverloadInfo*> funcs{};
 					size_t i = 0;
 
 					for (auto& dir : query)
@@ -485,14 +485,6 @@ namespace LEX
 							auto buff = env->FindFunctions(path.GetView());
 
 							//TODO: I think I'd actually just not have this work so something not working wouldn't disrupt the expected order of the objects
-
-							auto it = std::remove_if(buff.begin(), buff.end(), [](FunctionInfo* other) {return !other->IsValid(); });
-							if (auto end = buff.end(); end != it) {
-								//Testing with the idea of just not having this work full stop so it doesn't change the intent of the code when compiling.
-								return true;
-								buff.erase(it, end);
-
-							}
 
 							i += buff.size();
 
@@ -510,7 +502,7 @@ namespace LEX
 
 						if (auto index = CheckOverload2(key, { funcs.begin(), funcs.end() }, out); index != -1)
 						{
-							auto info = static_cast<FunctionInfo*>(out.param);
+							auto info = static_cast<OverloadInfo*>(out.param);
 
 							auto pair = std::find_if(genericList.begin(), genericList.end(), [index](auto& it) {return index < it.first; });
 
@@ -520,6 +512,13 @@ namespace LEX
 							//TODO: in the future system, the merger will no longer be necessary. Instead, that will be handled
 							// by the parentage system.
 							//result = info->CreateNode(genericList[0].second);
+							
+							if (info->IsOverloadUsuable() == false) {
+								//Result will remain empty, error is the function is non-functional, and thus
+								// cannot compile
+								return true;
+							}
+
 							result = info->CreateNode(merger);
 							return true;
 						}
@@ -869,53 +868,6 @@ namespace LEX
 	TypeNode Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
 	{
 		return NEW::SearchTypePath(a_this, _path);
-
-
-		if (a_this && _path.FindChild(parse_strings::path) == nullptr)
-		{
-			if (auto gen_elem = a_this->AsGenericElement())
-			{
-				if (auto temp = gen_elem->GetTemplateByName(_path.GetView())) {
-					return TypeNode{nullptr, temp };
-				}
-			}
-		}
-
-
-
-		TypeNode result;
-
-		SearchPathBase(a_this, _path, [&](std::vector<QualifiedName>& query) -> bool
-			{
-				for (auto& env : query)
-				{
-
-					std::vector<TypeBase*> types = env->FindTypes(_path.GetView());
-
-					//There's no situation where multiple can be observed, so it only needs the one.
-
-					auto size = types.size();
-
-
-
-					//TODO: VERY temporary idea. No pattern matching, no checking. This is basically the same that we did before
-					if (size > 1) {
-						report::compile::critical("mulitple types of same name detected.");
-						throw nullptr;
-					}
-					else if (size)
-					{
-						result = types[0]->CreateNode(env);
-						return true;
-					}
-
-				}
-
-				return false;
-			});
-
-
-		return result;
 	}
 
 	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadArgument* sign)
@@ -1045,113 +997,10 @@ namespace LEX
 	}
 
 
-	size_t Element::CheckOverload(OverloadArgument& input, std::vector<FunctionInfo*> clauses, Overload& ret)
-	{
-		Overload* last = nullptr;
-
-		size_t result = -1;
-
-		for (auto i = 0; i < clauses.size(); i++)
-		{
-			auto clause = clauses[i];
-
-			Overload buffer;
-
-			auto bias = input.Match(clauses[i], nullptr, buffer, last);
-				
-			switch (bias)
-			{
-			case OverloadBias::kAmbiguous:
-				result = -1;
-				break;
-
-			case OverloadBias::kCurrent:
-				ret = std::move(buffer);
-				last = &ret;
-				result = i;
-				break;
-			}
-		}
-
-		//if (last) {
-		//	last->param->ResolveOverload()
-		//}
-
-		//if (last)
-		//	ret = *last;//this should move
-
-		//return last ? result : -1;
-		return result;
-	}
-
-
 
 	FunctionNode Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key, Overload& out)
 	{
 		return NEW::SearchFunctionPath(a_this, path, key, out);
-
-		FunctionNode result;
-
-		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<QualifiedName>& query) -> bool
-			{
-				std::vector<std::pair<size_t, ITemplatePart*>> genericList;
-
-				std::vector<FunctionInfo*> funcs{};
-				size_t i = 0;
-
-				for (auto& env : query)
-				{
-
-					auto buff = env->FindFunctions(path.GetView());
-
-					//TODO: I think I'd actually just not have this work so something not working wouldn't disrupt the expected order of the objects
-
-					auto it = std::remove_if(buff.begin(), buff.end(), [](FunctionInfo* other) {return !other->IsValid(); });
-					if (auto end = buff.end(); end != it) {
-						//Testing with the idea of just not having this work full stop so it doesn't change the intent of the code when compiling.
-						return true;
-						buff.erase(it, end);
-
-					}
-
-					i += buff.size();
-
-					//this should compile and then run.
-					funcs.insert_range(funcs.end(), buff);
-					
-
-					genericList.emplace_back(std::make_pair(i, env.AsPart()));
-				
-				}
-
-
-				if (funcs.size() != 0)
-				{
-
-					if (auto index = CheckOverload(key, { funcs.begin(), funcs.end() }, out); index != -1)
-					{
-						auto info = static_cast<FunctionInfo*>(out.param);
-
-						auto pair = std::find_if(genericList.begin(), genericList.end(), [index](auto& it) {return index < it.first; });
-
-						//Index will be useless right now
-						//result = info->CreateNode(pair->second);
-						MergeTemplate merger{ pair->second, out };
-
-						//result = info->CreateNode(genericList[0].second);
-						result = info->CreateNode(merger);
-						return true;
-					}
-
-				}
-
-
-
-				return false;
-			});
-
-
-		return result;
 	}
 
 
@@ -1192,36 +1041,6 @@ namespace LEX
 	Script* Element::SearchScriptPath(Element* a_this, SyntaxRecord& path)
 	{
 		return NEW::SearchScriptPath(a_this, path);
-
-		Script* result = nullptr;
-		
-		SearchPathBase(a_this, path, [&](std::vector<QualifiedElement>& query) -> bool
-			{
-				for (auto env : query)
-				{
-					//Has possible cross contamination issues. Like having 2 envs with different names.
-					//if (env->GetName() == path.GetView())
-					//{
-					//	result = static_cast<Script*>(env);
-					//	return true;
-					//}
-
-					//Later this will handle this a bit differently.
-					Script* script = env->GetProject()->FindScript(path.GetView());
-
-					if (script)
-					{
-						result = script;
-
-						return true;
-					}
-				}
-
-				return false;
-			});
-
-
-		return result;
 	}
 
 	

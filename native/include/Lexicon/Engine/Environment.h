@@ -12,14 +12,17 @@
 
 
 #include "Lexicon/Interfaces/IEnvironmentBase.h"
+#include "Lexicon/Engine/OverloadInfo.h"
+
+#include "Lexicon/Impl/destroy_delete.h"
 
 
-//*src
+
 //#include "ConcreteFunction.h"//For some reason concrete function will not function if not included here. Mess with the order.
 //#include "Element.h"
 //#include "IFunction.h"
 //#include "FunctionData.h"
-//#include "OverloadClause.h"
+//#include "OverloadParameter.h"
 
 //#include "FunctionBase.h"
 //#include "Function.h"
@@ -75,20 +78,9 @@ namespace LEX
 	};
 
 	
-	struct [[deprecated("replaced by OverloadInput")]] SearchParams//Deprecated, 
-	{
-		std::string					name{};
-		Environment*				scope = nullptr;
-		ITypeInfo*				target = nullptr;		//Useless for type searches but literally, why make another type.
-		std::vector<ITypeInfo*>	tempArgs{};
-		std::vector<ITypeInfo*>	funcArgs{};	//For type search this is what's in the constructor. You can only have one or the other ideally though.
-
-		
-	};
-
 	
 
-
+	struct OverloadInfo;
 	struct FunctionInfo;
 	struct VariableInfo;
 
@@ -204,7 +196,7 @@ namespace LEX
 		// ITypeInfo. Main reason why is because of member and method requires being higher priority
 		// and the exclusive place to check from when there's a parenthesis. Actually, this is a search thing,
 		// not a find issue.
-		virtual std::vector<FunctionInfo*> FindFunctions(std::string_view name);
+		virtual std::vector<OverloadInfo*> FindFunctions(const std::string_view& name);
 
 
 
@@ -290,7 +282,9 @@ namespace LEX
 		//>-------------------------
 		//This is for environment
 
-		std::map<std::string_view, std::vector<FunctionInfo*>> functionMap;
+
+
+		std::map<std::string_view, std::vector<destructible_ptr<OverloadInfo>>> functionMap;
 
 
 		//>-------------------------

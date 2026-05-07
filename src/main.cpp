@@ -363,7 +363,7 @@ void LexTesting(std::string formula)
         }
     }
 
-    ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
+    ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]);
     
     if (function)
     {
@@ -413,7 +413,7 @@ void LexTesting(std::string formula)
     {
         auto funcs = script->FindFunctions("TestBoolean");
 
-        ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]->Get());
+        ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]);
 
         if (function)
         {
@@ -1453,7 +1453,7 @@ namespace LEX::Test
 
 #pragma endregion
 
-
+//DONE
 #pragma region New Function Signature
     //One half of the signature that would make up the signature that 
     struct BasicCallSignature
@@ -1618,7 +1618,7 @@ namespace LEX::Test
 
 #pragma endregion
 
-
+//DONE
 #pragma region New FunctionInfo
 
 

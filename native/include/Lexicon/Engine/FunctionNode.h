@@ -9,6 +9,8 @@ namespace LEX
 	class FunctionBase;
 
 
+	//I'd like to rework how FunctionNode will work. I think it will literally just be a checked type and 
+	// an object that's used for specialization. The rest of the types can be stored on the s
 	struct FunctionNode
 	{
 		enum Type

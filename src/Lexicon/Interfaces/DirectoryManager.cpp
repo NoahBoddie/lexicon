@@ -10,7 +10,7 @@
 
 #include "Lexicon/Engine/TypeBase.h"
 #include "Lexicon/Engine/ParserTest.h"
-#include "Lexicon/Engine/FunctionInfo.h"
+#include "Lexicon/Engine/OverloadInfo.h"
 #include "Lexicon/Engine/GlobalBase.h"
 #include "Lexicon/Engine/SyntaxRecord.h"
 

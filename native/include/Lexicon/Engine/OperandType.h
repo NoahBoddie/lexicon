@@ -27,7 +27,7 @@ namespace LEX
 		Review,
 		//Target,	//Target was when arguments and such where 2 seperate things.
 		Literal,
-
+		Template,	//Stores an ITemplatePart
 		Total,
 
 

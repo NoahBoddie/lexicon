@@ -4,7 +4,7 @@
 #include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/PolicyData.h"
-#include "Lexicon/Engine/OverloadClause.h"
+#include "Lexicon/Engine/OverloadParameter.h"
 
 //*src
 #include "Lexicon/ITemplatePart.h"

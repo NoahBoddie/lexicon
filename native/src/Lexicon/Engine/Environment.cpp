@@ -15,7 +15,7 @@
 #include "Lexicon/Engine/Element.h"
 
 #include "Lexicon/TypeID.h"
-#include "Lexicon/Engine/FunctionInfo.h"
+#include "Lexicon/Engine/OverloadInfo.h"
 #include "Lexicon/Engine/VariableInfo.h"//For tests only
 //*src
 #include "Lexicon/Engine/GenericFunction.h"
@@ -44,7 +44,6 @@
 #include "Lexicon/Interfaces/ProjectClient.h"
 
 //SHOULD_NATIVE
-#include "Lexicon/Engine/FunctionInfo.h"
 #include "Lexicon/Engine/VariableInfo.h"
 
 
@@ -97,9 +96,7 @@ namespace LEX
 			//	throw nullptr;
 			//}
 			//else {
-				auto& info = functionMap[name].emplace_back( new FunctionInfo);
-				info->function = tar;
-				info->signature = tar;
+				auto& info = functionMap[name].emplace_back(tar);
 				DeclareParentTo(tar);
 			//}
 
@@ -124,7 +121,7 @@ namespace LEX
 			}
 		}
 
-		std::vector<FunctionInfo*> Environment::FindFunctions(std::string_view name)
+		std::vector<OverloadInfo*> Environment::FindFunctions(const std::string_view& name)
 		{
 			//std::vector<FunctionInfo*> result{};
 
@@ -133,7 +130,7 @@ namespace LEX
 			//TODO: FindFunctions is busted because I need to LoadFromRecord for a name but needs to be added to Load.
 			if (auto it = functionMap.find(name); end != it) {
 			//if (auto it = std::find_if(functionMap.begin(), functionMap.end(), [&](auto i) { return name == i.second.Get()->GetName(); }); end != it) {
-				return it->second;
+				return reinterpret_cast<const std::vector<OverloadInfo*>&>(it->second);
 			}
 			
 			return {};

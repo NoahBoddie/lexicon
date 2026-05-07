@@ -4,12 +4,12 @@
 #include "Lexicon/Engine/IFunctionImpl.h"
 #include "Lexicon/Function.h"
 #include "FunctionData.h"
-#include "OverloadClause.h"
+#include "Lexicon/Engine/OverloadInfo.h"
 namespace LEX
 {
 	class Runtime;
 
-	class FunctionBase : public SecondaryElement, public OverloadParameter, public FunctionData
+	class FunctionBase : public SecondaryElement, public OverloadInfo, public FunctionData
 	{
 	public:
 		DEFINE_COMPONENT_TYPE(ComponentType::FunctionBase)
@@ -18,6 +18,16 @@ namespace LEX
 
 		virtual IFunction* AsFunction() = 0;
 		virtual const IFunction* AsFunction() const = 0;
+
+
+
+		std::string_view GetName() const override
+		{//would an empty check be better?
+			if (_name.empty() == true)
+				return "<empty>";
+
+			return _name;
+		}
 
 
 	protected:
@@ -35,6 +45,11 @@ namespace LEX
 
 		LinkFlag GetLinkFlags() override;
 	
+		bool IsOverloadUsuable() const override
+		{
+			return !InvalidFlag();
+		}
+
 	protected:
 
 
@@ -51,238 +66,41 @@ namespace LEX
 
 
 
+		FunctionNode CreateNode(ITemplatePart* part) override
+		{
+			return FunctionNode{ this, this, AsFunction()->CheckFunction(part) };
+		}
+
+
 
 #pragma region Clause
 
-		void CheckDefault(size_t index, size_t offset, OverloadFlag& flags)
-		{
-			if (defaultIndex <= index && !offset) {
-
-				flags |= OverloadFlag::DefFilled;
-			}
-		}
 		bool CanMatch(const QualifiedType& target, size_t callArgs, size_t tempArgs, OverloadFlag flags) override
 		{
-			if (target) {
-
-				if (target != _returnType)
-					return false;
-			}
-
-			//This isn't necessary
-			//if (flags & OverloadFlag::StatesArgument && GetArgCountReq() < callArgs) {
-			//	logger::debug("uses more than required but also states");
-			//	return false;
-			//}
-
-
-			if (flags & OverloadFlag::StatesArgument && defaultIndex == -1)// || tempArgs.second
-			{
-				logger::debug("uses optionals");
-				return false;
-			}
-
-			auto required = GetArgCountReq();
-
-			if (required > callArgs) {
-				logger::debug("uses param diff {} vs {}", required, callArgs);
-				return false;
-			}
-
-			auto max = GetArgCountMax();
-
-			if (max < callArgs) {
-				logger::debug("uses more than max {} vs {}", max, callArgs);
-				return false;
-			}
-
-
-			return true;
+			return FunctionData::CanMatch(target, callArgs, tempArgs, flags);
 		}
-
 
 		bool MatchImpliedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, size_t index, size_t offset, OverloadFlag& flags) override
 		{
-			//TODO: This is very temp, the index can exceed the param size please remove this when params keyword is implemented
-			if (index != -1 && GetArgCountMax() <= index)
-			{
-				logger::critical("Failure to evaluate");
-				return false;
-			}
-
-			CheckDefault(index, offset, flags);
-
-			IVarIndexInfo* subject = FindParameterByPos(index);
-
-
-
-
-			QualifiedType sub_type;
-			
-			if (subject) {
-				sub_type = QualifiedType{ subject->GetType(), subject->GetQualifiers() };
-			}
-
-
-
-			ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
-
-			if (flags & OverloadFlag::AllAccess) {
-				con_flags |= ConversionFlag::IgnoreAccess;
-			}
-
-
-
-			if (type && sub_type)
-			{
-				/*
-				if constexpr (0)
-					if (auto temp = sub_type->AsTemplate()) {
-						if (auto type = overload.GetManualTemplateType(temp->index); type) {
-							logger::info("template type already placed");
-							sub_type.policy = type;
-						}
-					}
-				//*/
-
-				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
-
-				out.convertType = convertType;
-
-				if (convertType <= ConversionEnum::Failure) {
-					return false;
-				}
-
-
-				//out.convertType = ConversionEnum::TypeDefined;
-				out.index = subject->GetIndex();
-				out.type = sub_type;
-			}
-			else if (!sub_type && (!type || flags & OverloadFlag::TargetOpt))
-			{
-				//This bit will need to change, as you may be able to access static functions from a member function.
-				out.convertType = ConversionEnum::Exact;
-				out.index = -1;
-			}
-			else
-			{
-
-				out.convertType = ConversionResult::Ineligible;
-				out.index = -1;
-				return false;
-			}
-
-			return true;
-
+			return FunctionData::MatchImpliedEntry(out, type, scope, overload, index, offset, flags);
 		}
+
 
 		bool MatchStatedEntry(OverloadEntry& out, const QualifiedType& type, ITypeInfo* scope, Overload& overload, std::string_view name, OverloadFlag& flags) override
 		{
-
-
-			//I'd maybe like to rework this VariableInfo to work like this.
-
-			//ParameterInfo* subject = index != -1 ?
-			//	&parameters[index + HasTarget()] : HasTarget() ?
-			//	&parameters[0] : nullptr;
-
-			IVarIndexInfo* subject = FindParameter(name);
-
-			if (!subject) {
-				report::failure("Couldn't find parameter '{}'.", name);
-				return false;
-			}
-
-			if (subject->IsOptional() == false) {
-				report::failure("Parameter '{}' isn't optional.", name);
-				return false;
-			}
-
-			QualifiedType sub_type = subject->GetQualifiedType();
-
-
-
-			ConversionFlag con_flags = ConversionFlag::Parameter | ConversionFlag::Template;
-
-			if (flags & OverloadFlag::AllAccess) {
-				con_flags |= ConversionFlag::IgnoreAccess;
-			}
-
-
-
-			if (type && sub_type)
-			{
-				//TODO: I'm not sure if I actually want to do this, C++ doesn't do it largely because it's not possible to tell which is actually prefered
-				/*
-				if constexpr (0)
-					if (auto temp = sub_type->AsTemplate()) {
-						if (auto type = overload.GetManualTemplateType(temp->index); type) {
-							logger::info("template type already placed");
-							sub_type.policy = type;
-						}
-					}
-				//*/
-
-
-				ConvertResult convertType = type.IsConvertToQualified(sub_type, scope, (flags & OverloadFlag::NoConvert) ? nullptr : &out.convert, con_flags);
-
-				out.convertType = convertType;
-
-				out.index = subject->GetIndex();
-				out.type = sub_type;
-
-				if (convertType <= ConversionEnum::Failure) {
-					return false;
-				}
-
-			}
-			else
-			{
-
-				out.convertType = ConversionResult::Ineligible;
-				out.index = subject->GetIndex();
-				return false;
-			}
-
-			return true;
+			return FunctionData::MatchStatedEntry(out, type, scope, overload, name, flags);
 		}
 
 
-		bool ResolveOverload(Overload& result, OverloadFlag& flags)
+		void QualifyOverload(Overload& overload) override
 		{
-			auto& call_args = result.implied;
-
-			call_args.resize(parameters.size());
-
-
-			for (auto i = defaultIndex; i < call_args.size(); i++)
-			{
-				auto& entry = call_args[i];
-
-				if (entry.type) {
-					continue;
-				}
-
-				//report::critical("Cant handle this yet.");
-
-
-				auto& param = parameters[i];
-
-
-				RoutineBase* def_routine = nullptr;
-
-				entry.routine = def_routine;
-				entry.convertType = ConversionEnum::Exact;
-				entry.type = param.GetQualifiedType();
-				entry.index = param.GetIndex();
-			}
-
-			return true;
+			return FunctionData::QualifyOverload(overload);
 		}
 
-
-
-
+		bool ResolveOverload(Overload& entries, OverloadFlag& flags) override
+		{
+			return FunctionData::ResolveOverload(entries, flags);
+		}
 
 #pragma endregion
 
@@ -323,11 +141,8 @@ namespace LEX
 		bool IsMethod() const override { return !!_thisInfo; }
 
 		std::string_view GetName() const override
-		{//would an empty check be better?
-			if (_name == "")
-				return "<empty>";
-
-			return _name;
+		{
+			return FunctionBase::GetName();
 		}
 
 

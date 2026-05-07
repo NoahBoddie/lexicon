@@ -156,8 +156,6 @@ namespace LEX
 
 
 
-		static size_t CheckOverload(OverloadArgument& input, std::vector<FunctionInfo*> clauses, Overload& ret);
-
 
 		//TODO: Make this take pointers to overload stuff. The idea being if no overload is provided it fails when trying 
 		// to handle multiple different functions.
