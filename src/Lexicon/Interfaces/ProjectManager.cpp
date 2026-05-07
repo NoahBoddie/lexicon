@@ -883,7 +883,7 @@ namespace LEX
 
 		CompileCoreScripts(SettingManager::GetSingleton()->coreDir);
 		
-		project->GetCommons()->AddRelationship(_core, RelateType::Included);
+		project->GetCommons()->AddRelationship(RelateType::Included, _core);
 
 		project->DeclareParentTo(_core);
 

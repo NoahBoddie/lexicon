@@ -113,7 +113,7 @@ namespace LEX
 						report::compile::error("Cannot find script '{}'.", view);
 					}
 
-					AddRelationship(script, type);
+					AddRelationship(type, script);
 				}
 				break;
 
@@ -159,7 +159,7 @@ namespace LEX
 					//TODO: include subdirectory/include subproject should also do what this is doing.
 					slot = directory;
 					//TODO: Don't actually use AddRelationship, just manually get the stuff.
-					AddRelationship(directory, is_subproject ? RelateType::Subproject : RelateType::Subdirectory);
+					AddRelationship(is_subproject ? RelateType::Subproject : RelateType::Subdirectory, directory);
 
 				}
 				break;
@@ -339,24 +339,8 @@ namespace LEX
 	// Instead, asking if something is one of these things might be better.
 
 
-	Script* Script::FindRelationship(std::string name, bool shared, RelateType bond)
-	{
-		//The shared is because between shared, 2 scripts can have the same name.
-		if (bond == RelateType::None)
-			return nullptr;
-
-		return nullptr;
-	}
 
 
-
-
-	void Script::AddRelationship(Directory* dir, RelateType bond)
-	{
-		//Return the relationship it's been assigned or the relationship it has previously been assign if it
-		// can't the relationship.
-		_relationMap[bond].push_back(dir);
-	}
 
 
 

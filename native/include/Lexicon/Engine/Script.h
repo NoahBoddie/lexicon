@@ -8,6 +8,9 @@
 
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Interfaces/IScript.h"
+
+#include "Lexicon/Engine/Relationship.h"
+
 //
 #include "Lexicon/TypeInfo.h"
 #include "Lexicon/Function.h"
@@ -42,6 +45,215 @@ namespace LEX
 
 
 
+        struct Relationships
+        {
+            static constexpr uintptr_t no_pos = -1;
+
+            std::vector<Relationship> relationList;
+            std::set<Script*> scriptsThatUseThis;
+
+
+            union
+            {
+                uintptr_t raw = no_pos;
+
+                struct
+                {
+                    uint32_t includes;
+                    uint32_t imports;
+                };
+            };
+
+
+            bool IsSorted() const
+            {
+                return raw != no_pos;
+            }
+
+            void Unsort()
+            {
+                raw = no_pos;
+            }
+
+            void CheckSort()
+            {
+                if (IsSorted() == true) {
+                    return;
+                }
+
+                std::sort(relationList.begin(), relationList.end(), std::greater<>{});
+
+
+
+                uint32_t i = 0;
+
+                std::set<Directory*> encountered{};
+
+                auto it = relationList.begin();
+                auto end = relationList.end();
+
+                it = std::remove_if(it, end,
+                    [&](Relationship& bond)
+                    {
+                        bool result = encountered.emplace(bond.to).second;
+
+                        if (result) {
+                            if (bond.type < RelateType::Included && includes == (uint32_t)no_pos) {
+                                includes = i;
+                            }
+
+                            if (bond.type < RelateType::Imported && imports == (uint32_t)no_pos) {
+                                imports = i - includes;
+                            }
+
+                            i++;
+                        }
+
+                        return !result;
+                    });
+
+                if (includes == no_pos) {
+                    includes = i;
+                }
+
+                if (imports == no_pos) {
+                    imports = i - includes;
+                }
+
+                if (it != end)
+                    relationList.erase(it, end);
+            }
+
+
+            void InheritRelationships(std::span<Relationship> bonds)
+            {
+                Unsort();
+                relationList.append_range(bonds);
+            }
+
+
+            void AddRelationship(Script* self, RelateType type, Directory* dir)
+            {
+                if (Script* script = dir->As<Script>()) {
+                    script->AddUsers(self, scriptsThatUseThis);
+                }
+
+                Relationship bond{ type, dir };
+
+                std::span range{ &bond, 1 };
+
+                for (auto script : scriptsThatUseThis)
+                {
+                    script->InheritRelationships(range);
+                }
+
+                InheritRelationships(range);
+
+
+            }
+
+            void AddRelationships(Script* self, RelateType type, std::span<Relationship> bond)
+            {
+                std::vector<Relationship> range;
+
+                std::transform(bond.begin(), bond.end(), range.begin(), [this, self, type](Relationship bond)
+                    {
+                        auto& other_type = bond.type;
+
+                        if (type == RelateType::Imported && type < other_type) {
+                            other_type = type;
+                        }
+
+                        Script* script = bond.to->As<Script>();
+
+                        if (script) {
+                            script->AddUsers(self, scriptsThatUseThis);
+                        }
+
+                        //I'm going to need to walk through this
+                        //for (auto script : scriptsThatUseThis)
+                        //{
+                        //    AddUsers
+                        //}
+
+                        return bond;
+                    });
+
+                for (auto script : scriptsThatUseThis)
+                {
+                    script->InheritRelationships(range);
+                }
+
+                InheritRelationships(range);
+            }
+
+
+
+
+            void AddUsers(Script* main, std::set<Script*> users)
+            {
+                scriptsThatUseThis.emplace(main);
+                scriptsThatUseThis.insert_range(users);
+
+            }
+
+            std::vector<Directory*> GetAssociates(RelateType type)
+            {
+
+                if (relationList.empty() || type <= RelateType::Nested) {
+                    return {};
+                }
+
+                CheckSort();
+
+
+                auto it = relationList.begin();
+                auto last = it;
+                auto end = relationList.end();
+                
+                bool subproj_found = false;
+
+
+
+
+
+
+                if (type <= RelateType::Included) {
+                    last += includes;
+                }
+
+                if (type <= RelateType::Imported) {
+                    it = last;
+                    last += imports;
+                }
+
+
+                if (type <= RelateType::Subproject) {
+                    it = last;
+
+                    if (it != end && it->type == RelateType::Subdirectory) {
+                        subproj_found = true;
+                        last++;
+                    }
+                }
+
+                if (type <= RelateType::Subdirectory) {
+                    if (subproj_found) {
+                        it++;
+                    }
+
+                    last = end;
+                }
+
+
+                return std::vector<Directory*>{it, last};
+            }
+
+
+
+        };
+
+
 	public:
 		
 	private:
@@ -56,7 +268,12 @@ namespace LEX
 		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList = nullptr;
 
 		//This is where scripts are refered
-		std::unordered_map<RelateType, std::vector<Directory*>> _relationMap;
+		//std::unordered_map<RelateType, std::vector<Directory*>> _relationMap;
+
+
+        std::unique_ptr<Relationships> _relationships = nullptr;
+
+
 
 		auto& ObtainSubdirectoryList()
 		{
@@ -124,35 +341,62 @@ namespace LEX
 		// Instead, asking if something is one of these things might be better.
 		
 
-		Script* FindRelationship(std::string name, bool shared, RelateType bond);
+
+#pragma region Relationship
+
+        Relationships* ObtainRelationships()
+        {
+            if (!_relationships)
+                _relationships = std::make_unique<Relationships>();
+
+            return _relationships.get();
+        }
+
+        //The list of things that relate to this
+
+
+        void InheritRelationships(const std::span<Relationship>& bonds)
+        {
+            ObtainRelationships()->InheritRelationships(bonds);
+        }
+
+
+        void AddRelationship(RelateType type, Directory* dir)
+        {
+            ObtainRelationships()->AddRelationship(this, type, dir);
+        }
+
+        void AddRelationships(RelateType type, const std::span<Relationship>& bond)
+        {
+            ObtainRelationships()->AddRelationships(this, type, bond);
+        }
+
+
+
+
+        void AddUsers(Script* main, std::set<Script*> users)
+        {
+            users.erase(this);
+            ObtainRelationships()->AddUsers(main, users);
+
+        }
+
+#pragma endregion
+
+
+        std::vector<Directory*> GetAssociates(RelateType type) override
+        {
+            if (!_relationships) {
+                return {};
+            }
+
+            return _relationships->GetAssociates(type);
+        }
+
 
 		Subdirectory* FindSubdirectory(const std::string_view& name);
 
 
-		std::vector<Script*> GetRelationships(RelateType bond)
-		{
-			
-		}
-
-		std::vector<Directory*> GetAssociates(RelateType bond)
-		{
-			auto it = _relationMap.find(bond);
-			
-			if (_relationMap.end() != it) {
-				//auto& list = it->second;
-				return it->second;
-			}
-
-			//TODO: this is an example of how I would make a directory list from this.
-			//for (auto const& value : std::views::values(ObtainSubdirectoryList())) {
-				// use value
-			//}
-				
-
-			return {};
-		}
-
-		void AddRelationship(Directory* dir, RelateType bond);
 
 
 		virtual bool IsCommons() const { return false; }

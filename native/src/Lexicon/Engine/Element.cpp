@@ -109,6 +109,66 @@ namespace LEX
 
 		std::vector<SpecialDirectory> GetDirectories(Element* a_this, Directory* focus, SyntaxRecord* step, RelateType& relation, std::set<Element*>& searched)
 		{
+			if (!focus) {
+				return {};
+			}
+
+			std::vector<SpecialDirectory> result{};
+
+
+			std::vector<Directory*> out{ focus };
+
+
+			if (relation != RelateType::None) {
+				out.insert_range(out.end(), focus->GetAssociates(relation));
+			}
+
+			for (auto dir : out)
+			{
+				bool is_focus = focus == dir;
+
+
+				//Exit if the directory doesnt exist, or if searched contains the directory in the
+				// event that the directory equals the focus or if the search didn't emplace a new value
+				// in the event the directory doesn't equal the focus
+				if (!dir || is_focus ? searched.contains(dir) : !searched.emplace(dir).second) {
+					continue;
+				}
+				//This does not add "this" to searching. I need to emplace it, but only the first time this is called.
+
+
+				GenericArray inserter{ NULL_OP(NULL_Q(a_this)->AsGenericElement()), };
+
+				Directory* it = dir;
+
+				switch (relation)
+				{
+
+				case RelateType::Included:
+				case RelateType::None:
+					goto skip_check;
+
+				default:
+					if (!is_focus)
+					{
+					skip_check:
+						if (step)
+							it = WalkDirectoryPath(it, step, inserter);
+
+						if (it)
+							result.emplace_back(it, std::move(inserter));
+					}
+					break;
+
+				}
+			}
+
+			return result;
+		}
+
+
+		std::vector<SpecialDirectory> GetDirectoriesOLD(Element* a_this, Directory* focus, SyntaxRecord* step, RelateType& relation, std::set<Element*>& searched)
+		{
 			/*
 			make variable that stores temp environment here.
 			overloop here
