@@ -1040,16 +1040,6 @@ namespace LEX::Test
 
 
 
-    //This is used only for non-static fields and virtual methods
-    struct Members
-    {
-        std::vector<QualifiedType> fields;
-        
-        //I want to use I function for this, but it will need to be smoothed over with places that want a base
-        std::vector<IFunction*> methods;
-        //std::vector<>
-    };
-
     
 
     //The idea is whenever something is specialized and has generic entries, it will show what they've
@@ -1081,15 +1071,107 @@ namespace LEX::Test
     
 
 
-    struct InheritData_
+
+
+    template <class T> requires(requires (T* ptr) { { ptr->Destroy() } -> std::same_as<void>; })
+        struct destroy_delete { // default deleter for unique_ptr
+        constexpr destroy_delete() noexcept = default;
+
+        template <class Ty, std::enable_if_t<std::is_convertible_v<Ty*, T*>, int> = 0>
+        constexpr destroy_delete(const destroy_delete<Ty>&) noexcept {}
+
+        constexpr void operator()(T* ptr) const noexcept {
+            static_assert(0 < sizeof(T), "can't delete an incomplete type");
+            ptr->Destroy();
+        }
+    };
+    template <typename T>
+    using destructible_ptr = std::unique_ptr<T, destroy_delete<T>>;
+
+
+#pragma region FieldInfo
+    struct FieldInfo : public VarIndexInfo
+    {
+        DEFINE_INFO_TYPE(InfoType::FieldInfo)
+    public:
+
+
+    };
+
+#pragma endregion
+
+
+
+#pragma region MemberPointer
+    typedef unsigned long long MemberHash;
+
+    using InstanceID = uint32_t;
+
+
+    ENUM(MemberFlag, uint8_t)
+    {
+        None,
+        Generic = 1 << 0,   //Used to tell if member needs to be moved when fully specialized. Incapable of being referenced otherwise.
+        Partial = 1 << 1,   //A partialized type that will need to specialize in order to lose the flag.
+    };
+
+
+    //TODO: Member pointer should PORBABLY be engine. Also, I'd like to use bitfields to allow for a virtual mode and non-virtual mode.
+    // Maybe will use unions to help with that
+    struct MemberPointer
+    {
+        //May remake, instead using member or method info in order to handle this sort of thing.
+        // Or I'll just store this as a pointer.
+
+        //OR, scripted data types can only hold 16 bit spec codes, and intrinsics can hold 32 bit ones.
+
+        //Used to get a method or member, and correcting the intended index.
+
+
+        union
+        {
+            uint32_t raw;
+            TypeID typeID;
+            InstanceID instanceID;
+        };
+
+        MemberFlag flags = MemberFlag::None;
+
+        uint16_t index = 0;
+       
+
+
+
+        //Should have an option to ctor who it came from.
+
+        constexpr operator MemberHash() const
+        {
+            return std::bit_cast<MemberHash>(*this);
+        }
+    };
+    static_assert(sizeof(MemberPointer) == 0x8);
+    
+#pragma endregion
+
+
+#pragma region HierarchyData
+
+    ENUM(InheritFlag, uint8_t)
+    {
+        None = 0, 
+        IsGeneric = 1 << 0,
+        IsPostAffixed = 1 << 1,
+    };
+
+    constexpr uint32_t virtual_pos = -1;
+
+    struct InheritData
     {
         //The hash is a value that represents memory wise, where said object can be considered within memory.
         std::array<uint32_t, 2> hash{};
 
 
-        //Distance is -1 if virtually inherited
-        uint32_t distance = 0;
-        uint32_t _id = 0;
+      
         ITypeInfo* type = nullptr;
 
 
@@ -1098,16 +1180,22 @@ namespace LEX::Test
 
         uint32_t memberIndex = 0;
 
+        //Distance is -1 if virtually inherited
+        uint32_t distance = 0;
+
         Access access;//
-        //I think I'll store internal access outside of this.
-        bool postAffixed = false;
-        bool isGeneric = false;//This differs if the id is an instance id or a type id.
-        bool virtInherited = false;
+
+        InheritFlag flags = InheritFlag::None;
+
+        //2 free bytes left.
 
         constexpr bool operator<(const InheritData& other) const
         {
-            if (isGeneric != other.isGeneric)
-                return !isGeneric < !other.isGeneric;
+            auto g_self = IsGeneric();
+            auto g_other = other.IsGeneric();
+
+            if (g_self != g_other)
+                return !g_self < !g_other;
 
             return  distance < other.distance;
         }
@@ -1117,6 +1205,27 @@ namespace LEX::Test
         //These are deprecated, as methods
         //uint32_t memberRange [2];//This should be where this entries stuff starts, and then where it ends. same deal with the other.
         //uint32_t methodRange [2];
+
+        void SetFlag(InheritFlag flag, bool v)
+        {
+            if (v) {
+                flags |= flag;
+            }
+            else {
+                flags &= ~flag;
+            }
+        }
+
+        constexpr bool HasFlag(InheritFlag flag) const noexcept
+        {
+            return flags & flag;
+        }
+
+
+        constexpr bool IsGeneric() const noexcept
+        {
+            return flags & InheritFlag::IsGeneric;
+        }
 
         Access GetAccess() const
         {
@@ -1145,12 +1254,12 @@ namespace LEX::Test
 
         void SetAffixed(bool v)
         {
-            postAffixed = v;
+            return SetFlag(InheritFlag::IsPostAffixed, v);
         }
 
         bool IsAffixed() const
         {
-            return postAffixed;
+            return HasFlag(InheritFlag::IsPostAffixed);
         }
 
 
@@ -1161,28 +1270,124 @@ namespace LEX::Test
 
         bool IsVirtualInherited() const
         {
-            return virtInherited;
+            return distance == virtual_pos;
         }
 
     };
 
 
-
-
-    template <class T> requires(requires (T* ptr) { { ptr->Destroy() } -> std::same_as<void>; })
-        struct destroy_delete { // default deleter for unique_ptr
-        constexpr destroy_delete() noexcept = default;
-
-        template <class Ty, std::enable_if_t<std::is_convertible_v<Ty*, T*>, int> = 0>
-        constexpr destroy_delete(const destroy_delete<Ty>&) noexcept {}
-
-        constexpr void operator()(T* ptr) const noexcept {
-            static_assert(0 < sizeof(T), "can't delete an incomplete type");
-            ptr->Destroy();
-        }
+    //This is used only for non-static fields and virtual methods
+    struct Members
+    {
+        std::vector<FieldInfo> fields;
+        //I want to use I function for this, but it will need to be smoothed over with places that want a base
+        std::vector<IFunction*> methods;
     };
-    template <typename T>
-    using destructible_ptr = std::unique_ptr<T, destroy_delete<T>>;
+
+    //TemplateType is the thing that takes inspiration for the existence of this. Ponder the things that it cannot have, and how 
+    // it should answer quests one might have about inheritance
+    struct IHierarchyTree
+    {
+        virtual const InheritData* GetInheritData(const ITypeInfo* type) const = 0;
+
+        InheritData* GetInheritData(const ITypeInfo* type)
+        {
+            return unconst(make_const(this)->GetInheritData(type));
+        }
+
+        OverloadCode CreateCode(ITypeInfo* target);
+
+        //This should be moved to qualified type, and the main thing of desire here should be the overload code.
+        int CompareType(OverloadCode& left, OverloadCode& right, QualifiedType&& left_type, QualifiedType&& right_type);
+
+        int CompareType(ITypeInfo* a_lhs, ITypeInfo* a_rhs);
+
+
+        
+
+    };
+
+    
+
+    struct InheritanceTree
+    {
+        //TODO: I may split Hierarchy data to make template types a bit smaller.
+
+        //FakeType will become a part of something called Hierarchy data. TypeBases have this, but so do Specializations of generic types.
+
+        //Id like it if in a test of ambiguity this always wins, but that might not be possible in this set up.
+        //ITypeInfo* _extends = nullptr;//Deprecated* extends = nullptr;
+
+        //Inherit data should be ordered if I can so I can binary search for the given id
+
+        //If I can repurpose this to no longer need to include everything it's parent includes, that would be poggers.
+        std::vector<InheritData> inheritance;
+
+        std::unique_ptr<Members> members = nullptr;
+
+
+        uint32_t hashRange = 0;//Range is equal to zero to this number.
+
+        uint32_t memberCount = 0;//Should bind classes increase this value any? Nah, probably handle in post.
+
+
+        bool HasInternal() const
+        {
+            for (auto& inherit : inheritance)
+            {
+                if (inherit.IsInternal() == true)
+                    return true;
+            }
+
+            return false;
+        }
+
+
+
+        virtual ITypeInfo* GetHierarchyType() = 0;
+        //TODO: This should come back at a later point I think.
+        virtual void HandleInheritance() {}
+
+
+
+
+        InheritData* _InheritData(InheritData& data);
+
+        const InheritData* GetInheritData(const ITypeInfo* type) const;
+
+        InheritData* GetInheritData(ITypeInfo* type);
+
+        void FinalizeAndSort();
+
+        std::vector<InheritData> GetInheritFrom(uint32_t hashMin, uint32_t idxInc);
+
+        //One of these is for inheriting proper, the other is for manual setting. I would like to order these proper.
+        void SetInheritFrom(ITypeInfo* other, Access a_access = Access::Public, bool post_affixed = false);
+
+        virtual void CheckDeriveFrom(ITypeInfo* other) {};
+
+        void SetDerivesTo(ITypeInfo* other, Access a_access = Access::Public);
+
+        //Should be hierarcy data when the change
+        virtual std::vector<ITypeInfo*> GetPostAffixedTypes() const;
+
+
+        OverloadCode CreateCode(ITypeInfo* target);
+
+        void PrintInheritance();
+
+        //This should be moved to qualified type, and the main thing of desire here should be the overload code.
+        int CompareType(OverloadCode& left, OverloadCode& right, QualifiedType&& left_type, QualifiedType&& right_type);
+
+        int CompareType(ITypeInfo* a_lhs, ITypeInfo* a_rhs);
+
+
+        bool _IsInternalParent(const InheritData* intern) const;
+
+    };
+
+
+#pragma endregion
 
 
 
@@ -1366,7 +1571,7 @@ namespace LEX::Test
         }
     };
 
-    struct FunctionData_ : public BasicCallableData_
+    struct FunctionData : public BasicCallableData_
     {
         std::string _name;
 
@@ -1411,17 +1616,6 @@ namespace LEX::Test
 
 
 
-    struct FunctionSignature
-    {
-        //The uses of these will be self managing, so I'd like to find some method to prevent them
-        // from dying, but only if they've been instantiated.
-        ThisInfo* thisInfo = nullptr;
-        BasicCallSignature* callSignature = nullptr;
-        TemplateContainer* genericSignature = nullptr;
-        Specifier specifiers{};
-
-    };
-
 #pragma endregion
 
 
@@ -1459,7 +1653,7 @@ namespace LEX::Test
         TemplateContainer* genSign = nullptr;
         Specifier specifiers{};
         
-        bool IsPure() const
+        bool IsPureVirtual() const
         {
             //The virtual flag is removed once when this is created, and is added in whenever transfered
             // if it's still press
@@ -1468,7 +1662,7 @@ namespace LEX::Test
 
         ~VirtualInfo()
         {
-            if (IsPure() == true) {
+            if (IsPureVirtual() == true) {
                 delete thisInfo;
                 delete callSign;
             }
@@ -1481,17 +1675,53 @@ namespace LEX::Test
 
     
 
-    struct FakeEnvironment
+    //NOTE: I would like to hash the string for function names and store them that way. This makes sense considering the name has what I need.
+    // it also saves a bit of space.
+
+#pragma endregion
+
+
+
+#pragma region New VariableInfo
+
+    //Imagine global derives from this as well as field.
+    struct VariableInfo : public VarInfo
     {
-        //This should be unique pointers that call destroy when complete. Destry will only destroy nodes, but ignore functions.
-        std::map<std::string_view, destructible_ptr<OverloadInfo>> functions;
+        virtual void Destroy() {}
     };
+
+
 
 
     //NOTE: I would like to hash the string for function names and store them that way. This makes sense considering the name has what I need.
     // it also saves a bit of space.
 
 #pragma endregion
+
+
+
+
+
+    struct FakeEnvironment
+    {
+        //This should be unique pointers that call destroy when complete. Destry will only destroy nodes, but ignore functions.
+        std::map<std::string_view, std::vector<destructible_ptr<OverloadInfo>>> functions;
+        
+        //This stores globals and fields from types. Only globals are destructible.
+        std::map<std::string_view, VarInfo*> variables;
+
+
+        ~FakeEnvironment()
+        {
+            for (auto [name, info] : variables)
+            {
+                //Has to be manually deleted due to field info being owned by something else.
+                // Annoying but making a type for this would be worse because destruction might be unreliable.
+                auto global = info->As<GlobalBase>();
+                if (global) delete global;
+            }
+        }
+    };
 
 
 #pragma region Constants
@@ -1645,6 +1875,304 @@ namespace LEX::Test
 
 #pragma endregion
 
+
+
+#pragma region New Relation
+    
+    //Allows for a shared pointer kind of situation
+    struct Relationship
+    {
+        RelateType type = RelateType::None;
+        Directory* to = nullptr;
+        //mutable std::atomic<int> _refs = 1;
+
+        operator Directory* ()
+        {
+            return to;
+        }
+
+
+        constexpr auto operator<=>(const Relationship& other) const noexcept
+        {
+            if (auto res = type <=> other.type; res != std::strong_ordering::equivalent) {
+                return res;
+            }
+
+            return to <=> other.to;
+        }
+    };
+    //template <typename>
+    //struct ref_ptr
+    
+    struct FakeScript : public Directory
+    {
+        using Script = FakeScript;
+
+        static constexpr uintptr_t no_pos = -1;
+
+        //Indirect this, most things won't be using includes and shit.
+
+        struct Relationships
+        {
+            std::vector<Relationship> relationList;
+            std::set<Script*> scriptsThatUseThis;
+
+
+            union
+            {
+                uintptr_t raw = no_pos;
+
+                struct
+                {
+                    uint32_t includes;
+                    uint32_t imports;
+                };
+            };
+
+
+            bool IsSorted() const
+            {
+                return raw == no_pos;
+            }
+
+            void Unsort()
+            {
+                raw = no_pos;
+            }
+
+            void CheckSort()
+            {
+                if (IsSorted() == true) {
+                    return;
+                }
+
+                std::sort(relationList.begin(), relationList.end(), std::greater<>{});
+
+
+
+                uint32_t i = 0;
+
+                std::set<Directory*> encountered{};
+
+                auto it = std::remove_if(relationList.begin(), relationList.end(),
+                    [&](Relationship& bond)
+                    {
+                        bool result = encountered.emplace(bond.to).second;
+
+                        if (result) {
+                            if (bond.type < RelateType::Included && includes != no_pos) {
+                                includes = i;
+                            }
+
+                            if (bond.type < RelateType::Imported && imports != no_pos) {
+                                imports = i;
+                            }
+
+                            i++;
+                        }
+
+                        return result;
+                    });
+
+                if (includes != no_pos) {
+                    includes = i;
+                }
+
+                if (imports != no_pos) {
+                    imports = i;
+                }
+
+                relationList.erase(it);
+            }
+
+
+            void InheritRelationships(std::span<Relationship> bonds)
+            {
+                Unsort();
+                relationList.append_range(bonds);
+            }
+
+
+            void AddRelationship(Script* self, RelateType type, Directory* dir)
+            {
+                if (Script* script = dir->As<Script>()) {
+                    script->AddUsers(self, scriptsThatUseThis);
+                }
+
+                Relationship bond{ type, dir };
+
+                std::span range{ &bond, 1 };
+
+                for (auto script : scriptsThatUseThis)
+                {
+                    script->InheritRelationships(range);
+                }
+
+                InheritRelationships(range);
+
+
+            }
+
+            void AddRelationships(Script* self, RelateType type, std::span<Relationship> bond)
+            {
+                std::vector<Relationship> range;
+
+                std::transform(bond.begin(), bond.end(), range.begin(), [this, self, type](Relationship bond)
+                    {
+                        auto& other_type = bond.type;
+
+                        if (type == RelateType::Imported && type < other_type) {
+                            other_type = type;
+                        }
+
+                        Script* script = bond.to->As<Script>();
+
+                        if (script) {
+                            script->AddUsers(self, scriptsThatUseThis);
+                        }
+
+                        //I'm going to need to walk through this
+                        //for (auto script : scriptsThatUseThis)
+                        //{
+                        //    AddUsers
+                        //}
+
+                        return bond;
+                    });
+
+                for (auto script : scriptsThatUseThis)
+                {
+                    script->InheritRelationships(range);
+                }
+
+                InheritRelationships(range);
+            }
+
+
+
+
+            void AddUsers(Script* main, std::set<Script*> users)
+            {
+                scriptsThatUseThis.emplace(main);
+                scriptsThatUseThis.insert_range(users);
+
+            }
+
+            std::vector<Directory*> GetAssociates(RelateType type)
+            {
+                CheckSort();
+
+
+                auto it = relationList.begin();
+                auto last = relationList.begin();
+                auto end = relationList.end();
+                bool fallthrough = true;
+
+                bool subproj_found = false;
+
+
+
+                switch (type)
+                {
+                default:
+                    //log this
+
+                case RelateType::Nested:
+                    return {};
+                }
+
+
+                if (type <= RelateType::Included) {
+                    it = last;
+                    last += imports;
+                }
+
+                if (type <= RelateType::Imported) {
+                    last += includes;
+                }
+
+
+                if (type <= RelateType::Subproject) {
+                    it = last;
+
+                    if (it != end && it->type == RelateType::Subdirectory) {
+                        subproj_found = true;
+                        last++;
+                    }
+                }
+
+                if (type <= RelateType::Subdirectory) {
+                    if (subproj_found) {
+                        it++;
+                    }
+
+                    last = end;
+                }
+
+
+                return std::vector<Directory*>{it, last};
+            }
+
+
+
+        };
+
+        std::unique_ptr<Relationships> _relationships = nullptr;
+
+        
+
+        Relationships* ObtainRelationships()
+        {
+            if (!_relationships)
+                _relationships = std::make_unique<Relationships>();
+
+            return _relationships.get();
+        }
+
+        //The list of things that relate to this
+
+
+        void InheritRelationships(const std::span<Relationship>& bonds)
+        {
+            ObtainRelationships()->InheritRelationships(bonds);
+        }
+
+
+        void AddRelationship(RelateType type, Directory* dir)
+        {
+            ObtainRelationships()->AddRelationship(this, type, dir);
+        }
+
+        void AddRelationships(RelateType type, const std::span<Relationship>& bond)
+        {
+            ObtainRelationships()->AddRelationships(this, type, bond);
+        }
+
+
+        
+
+        void AddUsers(Script* main, std::set<Script*> users)
+        {
+            users.erase(this);
+            ObtainRelationships()->AddUsers(main, users);
+            
+        }
+
+        std::vector<Directory*> GetAssociates(RelateType type)
+        {
+            if (!_relationships) {
+                return {};
+            }
+
+            return _relationships->GetAssociates(type);
+        }
+
+
+
+
+    };
+
+#pragma endregion
 
     namespace ClassStructSystem
     {
