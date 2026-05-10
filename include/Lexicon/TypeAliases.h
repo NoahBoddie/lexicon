@@ -10,6 +10,9 @@ namespace LEX
 	using Column = uint16_t;
 	using Line = uint32_t;
 	
+	typedef unsigned long long MemberHash;
+	typedef uint32_t InstanceID;
+
 	//Temporary
 	//using Object = int;
 	//using Variable = int;

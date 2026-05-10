@@ -8,6 +8,8 @@ namespace LEX
 	using TypeOffset = uint32_t;
 
 
+	constexpr InstanceID bad_inst_id = -1;
+
 	struct TypeIdentity
 	{
 		uint32_t start = 0;

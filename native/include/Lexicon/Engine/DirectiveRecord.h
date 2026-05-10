@@ -61,4 +61,6 @@ namespace LEX
 
 
 	using DirectiveRecord = BasicRecord<Directive, DirectiveBody>;
+
+	//TODO: Make DirectiveRecord inherit properly from the top layer like SyntaxRecord does.
 }

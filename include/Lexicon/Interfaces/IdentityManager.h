@@ -38,6 +38,8 @@ namespace LEX
 				virtual ITypeInfo* GetInherentType(InherentType type) = 0;
 
 				virtual TypeOffset GetTypeOffsetFromArgs(TypeIndex, const std::span<std::string_view>&args) = 0;
+
+				virtual ITypeInfo* GetTypeFromInstanceID(InstanceID id) = 0;
 			};
 		}
 
@@ -64,6 +66,7 @@ namespace LEX
 		ITypeInfo* GetTypeByOffset(std::string_view name, TypeOffset offset) { return GetTypeByID(GetIDFromName(name) + offset); }
 		ITypeInfo* GetTypeByOffset(TypeIndex index, TypeOffset offset) { return GetTypeByID(GetIDFromIndex(index) + offset); }
 		ITypeInfo* GetInherentType(InherentType type) override;
+		ITypeInfo* GetTypeFromInstanceID(InstanceID id) override;
 
 		//ITypeInfo* 
 
@@ -105,5 +108,8 @@ namespace LEX
 		TypeBase* GetBaseByOffset(std::string_view name, TypeOffset offset) { return GetBaseByID(GetIDFromName(name) + offset); }
 		TypeID ClaimID(TypeBase* policy, TypeIndex index, TypeOffset offset) { return ClaimID(policy, GetIDFromIndex(index) + offset); }
 		TypeID ClaimID(TypeBase* policy, std::string_view name, TypeOffset offset) { return ClaimID(policy, GetIndexFromName(name), offset); }
+
+		void GenerateInstanceID(ITypeInfo* type) INTERFACE_FUNCTION;
+
 	};
 }

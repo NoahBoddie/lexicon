@@ -29,12 +29,6 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 	//*/
 
 
-	inline void test(Record& f)
-	{
-		TypeBase* base = nullptr;
-		base->FindTypes("");
-	}
-
 	struct IdentityData
 	{
 		std::string_view name;
@@ -78,9 +72,9 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 	inline std::mutex _lock;
 	//inline std::vector<IdentityData> dataList;
 	//Policy list starts with an entry immediately. The void policy.
-	inline std::vector<TypeBase*> policyList{};
+	std::vector<TypeBase*>& policyList = make_singleton();
 
-	//inline std::vector<TypeBase*> instanceList{};
+	std::vector<ITypeInfo*>& instanceList = make_singleton();
 
 	//std::vector<>
 
@@ -314,5 +308,24 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 		}
 
 		return -1;
+	}
+
+
+	ITypeInfo* IdentityManager::GetTypeFromInstanceID(InstanceID id)
+	{
+		assert_if (instanceList.size() <= id) {
+			return nullptr;
+		}
+
+		return instanceList[id];
+		
+	}
+
+	void IdentityManager::GenerateInstanceID(ITypeInfo* type)
+	{
+		std::lock_guard<std::mutex> guard{ _lock };
+
+		auto size = instanceList.size();
+		type->SetInstanceID(size, {});
 	}
 }

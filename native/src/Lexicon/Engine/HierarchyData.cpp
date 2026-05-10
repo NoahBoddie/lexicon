@@ -79,7 +79,10 @@ namespace LEX
 		//std::sort(inheritance.begin(), inheritance.end(), std::less<InheritData>());return;
 
 		for (auto& affix : GetPostAffixedTypes()){
-			SetInheritFrom(affix, Access::Public, true);
+			//if (GetInheritData(affix) == nullptr) 
+			{
+				SetInheritFrom(affix, Access::Public, true);
+			}
 		}
 
 		if (inheritance.size() == 0)
@@ -92,10 +95,10 @@ namespace LEX
 				InheritData& right = inheritance[y];
 
 				if (right < left) {
-					InheritData buffer = right;
-
-					right = std::move(left);
-					left = std::move(buffer);
+					//InheritData buffer = right;
+					//right = std::move(left);
+					//left = std::move(buffer);
+					std::swap(left, right);
 
 					//Do a check of each here, switching
 					for (int z = x; z < inheritance.size(); z++) {

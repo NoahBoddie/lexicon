@@ -14,9 +14,8 @@ namespace LEX
 	//*/
 
 
-	typedef unsigned long long MemberHash;
 	
-	using InstanceID = uint32_t;
+
 
 	//TODO: Member pointer should PORBABLY be engine. Also, I'd like to use bitfields to allow for a virtual mode and non-virtual mode.
 	// Maybe will use unions to help with that

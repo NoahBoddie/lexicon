@@ -200,7 +200,7 @@ namespace LEX
             std::vector<Directory*> GetAssociates(RelateType type)
             {
 
-                if (relationList.empty() || type <= RelateType::Nested) {
+                if (relationList.empty() || type == RelateType::Nested) {
                     return {};
                 }
 

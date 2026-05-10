@@ -21,7 +21,7 @@ namespace LEX
 
 
 		ITypeInfo* _self = nullptr;
-
+		InstanceID id = bad_inst_id;
 
 
 

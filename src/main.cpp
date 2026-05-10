@@ -1140,7 +1140,14 @@ namespace LEX::Test
         uint16_t index = 0;
        
 
+        MemberPointer Resolve(ITemplateBody*& body)
+        {
+            auto result = *this;
 
+            result.flags = {};
+
+            return result;
+        }
 
         //Should have an option to ctor who it came from.
 
@@ -1156,6 +1163,25 @@ namespace LEX::Test
 
 #pragma region HierarchyData
 
+#pragma region Stable-ish version
+   
+
+
+    //The system I wanted to handle Virtually inherited stuff with I'd like to also handle 
+    // internal inherited things with. As a sort of short hand to directly find internal stuff
+    // based on the accessing type.
+
+    struct InternalData
+    {
+        //Another blow to dealing with internals, how in the world am I supposed to handle which function
+        // to perform? Actually, pretty simple, ignore types where the parent isn't the thing we seek.
+        // The concept is the same as the others.
+        InternalData* previous = nullptr;
+    };
+
+    
+    
+    
     ENUM(InheritFlag, uint8_t)
     {
         None = 0, 
@@ -1163,16 +1189,23 @@ namespace LEX::Test
         IsPostAffixed = 1 << 1,
     };
 
-    constexpr uint32_t virtual_pos = -1;
 
+
+    struct InheritanceTree;
+    struct IHierarchyTree;
+    
+
+
+
+    //Rename node
     struct InheritData
     {
+        static constexpr uint32_t virtual_pos = -1;
+        //Allow this to be converted to InheritanceTree. This way I can visit both inherit nodes and trees
+
         //The hash is a value that represents memory wise, where said object can be considered within memory.
-        std::array<uint32_t, 2> hash{};
-
-
       
-        ITypeInfo* type = nullptr;
+        InheritanceTree* tree = nullptr;
 
 
         //This can possibly be unionized, with the sign bit being able to tell if one or the other.
@@ -1180,14 +1213,22 @@ namespace LEX::Test
 
         uint32_t memberIndex = 0;
 
+        //New hash concept, hash will either be represented with the start hash plus the range the tree has
+        // or 0 and -1 if that's what the start has is.
+        uint32_t startHash{};
+
         //Distance is -1 if virtually inherited
-        uint32_t distance = 0;
+        uint16_t distance = 0;
 
         Access access;//
 
         InheritFlag flags = InheritFlag::None;
 
+
+
         //2 free bytes left.
+
+        
 
         constexpr bool operator<(const InheritData& other) const
         {
@@ -1197,7 +1238,7 @@ namespace LEX::Test
             if (g_self != g_other)
                 return !g_self < !g_other;
 
-            return  distance < other.distance;
+            return distance < other.distance;
         }
 
         //Need to figure out how to move these.
@@ -1205,6 +1246,32 @@ namespace LEX::Test
         //These are deprecated, as methods
         //uint32_t memberRange [2];//This should be where this entries stuff starts, and then where it ends. same deal with the other.
         //uint32_t methodRange [2];
+
+        
+
+
+        std::array<uint32_t, 2> hash()
+        {
+            //The idea of this will be that the first number will just be
+
+            if (IsVirtualInherited() == true) {
+                return { 0, virtual_pos };
+            }
+            else {
+                return { startHash, startHash + tree->hashRange };
+            }
+        }
+
+        uint32_t hash_range()
+        {
+            return hash()[1];
+        }
+
+
+        operator InheritanceTree* ()
+        {
+            return tree;
+        }
 
         void SetFlag(InheritFlag flag, bool v)
         {
@@ -1270,65 +1337,173 @@ namespace LEX::Test
 
         bool IsVirtualInherited() const
         {
-            return distance == virtual_pos;
+            //This is not how this works.
+            return startHash == virtual_pos;
         }
 
     };
+
+
+
+    struct IHierarchyTree
+    {
+        virtual std::string_view GetName() const = 0;
+
+
+        //No longer needs to be virtual
+        virtual bool DerivesFrom(const IHierarchyTree* other)
+        {
+            return GetInheritData(other);
+        }
+
+        virtual InheritData GetInheritData(const IHierarchyTree* other) = 0;
+
+        virtual OverloadCode CreateCode(const IHierarchyTree* target) = 0;
+
+        virtual InstanceID GetInstanceID() const = 0;
+
+        virtual size_t GetHashRange() const = 0;
+        virtual size_t GetMemberRange() const = 0;
+
+        virtual Function* GetMethod(MemberPointer ptr, ITemplateBody* body) = 0;
+        virtual size_t GetField(MemberPointer ptr, ITemplateBody* body) = 0;
+    };
+
 
 
     //This is used only for non-static fields and virtual methods
-    struct Members
+    struct MemberData
     {
         std::vector<FieldInfo> fields;
         //I want to use I function for this, but it will need to be smoothed over with places that want a base
-        std::vector<IFunction*> methods;
+        std::map<MemberPointer, IFunction*> methods;
     };
 
-    //TemplateType is the thing that takes inspiration for the existence of this. Ponder the things that it cannot have, and how 
-    // it should answer quests one might have about inheritance
-    struct IHierarchyTree
-    {
-        virtual const InheritData* GetInheritData(const ITypeInfo* type) const = 0;
+   
 
-        InheritData* GetInheritData(const ITypeInfo* type)
+    struct InheritIterator
+    {
+        InheritData* data = nullptr;
+        InheritanceTree* tree = nullptr;
+        InheritIterator* const previous = nullptr;
+
+        operator InheritanceTree* ()
         {
-            return unconst(make_const(this)->GetInheritData(type));
+            return tree;
         }
 
-        OverloadCode CreateCode(ITypeInfo* target);
+        InheritIterator(InheritData& d, InheritIterator* it) : data{ &d }, previous{ it }, tree{ d.tree } {}
 
-        //This should be moved to qualified type, and the main thing of desire here should be the overload code.
-        int CompareType(OverloadCode& left, OverloadCode& right, QualifiedType&& left_type, QualifiedType&& right_type);
-
-        int CompareType(ITypeInfo* a_lhs, ITypeInfo* a_rhs);
+        InheritIterator(InheritanceTree* t, InheritIterator* it) : previous{ it }, tree{ t } {}
+    };
 
 
-        
+    struct HierarchyTree : public IHierarchyTree
+    {
+        //The point of the hierarchy tree is that it basically does not own members itself. Rather, 
+        // it merely owns elements of inheritance.
+
+
+        std::vector<InheritData> inheritance;
 
     };
 
-    
-
-    struct InheritanceTree
+    struct InheritanceTree : public HierarchyTree
     {
-        //TODO: I may split Hierarchy data to make template types a bit smaller.
-
-        //FakeType will become a part of something called Hierarchy data. TypeBases have this, but so do Specializations of generic types.
-
-        //Id like it if in a test of ambiguity this always wins, but that might not be possible in this set up.
-        //ITypeInfo* _extends = nullptr;//Deprecated* extends = nullptr;
-
-        //Inherit data should be ordered if I can so I can binary search for the given id
-
-        //If I can repurpose this to no longer need to include everything it's parent includes, that would be poggers.
-        std::vector<InheritData> inheritance;
-
-        std::unique_ptr<Members> members = nullptr;
+        std::unique_ptr<MemberData> _members = nullptr;
 
 
         uint32_t hashRange = 0;//Range is equal to zero to this number.
 
         uint32_t memberCount = 0;//Should bind classes increase this value any? Nah, probably handle in post.
+
+
+
+        bool VisitLowerTrees(auto func)
+        {
+            for (auto& inherit : inheritance)
+            {
+                if (func(inherit) == true)
+                    return true;
+            }
+
+
+            //for (auto& inherit : inheritance)
+            //{
+            //    InheritIterator it{ inherit, prev };
+            //    if (inherit.tree->VisitLowerTrees(func, &it) == true)
+            //        return true;
+            //}
+
+            return false;
+        }
+
+
+
+
+        bool VisitTrees(auto func)
+        {
+            if (func(this) == true)
+                return true;
+
+            return VisitLowerTrees(func);
+        }
+
+        
+        Function* GetMethod(MemberPointer ptr, ITemplateBody* body) override
+        {
+            ptr = ptr.Resolve(body);
+
+            Function* result = nullptr;
+
+            VisitTrees([&](InheritanceTree* tree) -> bool
+                {
+                    auto it = _members->methods.find(ptr);
+                    auto end = _members->methods.end();
+
+                    if (it != end) {
+                        return result = it->second->GetFunction(body);
+                    }
+
+                    return false;
+                });
+
+            return result;
+        }
+
+        size_t GetField(MemberPointer ptr, ITemplateBody* body) override
+        {
+            ptr = ptr.Resolve(body);
+
+            size_t index = ptr.index;
+
+            if (GetInstanceID() != ptr.instanceID) {
+                bool found = VisitLowerTrees([&](InheritData& inherit) -> bool
+                    {
+                        auto tree = inherit.tree;
+
+                        if (tree->GetInstanceID() == ptr.instanceID) {
+                            //This has issues in that it's going to be missing all the indices
+                            // previous 
+                            if (tree->_members && tree->_members->fields.size() > index) {
+                                index += inherit.memberIndex;                                
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    });
+                
+                if (!found)
+                    return -1;
+            }
+       
+            return index;     
+        }
+
+
+        /////////////////////////////////////////////
+
 
 
         bool HasInternal() const
@@ -1344,7 +1519,7 @@ namespace LEX::Test
 
 
 
-        virtual ITypeInfo* GetHierarchyType() = 0;
+        virtual std::string_view GetName() const = 0;
         //TODO: This should come back at a later point I think.
         virtual void HandleInheritance() {}
 
@@ -1385,7 +1560,7 @@ namespace LEX::Test
         bool _IsInternalParent(const InheritData* intern) const;
 
     };
-
+#pragma endregion
 
 #pragma endregion
 
@@ -1868,7 +2043,7 @@ namespace LEX::Test
 #pragma endregion
 
 
-//NEXT
+//DONE
 #pragma region New Relation
     
     //Allows for a shared pointer kind of situation
