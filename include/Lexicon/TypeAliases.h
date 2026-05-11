@@ -4,7 +4,6 @@
 
 
 
-
 namespace LEX
 {
 	using Column = uint16_t;

@@ -44,6 +44,10 @@ namespace LEX
 
 	public:
 
+
+		
+		
+
 		TypeNode CreateNode(ITemplatePart* part)
 		{
 			auto type = AsType();
@@ -200,7 +204,7 @@ namespace LEX
 
 	//For what it's worth, I really fucking loathe this system all together.
 	template <typename T>
-	struct PivotTypeBase : public TypeBase, public T
+	struct PivotTypeBase : public TypeBase, public TypeInstance<T>
 	{
 		using TypeBase::TypeBase;
 

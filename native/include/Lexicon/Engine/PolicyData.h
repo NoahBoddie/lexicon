@@ -36,7 +36,7 @@ namespace LEX
 
 
 		TypeID _id;
-
+		mutable InstanceID _instanceID = nil_instance_id;
 
 		std::string _name;
 

@@ -46,6 +46,8 @@ namespace LEX
 
 				virtual TypeID GetTypeID() const = 0;
 
+				virtual InstanceID GetInstanceID() const = 0;
+
 				//Should this be higher?
 				virtual DataType GetDataType() const = 0;
 

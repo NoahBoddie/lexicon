@@ -4,6 +4,8 @@
 #include "Lexicon/TypeInfo.h"
 #include "Lexicon/Engine/SpecialBase.h"
 
+
+
 //*src
 #include "Lexicon/Engine/GenericType.h"
 #include "Lexicon/Variable.h"
@@ -13,7 +15,9 @@ namespace LEX
 	struct Variable;
 
 
-	struct SpecialType : public TypeInfo, public SpecialBase
+	//TODO: SpecialType should derive from IHierarchyTree
+
+	struct SpecialType : public TypeInstance<TypeInfo>, public SpecialBase
 	{
 		DEFINE_COMPONENT_TYPE(ComponentType::SpecialType)
 	public:
@@ -21,9 +25,7 @@ namespace LEX
 
 
 		ITypeInfo* _self = nullptr;
-		InstanceID id = bad_inst_id;
-
-
+		
 
 
 		//SpecialType(GenericBase* base, ITypeInfo* type, ITemplatePart* spec) : SpecialBase{ base, spec }, _self{ type }

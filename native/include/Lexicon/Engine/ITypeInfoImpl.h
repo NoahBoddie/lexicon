@@ -37,11 +37,6 @@ namespace LEX
 
 	struct ITypeInfo : public ITypeInfoAbstract
 	{
-		ITypeInfo()
-		{
-			IdentityManager::instance->GenerateInstanceID(this);
-		}
-		
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
 		// without the explicit need of having a hierarchy data explicitly existing. Might make it a reference to send a message.
 		virtual HierarchyData* GetHierarchyData() const = 0;
@@ -149,21 +144,11 @@ namespace LEX
 				}
 		}
 
-		void SetInstanceID(InstanceID id, Badge<IdentityManager>)
-		{
-			assert(id != bad_inst_id);
-			assert(_instanceID == bad_inst_id);
 
-			_instanceID = id;
-		}
+		//This should go under
+		
 
-		InstanceID GetInstanceID()
-		{
-			return _instanceID;
-		}
+		virtual void SetInstanceID(InstanceID id, Badge<IdentityManager>) = 0;
 
-	private:
-		//TODO: I'd like to handle instance ids a bit differently. Some trivial types don't need ids
-		InstanceID _instanceID = bad_inst_id;
 	};
 }

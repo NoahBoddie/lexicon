@@ -2,7 +2,7 @@
 
 #include "Lexicon/Engine/ITypeInfoImpl.h"
 #include "Lexicon/Engine/HierarchyData.h"
-
+#include "Lexicon/Engine/TypeInstance.h"
 //*src
 #include "Lexicon/Interfaces/IdentityManager.h"
 #include "Lexicon/Qualifier.h"
@@ -14,7 +14,7 @@ namespace LEX
 
 	struct TemplateTuple;
 
-	struct TemplateType : public ITypeInfo, public HierarchyData
+	struct TemplateType : public TypeInstance<ITypeInfo>, public HierarchyData
 	{
 		
 		//GenericType is an ITypeInfo that largely should not exist with any HierarchyData. It's from this fact

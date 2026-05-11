@@ -19,37 +19,56 @@ namespace LEX
 
 	//TODO: Member pointer should PORBABLY be engine. Also, I'd like to use bitfields to allow for a virtual mode and non-virtual mode.
 	// Maybe will use unions to help with that
-	struct MemberPointer
-	{
-		//May remake, instead using member or method info in order to handle this sort of thing.
-		// Or I'll just store this as a pointer.
 
-		//OR, scripted data types can only hold 16 bit spec codes, and intrinsics can hold 32 bit ones.
-
-		//Used to get a method or member, and correcting the intended index.
-
-		TypeID source{};
-		uint16_t spec = 0;//This would be so I can search for the specific specialization. Might not need this if I restrict what it can inherit.
-		uint16_t index = 0;
-
-		struct Alternative
-		{
-			union
-			{
-				TypeID typeID;
-				//InstanceID;
-			};
-		};
+    ENUM(MemberFlag, uint8_t)
+    {
+        None,
+            Generic = 1 << 0,   //Used to tell if member needs to be moved when fully specialized. Incapable of being referenced otherwise.
+            Partial = 1 << 1,   //A partialized type that will need to specialize in order to lose the flag.
+    };
 
 
-		//Should have an option to ctor who it came from.
+    //TODO: Member pointer should PORBABLY be engine. Also, I'd like to use bitfields to allow for a virtual mode and non-virtual mode.
+    // Maybe will use unions to help with that
+    struct MemberPointer
+    {
+        //May remake, instead using member or method info in order to handle this sort of thing.
+        // Or I'll just store this as a pointer.
 
-		constexpr operator MemberHash() const
-		{
-			return std::bit_cast<MemberHash>(*this);
-		}
-	};
-	static_assert(sizeof(MemberPointer) == 0x8);
+        //OR, scripted data types can only hold 16 bit spec codes, and intrinsics can hold 32 bit ones.
+
+        //Used to get a method or member, and correcting the intended index.
+
+
+        union
+        {
+            uint32_t raw;
+            TypeID typeID;
+            InstanceID instanceID;
+        };
+
+        MemberFlag flags = MemberFlag::None;
+
+        uint16_t index = 0;
+
+
+        MemberPointer Resolve(ITemplateBody*& body)
+        {
+            auto result = *this;
+
+            result.flags = {};
+
+            return result;
+        }
+
+        //Should have an option to ctor who it came from.
+
+        constexpr operator MemberHash() const
+        {
+            return std::bit_cast<MemberHash>(*this);
+        }
+    };
+    static_assert(sizeof(MemberPointer) == 0x8);
 
 
 
