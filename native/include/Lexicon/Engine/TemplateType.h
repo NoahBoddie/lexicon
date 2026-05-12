@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Engine/ITypeInfoImpl.h"
-#include "Lexicon/Engine/HierarchyData.h"
+#include "Lexicon/Engine/InheritanceTree.h"
 #include "Lexicon/Engine/TypeInstance.h"
 //*src
 #include "Lexicon/Interfaces/IdentityManager.h"
@@ -14,23 +14,15 @@ namespace LEX
 
 	struct TemplateTuple;
 
-	struct TemplateType : public TypeInstance<ITypeInfo>, public HierarchyData
+
+	//TODO: this should use a hierarchy tree, NOT an inheritance one
+	struct TemplateType : public TypeInstance<ITypeInfo>, public InheritanceTree
 	{
 		
 		//GenericType is an ITypeInfo that largely should not exist with any HierarchyData. It's from this fact
 		// plus the fact HierarchyData is a lot that I think I should split the function between 2 parts.
 		//This type will use a seperate HierarchyData having type in order to answer questions it's questions about it.
 
-		//But until I have a proper design for that I think having hierarchy data will be fine.
-		void Test()
-		{
-			IdentityManager::instance->GetIDFromName("TRIVAL");
-
-
-			ITypeInfo* test = nullptr;
-
-			HierarchyData* other = dynamic_cast<HierarchyData*>(test);
-		}
 
 
 		size_t GetIndex() const
@@ -54,6 +46,15 @@ namespace LEX
 		TemplateType* AsTemplate() override { return this; }
 		std::vector<TemplateType*> GetTemplateInputs() override { return { this }; }
 
+		IHierarchyTree* GetHierarchyTree() const override
+		{
+			return unconst(this);
+		}
+
+		InstanceID GetInstanceID() const override
+		{
+			return Instance::GetInstanceID();
+		}
 
 		//I'd like this function to move based upon the parent of the generic base.
 		size_t GetIndex()
@@ -94,8 +95,10 @@ namespace LEX
 			// this, not who's scope.
 
 
+			auto other_tree = other->GetHierarchyTree();
+
 			//Whether it can convert should basically be solved here, this should never return an internal it does not own.
-			const InheritData* convert_data = GetInheritData(other);
+			const InheritNode* convert_data = FindInheritNode(other_tree);
 
 
 			//Not gonna worry about function conversions for a while.
@@ -140,11 +143,11 @@ namespace LEX
 			//By this point, please note that internal should not even be a thought here.
 			//Being able to get someone's inheritdata that belongs to a specific class might be valuable.
 			//*Might need to recant this.
-			const InheritData* access_data = scope->GetHierarchyData()->GetInheritData(other);
+			InheritNode access_data = scope->GetHierarchyTree()->GetInheritNode(other_tree);
 
 
 
-			if (!access_data || access_data->GetAccess() == Access::None) {
+			if (!access_data || access_data.GetAccess() == Access::None) {
 				return ConversionResult::Inaccessible;//No access from here
 			}
 
@@ -171,7 +174,8 @@ namespace LEX
 					//If this inherits nothing it literally cannot be used for anything
 					for (auto& inherit : inheritance)
 					{
-						if (other->IsConvertibleTo(inherit.type, scope) != ConversionEnum::TypeDefined) {
+						//This can be exact
+						if (other->IsConvertibleTo(inherit.type(), scope) != ConversionEnum::TypeDefined) {
 							return ConversionResult::Ineligible;
 						}
 					}
@@ -182,7 +186,7 @@ namespace LEX
 				{
 					for (auto& inherit : inheritance)
 					{
-						if (other->IsConvertibleTo(inherit.type, scope) != ConversionEnum::TypeDefined) {
+						if (other->IsConvertibleTo(inherit.type(), scope) != ConversionEnum::TypeDefined) {
 							return ConversionResult::Ineligible;
 						}
 					}
@@ -197,13 +201,6 @@ namespace LEX
 		//I want one able to handle possible tuple typing which doesn't currently exist.
 		//bool CanSpecializeTo(TemplateType* other) const;
 		
-
-
-		HierarchyData* GetHierarchyData() const override
-		{
-			const HierarchyData* out = this;
-			return const_cast<HierarchyData*>(out);
-		}
 
 		ITypeInfo* GetHierarchyType() override
 		{
@@ -222,6 +219,4 @@ namespace LEX
 
 
 	};
-
-
 }

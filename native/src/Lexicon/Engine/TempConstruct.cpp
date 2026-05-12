@@ -2493,11 +2493,13 @@ namespace LEX
 
 		struct CoreType : public ConcreteType
 		{
+			//CoreType should be able to manually choose what it derives from
+
 			//Core types basically will just not have manual types loaded.
 
 			using ConcreteType::ConcreteType;
 
-			std::vector<ITypeInfo*> GetPostAffixedTypes() const override
+			std::vector<IHierarchyTree*> GetPostAffixedTypes() const override
 			{
 				return {};
 			}
@@ -2804,7 +2806,7 @@ namespace LEX
 
 			static ConcreteType* _coreObject = new CoreType{ "CORE", 0 };
 			
-			_coreObject->SetInheritFrom(common_type::voidable());
+			_coreObject->SetInheritFrom(common_type::voidable()->GetHierarchyTree());
 			
 
 			

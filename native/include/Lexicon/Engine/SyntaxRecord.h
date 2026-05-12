@@ -329,22 +329,22 @@ namespace LEX
 
 #define DECLARE_SYNTAX_LOGGER(mc_name, mc_level,...)\
 		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
-		void mc_name(SourceAndProxy<std::string> message, Ts&&... args)\
+		__VA_ARGS__ void mc_name(SourceAndProxy<std::string> message, Ts&&... args)\
 		{\
 			return Log<Issue>(message.prox, message.src, IssueLevel::mc_level, args...);\
 		}\
 		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
-		void mc_name(std::string& message, std::source_location loc, Ts&&... args)\
+		__VA_ARGS__ void mc_name(std::string& message, std::source_location loc, Ts&&... args)\
 		{\
 			return Log<Issue>(message, loc, IssueLevel::mc_level, args...);\
 		}\
 		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
-		void mc_name(IssueCode code, Ts&&... args)\
+		__VA_ARGS__ void mc_name(IssueCode code, Ts&&... args)\
 		{\
 			return Log<Issue>(code, IssueLevel::mc_level, args...);\
 		}\
 		template <IssueType Issue = IssueType::Total, is_not<std::source_location>... Ts>\
-		void mc_name(IssueCode code, std::source_location loc, Ts&&... args)\
+		__VA_ARGS__ void mc_name(IssueCode code, std::source_location loc, Ts&&... args)\
 		{\
 			return Log<Issue>(code, loc, IssueLevel::mc_level, args...);\
 		}
@@ -356,7 +356,7 @@ namespace LEX
 
 		DECLARE_SYNTAX_LOGGER(info, Info);
 		DECLARE_SYNTAX_LOGGER(debug, Debug);
-		DECLARE_SYNTAX_LOGGER(error, Error);
+		DECLARE_SYNTAX_LOGGER(error, Error, [[noreturn]]);
 
 		template <is_not<std::source_location>... Ts> void Note(SourceAndProxy<std::string> message, Ts&&... args)
 		{

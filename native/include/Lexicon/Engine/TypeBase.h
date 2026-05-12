@@ -70,17 +70,16 @@ namespace LEX
 
 
 
-		HierarchyData* GetHierarchyData() const
+		IHierarchyTree* GetHierarchyTree() const
 		{
-			const HierarchyData* out = this;
-			return const_cast<HierarchyData*>(out);
+			return unconst(this);
 		}
 
 		TypeID GetTypeID() const { return _id; }
 		DataType GetDataType() const { return _dataType; }
 
 
-		std::string_view GetName() const { return std::string_view{ _name }; }
+		std::string_view GetName() const override { return _name; }
 
 		/*
 
@@ -107,14 +106,8 @@ namespace LEX
 		//*/
 		//~
 
-		ITypeInfo* GetHierarchyType() override
-		{
-			return AsType();
-		}
 
-
-
-		void CheckDeriveFrom(ITypeInfo* other) override;
+		void CheckDeriveFrom(IHierarchyTree* other) override;
 
 
 		bool IsLinkedLater() const
@@ -136,9 +129,9 @@ namespace LEX
 			if (type != RelateType::Nested)
 				return {};
 
-			HierarchyData* data = GetHierarchyData();
+			//auto data = GetHierarchyData();
 
-			data->GetInheritData(nullptr);
+			//data->GetInheritData(nullptr);
 
 			return {};
 		}
@@ -213,10 +206,21 @@ namespace LEX
 			return TypeBase::GetName();
 		}
 
-
-		HierarchyData* GetHierarchyData() const override
+		InstanceID GetInstanceID() const override
 		{
-			return TypeBase::GetHierarchyData();
+			return TypeInstance<T>::GetInstanceID();
+
+		}
+
+		IHierarchyTree* GetHierarchyTree() const override
+		{
+			return TypeBase::GetHierarchyTree();
+		}
+
+
+		ITypeInfo* GetHierarchyType() override
+		{
+			return this;
 		}
 
 		TypeID GetTypeID() const override

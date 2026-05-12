@@ -33,8 +33,14 @@ namespace LEX
 	}
 
 
-	void TypeBase::CheckDeriveFrom(ITypeInfo* other)
+	void TypeBase::CheckDeriveFrom(IHierarchyTree* tree)
 	{
+		auto other = tree->GetHierarchyType();
+
+		if (!other) {
+			return;
+		}
+
 		auto l_type = GetDataType();
 		auto r_type = other->GetDataType();
 
@@ -69,7 +75,7 @@ namespace LEX
 		auto ast = GetSyntaxTree();
 		
 		if (!ast) {
-			report::fault::debug("Type {} has a missing syntax tree", GetName());
+			//report::fault::debug("Type {} has a missing syntax tree", GetName());
 			MarkInheritHandled();
 		}
 		else {
@@ -106,7 +112,7 @@ namespace LEX
 					if (!type)  //I'd actually rather report.
 						inherit.error("Could not generate type from {}", inherit.GetTag());
 
-					SetDerivesTo(type, access);
+					SetDerivesTo(type->GetHierarchyTree(), access);
 				}
 
 

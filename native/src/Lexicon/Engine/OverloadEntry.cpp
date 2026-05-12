@@ -1,20 +1,20 @@
-#pragma once
-
 #include "Lexicon/Engine/OverloadEntry.h"
 
 #include "Lexicon/Engine/TypeBase.h"
+#include "Lexicon/Engine/InheritNode.h"
+#include "Lexicon/Engine/IHierarchyTree.h"
 
 namespace LEX
 {
-	OverloadCode OverloadCode::FinalizeOld(HierarchyData* type, HierarchyData* other)
+	OverloadCode OverloadCode::FinalizeOld(IHierarchyTree* tree, IHierarchyTree* other)
 	{
 		//auto other_data = other->GetInheritData(type);
 
-		if (other->GetInheritData(type->GetHierarchyType()) == nullptr) {
-			return type->CreateCode(nullptr);
+		if (other->GetInheritNode(tree) == nullptr) {
+			return tree->CreateCode(nullptr);
 		}
 		//Even if it's virtually inherited, that's ok.
 
-		return other->CreateCode(type->GetHierarchyType());
+		return other->CreateCode(tree);
 	}
 }

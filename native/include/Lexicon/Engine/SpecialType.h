@@ -80,17 +80,18 @@ namespace LEX
 
 		virtual TypeID GetTypeID() const { return GetSelf()->GetTypeID(); }
 
-		virtual DataType GetDataType() const { return GetSelf()->GetDataType(); }
+		DataType GetDataType() const override { return GetSelf()->GetDataType(); }
 
 
 
-		virtual std::string_view GetName() const { return GetSelf()->GetName(); }
+		std::string_view GetName() const override { return GetSelf()->GetName(); }
 
 
-
-		HierarchyData* GetHierarchyData() const override
+		
+		IHierarchyTree* GetHierarchyTree() const override
 		{
-			return GetSelf()->GetHierarchyData();
+			//TODO: this is completely insufficent, this needs an IHierarchyTree
+			return _self->GetHierarchyTree();
 		}
 
 

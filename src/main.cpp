@@ -1101,7 +1101,7 @@ namespace LEX::Test
 #pragma endregion
 
 
-
+//DONE
 #pragma region MemberPointer
     typedef unsigned long long MemberHash;
 
@@ -1204,10 +1204,11 @@ namespace LEX::Test
     struct InheritanceTree;
     struct IHierarchyTree;
     
+    //InheritData to InheritNode
+    //HierarchyData to InheritanceTree
 
 
-
-    //Rename node
+    
     struct InheritNode
     {
         static constexpr uint32_t virtual_pos = -1;
@@ -1378,7 +1379,7 @@ namespace LEX::Test
         virtual InstanceID GetInstanceID() const = 0;
 
         virtual size_t GetHashRange() const = 0;
-        virtual size_t GetMemberRange() const = 0;//TODO: should be FieldRange
+        virtual size_t GetFieldRange() const = 0;//TODO: should be FieldRange
 
         virtual MemberData* GetMembers() = 0;
 
@@ -1429,7 +1430,23 @@ namespace LEX::Test
 
         uint32_t hashRange = 0;//Range is equal to zero to this number.
 
-        uint32_t memberCount = 0;//Should bind classes increase this value any? Nah, probably handle in post.
+        uint32_t fieldRange = 0;//Should bind classes increase this value any? Nah, probably handle in post.
+
+
+        size_t GetHashRange() const override
+        {
+            return hashRange;
+        }
+        size_t GetFieldRange() const override
+        {
+            return fieldRange;
+        }
+
+        MemberData* GetMembers() override
+        {
+            return _members.get();
+        }
+
 
 
 
@@ -1754,10 +1771,10 @@ namespace LEX::Test
                 if (auto range = data.hash_range(); range > hashRange)
                     hashRange = range;
 
-                auto old = memberCount;
+                auto old = fieldRange;
 
                 data.memberIndex = old;  //This is the place where this starts.
-                memberCount += (uint32_t)data.tree->GetFieldCount();
+                fieldRange += (uint32_t)data.tree->GetFieldCount();
 
 
                 inheritance.push_back(data);
@@ -1804,7 +1821,7 @@ namespace LEX::Test
                 name = type->GetName();
             }
 
-            logger::trace("Class: {}: Ranged: (0/{}), Members: ({}/{})", name, hashRange, memberCount, GetFieldCount());
+            logger::trace("Class: {}: Ranged: (0/{}), Members: ({}/{})", name, hashRange, fieldRange, GetFieldCount());
 
             for (auto& basis : inheritance) {
                 std::string access;
@@ -1857,8 +1874,8 @@ namespace LEX::Test
             //This should be using OverloadCode, but i'd need a given type to do it.
 
             if (!left.initialized && !right.initialized) {
-                left = left.FinalizeOld(left_type->GetHierarchyData(), right_type->GetHierarchyData());
-                right = right.FinalizeOld(right_type->GetHierarchyData(), left_type->GetHierarchyData());
+                left = left.FinalizeOld(left_type->GetHierarchyTree(), right_type->GetHierarchyTree());
+                right = right.FinalizeOld(right_type->GetHierarchyTree(), left_type->GetHierarchyTree());
 
                 //OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
                 //OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);
@@ -1884,6 +1901,9 @@ namespace LEX::Test
             return CompareType(left, right, QualifiedType{ a_lhs }, QualifiedType{ a_rhs });
         }
     };
+
+
+
 #pragma endregion
 
 #pragma endregion
@@ -2717,7 +2737,7 @@ namespace LEX::Test
         }
 
         template <typename T>
-        struct MemberData
+        struct FieldData
         {
             //using T = Variable;
 
@@ -2773,8 +2793,8 @@ namespace LEX::Test
             union
             {
                 uintptr_t			_raw = 0;
-                MemberData<Variable>           memberList;
-                MemberData<RuntimeVariable>    runtimeList;
+                FieldData<Variable>           memberList;
+                FieldData<RuntimeVariable>    runtimeList;
             };
             ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
             size_t size = 0;

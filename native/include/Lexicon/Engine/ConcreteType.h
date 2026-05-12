@@ -38,11 +38,6 @@ namespace LEX
 		}
 		
 
-		HierarchyData* GetHierarchyData() const override
-		{
-			return TypeBase::GetHierarchyData();
-		}
-
 		//These 2 should largely be inherited from Type.
 		ITypeInfo* CheckTypeInfo(ITemplatePart* args) override
 		{

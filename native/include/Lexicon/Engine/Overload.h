@@ -5,7 +5,7 @@
 #include "Lexicon/Engine/OverloadFlag.h"
 #include "Lexicon/ITemplateBodyPart.h"
 //*src
-#include "Lexicon/Engine/HierarchyData.h"
+#include "Lexicon/Engine/InheritanceTree.h"
 #include "Lexicon/Engine/TemplateType.h"
 namespace LEX
 {
@@ -281,8 +281,8 @@ namespace LEX
 
 			if (!left.initialized && !right.initialized)
 			{
-				left = left.FinalizeOld(left_type->GetHierarchyData(), right_type->GetHierarchyData());
-				right = right.FinalizeOld(right_type->GetHierarchyData(), left_type->GetHierarchyData());
+				left = left.FinalizeOld(left_type->GetHierarchyTree(), right_type->GetHierarchyTree());
+				right = right.FinalizeOld(right_type->GetHierarchyTree(), left_type->GetHierarchyTree());
 
 				//OverloadEntry left = a_lhs.FinalizeOld(a_rhs.type);
 				//OverloadEntry right = a_rhs.FinalizeOld(a_lhs.type);
@@ -305,8 +305,8 @@ namespace LEX
 
 		static int CompareType(QualifiedType& a_this, QualifiedType& a_lhs, QualifiedType& a_rhs)
 		{
-			OverloadCode left = a_this.policy->GetHierarchyData()->CreateCode(a_lhs);
-			OverloadCode right = a_this.policy->GetHierarchyData()->CreateCode(a_rhs);
+			OverloadCode left = a_this.policy->GetHierarchyTree()->CreateCode(a_lhs->GetHierarchyTree());
+			OverloadCode right = a_this.policy->GetHierarchyTree()->CreateCode(a_rhs->GetHierarchyTree());
 
 			return CompareType(left, right, a_lhs, a_rhs);
 		}

@@ -17,11 +17,9 @@ namespace LEX
 	struct IFunction;
 	class RuntimeVariable;
 	struct TypeBase;
-	struct HierarchyData;
 
 	enum struct DataType : uint8_t;
 
-	struct InheritData;
 	struct OverloadCode;
 
 

@@ -10,7 +10,7 @@ namespace LEX
 	template <std::derived_from<ITypeInfo> Type>
 	struct TypeInstance : public Type
 	{
-
+		using Instance = TypeInstance<Type>;
 
 		InstanceID GetInstanceID() const override
 		{

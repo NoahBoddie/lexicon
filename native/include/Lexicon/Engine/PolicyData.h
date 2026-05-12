@@ -2,7 +2,7 @@
 
 #include "Lexicon/TypeID.h"
 #include "Lexicon/DataType.h"
-#include "Lexicon/Engine/HierarchyData.h"
+#include "Lexicon/Engine/InheritanceTree.h"
 
 namespace LEX
 {
@@ -25,7 +25,7 @@ namespace LEX
 	};
 
 
-	struct PolicyData : public HierarchyData
+	struct PolicyData : public InheritanceTree
 	{
 	public:
 		//Inheritance will look more like a vector of inheritance data, telling the hash from the main type, it's distance, etc etc.

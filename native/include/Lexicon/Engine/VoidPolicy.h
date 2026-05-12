@@ -15,7 +15,7 @@ namespace LEX
 
 		//I don't think I'd even want to do this.
 		//using ConcreteType::ConcreteType;
-		std::vector<ITypeInfo*> GetPostAffixedTypes() const override { return { IdentityManager::instance->GetInherentType(InherentType::kVoidable) }; }
+		std::vector<IHierarchyTree*> GetPostAffixedTypes() const override { return { IdentityManager::instance->GetInherentBase(InherentType::kVoidable) }; }
 
 		std::string_view GetName() const
 		{
@@ -43,7 +43,7 @@ namespace LEX
 
 		//I don't think I'd even want to do this.
 		//using ConcreteType::ConcreteType;
-		std::vector<ITypeInfo*> GetPostAffixedTypes() const override { return {}; }
+		std::vector<IHierarchyTree*> GetPostAffixedTypes() const override { return {}; }
 
 		std::string_view GetName() const
 		{

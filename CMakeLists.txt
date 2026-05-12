@@ -211,9 +211,9 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/GlobalData.h
 		native/include/Lexicon/Engine/GlobalVariable.h
 		native/include/Lexicon/Engine/HeaderSettings.h
-		native/include/Lexicon/Engine/HierarchyData.h
+		"native/include/Lexicon/Engine/InheritanceTree.h"
 		native/include/Lexicon/Engine/InfoBase.h
-		native/include/Lexicon/Engine/InheritData.h
+		"native/include/Lexicon/Engine/InheritNode.h"
 		native/include/Lexicon/Engine/InputStream.h
 		native/include/Lexicon/Engine/Instruction.h
 		native/include/Lexicon/Engine/InstructionType.h
@@ -292,7 +292,7 @@ if(LEXICON_SOURCE)
 		"native/include/Lexicon/Engine/Conversion.h"
 		"native/include/Lexicon/Engine/Convert.h"
 
-	 "native/include/Lexicon/Engine/NullType.h"    "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "native/include/Lexicon/Engine/FunctionImpl.h" "native/include/Lexicon/Engine/Repository.h" "native/include/Lexicon/Engine/Subdirectory.h" "native/include/Lexicon/Engine/ProjectDirectory.h" "native/include/Lexicon/Engine/TestToss.h" "native/include/Lexicon/Engine/DirectiveRecord.h" "native/include/Lexicon/Engine/Directive.h" "native/include/Lexicon/Engine/Director.h" "native/include/Lexicon/Engine/VarIndexInfo.h" "native/include/Lexicon/Engine/FieldInfo.h" "native/include/Lexicon/Engine/Impl/InfoTraits.h" "native/include/Lexicon/Engine/TemplateContainer.h"  "native/include/Lexicon/Engine/ThisInfo.h" "native/include/Lexicon/Engine/DestructibleVarInfo.h" "native/include/Lexicon/Engine/OverloadInfo.h" "native/include/Lexicon/Engine/Relationship.h"  "native/include/Lexicon/Engine/TypeInstance.h")
+	 "native/include/Lexicon/Engine/NullType.h"    "native/include/Lexicon/Engine/Directory.h" "native/include/Lexicon/Engine/Impl/ComponentTraits.h" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "native/include/Lexicon/Engine/FunctionImpl.h" "native/include/Lexicon/Engine/Repository.h" "native/include/Lexicon/Engine/Subdirectory.h" "native/include/Lexicon/Engine/ProjectDirectory.h" "native/include/Lexicon/Engine/TestToss.h" "native/include/Lexicon/Engine/DirectiveRecord.h" "native/include/Lexicon/Engine/Directive.h" "native/include/Lexicon/Engine/Director.h" "native/include/Lexicon/Engine/VarIndexInfo.h" "native/include/Lexicon/Engine/FieldInfo.h" "native/include/Lexicon/Engine/Impl/InfoTraits.h" "native/include/Lexicon/Engine/TemplateContainer.h"  "native/include/Lexicon/Engine/ThisInfo.h" "native/include/Lexicon/Engine/DestructibleVarInfo.h" "native/include/Lexicon/Engine/OverloadInfo.h" "native/include/Lexicon/Engine/Relationship.h"  "native/include/Lexicon/Engine/TypeInstance.h" "native/include/Lexicon/Engine/MemberData.h" "native/include/Lexicon/Engine/IHierarchyTree.h" "native/include/Lexicon/Engine/HierarchyTree.h")
 		
 
 	set(sources
@@ -304,7 +304,7 @@ if(LEXICON_SOURCE)
 		native/src/Lexicon/Engine/ConcreteType.cpp
 		native/src/Lexicon/Engine/Declaration.cpp
 		native/src/Lexicon/Engine/FunctionBase.cpp
-		native/src/Lexicon/Engine/HierarchyData.cpp
+		"native/src/Lexicon/Engine/InheritanceTree.cpp"
 		native/src/Lexicon/Engine/InputStream.cpp
 		native/src/Lexicon/Engine/Literal.cpp
 		native/src/Lexicon/Engine/LiteralManager.cpp
@@ -358,7 +358,7 @@ if(LEXICON_SOURCE)
 		src/Lexicon/Interfaces/ObjectPolicyManager.cpp
 		"src/Lexicon/Interfaces/IElementBase.cpp"
 		"native/src/Lexicon/Engine/Subdirectory.cpp"
-		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp" "src/Lexicon/Interfaces/DirectoryManager.cpp" "native/src/Lexicon/Engine/ProjectDirectory.cpp"  "native/src/Lexicon/Engine/Directory.cpp" "native/src/Lexicon/Engine/DirectiveRecord.cpp" "src/Lexicon/Interfaces/SharedClient.cpp" "src/Lexicon/Interfaces/IComponentBase.cpp" "src/Lexicon/Interfaces/Info.cpp" "src/Lexicon/Interfaces/IDirectory.cpp")
+		 "src/Lexicon/Interfaces/IElement.cpp" "src/Lexicon/Interfaces/IProject.cpp" "native/src/Lexicon/Engine/TypeInfoImpl.cpp" "src/Lexicon/Interfaces/IRepository.cpp" "src/Lexicon/Interfaces/IRepositoryBase.cpp" "native/src/Lexicon/Engine/Repository.cpp" "src/Lexicon/Interfaces/DirectoryManager.cpp" "native/src/Lexicon/Engine/ProjectDirectory.cpp"  "native/src/Lexicon/Engine/Directory.cpp" "native/src/Lexicon/Engine/DirectiveRecord.cpp" "src/Lexicon/Interfaces/SharedClient.cpp" "src/Lexicon/Interfaces/IComponentBase.cpp" "src/Lexicon/Interfaces/Info.cpp" "src/Lexicon/Interfaces/IDirectory.cpp" "native/src/Lexicon/Engine/IHierarchyTree.cpp" "native/src/Lexicon/Engine/InheritNode.cpp")
 endif()
 
 source_group(

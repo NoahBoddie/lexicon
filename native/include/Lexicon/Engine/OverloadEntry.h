@@ -8,7 +8,7 @@
 namespace LEX
 {
 
-	struct HierarchyData;
+	struct IHierarchyTree;
 
 	struct RoutineBase;
 
@@ -25,7 +25,7 @@ namespace LEX
 
 		bool initialized = false;//If not initialized
 
-		OverloadCode FinalizeOld(HierarchyData* type, HierarchyData* other);
+		OverloadCode FinalizeOld(IHierarchyTree* type, IHierarchyTree* other);
 
 
 

@@ -3,7 +3,7 @@
 
 #include "Lexicon/Variable.h"
 
-#include "Lexicon/Engine/HierarchyData.h"
+#include "Lexicon/Engine/InheritanceTree.h"
 #include "Lexicon/Engine/Convert.h"
 
 namespace LEX
@@ -14,7 +14,7 @@ namespace LEX
 			return ConversionEnum::Exact;
 		}
 
-		auto hierarchy = GetHierarchyData();
+		auto hierarchy = GetHierarchyTree();
 
 		if (!hierarchy)
 			return ConversionResult::Ineligible;
@@ -30,8 +30,11 @@ namespace LEX
 		// this, not who's scope.
 
 
+		auto other_tree = other->GetHierarchyTree();
+
+
 		//Whether it can convert should basically be solved here, this should never return an internal it does not own.
-		const InheritData* convert_data = hierarchy->GetInheritData(other);
+		InheritNode convert_data = hierarchy->GetInheritNode(other_tree);
 
 
 		//Not gonna worry about function conversions for a while.
@@ -45,12 +48,12 @@ namespace LEX
 
 
 
-		Access access = convert_data->access & ~Access::Internal;
+		Access access = convert_data.access & ~Access::Internal;
 		//Should this ever actually be internal?
-		bool is_internal = convert_data->IsInternal();//convert_data->access & Access::Internal;
+		bool is_internal = convert_data.IsInternal();//convert_data->access & Access::Internal;
 
 		if (is_internal) {
-			logger::debug("Owner should be 0 => {}", convert_data->ownerIndex);
+			logger::debug("Owner should be 0 => {}", convert_data.ownerIndex);
 		}
 
 
@@ -76,11 +79,11 @@ namespace LEX
 		//By this point, please note that internal should not even be a thought here.
 		//Being able to get someone's inheritdata that belongs to a specific class might be valuable.
 		//*Might need to recant this.
-		const InheritData* access_data = scope->GetHierarchyData()->GetInheritData(other);
+		InheritNode access_data = scope->GetHierarchyTree()->GetInheritNode(other_tree);
 
 
 
-		if (!access_data || access_data->GetAccess() == Access::None) {
+		if (!access_data || access_data.GetAccess() == Access::None) {
 			return ConversionResult::Inaccessible;//No access from here
 		}
 
