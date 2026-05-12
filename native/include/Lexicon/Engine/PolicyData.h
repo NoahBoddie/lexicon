@@ -35,23 +35,23 @@ namespace LEX
 		
 
 
-		TypeID _id;
+		TypeID _id{};
 		mutable InstanceID _instanceID = nil_instance_id;
 
 		std::string _name;
 
+		//std::string category;
+		//TypeOffset offset;
 
-		DataType _dataType = DataType::Invalid;
 
 		//Should be inherited, only one can exist.
 		ObjectPolicy* policy = nullptr;
 
 
-		//I'd like to carry this via pointer actually. Or string view.
-		std::string category;
-		TypeOffset offset;
+		ObjectPolicyHandle handle{};
 
-		//AbstractTypePolicy* extends() { return _extends; }
+		DataType _dataType = DataType::Invalid;
+
 	};
 
 }

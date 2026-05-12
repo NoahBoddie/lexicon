@@ -75,7 +75,7 @@ namespace LEX
 	Variable ConcreteType::GetDefault()
 	{
 		if (policy)
-			return policy->CreateObject(GetTypeID());
+			return policy->CreateObject(this);
 
 		return _default;
 	}
@@ -237,74 +237,12 @@ namespace LEX
 		{
 
 		case LinkFlag::Declaration:
-		{
-			HandleInheritance();
-			break;
-		}
-
-
-		case LinkFlag::Definition:
-		{
-			SyntaxRecord& attach = ast.FindChild(parse_strings::settings)->FindChild(parse_strings::attach)->GetFront();
-
-			if (attach.size() == 0) {
-				report::compile::critical("external type requires some type.");
-			}
-
-			//unique_type.size()
-
-			//save this shit til after linkage.
-			//ObjectPolicy* ObjectPolicyManager::GetObjectPolicyFromName(obj_type.GetTag());
-
-			SyntaxRecord& cat_name = attach.GetFront();
-
-			category = cat_name.GetTag();
-
-
-			if (cat_name.size())
+			if constexpr (1) 
 			{
-				//this should more be if it's not number.
-				if (auto& args = cat_name.GetFront(); args.GetView() == "args")
-				{
-					auto& children = args.children();
-
-					std::vector<std::string_view> string_args{ children.size() };
-
-					std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
-
-					offset = IdentityManager::instance->GetTypeOffsetFromArgs(category, string_args);
-					
-					if (offset == -1) {
-						std::string arg_string;
-
-						size_t after = 0;
-
-						for (auto str : string_args) {
-							arg_string += std::format("{}{}", (after++) ? ", " : "", str);
-						}
-						
-						report::compile::error("Failed to get type specification from arguments '{}'", arg_string);
-					}
-					
-					logger::info("offset from args = {}", offset);
-				}
-				else
-				{
-					offset = _RecordToInt(args);
-				}
-
-
+				HandleInheritance();
+				break;
 			}
-			else
-			{
-				offset = 0;
-			}
-			//category name is completely optional.
-			//offset = cat_name.size() ? _RecordToInt(cat_name.GetFront()) : 0;
 
-			break;
-		}
-		
 		}
 
 

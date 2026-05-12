@@ -424,10 +424,10 @@ namespace LEX
 			return IdentityManager::instance->GetIDFromIndex(index) + offset;
 		}
 
-		ObjectData CreateData(uint32_t id = 0) override
+		ObjectData CreateData(TypeInfo* type = nullptr) override
 		{
 			//Currently, no data used. Later? Either Instance ID, or Type ID. One should know which they use.
-			return ctor(id);
+			return ctor(type);
 		}
 
 		uint32_t GetPolicyID() override

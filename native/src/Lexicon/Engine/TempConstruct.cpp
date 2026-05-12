@@ -2508,30 +2508,6 @@ namespace LEX
 
 
 
-		struct NullType : public ConcreteType
-		{
-			using ConcreteType::ConcreteType;
-
-			static RuntimeVariable ToNullptr(RuntimeVariable& other)
-			{
-				return other->IsValueZero() ? Variable{} : other.Ref();
-			}
-
-			static RuntimeVariable FromNullptr(RuntimeVariable other)
-			{
-				//Going to need something like convert to handle this. Will probably try to create it myself. Maybe it'll be something that takes
-				// an entry for a type and spits out an ICallable that creates a version of that type.
-				return other->IsValueZero() ? Variable{} : other.Ref();
-			}
-
-
-			ConvertResult GetConvertTo(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out = nullptr, ConversionFlag flags = ConversionFlag::None) const override
-			{
-				
-			}
-		};
-
-
 
 		struct exponent {
 			//TODO: constexpr the exponent function when you can.

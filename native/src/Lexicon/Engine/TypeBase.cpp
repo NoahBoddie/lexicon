@@ -27,8 +27,6 @@ namespace LEX
 	TypeBase::TypeBase(std::string_view name, TypeOffset off)
 	{
 		policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(name);
-		category = name;
-		offset = off;
 		IdentityManager::instance->ClaimID(this, name, off);
 	}
 

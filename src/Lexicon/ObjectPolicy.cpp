@@ -1,15 +1,16 @@
 #pragma once
 
 #include "Lexicon/ObjectPolicy.h"
+#include "Lexicon/TypeInfo.h"
 #include "Lexicon/Object.h"
 
 namespace LEX
 {
-	Object IObjectPolicy::CreateObject(uint32_t context_id)
+	Object IObjectPolicy::CreateObject(TypeInfo* a_type)
 	{
 		auto index = GetPolicyID();
 
-		ObjectData data = CreateData(context_id);
+		ObjectData data = CreateData(a_type);
 
 		ObjectDataType type = ObjectDataType::kNone;
 

@@ -9,6 +9,7 @@
 
 namespace LEX
 {
+	struct TypeInfo;
 	struct ObjectPolicy;
 
 	namespace Version
@@ -41,15 +42,13 @@ namespace LEX
 
 				virtual uint32_t GetTypeIDFromOffset(TypeOffset) = 0;
 
-				virtual ObjectData CreateData(uint32_t = 0) = 0;
+				virtual ObjectData CreateData(TypeInfo* type) = 0;
 
 				virtual uint32_t GetPolicyID() = 0;
 
 				virtual TypeIndex GetCategoryIndex() = 0;
 				virtual std::string_view GetCategoryName() = 0;
 				//*/
-
-				Object CreateObject(uint32_t);
 
 
 			};
@@ -76,7 +75,7 @@ namespace LEX
 	struct __declspec(novtable) IMPL_VERSION_DERIVES(IObjectPolicy, ObjectPolicy), public ObjectVTable
 	{
 		//Make const plz
-		Object CreateObject(uint32_t);
+		Object CreateObject(TypeInfo* type);
 
 		ITypeInfo* GetTypeInfo(uint32_t offset = 0);
 	};

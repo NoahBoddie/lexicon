@@ -2,7 +2,7 @@
 
 namespace LEX
 {
-
+	struct TypeInfo;
 
 	//Object storage slated for relocation
 	namespace detail
@@ -214,7 +214,7 @@ namespace LEX
 
 
 
-	using DataBuilder = ObjectData(*)(uint32_t);
+	using DataBuilder = ObjectData(*)(TypeInfo*);
 
 
 	//Type will be used later to control whether something is pooled or not.	
@@ -279,10 +279,10 @@ namespace LEX
 	// id. From there type type id is something on can claim for themselves.
 	// One will simply have to know which it is.
 	template <typename T>
-	void BuildQualifier(ObjectData&, uint32_t) {}
+	void BuildQualifier(ObjectData&, TypeInfo*) {}
 
 	template <typename T>
-	ObjectData GenericDataBuilder(uint32_t id = 0)
+	ObjectData GenericDataBuilder(TypeInfo* type = nullptr)
 	{
 
 		//For starters, you won't want to use create type. 
@@ -299,7 +299,7 @@ namespace LEX
 		//ObjectData data = FillObjectData<T>(data, std::addressof(in));
 		ObjectData data{ in };
 		
-		BuildQualifier<T>(data, id);
+		BuildQualifier<T>(data, type);
 
 		return data;
 	}
