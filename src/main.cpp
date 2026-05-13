@@ -1203,6 +1203,22 @@ namespace LEX::Test
             //
         }
 
+
+        //When field data is going to die and a variable or runtime variable still 
+        struct PreservedField
+        {
+            enum Type
+            {
+                kVariable,
+                kRuntimeVar,
+            };
+
+            void* data = nullptr;
+            size_t size = 0;
+            Type type{};
+
+        };
+
         template <typename T>
         struct FieldData
         {
@@ -1251,14 +1267,98 @@ namespace LEX::Test
         };
 
 
-        void LockTest()
-        {
-            std::mutex t;
-        }
 
-        class ScriptObject
-        {
 
+        using BindCode = uint32_t;
+
+        constexpr BindCode nil_bind_code = -1;
+
+
+
+        struct BindID
+        {
+            InstanceID id = nil_instance_id;
+            BindCode code = nil_bind_code;
+        };
+        
+        ENUM(ObjectAccess, uint8_t)
+        {
+            Field,
+            Method,
+            Total,
+        };
+
+        struct AccessMemory
+        {
+            static constexpr uint32_t code = 0b111111111111;
+            static constexpr uint32_t code_width = std::bit_width(code);
+
+            static constexpr uint32_t fieldCode = code;
+            static constexpr uint32_t methodCode = code << code_width;
+            static constexpr uint32_t limit = fieldCode | methodCode;
+
+            std::pair<uint32_t, uint32_t> GetMemory(ObjectAccess access)
+            {
+                uint32_t value = 0;
+                uint32_t other = 0;
+                std::memcpy(&value, &bytes, 3);
+
+                if (access == ObjectAccess::Method)
+                {
+                    other = value & fieldCode;
+                    value &= methodCode;
+                    value >>= code_width;
+                }
+                else
+                {
+                    other = value & methodCode;
+                    value &= fieldCode;
+                }
+
+                if (value >= code) {
+                    value = -1;
+                }
+
+                return { value , other };
+            }
+
+            void SetMemory(ObjectAccess access, uint32_t value, uint32_t other)
+            {
+                if (value > code) {
+                    value = code;
+                }
+
+
+                if (access == ObjectAccess::Method) {
+                    value = other | (value << code_width);
+                }
+                else {
+                    value = other | value;
+                }
+                assert(value <= limit);
+
+
+                std::memcpy(&bytes, &value, 3);
+            }
+
+            std::array<std::byte, 3> bytes{};
+        };
+
+
+
+        struct ScriptObject
+        {
+        public:
+            enum Flag : uint8_t
+            {
+                kNone,
+                kInitialized = 1 << 0,
+                kDestructed = 1 << 1,
+            };
+
+
+
+        private:
             TypeInfo* type = nullptr;
 
         private:
@@ -1268,8 +1368,15 @@ namespace LEX::Test
                 FieldData<Variable>           memberList;
                 FieldData<RuntimeVariable>    runtimeList;
             };
+
+            AccessMemory recentAccess{};
+            Flag flags = kNone;
+            uint32_t stateID = 0;
+            BindID bindID{};
+
+
             ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
-            size_t size = 0;
+            
 
             //I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
             // switch what type it's percieved as.
@@ -1331,7 +1438,7 @@ namespace LEX::Test
             {
                 Visit([](auto& it) { it.Destroy(); });
                 type = nullptr;
-                size = false;
+                //size = false;
             }
 
 
@@ -1339,13 +1446,13 @@ namespace LEX::Test
             {
                 Revert();
                 type = other.type;
-                size = other.size;
+                //size = other.size;
                 Visit([&](auto& lhs)
                     {
                         Visit([&](auto& rhs)
                             {
-                                lhs.Create(other.size);
-                                lhs.Transfer(rhs.data, other.size);
+                                //lhs.Create(other.size);
+                                //lhs.Transfer(rhs.data, other.size);
                             });
                     });
 
@@ -1355,40 +1462,36 @@ namespace LEX::Test
         };
 
 
-
-        struct VarIndexInfo : public VarInfo
+        struct Attribute : public Interface, public LEX::Info
         {
-            ITypeInfo* type = nullptr;
-            Qualifier qualifiers;
-            std::string _name;
-            ParameterFlag _flags{};
-            uint32_t index;
+            virtual TypeInfo* GetType() = 0;
+            virtual bool GetField(std::string_view name, Variable& out) = 0;
         };
 
 
-        //These 2 are likely going to be internal, they don't have anything that scripts need to know about.
-        // instead, I can just say if it's a parameter, local/global variable, or field
-        struct LocalInfo : public VarIndexInfo
+        struct AttributeType : public ConcreteType//, public Attribute
         {
-
-            virtual uint32_t GetFieldIndex() const = 0;
+            //Was going to put this on here until I realized it would need to play catch up.
 
 
 
         };
 
-        struct ParameterInfo : public LocalInfo
+
+
+        //Parameterless attributes can be allowed to just use the type.
+        struct ArglessAttribute : public Attribute
         {
-            ParameterFlag _flags{};
-            std::unique_ptr<RoutineBase> defFunc{};
+            AttributeType* type = nullptr;
         };
 
-        struct FieldInfo : public VarIndexInfo
+
+        struct ArgsAttribute : public ArglessAttribute
         {
-
+            std::vector<std::pair<std::string_view, Variable>> fields;
+            uint32_t fieldMemory = -1;
+            uint32_t methodMemory = -1;
         };
-
-        //Qualified will hold VarInfo.
 
 
 
