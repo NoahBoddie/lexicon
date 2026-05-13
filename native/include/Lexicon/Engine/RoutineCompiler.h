@@ -348,7 +348,7 @@ namespace LEX
 		size_t ModVarCount(int64_t inc);
 
 
-		size_t InitVariables(const std::vector<ITypeInfo*>& types, bool param)
+		size_t InitVariables(const std::vector<ITypeInfo*>& types, bool param, bool def_value)
 		{
 			//TODO: This function doesn't properly handle the inability to use it
 			auto size = types.size();
@@ -359,31 +359,33 @@ namespace LEX
 
 			//auto& op_list = GetInstructionList();
 
-			auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
-			auto op_type = param ? OperandType::Parameter : OperandType::Variable;
-			for (auto i = 0; i < size; i++)
+			if (def_value)
 			{
-				//for each policy, starting at count and increasing by i, each policy needs to be loaded into
-				// the respective variable index by instruction, and if the ITypeInfo is generic, then it should
-				// have an instruction intend to specialize.
+				auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
+				auto op_type = param ? OperandType::Parameter : OperandType::Variable;
+				for (auto i = 0; i < size; i++)
+				{
+					//for each policy, starting at count and increasing by i, each policy needs to be loaded into
+					// the respective variable index by instruction, and if the ITypeInfo is generic, then it should
+					// have an instruction intend to specialize.
 
-				size_t index = count + i;
-				ITypeInfo* policy = types[i];
-				
-				EmplaceInstruction(instruct, Operand{ index , op_type }, Operand{ policy, OperandType::Type });
-				//op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+					size_t index = count + i;
+					ITypeInfo* policy = types[i];
+
+					EmplaceInstruction(instruct, Operand{ index , op_type }, Operand{ policy, OperandType::Type });
+					//op_list.emplace_back(instruct, Operand{ index , OperandType::Index }, Operand{ policy, OperandType::Type });
+				}
 			}
-
 			return count;
 		}
 
-		size_t InitLocals(std::vector<ITypeInfo*> types){return InitVariables(types, false);}
+		size_t InitLocals(std::vector<ITypeInfo*> types, bool def_value = true){return InitVariables(types, false, def_value);}
 
-		size_t InitParams(std::vector<ITypeInfo*> types){return InitVariables(types, true);}
+		size_t InitParams(std::vector<ITypeInfo*> types, bool def_value = true){return InitVariables(types, true, def_value);}
 
-		size_t InitLocal(ITypeInfo* type){return InitVariables({ type }, false);}
+		size_t InitLocal(ITypeInfo* type, bool def_value = true){return InitVariables({ type }, false, def_value);}
 
-		size_t InitParam(ITypeInfo* type){return InitVariables({ type }, true);}
+		size_t InitParam(ITypeInfo* type, bool def_value = true){return InitVariables({ type }, true, def_value);}
 
 
 		bool IsDetached() const

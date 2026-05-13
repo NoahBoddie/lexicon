@@ -1963,11 +1963,13 @@ namespace LEX
 			//	report::compile::error("Either unexpected qualifiers/specifiers or no type when type expected.");
 			//}
 
-			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header);
+			SyntaxRecord* definition = target.FindChild(parse_strings::def_expression);
 
-			size_t loc_index = loc->GetIndex();
-			if (SyntaxRecord* definition = target.FindChild(parse_strings::def_expression); definition) {
+			LocalInfo* loc = compiler->GetScope()->CreateVariable(target.GetTag(), header, !definition);
+
+			if (definition) {
 				auto& def = definition->GetChild(0);
+
 				Solution result = compiler->CompileExpression(def, Register::Result);
 
 				//TODO: Here' try to adapt this to be the reference type loaded if it's generic
@@ -1989,7 +1991,7 @@ namespace LEX
 				
 				//compiler->GetInstructionList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
 				//TODO: Create the below via solution instead.
-				compiler->AppendInstructions(def, CompUtil::Load(Operand{ loc_index, OperandType::Variable }, result, loc->GetQualifiers().IsReference()));
+				compiler->AppendInstructions(def, CompUtil::Load(Operand{ loc->GetIndex(), OperandType::Variable }, result, loc->GetQualifiers().IsReference()));
 			}
 
 

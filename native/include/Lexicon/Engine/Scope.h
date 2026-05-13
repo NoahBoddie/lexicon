@@ -146,7 +146,7 @@ namespace LEX
 		}
 
 
-		LocalInfo* CreateVariable(std::string name, QualifiedType type)
+		LocalInfo* CreateVariable(std::string name, QualifiedType type, bool def_value)
 		{
 			//Should consider not using a pointer due to invalidation. Instead, maybe give a copy.
 
@@ -166,7 +166,7 @@ namespace LEX
 			}
 
 			//auto index = !header ? process->ModVarCount(type.policy) : process->ModParamCount(type.policy);
-			auto index = process->InitLocal(type.policy);
+			auto index = process->InitLocal(type.policy, def_value);
 
 
 			LocalInfo& result = vars[name] = LocalInfo{ type, (uint32_t)index };
@@ -215,7 +215,7 @@ namespace LEX
 			auto result = FindLocalVariable(name);
 
 			if (!result) {
-				result = CreateVariable(name, type);
+				result = CreateVariable(name, type, true);
 			}
 
 			return result;
