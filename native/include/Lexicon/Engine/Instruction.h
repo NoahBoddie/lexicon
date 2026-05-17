@@ -13,6 +13,8 @@ namespace LEX
 	{
 		struct RecordIndex
 		{
+			//TODO: Please for the love of god, use memcpy
+
 			constexpr RecordIndex() noexcept = default;
 			constexpr RecordIndex(uint32_t i)
 			{

@@ -1213,24 +1213,37 @@ namespace LEX::Test
                 kRuntimeVar,
             };
 
-            void* data = nullptr;
+            RuntimeVariable* data = nullptr;
             size_t size = 0;
             Type type{};
 
         };
 
-        template <typename T>
+        
         struct FieldData
         {
-            //using T = Variable;
+            using T = RuntimeVariable;
 
             T* data;
+
+            ~FieldData()
+            {
+                Destroy();
+            }
+
+            bool TryPreserve()
+            {
+                //Check if any of the data has references, and if so move them to garbage collection
+                return false;
+            }
 
             void Destroy()
             {
                 if (data) {
-                    delete[] data;
-                    data = nullptr;
+                    if (TryPreserve() == false) {
+                        delete[] data;
+                        data = nullptr;
+                    }
                 }
             }
 
@@ -1281,6 +1294,35 @@ namespace LEX::Test
             BindCode code = nil_bind_code;
         };
         
+        struct StateID
+        {
+            uint32_t id{};
+        };
+
+
+        struct BindData;
+
+        struct BindEntry
+        {
+            TypeInfo* type = nullptr;
+            BindData* data = nullptr;
+            Object bindObject{};
+            //I could make this say if it has siblings or not in order to make features for getting siblings faster
+            //Requires the entry to be made with the thing that created it
+
+        };
+
+        //This might be an interface that I'll use to interact with bind entry.
+        struct BindData
+        {
+            
+            BindID bindID{};
+            Object bindTarget{};
+            std::vector<BindEntry> entries;
+        };
+
+
+
         ENUM(ObjectAccess, uint8_t)
         {
             Field,
@@ -1345,8 +1387,9 @@ namespace LEX::Test
         };
 
 
-
-        struct ScriptObject
+        //A base class for ScriptObjects and Attributes
+        //NVM, just make this a script object
+        struct CustomObject
         {
         public:
             enum Flag : uint8_t
@@ -1354,68 +1397,39 @@ namespace LEX::Test
                 kNone,
                 kInitialized = 1 << 0,
                 kDestructed = 1 << 1,
+                HasBindData =  1 << 2,    //
             };
 
-
-
-        private:
-            TypeInfo* type = nullptr;
-
-        private:
+        protected:
+        public:
+            
             union
             {
-                uintptr_t			_raw = 0;
-                FieldData<Variable>           memberList;
-                FieldData<RuntimeVariable>    runtimeList;
+                //BindEntry basically holds onto the type, as well as the bind data. This moves the burden of the extra pointer,
+                // and for non-bound objects it will decrease the size (of which there will be more of them).
+                uintptr_t _raw{};
+                BindEntry* _entry;
+                TypeInfo* _type;//Static cast to AttributeType if attribute. or use as actually. Easier.
+
             };
 
+            FieldData fieldList;
+
+            //I will only store RuntimeVariables on these, I believe the extra cost is worth it,
+            // primarily to simplify access and 
+
+            //Move access memory to be a thread local system
             AccessMemory recentAccess{};
             Flag flags = kNone;
-            uint32_t stateID = 0;
-            BindID bindID{};
+            StateID stateID{};//If the state ID is invalid, this means it will use the main bind
 
 
-            ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
-            
+        public:
 
-            //I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
-            // switch what type it's percieved as.
-
-            //This might make it a pain however.
-
-            template <typename V>
-            decltype(auto) Visit(V visitor)
+            size_t size()
             {
-                if (IsRuntimeType() == true)
-                    return visitor(runtimeList);
-                else
-                    return visitor(memberList);
+                return 0;
             }
-
-            template <typename V>
-            decltype(auto) Visit(V visitor) const
-            {
-                if (IsRuntimeType() == true)
-                    return visitor(runtimeList);
-                else
-                    return visitor(memberList);
-            }
-
-            template <typename T>
-            decltype(auto) GetOther(const T& other)
-                requires(std::is_same_v<decltype(memberList), qualify_extracted_template_t<T, std::remove_cv_t>> ||
-            std::is_same_v<decltype(runtimeList), qualify_extracted_template_t<T, std::remove_cv_t>>)
-            {
-                if constexpr (std::is_same_v<decltype(memberList), qualify_extracted_template_t<T, std::remove_cv_t>>)
-                {
-                    return memberList;
-                }
-                else if constexpr (std::is_same_v<decltype(runtimeList), qualify_extracted_template_t<T, std::remove_cv_t>>)
-                {
-                    return runtimeList;
-                }
-            }
-
 
             void Instantiate(TypeInfo* self)
             {
@@ -1424,7 +1438,24 @@ namespace LEX::Test
 
 
 
-            RuntimeVariable GetMember(MemberPointer member)
+            bool GetMethod(const std::string_view& name, IFunction*& out)
+            {
+                return {};
+            }
+
+            bool GetMethod(MemberPointer member, IFunction*& out)
+            {
+                return {};
+            }
+
+
+
+            bool GetField(const std::string_view& name, RuntimeVariable& out)
+            {
+                return {};
+            }
+
+            bool GetField(MemberPointer member, RuntimeVariable& out)
             {
                 return {};
             }
@@ -1436,25 +1467,19 @@ namespace LEX::Test
 
             void Revert()
             {
-                Visit([](auto& it) { it.Destroy(); });
-                type = nullptr;
-                //size = false;
+                fieldList.Destroy();
+                _type = nullptr;
+                //size = 0;
             }
 
 
-            void Transfer(const ScriptObject& other)
+            void Transfer(const CustomObject& other)
             {
                 Revert();
-                type = other.type;
+                _type = other._type;
                 //size = other.size;
-                Visit([&](auto& lhs)
-                    {
-                        Visit([&](auto& rhs)
-                            {
-                                //lhs.Create(other.size);
-                                //lhs.Transfer(rhs.data, other.size);
-                            });
-                    });
+                //lhs.Create(other.size);
+                //lhs.Transfer(rhs.data, other.size);
 
 
             }
@@ -1462,39 +1487,435 @@ namespace LEX::Test
         };
 
 
-        struct Attribute : public Interface, public LEX::Info
+
+
+        struct ScriptObject : public CustomObject
+        {
+
+        protected:
+            TypeInfo*& type()
+            {
+                return reinterpret_cast<TypeInfo*&>(_type);
+            }
+        public:
+
+
+
+
+            //IDEA
+            //Instead of the bind id being on everything, bind id will be used for stateIDs. Nah. 
+            // this is a bad idea. I really would like to make some use out of this space though.
+
+
+
+
+
+            ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
+            
+
+            //I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
+            // switch what type it's percieved as.
+
+            //This might make it a pain however.
+
+
+
+        };
+
+
+
+        struct CustomObjectRep
+        {
+
+        };
+
+        template <StringLiteral TypeName>
+        using Class = int;
+
+        //Will be used to represent custom struct objects, preventing it from being instantiated
+        template <StringLiteral TypeName>
+        using Struct = int;
+
+
+        //This represents an enum value, with the type
+        template <StringLiteral TypeName>
+        using enum_type = int;
+
+
+
+        struct IAttribute : public Interface, public LEX::IComponent
         {
             virtual TypeInfo* GetType() = 0;
+            virtual Info* GetParent() = 0;
+            
+            virtual CustomObject* GetCustomObject() = 0;
+            
             virtual bool GetField(std::string_view name, Variable& out) = 0;
         };
 
 
-        struct AttributeType : public ConcreteType//, public Attribute
+        struct AttributeType;
+
+        struct Attribute : public Component, public IAttribute, public CustomObject
+        {
+            Info* parent = nullptr;
+
+            CustomObject* GetCustomObject() override
+            {
+                return this;
+            }
+
+
+            AttributeType*& type()
+            {
+                return reinterpret_cast<AttributeType*&>(_type);
+            }
+        };
+
+
+
+
+
+        //With no parameters this can be used, as it will contain no personal data of its own.
+        struct AttributeType : public ConcreteType
         {
             //Was going to put this on here until I realized it would need to play catch up.
 
-
-
+            //std::unique_ptr<Attribute> basicAttribute = nullptr;//Used when an attribute doesn't have contents
         };
 
 
 
-        //Parameterless attributes can be allowed to just use the type.
-        struct ArglessAttribute : public Attribute
+
+
+        void MakeAttribute(TypeInfo* context)
         {
             AttributeType* type = nullptr;
-        };
+
+            Attribute* attribute = nullptr;
+
+            uintptr_t budget = (uintptr_t)type->GetFieldRange();
+
+            attribute->fieldList.Create((uint32_t)budget);
+
+            
+            
+
+            type->VisitTrees([&](InheritNode& node)
+                {
+
+                    if (auto members = node.tree->GetMembers())
+                    {
+                        size_t index = node.memberIndex;
+                        size_t field_count = node.tree->GetFieldCount();
+
+                        auto begin = attribute->fieldList.data + index;
+                        auto end = begin + field_count;
+
+                        std::span range{ begin , end };
+
+                        for (int i = 0; i < field_count; budget--, i++)
+                        {
+                            auto& field = members->fields[i];
+                            auto type = field.GetType();
 
 
-        struct ArgsAttribute : public ArglessAttribute
+                            auto real = type->GetTypeInfo(nullptr);
+
+
+                            range[i] = real->GetDefault();
+                        }
+                        
+                    }
+                });
+
+            assert_if (budget) {
+                //Not proper.
+            }
+
+            
+        }
+
+
+        //THESE functions will no longer belong to Variable, they will belong to the class that handles membered able data classes
+        //
+        CustomObject* GetCustomData(Variable& a_this)
         {
-            std::vector<std::pair<std::string_view, Variable>> fields;
-            uint32_t fieldMemory = -1;
-            uint32_t methodMemory = -1;
+            CustomObject* result = std::visit([](auto&& self) -> CustomObject* {
+                using T = std::decay_t<decltype(self)>;
+
+                if constexpr (std::is_same_v<T, IComponent*>) {
+                    IAttribute* attribute = self->As<IAttribute>();
+                    return attribute ? attribute->GetCustomObject() : nullptr;
+                }
+                else if constexpr (std::is_same_v<T, Object>) {
+                    return nullptr;
+                    //return self.get<ScriptObject>();
+                }
+                else {
+                    return nullptr;
+                }
+                }, a_this.value());
+
+            return result;
+        }
+
+
+        bool GetMemberField(Variable& a_this)
+        {
+            CustomObject* object = GetCustomData(a_this);
+
+
+            if (!object) {
+                return false;
+            }
+        }
+        
+        struct RunVarData
+        {
+            using SizeType = std::_Variant_index_t<std::variant_size_v<RunValue>>;
+
+            static constexpr auto req_size = 8 - sizeof(SizeType);
+
+            //static constexpr uint32_t nil_offset = -1;
+
+            //The offset is for the purposes of the 
+
+
+            mutable uint32_t offset = 0;
+
+        };
+        static_assert(sizeof(RunVarData) <= RunVarData::req_size, "RunVarData must equal the size of the padding in RunTypes.");
+
+
+
+        struct RunDataHelper
+        {
+            enum Flag
+            {
+                None = 0,
+                Init = 1 << 0,
+                Refr = 1 << 1,
+                Ptr = 1 << 2,	//Should establish a pointer ref, and needs no ref value. Best used when it's unknown if var is a RuntimeVariable
+                Free = 1 << 3,	//A given runtime variable has freed its index but retains a pointer.
+            };
+
+            enum Type
+            {
+                kInvalid,
+                kVariable,
+                kReference,
+                kDetached,
+                kExternal,
+            };
+
+            //This will help clear the Variable data spot without me having to put clear in every constructor. Hopefully.
+
+            using _Ref = std::reference_wrapper<Variable>;
+
+
+            static constexpr auto offset = sizeof(RunValue) - sizeof(RunVarData);
+            /*
+            RunVarData& GetData()
+            {
+                auto a_this = (uintptr_t)this;
+
+                return *reinterpret_cast<RunVarData*>(a_this + offset);
+            }
+
+            const RunVarData& GetData() const
+            {
+                auto a_this = (uintptr_t)this;
+
+                return *reinterpret_cast<RunVarData*>(a_this + offset);
+            }
+            //*/
+            RunValue& GetValue()
+            {
+                return *reinterpret_cast<RunValue*>(this);
+            }
+
+            const RunValue& GetValue() const
+            {
+                return *reinterpret_cast<const RunValue*>(this);
+            }
+
+            Type index() const
+            {
+                return static_cast<Type>(GetValue().index());
+            }
+
+            bool IsReference() const
+            {
+                return index() == kReference;
+            }
+
+
+            const Variable* GetRefVariable() const
+            {
+
+                const RunValue& a_this = GetValue();
+
+                switch (a_this.index())
+                {
+                case kReference:
+                    return std::addressof(std::get<_Ref>(a_this).get());
+
+
+                default:
+                    return nullptr;
+                }
+            }
+
+
+        protected:
+
+
+        public:
+            //bool IsRefNegated() const
+            //{
+            //	return index() == kReference && Refs();
+            //}
+        private:
+            //void SetNegate(bool value) const 
+            //{
+                //auto var = GetRefVariable();
+                //if (var)
+                //var->GetData().refs = value ? -1 : 0;
+            //}
+
+        protected:
+
+            //void TrySetNegated(bool value) const
+            //{
+            //	if (index() == kReference)
+            //	{
+            //		SetNegate(value);
+            //	}
+            //}
+
+            void Unhandle()
+            {
+                if (index() == kReference)
+                {
+                    //if (!Refs())
+                    GetRefVariable()->Dec();
+                }
+                else if (index() == kVariable)
+                {
+                    //if (auto refs = GetData().refs; refs) {
+                    //	report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
+                    //}
+                }
+            }
+
+            void Handle(const Variable& var)noexcept
+            {
+                //if (index() == kReference)
+                {
+                    //auto* help = other->GetRefHelper();
+                    //if (!other->IsRefNegated())
+                    var.Inc();
+                }
+
+
+
+
+            }
+
+            void Handle(const RunDataHelper& other) noexcept
+            {
+                if (auto var = other.GetRefVariable())
+                {
+                    Handle(*var);
+                }
+            }
+
+        public:
+
+
+            int32_t Refs() const
+            {
+                return GetRefVariable()->GetData().refs;//GetData().refs;
+            }
+
+            constexpr RunDataHelper() noexcept = default;
+
+            ~RunDataHelper()
+            {
+                Unhandle();
+            }
+
+            RunDataHelper(const RunDataHelper& other)
+            {
+                Handle(other);
+
+            }
+
+
+            RunDataHelper(RunDataHelper&& other)
+            {
+                Handle(other);
+            }
+
+
+            RunDataHelper& operator=(const RunDataHelper& other)
+            {
+                Handle(other);
+                Unhandle();
+                return *this;
+            }
+
+
+
+            RunDataHelper& operator=(RunDataHelper&& other)
+            {
+                Handle(other);
+                Unhandle();
+                return *this;
+            }
+
+            RunDataHelper(const VariableRef& other)
+            {
+                Handle(other.get());
+            }
+
+
+            RunDataHelper(VariableRef&& other)
+            {
+                Handle(other.get());
+            }
+
+
+            /*
+            void FUNDERSON() { logger::info("Funderson called"); }
+            //I don't think this will actually do anything
+            RunDataHelper& operator=(const VariableRef& other)
+            {
+                FUNDERSON();
+                Unhandle();
+                Handle(other.get());
+                return *this;
+            }
+            RunDataHelper& operator=(VariableRef&& other)
+            {
+                FUNDERSON();
+                Unhandle();
+                Handle(other.get());
+                return *this;
+            }
+            //*/
         };
 
 
 
+
+
+
+        void InlineRoutine(std::vector<Instruction>& instruction, RecordHolder* holder, RoutineBase* base)
+        {
+            
+        }
     }
 }
 #include "Lexicon/Engine/TestToss.h"

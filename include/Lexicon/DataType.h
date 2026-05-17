@@ -10,8 +10,10 @@ namespace LEX
 		Class,
 		Struct,
 		Interface,
+		Attribute,
 		//Enum,
 		//Concept
+		Total,
 	};
 
 
@@ -21,6 +23,7 @@ namespace LEX
 		{
 		case DataType::Class:
 		case DataType::Interface:
+		case DataType::Attribute:
 			return true;
 
 		default:

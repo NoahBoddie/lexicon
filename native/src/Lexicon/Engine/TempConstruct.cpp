@@ -465,42 +465,7 @@ namespace LEX
 				break;
 			}
 		}
-		//This is also vard convert
-		[[deprecated("This is no longer used, just used an an example of what should be represented code wise")]]
-		static void VardTransfer_DEPRECATED(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
-		{
-			//This is old and I forget how it's done.
-			constexpr auto sign_bit = ((size_t)1 << (sizeof(Index) * 8 - 1));
-
-			Index index = a_lhs.Get<Index>();
-
-			bool no_transfer = index & sign_bit;
-			
-			index &= ~sign_bit;
-
-			//Index to = a_rhs.Get<Index>();
-
-
-			auto budget = runtime->GetVariadicLength(index);
-
-
-			runtime->AdjustStackPointer(StackPointer::Argument, static_cast<int64_t>(budget));
-
-			for (auto i = 0; i < budget; i++)
-			{
-				Index back = budget - (i + 1);
-
-				//TODO: need some synchronized function to call on to do this, so it fits with the intent normally conducted where it not varadic
-				auto& lhs = runtime->GetArgumentFromBack(back);
-				auto& rhs = runtime->GetParameter(index + i);
-
-
-				if (a_rhs.type() != OperandType::None) {
-					Convert(lhs, a_rhs, Operand{ back, OperandType::Argument }, InstructType::Convert, runtime);
-				}
-			}
-		}
-
+		
 
 		//Test is probably deprecated.
 		static void Test(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)

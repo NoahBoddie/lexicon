@@ -38,20 +38,6 @@ namespace LEX
 		// IF, I ever make a sort of promise like system, I'll likely call its function Run.
 
 	INTERNAL:
-		//This function does not check what is submitted to it, nor does it do conversions.
-		//RuntimeVariable _Execute(RuntimeVariable a_this, std::vector<RuntimeVariable>&& args, RuntimeVariable* def);
-
-
-		//This function will do conversions to apply if need be.
-		//Variable _Invoke(Variable a_this, std::vector<Variable>&& args, Variable* def);
-
-
-		//template <typename T>
-		//T Call(std::vector<Variable>& args, Variable* def) { return {}; }
-	public:
-		//using Procedure = RuntimeVariable(*)();
-		//virtual RuntimeVariable Invoke_(Variable* tar, std::vector<RuntimeVariable>& args, RuntimeVariable* def, IRuntime* runtime) = 0;
-	INTERNAL:
 		//This is internal only so I'll just make runtime the thing that's used here. 
 		// IRuntime should be able to transfer into runtime directly anyhow.
 		virtual RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) = 0;
@@ -69,6 +55,7 @@ namespace LEX
 		// *Instead, Call should likely be for users only, while I'll make a version of invoke that may handle the references better
 
 		
+		//I want to move this conventions from fromulas over here
 
 		template<std::convertible_to<RuntimeVariable>... Ts>
 		RuntimeVariable Call(Ts&&... args)

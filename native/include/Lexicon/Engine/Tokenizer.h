@@ -404,6 +404,7 @@ namespace LEX
 		scriptTokens.AddKeyword("default");
 		scriptTokens.AddKeyword("struct");
 		scriptTokens.AddKeyword("class");
+		scriptTokens.AddKeyword("attribute");
 		scriptTokens.AddKeyword("intrinsic");
 		scriptTokens.AddKeyword("external");
 		scriptTokens.AddKeyword("interface");

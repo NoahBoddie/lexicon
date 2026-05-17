@@ -48,7 +48,7 @@ namespace LEX
 		ObjectPolicy* policy = nullptr;
 
 
-		ObjectPolicyHandle handle{};
+		//ObjectPolicyHandle handle{};
 
 		DataType _dataType = DataType::Invalid;
 

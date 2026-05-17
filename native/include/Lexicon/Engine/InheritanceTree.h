@@ -50,10 +50,20 @@ namespace LEX
 
         bool VisitLowerTrees(auto func)
         {
+            constexpr bool no_ret = requires(InheritNode& inherit, decltype(func) f) 
+            { 
+                { f(inherit) } -> std::same_as<void>;
+            };
+
             for (auto& inherit : inheritance)
             {
-                if (func(inherit) == true)
-                    return true;
+                if constexpr (no_ret) {
+                    func(inherit);
+                }
+                else {
+                    if (func(inherit) == true)
+                        return true;
+                }
             }
 
 
@@ -64,7 +74,7 @@ namespace LEX
             //        return true;
             //}
 
-            return false;
+            return no_ret;
         }
 
 
@@ -72,8 +82,25 @@ namespace LEX
 
         bool VisitTrees(auto func)
         {
-            if (func(this) == true)
-                return true;
+
+            InheritNode self;
+            self.tree = this;
+
+            constexpr bool no_ret = requires(decltype(func) f) 
+            { 
+                { f(self) } -> std::same_as<void>;
+            };
+
+            
+
+            if constexpr (no_ret) {
+                func(self);
+            }
+            else {
+                if (func(self) == true)
+                    return true;
+            }
+
 
             return VisitLowerTrees(func);
         }

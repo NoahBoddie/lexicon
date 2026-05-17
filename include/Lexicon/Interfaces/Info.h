@@ -5,6 +5,8 @@
 
 namespace LEX
 {
+    struct Attribute;
+
 	namespace Version
 	{
 		namespace _1
@@ -16,7 +18,9 @@ namespace LEX
 				virtual uint16_t GetInfoOffset() const = 0;
 
 				virtual const void* Cast(const void* self, InfoType from, InfoType to) const = 0;
+                
 
+                virtual std::span<Attribute*> GetAttributes() = 0;
 			};
 		}
 
@@ -34,6 +38,13 @@ namespace LEX
     
     
     public:
+
+        std::span<Attribute*> GetAttributes() override
+        {
+            return {};
+        }
+
+
         template<typename T, typename Self, typename = std::enable_if_t<
             std::negation_v<
             std::disjunction<

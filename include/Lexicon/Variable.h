@@ -44,7 +44,8 @@ namespace LEX
 	ENUM(VariableFlag, uint16_t)
 	{
 		None,
-			Defined = 1 << 0,       //Has the variable been successfully defined.
+		Defined = 1 << 0,       //Has the variable been successfully defined.
+		Detached = 1 << 1,		//If detached will destroy itself when it's flags hit 0
 			//CreatedExtern = 1 << 1,     //Variable was created externally
 			//ChangedOnce = 1 << 2,   //Variable was changed once. Rarely unset.
 			//ChangedTwice = 1 << 3,  //If the variable was changed. Unset if being used in a reference function
@@ -411,11 +412,11 @@ namespace LEX
 
 
 
-		Variable& Transfer(const Variable& other, bool move)
+		Variable& Transfer(Variable& other, bool move)
 		{
 
 			if (move)
-				value() = other.value();
+				value() = std::move(other.value());
 			else
 				value() = other.value();
 
@@ -432,7 +433,7 @@ namespace LEX
 
 		Variable& Assign(const Variable& other)
 		{
-			return Transfer(other, false);
+			return Transfer(unconst(other), false);
 		}
 
 		Variable& Assign(Variable&& other)

@@ -136,6 +136,7 @@ namespace LEX
 				{
 				case DataType::Class:
 				case DataType::Interface:
+				case DataType::Attribute:
 					return true;
 
 				case DataType::Struct:

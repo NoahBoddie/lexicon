@@ -231,6 +231,7 @@ namespace LEX
 		//>-------------------------
 		//This is for environment
 		//Later this will use type infos
+		//I'd rather store this by type info btw. The actual type info.
 		std::map<std::string_view, TypeBase*> typeMap;
 
 

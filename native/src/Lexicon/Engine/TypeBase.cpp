@@ -44,11 +44,14 @@ namespace LEX
 
 		get_switch (GetDataType())
 		{
+		default:
 		case DataType::Invalid:
-			report::compile::error("{} has an invalid data type", GetName());
+			report::compile::error("{} has an {} data type", GetName(), magic_enum::enum_name(switch_value));
+			break;
 
 		case DataType::Class:
 		case DataType::Struct:
+		case DataType::Attribute:
 			if (r_type == DataType::Interface) {
 				return;
 			}

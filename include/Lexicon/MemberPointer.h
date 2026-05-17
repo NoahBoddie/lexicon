@@ -23,8 +23,8 @@ namespace LEX
     ENUM(MemberFlag, uint8_t)
     {
         None,
-            Generic = 1 << 0,   //Used to tell if member needs to be moved when fully specialized. Incapable of being referenced otherwise.
-            Partial = 1 << 1,   //A partialized type that will need to specialize in order to lose the flag.
+        Generic = 1 << 0,   //Used to tell if member needs to be moved when fully specialized. Incapable of being referenced otherwise.
+        Partial = 1 << 1,   //A partialized type that will need to specialize in order to lose the flag.
     };
 
 

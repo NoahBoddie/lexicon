@@ -1808,9 +1808,10 @@ namespace LEX
 
 				switch (Hash(peek.GetTag())) 
 				{
-				case "struct"_h:
 				case "class"_h:
+				case "struct"_h:
 				case "interface"_h:
+				case "attribute"_h:
 					return true;
 
 				default: 
@@ -1818,8 +1819,6 @@ namespace LEX
 
 				}
 
-				
-				return !target && (stream->IsType(TokenType::Keyword, "struct") || stream->IsType(TokenType::Keyword, "class"));
 			}
 
 			static Record HandleInterfaceIndex(ParsingStream* stream)
@@ -1862,7 +1861,7 @@ namespace LEX
 					//settings.PushBackChild(ParsingStream::CreateExpression(data_type, SyntaxType::Header));
 				}
 
-				if constexpr (1!=1)//when pigs fly, or in other words when I implement generics
+				if constexpr ( 1!=1)//when pigs fly, or in other words when I implement generics
 				{
 					//This is the section for generics at a later point. As it is not generic, it is empty.
 					settings.EmplaceChild(ParsingStream::CreateExpression(parse_strings::generic, SyntaxType::None));

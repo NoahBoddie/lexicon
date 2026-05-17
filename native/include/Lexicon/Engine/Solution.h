@@ -15,6 +15,13 @@
 
 namespace LEX
 {
+	ENUM(SolutionFlag)
+	{
+		None,
+		Uninitialized = 1 << 0,		//If the data is uninitialized or not. Largely only relegated to things like members on constructors.
+	};
+
+
 	struct Solution : public Operand, public QualifiedType
 	{
 

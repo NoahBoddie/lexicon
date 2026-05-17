@@ -277,7 +277,7 @@ namespace LEX
 			bool is_generic = parent && parent->IsGenericElement() || genericSet && genericSet->size();
 
 
-			using PolicyCtor = TypeBase * (std::string, TypeOffset);
+			using PolicyCtor = TypeBase*(std::string, TypeOffset);
 
 			//using ConcreteType = ConcreteType;
 			using GenericPolicy = ConcreteType;
@@ -389,12 +389,6 @@ namespace LEX
 			}
 			case SyntaxType::Type:
 			{
-				//auto* policy = ObtainPolicy(node);
-
-				//policy->ConstructFromRecord(node);
-
-				//AddType(policy);
-
 				AddType(tempObtainPolicy(node));
 				break;
 			}

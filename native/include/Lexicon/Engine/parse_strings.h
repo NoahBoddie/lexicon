@@ -57,6 +57,8 @@ namespace LEX
 		constexpr static auto temp_generic_shut = ":]";
 
 
+		constexpr static std::string_view constructor = "<:ctor:>";
+
 		constexpr static std::string_view object_lit_open = ":{";
 		constexpr static std::string_view object_lit_shut = "}";
 

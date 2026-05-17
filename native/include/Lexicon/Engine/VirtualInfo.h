@@ -37,6 +37,17 @@ namespace LEX
 		TemplateContainer* genSign = nullptr;
 		Specifier specifiers{};
 
+
+		IFunction* GetFunction()
+		{
+			if (IsPureVirtual() == true)
+				return nullptr;
+
+			FunctionBase* base = static_cast<FunctionBase*>(callSign);
+
+			return base->AsFunction();
+		}
+
 		bool IsPureVirtual() const
 		{
 			//The virtual flag is removed once when this is created, and is added in whenever transfered

@@ -102,6 +102,7 @@ namespace LEX
 		case "class"_h:			_dataType = DataType::Class; break;//Makes a given object act like a class in assignment.
 		case "struct"_h:		_dataType = DataType::Struct; break;
 		case "interface"_h:		_dataType = DataType::Interface; break;
+		case "attribute"_h:		_dataType = DataType::Attribute; break;
 		//case "enum"_h:		_dataType = DataType::Interface; break;
 		default:				report::compile::critical("improper data type found."); break;
 		}

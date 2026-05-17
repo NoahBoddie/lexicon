@@ -10,6 +10,6 @@ namespace LEX
 		DEFINE_INFO_TYPE(InfoType::FieldInfo)
 	public:
 
-
+		//std::unique_ptr<RoutineBase> def_value{};
 	};
 }
