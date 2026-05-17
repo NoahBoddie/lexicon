@@ -1677,12 +1677,12 @@ namespace LEX::Test
 
             static constexpr auto req_size = 8 - sizeof(SizeType);
 
-            //static constexpr uint32_t nil_offset = -1;
+            static constexpr uint32_t nil_offset = -1;
 
             //The offset is for the purposes of the 
 
 
-            mutable uint32_t offset = 0;
+            mutable uint32_t offset = nil_offset;//Offset is what 
 
         };
         static_assert(sizeof(RunVarData) <= RunVarData::req_size, "RunVarData must equal the size of the padding in RunTypes.");
@@ -1715,7 +1715,7 @@ namespace LEX::Test
 
 
             static constexpr auto offset = sizeof(RunValue) - sizeof(RunVarData);
-            /*
+            //*
             RunVarData& GetData()
             {
                 auto a_this = (uintptr_t)this;
@@ -1825,6 +1825,8 @@ namespace LEX::Test
 
             void Handle(const RunDataHelper& other) noexcept
             {
+                GetValue() = other.GetValue();
+
                 if (auto var = other.GetRefVariable())
                 {
                     Handle(*var);
@@ -1907,9 +1909,73 @@ namespace LEX::Test
             //*/
         };
 
+        struct FakeRuntimeVariable : protected RunDataHelper
+        {
+            Variable var;
 
 
+            const Variable& Ref() const
+            {
+                return var;
+                //return const_cast<Variable&>(std::as_const(*this).Ref());
+            }
 
+
+            void AdjustOffset(TypeInfo* type = nullptr) const
+            {
+                auto& offset = GetData().offset;
+
+                if (!type) {
+                    offset = RunVarData::nil_offset;
+                    return;
+                }
+
+                auto& value = Ref();
+
+                TypeInfo* var_type = value.GetTypeInfo();
+
+                assert_if(!var_type) {
+                    //error
+                    return;
+                }
+
+                if (var_type->IsScriptObject() == false) {
+                    offset = RunVarData::nil_offset;
+                    return;
+                }
+
+
+                //TODO: this needs to have a virtual function handle this part.
+                {
+                    auto var_tree = var_type->GetHierarchyTree();
+
+                    auto i = var_tree->GetInheritIndex(type->GetHierarchyTree());
+
+                    assert_if(i == -1) {
+                        //error
+                        return;
+                    }
+
+                    offset = static_cast<uint32_t>(i);
+                }
+
+            }
+        };
+
+
+        static void Adjust(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+        {
+            //Left doesn't matter, right should be 
+
+            FakeRuntimeVariable& target  = reinterpret_cast<FakeRuntimeVariable&>(a_lhs.AsVariable(runtime));
+
+            auto adjust_type = a_lhs.GetTypeInfo(runtime);
+
+            assert(adjust_type);
+
+            target.AdjustOffset(adjust_type);
+
+        }
 
 
         void InlineRoutine(std::vector<Instruction>& instruction, RecordHolder* holder, RoutineBase* base)

@@ -22,6 +22,10 @@ namespace LEX
 
         virtual InheritNode GetInheritNode(const IHierarchyTree* tree) const = 0;
         
+        virtual size_t GetInheritIndex(const IHierarchyTree* tree) const = 0;
+       
+        virtual bool IsAbstract() const noexcept { return true; }
+
 
         virtual std::vector<InheritNode> GetInheritFrom(uint32_t hashMin, uint32_t idxInc) const = 0;
 

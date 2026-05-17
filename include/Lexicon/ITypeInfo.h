@@ -53,6 +53,10 @@ namespace LEX
 				//*
 				virtual bool IsReferenceType() const = 0;
 
+				virtual bool IsScriptObject() const = 0;
+
+				virtual bool IsAbstract() const noexcept = 0;
+
 				//*/
 
 				
@@ -80,6 +84,16 @@ namespace LEX
 		bool IsValueType() const
 		{
 			return !IsReferenceType();
+		}
+
+		bool IsScriptObject() const override
+		{
+			return false;
+		}
+
+		bool IsAbstract() const noexcept override
+		{
+			return true;
 		}
 	};
 

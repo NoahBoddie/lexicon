@@ -131,6 +131,16 @@ namespace LEX
             return {};
         }
 
+        size_t GetInheritIndex(const IHierarchyTree* tree) const override
+        {
+            const InheritNode* result = FindInheritNode(tree);
+
+            if (result)
+                return std::distance(inheritance.data(), result);
+
+            return -1;
+        }
+
 
         const InheritNode* FindInheritNode(const IHierarchyTree* tree) const;
 
