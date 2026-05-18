@@ -199,7 +199,7 @@ namespace LEX
 		Variable Run(Variable from, ConvertResult result) const;
 
 
-		bool HandleInstruction(ExpressionCompiler* compiler, SyntaxRecord& target, Solution& value, ConvertResult result, Register reg);
+		bool HandleInstruction(ExpressionCompiler* compiler, SyntaxRecord& target, Solution& value, const QualifiedType& to, ConvertResult result, Register reg);
 
 		//Creates an operand based on the conversion type if any.
 		/*

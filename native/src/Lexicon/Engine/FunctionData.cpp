@@ -964,6 +964,34 @@ RuntimeVariable BasicCallableData::BasicInvoke(Function* self, ITemplateBody* bo
 	FunctionBody type)
 {
 	//This should ensure conversion
+
+	if (0)
+	VisitParameters([&](IVarIndexInfo& param)
+		{
+			int i = param.GetIndex();
+
+			if (args.size() <= i)
+				return;
+
+			auto& arg = args[i];
+
+			ITypeInfo* type = param.GetType();
+
+			if (!type || type->IsScriptObject() == false) {
+				return;
+			}
+
+
+			ITemplateBody* body = NULL_OP(NULL_Q(NULL_Q(self)->GetTemplatePart())->TryResolve());
+
+
+			TypeInfo* expected = type->GetTypeInfo(body);
+
+			assert(expected);
+
+			arg.AdjustOffset(expected);
+		});
+
 	if constexpr (0) {
 		VisitParameters([&](IVarIndexInfo& param)
 			{
@@ -976,6 +1004,11 @@ RuntimeVariable BasicCallableData::BasicInvoke(Function* self, ITemplateBody* bo
 
 				TypeInfo* expected = NULL_OP(NULL_Q(param.GetType())->GetTypeInfo(nullptr));
 
+				//If expected is the same as the other, we send it.
+				
+
+
+				//There should be a reference check somewhere in here, because refs cannot convert.
 
 				if (!expected)
 					report::apply::error("null parameter type in {}", param.GetName());

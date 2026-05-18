@@ -20,15 +20,19 @@ namespace LEX
 
 	
 
+
 	struct RunVarData
 	{
-
 		using SizeType = std::_Variant_index_t<std::variant_size_v<RunValue>>;
 
 		static constexpr auto req_size = 8 - sizeof(SizeType);
 
-		//amount of references to a given variable. signed to allow it to go below for easy error reading.
-		mutable int32_t refs = 0;
+		static constexpr uint32_t nil_offset = -1;
+
+		//The offset is for the purposes of the 
+
+
+		mutable uint32_t offset = nil_offset;//Offset is what 
 
 	};
 	static_assert(sizeof(RunVarData) <= RunVarData::req_size, "RunVarData must equal the size of the padding in RunTypes.");
@@ -62,7 +66,7 @@ namespace LEX
 
 
 		static constexpr auto offset = sizeof(RunValue) - sizeof(RunVarData);
-		/*
+		//*
 		RunVarData& GetData()
 		{
 			auto a_this = (uintptr_t)this;
@@ -141,6 +145,8 @@ namespace LEX
 		//	}
 		//}
 
+		
+
 		void Unhandle()
 		{
 			if (index() == kReference)
@@ -154,10 +160,13 @@ namespace LEX
 				//	report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
 				//}
 			}
+
+			GetData() = {};
 		}
 		
 		void Handle(const Variable& var)noexcept
 		{
+			GetData() = {};
 			//if (index() == kReference)
 			{
 				//auto* help = other->GetRefHelper();
@@ -172,6 +181,8 @@ namespace LEX
 
 		void Handle(const RunDataHelper& other) noexcept
 		{
+			GetData() = other.GetData();
+
 			if (auto var = other.GetRefVariable())
 			{
 				Handle(*var);
@@ -589,6 +600,8 @@ namespace LEX
 			TryUpdate(false);
 		}
 
+
+		void AdjustOffset(TypeInfo* type = nullptr) const;
 
 		//Used to use is void, but this checks if the ref is void too.
 		bool IsVoid() { return !index() || Ref().IsVoid(); }

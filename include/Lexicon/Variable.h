@@ -177,6 +177,7 @@ namespace LEX
 		DataHelper& operator=(const DataHelper& other) = default;
 		DataHelper& operator=(DataHelper&& other) = default;
 
+		constexpr static auto offset = sizeof(VariableValue) - sizeof(VariableData);
 
 		VariableData& GetData()
 		{

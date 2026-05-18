@@ -164,13 +164,21 @@ namespace LEX
 	}
 
 
-	bool Conversion::HandleInstruction(ExpressionCompiler* compiler, SyntaxRecord& target, Solution& value, ConvertResult result, Register reg)
+	bool Conversion::HandleInstruction(ExpressionCompiler* compiler, SyntaxRecord& target, Solution& value, const QualifiedType& to, ConvertResult result, Register reg)
 	{
 
 		bool fall = false;
 
 		switch (result.data)
 		{
+		case ConversionEnum::TypeDefined:
+			if constexpr (1)
+			{
+				if (to->IsScriptObject() == true)
+					compiler->EmplaceInstruction(InstructionType::AdjustOffset, value, Operand{ to.policy, OperandType::Type });
+			}
+			break;
+
 		case ConversionEnum::ImplDefined:
 			if constexpr (1)
 			{

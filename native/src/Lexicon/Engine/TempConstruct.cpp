@@ -203,6 +203,22 @@ namespace LEX
 			}
 		}
 
+
+		static void AdjustOffset(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		{
+			//Left doesn't matter, right should be 
+
+			RuntimeVariable& target = a_lhs.AsVariable(runtime);
+
+			auto adjust_type = a_lhs.GetTypeInfo(runtime);
+
+			assert(adjust_type);
+
+			target.AdjustOffset(adjust_type);
+		}
+
+
+
 		static void Convert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
 
@@ -234,6 +250,7 @@ namespace LEX
 				case OperandType::Callable:
 				{
 					func = a_lhs.Get<ICallableUnit*>();
+					
 				}
 				break;
 
@@ -252,11 +269,17 @@ namespace LEX
 					if (auto convert_result = from_type->IsConvertibleTo(to_type, from_type, nullptr, ConversionFlag::Explicit); convert_result)
 					{
 						ret = from.Ref();
+						
+						if (to_type->IsScriptObject() == true)
+							ret.AdjustOffset(to_type);
 						//ret->SetPolicy(to_type->FetchTypePolicy(runtime));
 					}
 					else
 					{
 						ret = to_type->GetDefault();
+						
+						if (to_type->IsScriptObject() == true)
+							ret.AdjustOffset();
 					}
 					
 				}
@@ -2681,6 +2704,7 @@ namespace LEX
 			instructList[InstructType::UnaryMinus] = InstructWorkShop::UnaryMath<std::negate<void>>;
 			instructList[InstructType::LogicalNOT] = InstructWorkShop::UnaryMath<std::logical_not<>>;
 			instructList[InstructType::BitwiseNOT] = InstructWorkShop::UnaryMath<std::bit_not<>>;
+			instructList[InstructType::AdjustOffset] = InstructWorkShop::AdjustOffset;
 			instructList[InstructType::Promote] = InstructWorkShop::CheckPromotion;
 
 			

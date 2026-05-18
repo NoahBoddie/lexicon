@@ -126,7 +126,7 @@ namespace LEX
 
 			}
 
-			if (out.HandleInstruction(compiler, target, value, res, reg) == false)
+			if (out.HandleInstruction(compiler, target, value, to, res, reg) == false)
 				return false;
 
 			//This shouldn't really be using the previous policy, but I kinda don't care for now.

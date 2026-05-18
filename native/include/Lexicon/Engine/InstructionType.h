@@ -74,7 +74,7 @@ namespace LEX
 		Test,//General test
 		ObjectTest,//Test that only exists for objects.
 
-
+		AdjustOffset,	//Adjusts the types in script objects
 
 
 		Call,
