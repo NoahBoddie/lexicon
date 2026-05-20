@@ -1330,66 +1330,206 @@ namespace LEX::Test
             Total,
         };
 
-        struct AccessMemory
-        {
-            static constexpr uint32_t code = 0b111111111111;
-            static constexpr uint32_t code_width = std::bit_width(code);
 
-            static constexpr uint32_t fieldCode = code;
-            static constexpr uint32_t methodCode = code << code_width;
-            static constexpr uint32_t limit = fieldCode | methodCode;
-
-            std::pair<uint32_t, uint32_t> GetMemory(ObjectAccess access)
-            {
-                uint32_t value = 0;
-                uint32_t other = 0;
-                std::memcpy(&value, &bytes, 3);
-
-                if (access == ObjectAccess::Method)
-                {
-                    other = value & fieldCode;
-                    value &= methodCode;
-                    value >>= code_width;
-                }
-                else
-                {
-                    other = value & methodCode;
-                    value &= fieldCode;
-                }
-
-                if (value >= code) {
-                    value = -1;
-                }
-
-                return { value , other };
+        template<size_t N>
+        struct StringHash {
+            constexpr StringHash(const char(&str)[N]) {
+                value = std::hash<decltype(str)>{}(str);
             }
 
-            void SetMemory(ObjectAccess access, uint32_t value, uint32_t other)
-            {
-                if (value > code) {
-                    value = code;
-                }
-
-
-                if (access == ObjectAccess::Method) {
-                    value = other | (value << code_width);
-                }
-                else {
-                    value = other | value;
-                }
-                assert(value <= limit);
-
-
-                std::memcpy(&bytes, &value, 3);
-            }
-
-            std::array<std::byte, 3> bytes{};
+            size_t value;
         };
 
 
-        //A base class for ScriptObjects and Attributes
-        //NVM, just make this a script object
-        struct CustomObject
+
+        //The gist of this object is that I want it to work in 3 parts.
+        //The LockID, the LockHandle, and the LockManager
+        //-The LockID functions as a way to detect if there's already an active thread
+        //  handling the lock, if there is we pull that lock up and then wait for it to be done.
+        //  If not, it will make a new thread lock. If it runs out of space, 
+        //  it will wait until one of the spaces is free. Index 0 is the size lock, which will be
+        //  released once any of the locks release.
+        //-LockHandle serves as the function to tell if we've stopped needing to lock the object,
+        //  as well as the thing that tells us there's free space
+        //-The manager takes these in through functions (not freeing stuff though, that role is given
+        // through 
+        //template<StringLiteral Category>
+        struct LockID
+        {
+            consteval size_t hash() const noexcept
+            {
+                return 0;
+            }
+
+            
+            //For once 0 will actually be a free space
+            std::atomic<uint8_t> id = 0;
+        };
+
+
+        struct LockHandle
+        {
+            LockID* id = nullptr;
+            size_t category = 0;
+            void(*dtor)(LockID*, size_t) = nullptr;
+        };
+
+
+        struct LockEntry
+        {
+            std::thread::id thread{};
+            uint8_t index{};
+            uint8_t left = 0;
+            uint8_t right = 0;
+            std::recursive_mutex mutex;
+
+
+            uint8_t GetNext() const
+            {
+                return left ? left : right;
+            }
+        };
+
+        using Mutex = std::recursive_mutex;
+
+        struct TestLockManager
+        {
+
+            inline static LockEntry* locks = nullptr;
+            inline static uint8_t size = 0;
+
+            inline static uint8_t nextEntry = 1;
+
+            inline static std::mutex mutex;
+            
+            //might want a hash
+            inline static std::unordered_map <std::thread::id, LockEntry*> activeLocks;
+
+            static void PushNextEntry(uint8_t id)
+            {
+                std::lock_guard guard{ mutex };
+
+                activeLocks.erase(std::this_thread::get_id());
+                auto& entry = locks[id];
+                entry.thread = std::thread::id{};
+                entry.mutex.unlock();
+
+                //This will handle the unlock too
+                
+                auto old_index = nextEntry;
+                
+
+
+                auto& self = locks[nextEntry];
+                
+                locks[self.left].right = id;
+                locks[self.right].left = id;
+                
+                nextEntry = id;
+
+
+                if (!old_index) {
+                    locks[0].mutex.unlock();
+                }
+            }
+
+            static uint8_t PopNextEntry()
+            {
+                if (!nextEntry) {
+                    std::lock_guard guard{ mutex };
+                }
+
+                std::lock_guard guard{ mutex };
+
+                uint8_t result = nextEntry;
+
+
+                auto& self = locks[nextEntry];
+                
+                locks[self.left].right = self.right;
+                locks[self.right].left = self.left;
+
+                nextEntry = self.GetNext();
+                //This should prep the next entry, if the next entry is unavailable but we have a valid,
+                // next entry, it will lock the core lock. If next is valid and we've reached this point
+                // that is an assert failure.
+                return result;
+            }
+
+            static LockEntry* GetLockEntry()
+            {
+                std::lock_guard guard{ mutex };
+
+                auto it = activeLocks.find(std::this_thread::get_id());
+                auto end = activeLocks.end();
+                if (it != end) {
+                    return it->second;
+                }
+
+                return nullptr;
+            }
+
+
+            static void DestructLock(LockID* lock, size_t hash)
+            {
+                lock->id = 0;
+                
+            }
+
+            static void DeactivateLock(LockID* lock, size_t hash)
+            {
+                PushNextEntry(lock->id);
+                return DestructLock(lock, hash);
+
+            }
+
+
+
+
+
+            //Need a function for for setting an active lock and freeing it.
+            // I don't want to run into deadlocking issues.
+
+            //Requires lock
+            static void RegisterLock(LockID& lock, uint8_t id)
+            {
+                //std::lock_guard guard{ mutex };
+
+                lock.id = id;
+                locks[id].mutex.try_lock();
+                locks[lock.id].thread = std::this_thread::get_id();;
+
+            }
+
+            static LockHandle HandleLock(LockID& lock, size_t hash)
+            {
+                
+                auto thread_id = std::this_thread::get_id();
+
+                if (lock.id) {
+                    if (thread_id != locks[lock.id].thread) {
+                        //Already locked elsewhere and we own it so we 
+                        return LockHandle{};
+                    }
+
+                    std::lock_guard guard{ locks[lock.id].mutex };
+                }
+
+                if (LockEntry* entry = GetLockEntry()) {
+                    RegisterLock(lock, entry->index);
+                    return LockHandle{ &lock, hash, DestructLock };
+                }
+
+                RegisterLock(lock, PopNextEntry());
+
+                return LockHandle{ &lock, hash, DeactivateLock };
+            }
+        };
+
+
+
+        
+        struct ScriptObject
         {
         public:
             enum Flag : uint8_t
@@ -1397,7 +1537,7 @@ namespace LEX::Test
                 kNone,
                 kInitialized = 1 << 0,
                 kDestructed = 1 << 1,
-                HasBindData =  1 << 2,    //
+                kHasBindData =  1 << 2,    //
             };
 
         protected:
@@ -1417,17 +1557,57 @@ namespace LEX::Test
 
             //I will only store RuntimeVariables on these, I believe the extra cost is worth it,
             // primarily to simplify access and 
-
-            //Move access memory to be a thread local system
-            AccessMemory recentAccess{};
+            
+            
             Flag flags = kNone;
+            //Move access memory to be a thread local system
+            uint8_t bytes[3]{};
             StateID stateID{};//If the state ID is invalid, this means it will use the main bind
 
 
         public:
 
+            ScriptObject(TypeInfo* type) : _type{ type }
+            {
+                fieldList.Create(type->GetFieldCount());
+            }
+
+
+            ~ScriptObject()
+            {
+                if (HasFlag(Flag::kDestructed) == false) {
+                    //Call destruct
+                }
+            }
+
+
+
+
+
+
+
+            constexpr bool HasFlag(Flag flag) const noexcept
+            {
+                return flags & flag;
+            }
+
+
+            constexpr TypeInfo* type() const noexcept
+            {
+
+                if (HasFlag(Flag::kHasBindData) == true)
+                    return _entry->type;
+                else
+                    return _type;
+            }
+
+
             size_t size()
             {
+                if (auto a_type = type()) {
+                    return a_type->GetFieldCount();
+                }
+
                 return 0;
             }
 
@@ -1472,8 +1652,8 @@ namespace LEX::Test
                 //size = 0;
             }
 
-
-            void Transfer(const CustomObject& other)
+            //This gets complicated with bind objects
+            void Transfer(const ScriptObject& other)
             {
                 Revert();
                 _type = other._type;
@@ -1483,23 +1663,6 @@ namespace LEX::Test
 
 
             }
-
-        };
-
-
-
-
-        struct ScriptObject : public CustomObject
-        {
-
-        protected:
-            TypeInfo*& type()
-            {
-                return reinterpret_cast<TypeInfo*&>(_type);
-            }
-        public:
-
-
 
 
             //IDEA
@@ -1511,7 +1674,7 @@ namespace LEX::Test
 
 
             ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
-            
+
 
             //I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
             // switch what type it's percieved as.
@@ -1519,36 +1682,232 @@ namespace LEX::Test
             //This might make it a pain however.
 
 
+        };
+
+        //Script object itself is carried by pointer, to prevent creation.
+        template <>
+        struct VariableType<ScriptObject*>
+        {
+            TypeInfo* operator()(const ScriptObject* it = nullptr)
+            {
+                if (it) {
+                    return it->type();
+                }
+
+                return nullptr;;
+            }
 
         };
 
 
+        void DoTest()
+        {
+            GetVariableType<ScriptObject*>();
+        }
 
-        struct CustomObjectRep
+        template <>
+        struct LEX::ObjectInfo<ScriptObject> : public QualifiedObjectInfo<ScriptObject>
+        {
+            /*
+            template <specialization_of<std::vector> Vec>
+            static Array ToObject(const Vec& obj)
+            {
+                std::vector<Variable> buff;
+                buff.reserve(obj.size());
+                //const std::vector<void*> test;
+
+                //void* other = test[1];
+
+
+                std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
+
+
+                return Array{ buff };
+
+            }
+            //*/
+
+            TypeInfo* GetOverrideType(ObjectData& data) override
+            {
+                ScriptObject& object = get(data);
+
+                return object.type();
+            }
+
+
+            TypeOffset GetTypeOffset(ObjectData& data) override
+            {
+                return GetOverrideType(data)->GetTypeID();
+            }
+
+
+            TypeInfo* SpecializeType(ObjectData& data, ITypeInfo* type) override
+            {
+                return GetOverrideType(data);
+            }
+
+            //the form object info needs to edit the transfer functions,
+
+
+            String PrintString(ObjectData& a_self, std::string_view context) override
+            {
+                return "ScriptObject()";
+            }
+
+            /*
+            //This was mere test data
+            bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) override
+            {
+                auto func = [](std::string_view lit) -> Object
+                    {
+
+                        std::vector<Variable> result { std::string(lit)};
+                        return Array{ result };
+                        //No idea why this doesn't work
+                        //return ObjectTranslator<decltype(result)>{}(result);
+                    };
+
+
+                hash = std::hash<std::string_view>{}(literal);
+                ctor = func;
+                return true;
+            }
+            //*/
+        };
+
+
+
+        template <>
+        struct Revariable<ScriptObject*>
         {
 
+            void operator()(ScriptObject*& arg, Variable* var)
+            {
+                if (var->IsObject() == true) {
+                    Object& object = var->AsObject();
+
+                    arg = std::addressof(object.get<ScriptObject>());
+                }
+                //Is component
+                report::error("Cannot address error here");
+                
+            }
         };
 
-        template <StringLiteral TypeName>
-        using Class = int;
-
-        //Will be used to represent custom struct objects, preventing it from being instantiated
-        template <StringLiteral TypeName>
-        using Struct = int;
-
-
-        //This represents an enum value, with the type
-        template <StringLiteral TypeName>
-        using enum_type = int;
 
 
 
-        struct IAttribute : public Interface, public LEX::IComponent
+
+        struct IAttribute;
+
+
+        namespace UTIL
+        {
+
+
+            //This only holds the relevant data. It has no barings on how anything else is handled.
+            struct CustomObjectData
+            {
+                union
+                {
+                    intptr_t raw{};
+                    IAttribute* attribute;
+                    ScriptObject* object;
+                };
+
+
+                uint32_t typeIndex = -1;//I forget where the unmagic number is.
+            };
+
+            template <StringLiteral Name>
+            struct CustomObjectTemplate : public CustomObjectData
+            {
+                using Self = CustomObjectTemplate<Name>;
+
+                inline static TypeInfo* type = nullptr;
+            
+                inline static DataType data = DataType::Invalid;
+
+                static void InitDataType(DataType data_type)
+                {
+                    assert_if(data != DataType::Invalid) {
+
+                    }
+
+                    //This does not handle enums, if this happens, someone did something wrong
+                    //assert_if(data_type == DataType::Enum) {}
+
+
+                    data = data_type;
+                }
+
+
+                static TypeInfo* GetVariableType(const Self*)
+                {
+                    if (!type) {
+                        //Use project manager to get the type
+                    }
+
+                    return type;
+                }
+
+            };
+
+            template <StringLiteral Name, DataType Type>
+            struct CustomObjectTemplatePlus : public CustomObjectTemplate<Name>
+            {
+                using Base = CustomObjectTemplate<Name>;
+            private:
+                struct init
+                {
+                    _instance()
+                    {
+                        Base::InitDataType(Type);
+                    }
+                };
+
+                inline static init _init = _init{};
+
+                //This object will handle what -> and * translate to
+
+            public:
+            };
+
+            template <StringLiteral Name>
+            struct Class : public CustomObjectTemplatePlus<Name, DataType::Class>
+            {
+           
+            };
+
+            //Put these in a different namespace.
+            template <StringLiteral Name>
+            struct Struct : public CustomObjectTemplatePlus<Name, DataType::Struct>
+            {
+
+            };
+
+            template <StringLiteral Name>
+            struct Interface : public CustomObjectTemplatePlus<Name, DataType::Interface>
+            {
+
+            };
+
+            template <StringLiteral Name>
+            struct Attribute : public CustomObjectTemplatePlus<Name, DataType::Attribute>
+            {
+
+            };
+
+        }
+        
+
+
+        struct IAttribute : public LEX::Interface, public LEX::IComponent
         {
             virtual TypeInfo* GetType() = 0;
             virtual Info* GetParent() = 0;
             
-            virtual CustomObject* GetCustomObject() = 0;
+            virtual ScriptObject* GetScriptObject() = 0;
             
             virtual bool GetField(std::string_view name, Variable& out) = 0;
         };
@@ -1556,11 +1915,11 @@ namespace LEX::Test
 
         struct AttributeType;
 
-        struct Attribute : public Component, public IAttribute, public CustomObject
+        struct Attribute : public Component, public IAttribute, public ScriptObject
         {
             Info* parent = nullptr;
 
-            CustomObject* GetCustomObject() override
+            ScriptObject* GetScriptObject() override
             {
                 return this;
             }
@@ -1639,14 +1998,14 @@ namespace LEX::Test
 
         //THESE functions will no longer belong to Variable, they will belong to the class that handles membered able data classes
         //
-        CustomObject* GetCustomData(Variable& a_this)
+        ScriptObject* GetScriptData(Variable& a_this)
         {
-            CustomObject* result = std::visit([](auto&& self) -> CustomObject* {
+            ScriptObject* result = std::visit([](auto&& self) -> ScriptObject* {
                 using T = std::decay_t<decltype(self)>;
 
                 if constexpr (std::is_same_v<T, IComponent*>) {
                     IAttribute* attribute = self->As<IAttribute>();
-                    return attribute ? attribute->GetCustomObject() : nullptr;
+                    return attribute ? attribute->GetScriptObject() : nullptr;
                 }
                 else if constexpr (std::is_same_v<T, Object>) {
                     return nullptr;
@@ -1661,9 +2020,52 @@ namespace LEX::Test
         }
 
 
+        namespace Src
+        {
+            //These are to exclusively be used internally.
+
+
+            bool GetField(size_t& out, MemberPointer ptr, ITemplateBody* body, uint32_t viewpoint = -1)
+            {
+                return false;
+            }
+
+            bool GetMethod(IFunction*& out, MemberPointer ptr, ITemplateBody* body, uint32_t viewpoint = -1)
+            {
+                return false;
+            }
+        }
+
+
+        namespace ScrObj
+        {
+            //These are for use within script object externally and such.
+            // The template body probably should not be used here. Its main purpose
+            // is to resolve the member pointer, and to check (but not resolve) the type.
+            //Also of note, before it checks it will need to make up for the difference the body
+            // may lack. Rather I may need to partialize it, and fill it with it's own templates.
+
+            bool GetField(size_t& out, const std::string_view& name, uint32_t viewpoint = -1)
+            {
+                return false;
+            }
+
+            bool GetMethod(IFunction*& out, const std::string_view& name, uint32_t viewpoint = -1)
+            {
+                return false;
+            }
+
+            //The above will be used by the CustomObject helpers and will assert if either return false.
+        }
+
+        //Both of these
+
+
+        
+
         bool GetMemberField(Variable& a_this)
         {
-            CustomObject* object = GetCustomData(a_this);
+            ScriptObject* object = GetScriptData(a_this);
 
 
             if (!object) {
@@ -1671,312 +2073,6 @@ namespace LEX::Test
             }
         }
         
-        struct RunVarData
-        {
-            using SizeType = std::_Variant_index_t<std::variant_size_v<RunValue>>;
-
-            static constexpr auto req_size = 8 - sizeof(SizeType);
-
-            static constexpr uint32_t nil_offset = -1;
-
-            //The offset is for the purposes of the 
-
-
-            mutable uint32_t offset = nil_offset;//Offset is what 
-
-        };
-        static_assert(sizeof(RunVarData) <= RunVarData::req_size, "RunVarData must equal the size of the padding in RunTypes.");
-
-
-
-        struct RunDataHelper
-        {
-            enum Flag
-            {
-                None = 0,
-                Init = 1 << 0,
-                Refr = 1 << 1,
-                Ptr = 1 << 2,	//Should establish a pointer ref, and needs no ref value. Best used when it's unknown if var is a RuntimeVariable
-                Free = 1 << 3,	//A given runtime variable has freed its index but retains a pointer.
-            };
-
-            enum Type
-            {
-                kInvalid,
-                kVariable,
-                kReference,
-                kDetached,
-                kExternal,
-            };
-
-            //This will help clear the Variable data spot without me having to put clear in every constructor. Hopefully.
-
-            using _Ref = std::reference_wrapper<Variable>;
-
-
-            static constexpr auto offset = sizeof(RunValue) - sizeof(RunVarData);
-            //*
-            RunVarData& GetData()
-            {
-                auto a_this = (uintptr_t)this;
-
-                return *reinterpret_cast<RunVarData*>(a_this + offset);
-            }
-
-            const RunVarData& GetData() const
-            {
-                auto a_this = (uintptr_t)this;
-
-                return *reinterpret_cast<RunVarData*>(a_this + offset);
-            }
-            //*/
-            RunValue& GetValue()
-            {
-                return *reinterpret_cast<RunValue*>(this);
-            }
-
-            const RunValue& GetValue() const
-            {
-                return *reinterpret_cast<const RunValue*>(this);
-            }
-
-            Type index() const
-            {
-                return static_cast<Type>(GetValue().index());
-            }
-
-            bool IsReference() const
-            {
-                return index() == kReference;
-            }
-
-
-            const Variable* GetRefVariable() const
-            {
-
-                const RunValue& a_this = GetValue();
-
-                switch (a_this.index())
-                {
-                case kReference:
-                    return std::addressof(std::get<_Ref>(a_this).get());
-
-
-                default:
-                    return nullptr;
-                }
-            }
-
-
-        protected:
-
-
-        public:
-            //bool IsRefNegated() const
-            //{
-            //	return index() == kReference && Refs();
-            //}
-        private:
-            //void SetNegate(bool value) const 
-            //{
-                //auto var = GetRefVariable();
-                //if (var)
-                //var->GetData().refs = value ? -1 : 0;
-            //}
-
-        protected:
-
-            //void TrySetNegated(bool value) const
-            //{
-            //	if (index() == kReference)
-            //	{
-            //		SetNegate(value);
-            //	}
-            //}
-
-            void Unhandle()
-            {
-                if (index() == kReference)
-                {
-                    //if (!Refs())
-                    GetRefVariable()->Dec();
-                }
-                else if (index() == kVariable)
-                {
-                    //if (auto refs = GetData().refs; refs) {
-                    //	report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
-                    //}
-                }
-            }
-
-            void Handle(const Variable& var)noexcept
-            {
-                //if (index() == kReference)
-                {
-                    //auto* help = other->GetRefHelper();
-                    //if (!other->IsRefNegated())
-                    var.Inc();
-                }
-
-
-
-
-            }
-
-            void Handle(const RunDataHelper& other) noexcept
-            {
-                GetValue() = other.GetValue();
-
-                if (auto var = other.GetRefVariable())
-                {
-                    Handle(*var);
-                }
-            }
-
-        public:
-
-
-            int32_t Refs() const
-            {
-                return GetRefVariable()->GetData().refs;//GetData().refs;
-            }
-
-            constexpr RunDataHelper() noexcept = default;
-
-            ~RunDataHelper()
-            {
-                Unhandle();
-            }
-
-            RunDataHelper(const RunDataHelper& other)
-            {
-                Handle(other);
-
-            }
-
-
-            RunDataHelper(RunDataHelper&& other)
-            {
-                Handle(other);
-            }
-
-
-            RunDataHelper& operator=(const RunDataHelper& other)
-            {
-                Handle(other);
-                Unhandle();
-                return *this;
-            }
-
-
-
-            RunDataHelper& operator=(RunDataHelper&& other)
-            {
-                Handle(other);
-                Unhandle();
-                return *this;
-            }
-
-            RunDataHelper(const VariableRef& other)
-            {
-                Handle(other.get());
-            }
-
-
-            RunDataHelper(VariableRef&& other)
-            {
-                Handle(other.get());
-            }
-
-
-            /*
-            void FUNDERSON() { logger::info("Funderson called"); }
-            //I don't think this will actually do anything
-            RunDataHelper& operator=(const VariableRef& other)
-            {
-                FUNDERSON();
-                Unhandle();
-                Handle(other.get());
-                return *this;
-            }
-            RunDataHelper& operator=(VariableRef&& other)
-            {
-                FUNDERSON();
-                Unhandle();
-                Handle(other.get());
-                return *this;
-            }
-            //*/
-        };
-
-        struct FakeRuntimeVariable : protected RunDataHelper
-        {
-            Variable var;
-
-
-            const Variable& Ref() const
-            {
-                return var;
-                //return const_cast<Variable&>(std::as_const(*this).Ref());
-            }
-
-
-            void AdjustOffset(TypeInfo* type = nullptr) const
-            {
-                auto& offset = GetData().offset;
-
-                if (!type) {
-                    offset = RunVarData::nil_offset;
-                    return;
-                }
-
-                auto& value = Ref();
-
-                TypeInfo* var_type = value.GetTypeInfo();
-
-                assert_if(!var_type) {
-                    //error
-                    return;
-                }
-
-                if (var_type->IsScriptObject() == false) {
-                    offset = RunVarData::nil_offset;
-                    return;
-                }
-
-
-                //TODO: this needs to have a virtual function handle this part.
-                {
-                    auto var_tree = var_type->GetHierarchyTree();
-
-                    auto i = var_tree->GetInheritIndex(type->GetHierarchyTree());
-
-                    assert_if(i == -1) {
-                        //error
-                        return;
-                    }
-
-                    offset = static_cast<uint32_t>(i);
-                }
-
-            }
-        };
-
-
-        static void Adjust(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-        {
-            //Left doesn't matter, right should be 
-
-            FakeRuntimeVariable& target  = reinterpret_cast<FakeRuntimeVariable&>(a_lhs.AsVariable(runtime));
-
-            auto adjust_type = a_lhs.GetTypeInfo(runtime);
-
-            assert(adjust_type);
-
-            target.AdjustOffset(adjust_type);
-
-        }
-
 
         void InlineRoutine(std::vector<Instruction>& instruction, RecordHolder* holder, RoutineBase* base)
         {
