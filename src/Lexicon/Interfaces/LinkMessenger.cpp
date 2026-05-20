@@ -7,7 +7,7 @@ namespace LEX
 	static std::vector<LinkCallback*> callbackList;
 
 
-	bool LinkMessenger::RegisterForLink(LinkCallback* callback, bool catch_up)
+	bool LinkMessenger::RegisterForLinkImpl(LinkCallback* callback, bool catch_up)
 	{
 		if (!callback) {
 			return false;
