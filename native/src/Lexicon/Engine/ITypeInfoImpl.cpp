@@ -115,4 +115,14 @@ namespace LEX
 		}
 		return false;
 	}
+
+
+	size_t ITypeInfo::GetFieldCount() const
+	{
+		if (auto tree = GetHierarchyTree()) {
+			return tree->GetFieldCount();
+		}
+
+		return 0;
+	}
 }

@@ -57,6 +57,7 @@ namespace LEX
 
 				virtual bool IsAbstract() const noexcept = 0;
 
+				virtual size_t GetFieldCount() const = 0;
 				//*/
 
 				

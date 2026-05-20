@@ -148,6 +148,8 @@ namespace LEX
 		}
 
 
+		size_t GetFieldCount() const override;
+
 		//This should go under
 		
 
