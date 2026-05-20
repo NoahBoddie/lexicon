@@ -95,6 +95,7 @@ namespace LEX
 				//This can be defined in a source
 				virtual uint32_t GetTypeID(ObjectData&) = 0;
 
+				virtual TypeInfo* GetOverrideType(ObjectData&) = 0;
 
 				//Gets the objects print string. Comes with context for types such as bind classes that attach themselves to an object.
 				virtual String PrintString(ObjectData & object, std::string_view context) = 0;
@@ -174,9 +175,18 @@ namespace LEX
 			return false;
 		}
 
+		//Very ill-advised you use this, primarily only exists for ScriptObjects and attributes
+		TypeInfo* GetOverrideType(ObjectData&) override
+		{
+			return nullptr;
+		}
 
 		ITypeInfo* GetTypeInterface(ObjectData& object)
 		{
+			if (auto type = GetOverrideType(object)) {
+				return type;
+			}
+
 			//Note, not real code (yet)
 			auto id = GetTypeID(object);
 
@@ -185,6 +195,10 @@ namespace LEX
 
 		TypeInfo* GetTypeResolved(ObjectData& object)
 		{
+			if (auto type = GetOverrideType(object)) {
+				return type;
+			}
+
 			auto type = GetTypeInterface(object);
 
 			return SpecializeType(object, type);
@@ -228,6 +242,18 @@ namespace LEX
 
 		//A few of these should be final
 		
+
+		static const T& get(const ObjectData& self)
+		{
+			return self.get<T>();
+		}
+
+
+		static T& get(ObjectData& self)
+		{
+			return unconst(get(make_const(self)));
+		}
+
 		//make const
 		StaticStoreType GetStorageType() override final
 		{

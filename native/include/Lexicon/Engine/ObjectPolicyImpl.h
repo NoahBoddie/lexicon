@@ -138,6 +138,11 @@ namespace LEX
 			return base->GetOffsetFromArgs(category, args);
 		}
 
+		TypeInfo* GetOverrideType(ObjectData& data) override
+		{
+			return base->GetOverrideType(data);
+		}
+
 
 
 #pragma endregion
