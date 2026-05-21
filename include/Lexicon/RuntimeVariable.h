@@ -604,7 +604,7 @@ namespace LEX
 		void AdjustOffset(TypeInfo* type = nullptr) const;
 
 		//Used to use is void, but this checks if the ref is void too.
-		bool IsVoid() { return !index() || Ref().IsVoid(); }
+		bool IsVoid() const  { return !index() || Ref().IsVoid(); }
 
 		bool IsEmpty() const { return !index(); }
 
