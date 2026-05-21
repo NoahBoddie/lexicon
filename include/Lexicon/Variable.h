@@ -36,7 +36,6 @@ namespace LEX
 
 
 
-
 	using SizeType = std::_Variant_index_t<std::variant_size_v<VariableValue>>;
 
 	constexpr auto req_size = 8 - sizeof(SizeType);
@@ -171,9 +170,9 @@ namespace LEX
 		~DataHelper() { Unhandle(); }
 		
 		
-		DataHelper() { Clear(); }
-		DataHelper(const DataHelper& other) { Clear(); }
-		DataHelper(DataHelper&& other) { Clear(); }
+		DataHelper() { ClearData(); }
+		DataHelper(const DataHelper& other) { ClearData(); }
+		DataHelper(DataHelper&& other) { ClearData(); }
 
 
 		DataHelper& operator=(const DataHelper& other) = default;
@@ -223,9 +222,14 @@ namespace LEX
 
 			return result;
 		}
+		//I'd like to use this
+		size_t ModRefCount(bool inc = true)
+		{
+			return 0;
+		}
 
 
-		void Clear()
+		void ClearData()
 		{
 			GetData().Clear();
 		}
@@ -249,6 +253,13 @@ namespace LEX
 		{
 			GetData().SetFlag(VariableFlag::Detached, true);
 		}
+
+
+		bool GetDetached() const
+		{
+			return GetData().HasFlag(VariableFlag::Detached);
+		}
+
 
 		size_t GetRefCount() const
 		{
@@ -278,17 +289,16 @@ namespace LEX
 		{ T2{ insert } };
 	};
 
-	//template <typename T>
-	//TypeInfo* TypeOf()
-	//{
-		//The idea of this function is that it takes the core type and splits how it finds it's type.
-		//For objects it should be their object interface that does it. However, part of this might be that the actual object will need to find that itself (if it can).
-		// For example, delegates and function pointers will be able to use their real types to get that information
-		//For Numbers the setting should do it
-		//For Booleans it's obvious
-		//For
-		//return nullptr;
-	//}
+
+	namespace ctrl
+	{
+		struct detach {} inline detached;
+	}
+
+	//TODO: Make this some kind of setting.
+	
+
+
 
 	struct Variable : public DataHelper, public RGL::ClassAlias<VariableValue>
 	{
@@ -299,9 +309,27 @@ namespace LEX
 
 	public:
 
+
+		Variable(ctrl::detach, const Variable& other = {}) : Variable{ other }
+		{
+			SetDetached();
+		}
+
+
+		Variable(ctrl::detach, Variable&& other) : Variable{ std::move(other) }
+		{
+			SetDetached();
+		}
+
+		//SetGarbage collector up here?
+		//void* operator new(size_t size);
+
+
 		VariableValue& value() noexcept { return *this; }
 		const VariableValue& value() const noexcept { return *this; }
 		
+
+
 
 
 	private:
