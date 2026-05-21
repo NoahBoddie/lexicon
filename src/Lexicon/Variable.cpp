@@ -21,5 +21,17 @@ namespace LEX
     }
 
 
+    void DataHelper::DecrementUpdate() const
+    {
+        if (GetData().HasFlag(VariableFlag::Detached) == true)
+        {
+            auto var = reinterpret_cast<const Variable*>(this);
+            delete var;
+            logger::trace("deleted detached variable");
+        }
 
+        if (GetData().HasFlag(VariableFlag::Collected) == true) {
+            //Send garbage collection.
+        }
+    }
 }

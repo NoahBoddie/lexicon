@@ -195,6 +195,10 @@ namespace LEX
 			return *reinterpret_cast<VariableData*>(a_this + sizeof(VariableValue) - sizeof(VariableData));
 		}
 
+	private:
+		void DecrementUpdate() const;
+	public:
+
 
 		auto Inc() const
 		{
@@ -206,13 +210,18 @@ namespace LEX
 		auto Dec() const
 		{
 			auto& refs = GetData().refs;
-			assert(refs);
-			
-			if (!refs)
+						
+			assert_if(!refs) {
 				report::fault::critical("Decrementing refs below 0.");
-
+			}
+			auto result = --refs;
 			//logger::trace("dec {:X}", (uintptr_t)this);
-			return --refs;
+
+			if (!result) {
+				DecrementUpdate();
+			}
+
+			return result;
 		}
 
 
@@ -226,7 +235,7 @@ namespace LEX
 		void Unhandle() const
 		{
 			if (auto refs = GetData().refs; refs) {
-				report::runtime::critical("{} refs remaining for run var ending {:X}", refs, (uintptr_t)this);
+				report::runtime::critical("{} dangling references of Variable at{:X}", refs, (uintptr_t)this);
 			}
 		}
 
@@ -234,6 +243,11 @@ namespace LEX
 		void SetCollected() const
 		{
 			GetData().SetFlag(VariableFlag::Collected, true);
+		}
+
+		void SetDetached() const
+		{
+			GetData().SetFlag(VariableFlag::Detached, true);
 		}
 
 		size_t GetRefCount() const
