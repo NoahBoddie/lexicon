@@ -700,7 +700,7 @@ int main(int argc, char** argv) {
         } while (!IsDebuggerPresent() && input != IDCANCEL);
     }
 #endif
-  
+
     Initializer::Execute("main_init");
     Initializer::Execute();
     //return 0;
@@ -1358,6 +1358,11 @@ namespace LEX::Test
             };
 
 
+
+            //Instead of garbage collection I could keep these via custom pointer and ditch the collection
+            // saving, that way I don't have to maintain the entire collection of variables. This can 
+            // be useful on particularly large objects, or particularly large arrays that still have data
+            // referenced in them.
 
             template <typename T1, typename T2 = ref_counter>
             struct CollectibleData
@@ -2234,7 +2239,7 @@ namespace LEX::Test
         private:
             DetachedVariable(Variable* var) : _var{ var }
             {
-                _var->Inc();
+                _var->ModRefCount();
                 _var->SetDetached();
             }
 
@@ -2310,7 +2315,7 @@ namespace LEX::Test
                 if (auto var = other._var)
                 {
                     if (copy) {
-                        var->Inc();
+                        var->ModRefCount();
                     }
                     else {
                         other._var = nullptr;
@@ -2323,7 +2328,7 @@ namespace LEX::Test
             void Unhandle()
             {
                 if (_var) {
-                    _var->Dec();
+                    _var->ModRefCount(false);
                 }
             }
 
@@ -2333,109 +2338,6 @@ namespace LEX::Test
             mutable Variable* _var = nullptr;
         };
         REQUIRED_SIZE(DetachedVariable, 0x8);
-
-        struct RefVariable
-        {
-
-
-        public:
-
-
-            ~RefVariable() { Unhandle(); }
-
-        private:
-            RefVariable(const Variable* var) : _var{ unconst(var) }
-            {
-                _var->Inc();
-            }
-        public:
-
-            RefVariable(const std::reference_wrapper<Variable>& var) : RefVariable{ &var.get() } {}
-
-            RefVariable(const Variable& var) : RefVariable{ std::addressof(var) } {}
-
-
-
-            RefVariable(const RefVariable& other)
-            {
-                Transfer(other);
-            }
-
-
-
-            RefVariable& operator=(const RefVariable& other)
-            {
-                CheckUnhandle(other);
-
-                Transfer(other);
-                return *this;
-            }
-            constexpr operator bool() const noexcept
-            {
-                return _var;
-            }
-
-            constexpr Variable* get() const noexcept
-            {
-                return _var;
-            }
-
-            Variable* operator->() noexcept
-            {
-                return _var;
-            }
-
-            const Variable* operator->() const noexcept
-            {
-                return _var;
-            }
-
-
-
-            void Clear()
-            {
-                Unhandle();
-                _var = nullptr;
-            }
-        private:
-
-            void CheckUnhandle(const RefVariable& other)
-            {
-                if (_var != other._var)
-                    Unhandle();
-            }
-
-            void Transfer(const RefVariable& other)
-            {
-                if (_var = other._var){
-                    _var->Inc();
-                }
-            }
-
-            void Unhandle()
-            {
-                if (_var) {
-                    _var->Dec();
-                }
-            }
-
-        private:
-
-            //This should be created the moment it comes into existence
-            mutable Variable* _var = nullptr;
-        };
-        REQUIRED_SIZE(RefVariable, 0x8);
-
-
-        RefVariable detach(Variable&& var)
-        {
-            return RefVariable{ *new Variable{ ctrl::detached, std::move(var) } };
-        }
-
-        RefVariable detach(const Variable& var)
-        {
-            return RefVariable{ *new Variable{ ctrl::detached, var } };
-        }
 
 
 
