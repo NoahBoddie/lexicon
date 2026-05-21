@@ -31,14 +31,18 @@ namespace LEX
 		}
 
 
-		FormulaHandler& operator=(const FormulaHandler& other)
+		FormulaHandler& operator=(const FormulaHandler& other) noexcept
 		{
+
+			if (_formula != other._formula)
+				Unhandle();
+
 			
 			Transfer(other, true);
 			return *this;
 		}
 
-		FormulaHandler& operator=(FormulaHandler&& other)
+		FormulaHandler& operator=(FormulaHandler&& other) noexcept
 		{
 			if (_formula != other._formula)
 				Unhandle();
@@ -63,9 +67,9 @@ namespace LEX
 			_formula = nullptr;
 		}
 	private:
-		void Transfer(const FormulaHandler& other, bool copy);
+		void Transfer(const FormulaHandler& other, bool copy) noexcept;
 
-		void Unhandle();
+		void Unhandle() noexcept;
 
 	private:
 

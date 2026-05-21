@@ -6,7 +6,7 @@
 namespace LEX
 {
 
-	void FormulaHandler::Transfer(const FormulaHandler& other, bool copy)
+	void FormulaHandler::Transfer(const FormulaHandler& other, bool copy) noexcept
 	{
 		if (auto formula = other._formula)
 		{
@@ -22,7 +22,7 @@ namespace LEX
 		}
 	}
 
-	void FormulaHandler::Unhandle()
+	void FormulaHandler::Unhandle() noexcept
 	{
 		if (_formula) {
 			//FormulaManager::instance->DecrementForumula(_formula);
