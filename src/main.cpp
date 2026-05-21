@@ -1219,6 +1219,289 @@ namespace LEX::Test
 
         };
 
+
+
+        namespace
+        {
+            struct IGarbage
+            {
+                virtual ~IGarbage() = default;
+
+                //Bare in mind this should be how many objects are referenced ones, NOT how many references are on the objects in total.
+                // That part doesn't really matter. The idea is that this number can ONLY go down.
+                virtual size_t GetNumOfReferencedObjects() const = 0;
+
+
+            };
+
+            //template <typename T>
+            //struct 
+
+
+
+            struct GarbageCollector
+            {
+                //The idea is that once when the dereferences something, this number increments. When it passes a setting value
+                // OR, when there's only one entry in GarbageCollection and the deref count is equal to that entries refCount, 
+                // we force collection.
+                //Once collection
+                inline static std::atomic<size_t> derefCount = 0;;
+
+                //Total refs is set each time it force collects,
+                inline static std::atomic<size_t> interimRefCount = 0;
+
+                inline static std::vector<std::unique_ptr<IGarbage>> collection;
+
+                //I'd like this to be free when adding new garbage, but locked when forcing a collection. A read and write lock
+                inline static std::shared_mutex lock;
+
+                static void ForceCollect()
+                {
+                    std::unique_lock _{lock};
+
+                    derefCount = 0;
+                    interimRefCount = 0;
+                   
+
+                    auto end = collection.end();
+                    auto it = std::remove_if(collection.begin(), end, 
+                        [&](std::unique_ptr<IGarbage>& garbage)
+                        {
+                            size_t result = garbage->GetNumOfReferencedObjects();
+                            interimRefCount += result;
+                            return !result;
+                        });
+                    
+                    if (it != end)
+                        collection.erase(it, end);
+                }
+
+                static void AddGarbage(std::unique_ptr<IGarbage>&& add)
+                {
+                    std::shared_lock _{ lock };
+
+                    if (auto refs = add->GetNumOfReferencedObjects(); refs == 0) {
+                        add.reset();
+                    }
+                    else {
+                        collection.push_back(std::move(add));
+                        if (!interimRefCount) {
+                            interimRefCount = refs;
+                        }
+                    }
+                }
+
+                static void DecrementReference(size_t dec = 1)
+                {
+                    derefCount += dec;
+
+                    if (derefCount >= interimRefCount) {
+                        assert(derefCount == interimRefCount);
+
+                        ForceCollect();
+                    }
+                }
+
+
+
+
+            };
+
+
+            struct ref_counter
+            {
+                template<typename T>
+                size_t operator()(const T& it)
+                {
+                    if constexpr (std::is_same_v<T, Variable>) {
+                        return it.GetRefCount();
+                    }
+                    else if constexpr (std::is_same_v<T, RuntimeVariable>) {
+                        return !it.IsVoid() ? it->GetRefCount() : 0;
+                    }
+                    else {
+                        static_assert(std::is_same_v<T, T>, "Unsupported referencable detected.");
+                    }
+
+                }
+            };
+
+            template <typename T1, typename T2>
+            struct CollectionGarbage : public IGarbage
+            {
+
+                using element_type = T1;
+                using pointer_type = element_type*;
+
+                using counter_type = T2;
+
+
+                std::span<element_type> range;
+                
+
+                CollectionGarbage(std::span<element_type> r) : range{ r }
+                {
+                }
+                
+
+                size_t GetNumOfReferencedObjects() const override
+                {
+                    counter_type counter{};
+                    size_t result = 0;
+
+                    for (auto& it : range) {
+                        result += counter(it);
+                    }
+
+                    return result;
+                }
+            };
+
+
+
+            template <typename T1, typename T2 = ref_counter>
+            struct CollectibleData
+            {
+                static constexpr uintptr_t k_destructedPtr = (uintptr_t)-1;
+
+                using element_type = T1;
+                using pointer_type = element_type*;
+
+                using counter_type = T2;
+            private:
+                union
+                {
+                    uintptr_t _raw{};
+                    element_type* _data;
+                };
+
+
+
+            public:
+                ~CollectibleData()
+                {
+                    assert_if(IsDataDestroyed() == false) {
+                        report::fault::critical("Failed to destruct CollectibleData, innate data not destroyed");
+                    }
+                }
+
+
+                bool IsDataDestroyed() const
+                {
+                    return _raw == k_destructedPtr;
+                }
+
+                element_type* data()
+                {
+                    if (IsDataDestroyed() == false) {
+                        return _data;
+                    }
+
+                    return nullptr;
+                }
+
+                const element_type* data() const
+                {
+                    return unconst(this)->data();
+                }
+
+                std::span<element_type> range(size_t size)
+                {
+                    if (auto ptr = data()) {
+                        return std::span<element_type>{ ptr, size };
+                    }
+
+                    return {};
+                }
+
+
+
+                bool TryPreserve(std::span<element_type> range, std::function<void(element_type&)> func)
+                {
+                    counter_type counter{};
+
+                    bool preserve = false;
+
+                    for (auto& it : range) {
+                        if (counter(it) != 0) {
+                            preserve = true;
+                            break;
+                        }
+                    }
+
+                    if (preserve) {
+                        if (func) {
+                            for (auto& var : range) {
+                                func(var);
+                            }
+                        }
+                        GarbageCollector::AddGarbage(std::make_unique<CollectionGarbage<T1, T2>>(range));
+                        _data = nullptr;
+                    }
+
+
+                    //Check if any of the data has references, and if so move them to garbage collection
+                    return preserve;
+                }
+
+                void Destroy(size_t size, std::function<void(element_type&)> func = nullptr)
+                {
+                    if (auto ptr = data()) {
+                        if (TryPreserve(std::span{ ptr, size }, func) == false) {
+                            delete[] ptr;
+                        }
+
+                        _raw = k_destructedPtr;
+                    }
+                }
+
+                void Create(size_t size)
+                {
+                    assert_if(data() != nullptr) {
+                        report::fault::critical("CollectionData::data() was not empty when attempting to Create. Unknown size count can cause memory leak.");
+                    }
+
+                    _data = new element_type[size];
+                }
+
+            private:
+                void Transfer(element_type* other, size_t size, bool move = false)
+                {
+                    for (int i = 0; i < size; i)
+                    {
+                        if (move) {
+                            _data[i] = std::move(other[i]);
+                        }
+                        else {
+                            _data[i] = other[i];
+                        }
+                    }
+                }
+            protected:
+                void Copy(const element_type* other, size_t size)
+                {
+                    Transfer(unconst(other), size, false);
+                }
+
+                void Move(element_type* other, size_t size)
+                {
+                    Transfer(other, size, true);
+                }
+
+
+            };
+
+
+
+        }
+        
+
+
+
+
+
+
+
         
         struct FieldData
         {
@@ -1341,7 +1624,6 @@ namespace LEX::Test
         };
 
 
-
         //The gist of this object is that I want it to work in 3 parts.
         //The LockID, the LockHandle, and the LockManager
         //-The LockID functions as a way to detect if there's already an active thread
@@ -1353,25 +1635,57 @@ namespace LEX::Test
         //  as well as the thing that tells us there's free space
         //-The manager takes these in through functions (not freeing stuff though, that role is given
         // through 
-        //template<StringLiteral Category>
-        struct LockID
+        //template<uint32_t Category>
+        struct LockIndex
         {
-            consteval size_t hash() const noexcept
+            friend class TestLockManager;
+            
+            ~LockIndex()
             {
-                return 0;
+                assert_if(id) {
+                    report::fault::critical("LockIndex destroyed before being released.");
+                }
             }
 
+
+
+            //TODO:Index is not allowed to die while it isn't 0
             
             //For once 0 will actually be a free space
-            std::atomic<uint8_t> id = 0;
+            mutable std::atomic<uint8_t> id = 0;
         };
 
 
         struct LockHandle
         {
-            LockID* id = nullptr;
-            size_t category = 0;
-            void(*dtor)(LockID*, size_t) = nullptr;
+            using Dtor = void(LockIndex*, size_t, uint8_t);
+
+            LockIndex* id = nullptr;
+            size_t hash = 0;
+            Dtor* dtor = nullptr;
+            uint8_t index = 0;
+
+            constexpr LockHandle() noexcept = default;
+
+            LockHandle(LockIndex* a1, size_t a2, Dtor* a3) noexcept : id{ a1 }, hash{ a2 }, dtor{ a3 }, index{ a1->id }
+            {
+
+            }
+
+            constexpr LockHandle(const LockHandle&) noexcept = default;
+            
+            LockHandle(LockHandle&& handle) noexcept : LockHandle{ (LockHandle&)handle }
+            {
+                handle.dtor = nullptr;
+            }
+
+
+            ~LockHandle()
+            {
+                if (dtor) {
+                    dtor(id, hash, index);
+                }
+            }
         };
 
 
@@ -1381,6 +1695,7 @@ namespace LEX::Test
             uint8_t index{};
             uint8_t left = 0;
             uint8_t right = 0;
+            bool ownerDeleted = false;//If the owner deletes itself early PushNextEntry will return false, preventing any interaction with the lockID
             std::recursive_mutex mutex;
 
 
@@ -1388,6 +1703,20 @@ namespace LEX::Test
             {
                 return left ? left : right;
             }
+            LockEntry() = default;
+
+            void SetIndex(uint8_t i)
+            {
+                index = i;
+
+                if (index) {
+                    left = index - 1;
+                }
+                else if (index < 255) {
+                    right = index + 1;
+                }
+            }
+
         };
 
         using Mutex = std::recursive_mutex;
@@ -1395,138 +1724,251 @@ namespace LEX::Test
         struct TestLockManager
         {
 
-            inline static LockEntry* locks = nullptr;
-            inline static uint8_t size = 0;
-
-            inline static uint8_t nextEntry = 1;
-
-            inline static std::mutex mutex;
-            
-            //might want a hash
-            inline static std::unordered_map <std::thread::id, LockEntry*> activeLocks;
-
-            static void PushNextEntry(uint8_t id)
+            static void DestructLockImpl(LockIndex* lock)
             {
-                std::lock_guard guard{ mutex };
 
-                activeLocks.erase(std::this_thread::get_id());
-                auto& entry = locks[id];
-                entry.thread = std::thread::id{};
-                entry.mutex.unlock();
-
-                //This will handle the unlock too
-                
-                auto old_index = nextEntry;
-                
-
-
-                auto& self = locks[nextEntry];
-                
-                locks[self.left].right = id;
-                locks[self.right].left = id;
-                
-                nextEntry = id;
-
-
-                if (!old_index) {
-                    locks[0].mutex.unlock();
-                }
-            }
-
-            static uint8_t PopNextEntry()
-            {
-                if (!nextEntry) {
-                    std::lock_guard guard{ mutex };
-                }
-
-                std::lock_guard guard{ mutex };
-
-                uint8_t result = nextEntry;
-
-
-                auto& self = locks[nextEntry];
-                
-                locks[self.left].right = self.right;
-                locks[self.right].left = self.left;
-
-                nextEntry = self.GetNext();
-                //This should prep the next entry, if the next entry is unavailable but we have a valid,
-                // next entry, it will lock the core lock. If next is valid and we've reached this point
-                // that is an assert failure.
-                return result;
-            }
-
-            static LockEntry* GetLockEntry()
-            {
-                std::lock_guard guard{ mutex };
-
-                auto it = activeLocks.find(std::this_thread::get_id());
-                auto end = activeLocks.end();
-                if (it != end) {
-                    return it->second;
-                }
-
-                return nullptr;
-            }
-
-
-            static void DestructLock(LockID* lock, size_t hash)
-            {
                 lock->id = 0;
+
+            }
+
+            static void DestructLock(LockIndex* lock, size_t hash, uint8_t index)
+            {
+
+                auto it = categories.find(hash);
                 
-            }
+                assert_if (categories.end() == it) {
+                    
+                }
 
-            static void DeactivateLock(LockID* lock, size_t hash)
-            {
-                PushNextEntry(lock->id);
-                return DestructLock(lock, hash);
-
-            }
-
-
-
-
-
-            //Need a function for for setting an active lock and freeing it.
-            // I don't want to run into deadlocking issues.
-
-            //Requires lock
-            static void RegisterLock(LockID& lock, uint8_t id)
-            {
-                //std::lock_guard guard{ mutex };
-
-                lock.id = id;
-                locks[id].mutex.try_lock();
-                locks[lock.id].thread = std::this_thread::get_id();;
+                if (it->second.IsOwnerDeleted(index) == false)
+                    DestructLockImpl(lock);
 
             }
 
-            static LockHandle HandleLock(LockID& lock, size_t hash)
+            static void DeactivateLock(LockIndex* lock, size_t hash, uint8_t index)
             {
-                
-                auto thread_id = std::this_thread::get_id();
 
-                if (lock.id) {
-                    if (thread_id != locks[lock.id].thread) {
-                        //Already locked elsewhere and we own it so we 
-                        return LockHandle{};
+                auto it = categories.find(hash);
+
+                assert_if(categories.end() == it) {
+
+                }
+
+                if (it->second.PushNextEntry(index) == true)
+                    DestructLockImpl(lock);
+            }
+
+
+            
+
+            struct LockSet
+            {
+                static constexpr uint8_t lockCount = 20;
+
+                std::unique_ptr<LockEntry[]> locks = nullptr;
+                uint8_t size = 0;
+                uint8_t nextEntry = 1;
+
+                std::mutex mutex;
+                std::unordered_map <std::thread::id, LockEntry*> activeLocks;
+
+                LockSet()
+                {
+                    AllocateLocks(lockCount);
+                }
+
+
+                void AllocateLocks(uint8_t count)
+                {
+                    count++;
+                    
+                    locks.reset(new LockEntry[count]);
+
+                    for (uint8_t i = 0; i < count; i++){
+                        locks[i].SetIndex(i);
+                    }
+                }
+
+
+                bool PushNextEntry(uint8_t id)
+                {
+                    std::lock_guard guard{ mutex };
+
+                    activeLocks.erase(std::this_thread::get_id());
+                    auto& entry = locks[id];
+                    entry.thread = std::thread::id{};
+                    entry.mutex.unlock();
+
+                    bool deleted = std::exchange(entry.ownerDeleted, false);
+
+                    //This will handle the unlock too
+
+                    auto old_index = nextEntry;
+
+
+
+                    auto& self = locks[nextEntry];
+
+                    locks[self.left].right = id;
+                    locks[self.right].left = id;
+
+                    
+
+                    nextEntry = id;
+
+
+                    if (!old_index) {
+                        locks[0].mutex.unlock();
                     }
 
-                    std::lock_guard guard{ locks[lock.id].mutex };
+                    return !deleted;
                 }
 
-                if (LockEntry* entry = GetLockEntry()) {
-                    RegisterLock(lock, entry->index);
-                    return LockHandle{ &lock, hash, DestructLock };
+                uint8_t PopNextEntry()
+                {
+                    if (!nextEntry) {
+                        std::lock_guard guard{ mutex };
+                    }
+
+                    std::lock_guard guard{ mutex };
+
+                    uint8_t result = nextEntry;
+
+
+                    auto& self = locks[nextEntry];
+
+                    locks[self.left].right = self.right;
+                    locks[self.right].left = self.left;
+
+                    nextEntry = self.GetNext();
+                    //This should prep the next entry, if the next entry is unavailable but we have a valid,
+                    // next entry, it will lock the core lock. If next is valid and we've reached this point
+                    // that is an assert failure.
+                    return result;
                 }
 
-                RegisterLock(lock, PopNextEntry());
+                LockEntry* GetLockEntry()
+                {
+                    std::lock_guard guard{ mutex };
 
-                return LockHandle{ &lock, hash, DeactivateLock };
+                    auto it = activeLocks.find(std::this_thread::get_id());
+                    auto end = activeLocks.end();
+                    if (it != end) {
+                        return it->second;
+                    }
+
+                    return nullptr;
+                }
+
+
+
+
+
+
+
+                //Need a function for for setting an active lock and freeing it.
+                // I don't want to run into deadlocking issues.
+
+                //Requires lock
+                void RegisterLock(LockIndex& lock, uint8_t id)
+                {
+                    //std::lock_guard guard{ mutex };
+
+                    lock.id = id;
+                    locks[id].mutex.lock();
+                    locks[lock.id].thread = std::this_thread::get_id();;
+
+                }
+
+                bool IsOwnerDeleted(uint8_t index)
+                {
+                    return locks[index].ownerDeleted;
+                }
+
+                void DestroyLock(LockIndex& lock, size_t hash)
+                {
+                    locks[lock.id].ownerDeleted = true;
+                    lock.id = 0;;
+                }
+
+                LockHandle HandleLock(LockIndex& lock, size_t hash)
+                {
+                    if (lock.id) {
+                        if (std::this_thread::get_id() != locks[lock.id].thread) {
+                            //Already locked elsewhere and we own it so we 
+                            return LockHandle{};
+                        }
+
+                        std::lock_guard guard{ locks[lock.id].mutex };
+                    }
+
+                    if (LockEntry* entry = GetLockEntry()) {
+                        RegisterLock(lock, entry->index);
+                        return LockHandle{ &lock, hash, DestructLock };
+                    }
+
+                    RegisterLock(lock, PopNextEntry());
+
+                    return LockHandle{ &lock, hash, DeactivateLock };
+                }
+            };
+
+
+
+            inline static std::unordered_map<size_t, LockSet> categories;
+
+            inline static std::mutex mutex;
+
+            static LockSet& GetLockSet(size_t hash)
+            {
+                std::lock_guard guard{ mutex };
+
+                return categories[hash];
+            }
+
+
+            static void DestroyLock(LockIndex& lock, size_t hash)
+            {
+                LockSet& set = GetLockSet(hash);
+
+            }
+
+            static LockHandle HandleLock(LockIndex& lock, size_t hash)
+            {
+                LockSet& set = GetLockSet(hash);
+                return set.HandleLock(lock, hash);
             }
         };
 
+        template<uint32_t I>
+        struct LockID : public LockIndex
+        {
+            static constexpr uint32_t CODE = std::byteswap(I);
+            //static constexpr char name[5]{}
 
+
+            constexpr size_t hash() const noexcept
+            {
+                return CODE;
+            }
+
+            LockHandle Lock() const
+            {
+                TestLockManager::HandleLock(*this, hash());
+            }
+
+
+            ~LockID()
+            {
+                //This prevents LockIndex from asserting if the lock is still active.
+                TestLockManager::DestroyLock(*this, hash());
+            }
+        };
+
+        void test_()
+        {
+            
+        }
 
         
         struct ScriptObject
@@ -1553,7 +1995,7 @@ namespace LEX::Test
 
             };
 
-            FieldData fieldList;
+            CollectibleData<RuntimeVariable> _fields;
 
             //I will only store RuntimeVariables on these, I believe the extra cost is worth it,
             // primarily to simplify access and 
@@ -1561,7 +2003,8 @@ namespace LEX::Test
             
             Flag flags = kNone;
             //Move access memory to be a thread local system
-            uint8_t bytes[3]{};
+            LockID<'SOBJ'> lock{};
+            uint8_t bytes[2]{};
             StateID stateID{};//If the state ID is invalid, this means it will use the main bind
 
 
@@ -1569,7 +2012,9 @@ namespace LEX::Test
 
             ScriptObject(TypeInfo* type) : _type{ type }
             {
-                fieldList.Create(type->GetFieldCount());
+
+                std::is_polymorphic_v<decltype(_fields)>;
+                _fields.Create(type->GetFieldCount());
             }
 
 
@@ -1577,19 +2022,43 @@ namespace LEX::Test
             {
                 if (HasFlag(Flag::kDestructed) == false) {
                     //Call destruct
+                    Destruct();
                 }
+
+                Revert();
             }
 
 
 
+        INTERNAL:
+            std::span<RuntimeVariable> fields(size_t offset = 0, size_t count = std::dynamic_extent)
+            {
+                std::span<RuntimeVariable> results = _fields.range(size());
+                
+                return results.subspan(offset, count);
+            }
 
 
 
+            void Destruct()
+            {
+                SetFlag(Flag::kDestructed, true);
+            }
+        public:
 
             constexpr bool HasFlag(Flag flag) const noexcept
             {
                 return flags & flag;
             }
+
+            void SetFlag(Flag flag, bool value) noexcept
+            {
+                if (value)
+                    flags |= flag;
+                else
+                    flags &= ~flag;
+            }
+            
 
 
             constexpr TypeInfo* type() const noexcept
@@ -1602,18 +2071,13 @@ namespace LEX::Test
             }
 
 
-            size_t size()
+            size_t size() const
             {
                 if (auto a_type = type()) {
                     return a_type->GetFieldCount();
                 }
 
                 return 0;
-            }
-
-            void Instantiate(TypeInfo* self)
-            {
-
             }
 
 
@@ -1647,21 +2111,16 @@ namespace LEX::Test
 
             void Revert()
             {
-                fieldList.Destroy();
+                _fields.Destroy(size(), [](RuntimeVariable& var) {var->SetCollected(); });
                 _type = nullptr;
-                //size = 0;
             }
 
             //This gets complicated with bind objects
             void Transfer(const ScriptObject& other)
             {
                 Revert();
+                _fields.Create(other.size());
                 _type = other._type;
-                //size = other.size;
-                //lhs.Create(other.size);
-                //lhs.Transfer(rhs.data, other.size);
-
-
             }
 
 
@@ -1683,7 +2142,9 @@ namespace LEX::Test
 
 
         };
+        REQUIRED_SIZE(ScriptObject, 0x18);
 
+        /*
         //Script object itself is carried by pointer, to prevent creation.
         template <>
         struct VariableType<ScriptObject*>
@@ -1708,24 +2169,7 @@ namespace LEX::Test
         template <>
         struct LEX::ObjectInfo<ScriptObject> : public QualifiedObjectInfo<ScriptObject>
         {
-            /*
-            template <specialization_of<std::vector> Vec>
-            static Array ToObject(const Vec& obj)
-            {
-                std::vector<Variable> buff;
-                buff.reserve(obj.size());
-                //const std::vector<void*> test;
-
-                //void* other = test[1];
-
-
-                std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
-
-
-                return Array{ buff };
-
-            }
-            //*/
+            
 
             TypeInfo* GetOverrideType(ObjectData& data) override
             {
@@ -1754,25 +2198,7 @@ namespace LEX::Test
                 return "ScriptObject()";
             }
 
-            /*
-            //This was mere test data
-            bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) override
-            {
-                auto func = [](std::string_view lit) -> Object
-                    {
 
-                        std::vector<Variable> result { std::string(lit)};
-                        return Array{ result };
-                        //No idea why this doesn't work
-                        //return ObjectTranslator<decltype(result)>{}(result);
-                    };
-
-
-                hash = std::hash<std::string_view>{}(literal);
-                ctor = func;
-                return true;
-            }
-            //*/
         };
 
 
@@ -1793,6 +2219,440 @@ namespace LEX::Test
                 
             }
         };
+        //*/
+
+
+        /// <summary>
+        /// A class that manages a heap allocated Variable, using the reference system to destroy it when no longer refered to.
+        /// </summary>
+        struct DetachedVariable
+        {
+            ~DetachedVariable() { Unhandle(); }
+
+
+            constexpr DetachedVariable() = default;
+        private:
+            DetachedVariable(Variable* var) : _var{ var }
+            {
+                _var->Inc();
+                _var->SetDetached();
+            }
+
+        public:
+
+            DetachedVariable(const Variable& var) : DetachedVariable{new Variable (var) } {}
+
+            DetachedVariable(Variable&& var) : DetachedVariable{ new Variable(std::move(var)) } {}
+
+
+
+            DetachedVariable(const DetachedVariable& other)
+            {
+                Transfer(other, true);
+            }
+
+
+            DetachedVariable(DetachedVariable&& other)
+            {
+                Transfer(other, false);
+            }
+
+
+            DetachedVariable& operator=(const DetachedVariable& other)
+            {
+                if (_var != other._var)
+                    Unhandle();
+
+                Transfer(other, true);
+                return *this;
+            }
+
+            DetachedVariable& operator=(DetachedVariable&& other)
+            {
+                if (_var != other._var)
+                    Unhandle();
+
+                Transfer(other, false);
+                return *this;
+            }
+
+            constexpr operator bool() const noexcept
+            {
+                return _var;
+            }
+
+            constexpr Variable* var() const noexcept
+            {
+                return _var;
+            }
+
+            Variable* operator->() noexcept
+            {
+                return _var;
+            }
+
+            const Variable* operator->() const noexcept
+            {
+                return _var;
+            }
+
+
+
+            void Clear()
+            {
+                Unhandle();
+                _var = nullptr;
+            }
+        private:
+            
+            void Transfer(const DetachedVariable& other, bool copy)
+            {
+                if (auto var = other._var)
+                {
+                    if (copy) {
+                        var->Inc();
+                    }
+                    else {
+                        other._var = nullptr;
+                    }
+
+                    _var = var;
+                }
+            }
+
+            void Unhandle()
+            {
+                if (_var) {
+                    _var->Dec();
+                }
+            }
+
+        private:
+
+            //This should be created the moment it comes into existence
+            mutable Variable* _var = nullptr;
+        };
+        REQUIRED_SIZE(DetachedVariable, 0x8);
+
+        struct RefVariable
+        {
+
+
+        public:
+
+
+            ~RefVariable() { Unhandle(); }
+
+        private:
+            RefVariable(const Variable* var) : _var{ unconst(var) }
+            {
+                _var->Inc();
+            }
+        public:
+
+            RefVariable(const std::reference_wrapper<Variable>& var) : RefVariable{ &var.get() } {}
+
+            RefVariable(const Variable& var) : RefVariable{ std::addressof(var) } {}
+
+
+
+            RefVariable(const RefVariable& other)
+            {
+                Transfer(other);
+            }
+
+
+
+            RefVariable& operator=(const RefVariable& other)
+            {
+                CheckUnhandle(other);
+
+                Transfer(other);
+                return *this;
+            }
+            constexpr operator bool() const noexcept
+            {
+                return _var;
+            }
+
+            constexpr Variable* get() const noexcept
+            {
+                return _var;
+            }
+
+            Variable* operator->() noexcept
+            {
+                return _var;
+            }
+
+            const Variable* operator->() const noexcept
+            {
+                return _var;
+            }
+
+
+
+            void Clear()
+            {
+                Unhandle();
+                _var = nullptr;
+            }
+        private:
+
+            void CheckUnhandle(const RefVariable& other)
+            {
+                if (_var != other._var)
+                    Unhandle();
+            }
+
+            void Transfer(const RefVariable& other)
+            {
+                if (_var = other._var){
+                    _var->Inc();
+                }
+            }
+
+            void Unhandle()
+            {
+                if (_var) {
+                    _var->Dec();
+                }
+            }
+
+        private:
+
+            //This should be created the moment it comes into existence
+            mutable Variable* _var = nullptr;
+        };
+        REQUIRED_SIZE(RefVariable, 0x8);
+
+
+        RefVariable detach(Variable&& var)
+        {
+            return RefVariable{ *new Variable{ ctrl::detached, std::move(var) } };
+        }
+
+        RefVariable detach(const Variable& var)
+        {
+            return RefVariable{ *new Variable{ ctrl::detached, var } };
+        }
+
+
+
+        namespace
+        {
+
+            struct IExternReference
+            {
+                enum
+                {
+                    kValue,
+                    kDelegate,
+                };
+
+
+                virtual ~IExternReference() = default;
+
+                virtual void Update(bool delegate) = 0;
+                
+                virtual Variable& GetDelegate() = 0;
+                const Variable& GetDelegate() const { return make_const(this)->GetDelegate(); }
+
+
+                void UpdateDelegate()
+                {
+                    Update(kDelegate);
+                }
+
+
+                void UpdateValue()
+                {
+                    Update(kValue);
+                }
+
+
+                size_t ModRefCount(bool inc = true) const
+                {
+                    size_t result = _refs += inc ? 1 : -1;
+
+                    assert(_refs >= 0);
+
+                    if (!_refs)
+                        delete this;
+
+                    return result;
+                }
+            private:
+                mutable std::atomic<intptr_t> _refs{};
+            };
+
+            /// <summary>
+            /// A class that represents an externally accessible variable
+            /// </summary>
+            struct ExternVariable
+            {
+                ~ExternVariable() { Unhandle(); }
+
+                ExternVariable(IExternReference* ref) : _ref{ ref }
+                {
+                    _ref->ModRefCount(true);
+                }
+
+
+
+                ExternVariable(const ExternVariable& other)
+                {
+                    Transfer(other, true);
+                }
+
+
+                ExternVariable(ExternVariable&& other)
+                {
+                    Transfer(other, false);
+                }
+
+
+                ExternVariable& operator=(const ExternVariable& other)
+                {
+                    if (_ref != other._ref)
+                        Unhandle();
+
+                    Transfer(other, true);
+                    return *this;
+                }
+
+                ExternVariable& operator=(ExternVariable&& other)
+                {
+                    if (_ref != other._ref)
+                        Unhandle();
+
+                    Transfer(other, false);
+                    return *this;
+                }
+
+                constexpr operator bool() const noexcept
+                {
+                    return _ref;
+                }
+
+                constexpr IExternReference* ref() const noexcept
+                {
+                    return _ref;
+                }
+
+                IExternReference* operator->() noexcept
+                {
+                    return _ref;
+                }
+
+                const IExternReference* operator->() const noexcept
+                {
+                    return _ref;
+                }
+
+
+
+                void Clear()
+                {
+                    Unhandle();
+                    _ref = nullptr;
+                }
+            private:
+
+                void Transfer(const ExternVariable& other, bool copy)
+                {
+                    if (auto ref = other._ref)
+                    {
+                        if (copy) {
+                            ref->ModRefCount(true);
+                        }
+                        else {
+                            other._ref = nullptr;
+                        }
+
+                        _ref = ref;
+                    }
+                }
+
+                void Unhandle()
+                {
+                    if (_ref) {
+                        _ref->ModRefCount(false);
+                    }
+                }
+
+            private:
+
+                //This should be created the moment it comes into existence
+                mutable IExternReference* _ref = nullptr;
+            };
+            REQUIRED_SIZE(DetachedVariable, 0x8);
+
+
+
+
+            struct NativeReferenceBase : public IExternReference
+            {
+
+
+            public:
+                Variable& GetDelegate() override { return _delegate; }
+
+
+            protected:
+                NativeReferenceBase(void* tar) : _target{ tar } {}
+ 
+
+                //I'm thinking that this only updates at the end, or when someone specifies they want to update it some how.
+
+                //Type must both be able to use unvariable and have be transferable into being a variable.
+                //Used to be VariableComponent only
+
+
+            protected:
+                void* _target = nullptr;
+                Variable _delegate{};
+            };
+
+            template <Assignable<Variable> T> requires(!std::derived_from<Unvariable<T>, LEX::detail::not_implemented>)
+                struct NativeReference : public NativeReferenceBase
+            {
+                ~NativeReference()
+                {
+                    UpdateDelegate();
+                }
+
+                explicit NativeReference(T& tar) : NativeReferenceBase{ std::addressof(tar) }
+                {
+                    //Is there an actual reason to do this right here?
+                    NativeReference::Update(true);
+                }
+
+
+
+                void Update(bool delegate) override
+                {
+                    T& dest = *reinterpret_cast<T*>(_target);
+
+                    if (delegate) {
+                        _delegate = dest;
+                    }
+                    else {
+                        //Here I would like some way to define equivalency so setting isn't required.
+                        dest = Unvariable<T>{}(std::addressof(_delegate));
+                    }
+                }
+
+
+            };
+
+
+            template<typename T>
+            ExternVariable make_extern(T& tar)
+            {
+                return ExternVariable{ new NativeReference<T> (tar) };
+            }
+        }
 
 
 
@@ -1860,13 +2720,13 @@ namespace LEX::Test
             private:
                 struct init
                 {
-                    _instance()
+                    init()
                     {
                         Base::InitDataType(Type);
                     }
                 };
 
-                inline static init _init = _init{};
+                inline static init _init = init{};
 
                 //This object will handle what -> and * translate to
 
@@ -1947,6 +2807,8 @@ namespace LEX::Test
 
 
 
+
+
         void MakeAttribute(TypeInfo* context)
         {
             AttributeType* type = nullptr;
@@ -1955,7 +2817,7 @@ namespace LEX::Test
 
             uintptr_t budget = (uintptr_t)type->GetFieldRange();
 
-            attribute->fieldList.Create((uint32_t)budget);
+            attribute->_fields.Create((uint32_t)budget);
 
             
             
@@ -1968,10 +2830,12 @@ namespace LEX::Test
                         size_t index = node.memberIndex;
                         size_t field_count = node.tree->GetFieldCount();
 
-                        auto begin = attribute->fieldList.data + index;
-                        auto end = begin + field_count;
+                        //auto begin = attribute->_fields.data() + index;
+                        //auto end = begin + field_count;
 
-                        std::span range{ begin , end };
+                        //std::span range{ begin , end };
+
+                        std::span range = attribute->fields(index, field_count);
 
                         for (int i = 0; i < field_count; budget--, i++)
                         {
