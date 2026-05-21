@@ -46,6 +46,8 @@ namespace LEX
 		None,
 		Defined = 1 << 0,       //Has the variable been successfully defined.
 		Detached = 1 << 1,		//If detached will destroy itself when it's flags hit 0
+		Collected = 1 << 2,		//If the variable is collected it means when it hits zero
+								//it signals garbage collection. Only active if it's been orphaned
 			//CreatedExtern = 1 << 1,     //Variable was created externally
 			//ChangedOnce = 1 << 2,   //Variable was changed once. Rarely unset.
 			//ChangedTwice = 1 << 3,  //If the variable was changed. Unset if being used in a reference function
@@ -90,7 +92,7 @@ namespace LEX
 			return flags & flag;
 		}
 
-		void SetFlag(VariableFlag flag, bool value)
+		void SetFlag(VariableFlag flag, bool value) const
 		{
 			if (value)
 				flags |= flag;
@@ -229,7 +231,15 @@ namespace LEX
 		}
 
 
+		void SetCollected() const
+		{
+			GetData().SetFlag(VariableFlag::Collected, true);
+		}
 
+		size_t GetRefCount() const
+		{
+			return GetData().refs;
+		}
 
 
 	
