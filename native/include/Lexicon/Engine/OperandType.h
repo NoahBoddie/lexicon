@@ -30,7 +30,7 @@ namespace LEX
 		Routine,
 		Total,
 
-
+		
 
 		
 		ArgumentIndex = 1 << 6,
@@ -39,5 +39,6 @@ namespace LEX
 		DynamicIndex = OperandType::ArgumentIndex | OperandType::VariableIndex | OperandType::ParameterIndex,
 
 		Invalid = OperandType::Total,
+		Review = OperandType::Total,
 	};
 }
