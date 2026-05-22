@@ -199,22 +199,17 @@ namespace LEX
 	public:
 
 
-		auto Inc() const
-		{
-			//These logs can be useful, but a bit much even with trace on. If I could make something with settings to turn them off and on
-			//logger::trace("inc {:X}", (uintptr_t)this);
-			return ++GetData().refs;
-		}
 
-		auto Dec() const
+
+		size_t ModRefCount(bool inc = true) const
 		{
 			auto& refs = GetData().refs;
-						
-			assert_if(!refs) {
+
+			assert_if(!refs && !inc) {
 				report::fault::critical("Decrementing refs below 0.");
 			}
-			auto result = --refs;
-			//logger::trace("dec {:X}", (uintptr_t)this);
+			
+			uint32_t result = (refs += inc ? 1 : -1);
 
 			if (!result) {
 				DecrementUpdate();
@@ -222,11 +217,7 @@ namespace LEX
 
 			return result;
 		}
-		//I'd like to use this
-		size_t ModRefCount(bool inc = true)
-		{
-			return 0;
-		}
+
 
 
 		void ClearData()
