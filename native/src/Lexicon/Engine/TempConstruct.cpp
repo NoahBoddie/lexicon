@@ -164,44 +164,61 @@ namespace LEX
 
 		static void Call(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
-			//This is old and I forget how it's done.
-
-
-			IFunction* itfc = a_lhs.Get<IFunction*>();
-
-			Function* func = itfc->GetFunction(runtime);
-
 			Differ count = a_rhs.GetDiffer(runtime);
-			
+
 			if (a_rhs.type() == OperandType::Value) {
-				//logger::debug("NEW COUNT {} - {} = {}", runtime->GetStackPointer(StackPointer::Argument), count, runtime->GetStackPointer(StackPointer::Argument) - count);
 				count = runtime->GetStackPointer(StackPointer::Argument) - count;
 			}
-			else
-			{
-				//logger::debug("NEW COUNT = {}", count);
-			}
-			
-			
 
 
-
-			
 			{//Needs to be scoped for now so args don't maintain references longer than they should
 				std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
 
+
+				get_switch (a_lhs.type())
+				{
+				case OperandType::Function:
+					if constexpr (1)
+					{
+						IFunction* itfc = a_lhs.Get<IFunction*>();
+						Function* func = itfc->GetFunction(runtime);
+						ret = func->Execute(args, runtime, nullptr);
+					}
+					break;
+
+				case OperandType::Routine:
+					if constexpr (1)
+					{
+						RoutineBase* routine = a_lhs.Get<RoutineBase*>();
+						Runtime inlined_runtime{ *routine, nullptr, args, runtime, runtime->PopAuxTemplate() };
+						ret = inlined_runtime.Run();
+					}
+					break;
+				
+				//case OperandType::Member:
+				//Not yet implemented
+
+				default:
+					report::fault::critical("Unknown operand type '{}' detected in call.", magic_enum::enum_name(switch_value));
+					break;
+				}
+
+
+				IFunction* itfc = a_lhs.Get<IFunction*>();
+
+				Function* func = itfc->GetFunction(runtime);
+
+
 				ret = func->Execute(args, runtime, nullptr);
 			}
-			//I may actually just include the decrement in here myself.
+			
 
-			if (count) {//Only needs to do this if it had arguments. Handles reference snags basically.
-				runtime->AdjustStackPointer(StackPointer::Argument, -static_cast<int64_t>(count));
-				
-				//auto& arg_var = runtime->GetArgument(runtime->GetStackPointer(StackPointer::Argument) - count);
-				//if (arg_var.IsRuntimeRef() == true)//Ideally, all call stuff is a reference. Im just checking 
-				//	arg_var.Clear();
+			if (count > 0) {//Only needs to do this if it had arguments. Handles reference snags basically.
+				runtime->AdjustStackPointer(StackPointer::Argument, -count);
 			}
 		}
+
+
 
 
 		static void AdjustOffset(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
@@ -507,6 +524,16 @@ namespace LEX
 			//This is going to have to have an official function to handle this
 			runtime->_flags.Set(RuntimeFlag::RetBit, true);
 		}
+
+
+		static void InlineRet(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType type, Runtime* runtime)
+		{
+			runtime->AdjustStackPointer(StackPointer::Argument, a_rhs.GetDiffer(runtime));
+
+			runtime->AdjustStackPointer(StackPointer::Runtime, a_lhs.GetDiffer(runtime));
+		}
+
+
 
 
 
@@ -2059,7 +2086,7 @@ namespace LEX
 			//Instruction ret_op{ InstructionType::Return };
 
 			//This part should probably say what left and right situation should be on display.
-			compiler->EmplaceInstruction(InstructionType::Return);
+			compiler->EmplaceReturn();
 		}
 
 

@@ -182,6 +182,17 @@ namespace LEX
 		}
 
 
+		Instruction& EmplaceReturn()
+		{
+			//This basically gets the currently loaded var count at that runtime location so that
+			// if the function gets inlined we know how to undo what we load.
+			return EmplaceInstruction(
+				InstructionType::Return, 
+				Operand{0, OperandType::Differ}, 
+				Operand{ GetVarCount(), OperandType::Differ});
+		}
+
+
 		void PushInstruction(SyntaxRecord& record, Instruction instruct)
 		{
 			auto temp = ReadyRecord(record);
@@ -247,6 +258,12 @@ namespace LEX
 		size_t GetArgCount() const
 		{
 			return argCount[0];
+		}
+
+
+		size_t GetVarCount() const
+		{
+			return varCount[0];
 		}
 
 		void ShiftArgCount(int64_t i)

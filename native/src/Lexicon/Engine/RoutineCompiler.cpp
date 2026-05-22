@@ -231,7 +231,7 @@ namespace LEX
 					auto temp = implicitReturn ? ReadyRecord(ParseUtility::GetFrontExpression(funcRecord)) : ReadyNoRecord();
 					//<KILL> _current = &operations;//Doing this is stupid and I hate it but fuck it whatever.
 					CompUtil::PrepareReturn(this, return_policy, result);
-					EmplaceInstruction(InstructionType::Return);
+					EmplaceReturn();
 				}
 
 

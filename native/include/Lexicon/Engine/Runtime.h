@@ -282,8 +282,15 @@ namespace LEX
 			return _data.GetParamCapacity() + variadicCount;
 		}
 
+
+		/// <summary>
+		/// Gets the length of the variadic section + the space between the param count and the index
+		/// </summary>
+		/// <param name="index">Where it should measure the extra variadic space. Will usually either be the index of the vard statement, or the beginning of params</param>
+		/// <returns>length of variadic arguments</returns>
 		size_t GetVariadicLength(size_t index) const
 		{
+			//It's minus 1 for the beginning of the variadic length.
 			return (GetParameterCount() - index - 1) + variadicCount;
 		}
 
@@ -336,6 +343,23 @@ namespace LEX
 		void* _cxxStackIndex = nullptr;
 
 		ITemplateBody* _tempBody = nullptr;
+		
+		//Used for member pointer specialization, or for inline calls that have no body of their own.
+		ITemplateBody* _auxTemp = nullptr;
+
+
+		ITemplateBody* PushAuxTemplate(ITemplateBody* body)
+		{
+			auto result = _auxTemp;
+			_auxTemp = body;
+			return result;
+		}
+
+		ITemplateBody* PopAuxTemplate()
+		{
+			return PushAuxTemplate(nullptr);
+		}
+
 
 		size_t AdjustStackPointer(StackPointer type, int64_t step)
 		{
