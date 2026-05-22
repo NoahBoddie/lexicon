@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Lexicon/Variable.h"
+#include "Lexicon/RefVariable.h"
 #include "Lexicon/NativeReference.h"
-
 namespace LEX
 {
 	using VariableRef = std::reference_wrapper<Variable>;
@@ -11,8 +11,9 @@ namespace LEX
 	using RunValue = std::variant<
 		Void, 
 		Variable, 
-		VariableRef,
-		DetachedRef,
+		RefVariable,
+		//VariableRef,
+		//DetachedRef,
 		ExternalRef
 	>;
 
@@ -56,7 +57,8 @@ namespace LEX
 			kInvalid,
 			kVariable,
 			kReference,
-			kDetached,
+			//kReference,
+			//kDetached,
 			kExternal,
 		};
 
@@ -110,7 +112,7 @@ namespace LEX
 			switch (a_this.index())
 			{
 			case kReference: 
-				return std::addressof(std::get<_Ref>(a_this).get());
+				return std::get<RefVariable>(a_this).get();
 
 
 			default:
@@ -152,7 +154,7 @@ namespace LEX
 			if (index() == kReference)
 			{
 				//if (!Refs())
-				GetRefVariable()->Dec();
+				GetRefVariable()->ModRefCount(false);
 			}
 			else if (index() == kVariable)
 			{
@@ -171,7 +173,7 @@ namespace LEX
 			{
 				//auto* help = other->GetRefHelper();
 				//if (!other->IsRefNegated())
-				var.Inc();
+				var.ModRefCount(true);
 			}
 			
 
@@ -362,13 +364,13 @@ namespace LEX
 		RuntimeVariable(RuntimeVariable&& other) = default;
 		
 		RuntimeVariable(const VariableRef& other) :
-			Alias{ other },
+			Alias{ std::in_place_type<RefVariable>, other },
 			RunDataHelper{ other }
 		{
 		}
 
 		RuntimeVariable(VariableRef&& other) :
-			Alias{ other },
+			Alias{ std::in_place_type<RefVariable>, other },
 			RunDataHelper{ other }
 		{
 		}
@@ -425,21 +427,6 @@ namespace LEX
 
 		using VariableRef = std::reference_wrapper<Variable>;
 
-		/*
-		//Maybe use later?
-		template <typename Self>
-		decltype(auto) Ref(this Self&& self) {
-			get_switch(self.index()) {
-			default:
-				report::runtime::critical("RuntimeVariable is undefined and cannot be accessed. (val = {})", switch_value);
-				throw nullptr;
-			case 1:
-				return std::get<Variable>(self);
-			case 2:
-				return std::get<VariableRef>(self);
-			}
-		}
-		/*/
 
 		const Variable& Ref() const
 		{
@@ -452,10 +439,8 @@ namespace LEX
 				return std::get<Variable>(*this);
 
 			case kReference:
-				return std::get<VariableRef>(*this);
+				return std::get<RefVariable>(*this);
 
-			case kDetached:
-				return *std::get<DetachedRef>(*this);
 
 			case kExternal:
 				return std::get<ExternalRef>(*this)->Ref();
@@ -542,7 +527,7 @@ namespace LEX
 				//bool is_ref = IsRuntimeRef();
 
 				//auto& ref = Ref();
-				*this = std::make_shared<Variable>(std::move(Ref()));
+				*this = detach(std::move(Ref()));
 				
 				//I don't think this is necessary, but I'm keeping it alive for now
 				//if (is_ref) {
@@ -608,7 +593,7 @@ namespace LEX
 
 		bool IsEmpty() const { return !index(); }
 
-		bool IsDetachedRef() const { return index() == (int)kDetached; }
+		bool IsDetachedRef() const { return index() == (int)kReference && Ref().GetDetached(); }
 
 
 
