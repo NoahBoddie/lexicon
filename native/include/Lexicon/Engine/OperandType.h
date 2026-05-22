@@ -24,12 +24,11 @@ namespace LEX
 		Converter,	//A conversion function. Used to turn a runtime variable into another one.
 		Callable,	//This is a callable unit, it comes specialized and may not actually be a function with a routine.
 		Member,
-		Review,
 		//Target,	//Target was when arguments and such where 2 seperate things.
 		Literal,
 		Template,	//Stores an ITemplatePart
+		Routine,
 		Total,
-
 
 
 
@@ -39,9 +38,6 @@ namespace LEX
 		ParameterIndex = 3 << 6,
 		DynamicIndex = OperandType::ArgumentIndex | OperandType::VariableIndex | OperandType::ParameterIndex,
 
-		UsesValue = 1 << 7,	//If a given type uses a value, it means that in an attempt to get an index or differ, it pulls a variable
-		IndexValue = OperandType::Index | UsesValue,
-		DifferValue = OperandType::Differ | UsesValue,
 		Invalid = OperandType::Total,
 	};
 }

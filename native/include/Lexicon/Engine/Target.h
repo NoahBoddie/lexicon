@@ -29,6 +29,8 @@ namespace LEX
 	};
 
 
+	struct RoutineBase;
+
 	struct IGlobal;
 
 	struct Target
@@ -50,6 +52,7 @@ namespace LEX
 		constexpr Target(IFunction* arg) : func{ arg } {}
 		constexpr Target(Converter_ arg) : convert{ arg } {}
 		constexpr Target(ICallableUnit* arg) : call{ arg } {}
+		constexpr Target(RoutineBase* arg) : routine{ arg } {}
 		constexpr Target(MemberPointer arg) : member{ arg } {}
 	
 		template <OperandType Type, typename T>
@@ -71,6 +74,15 @@ namespace LEX
 			out = func;
 			return true;
 		}
+
+
+		template <>
+		bool Get<OperandType::Routine, RoutineBase*>(RoutineBase*& out)
+		{
+			out = routine;
+			return true;
+		}
+
 
 		template <>
 		bool Get<OperandType::Converter, Converter_>(Converter_& out)
@@ -200,6 +212,7 @@ namespace LEX
 			IFunction* func;
 			Converter_ convert;
 			ICallableUnit* call;
+			RoutineBase* routine;
 			MemberPointer member;
 
 		};
