@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "Lexicon/InstanceID.h"
 
 namespace LEX
 {
@@ -8,7 +8,6 @@ namespace LEX
 	using TypeOffset = uint32_t;
 
 
-	constexpr InstanceID nil_instance_id = -1;
 
 	struct TypeIdentity
 	{
@@ -25,6 +24,8 @@ namespace LEX
 		inline static uint32_t trivalEnd = 2000;
 	};
 
+
+	inline uint32_t nil_instance_id = -1;
 
 	struct TypeID
 	{

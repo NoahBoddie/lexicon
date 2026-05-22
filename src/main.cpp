@@ -1481,7 +1481,7 @@ namespace LEX::Test
 
         struct BindID
         {
-            InstanceID id = nil_instance_id;
+            InstanceID id{};
             BindCode code = nil_bind_code;
         };
         
@@ -2051,6 +2051,7 @@ namespace LEX::Test
         REQUIRED_SIZE(ScriptObject, 0x18);
 
         /*
+        //DO not delete, this is simply in the wrong namespace to be valid right now.
         //Script object itself is carried by pointer, to prevent creation.
         template <>
         struct VariableType<ScriptObject*>
@@ -2127,118 +2128,166 @@ namespace LEX::Test
         };
         //*/
 
-
-        /// <summary>
-        /// A class that manages a heap allocated Variable, using the reference system to destroy it when no longer refered to.
-        /// </summary>
-        struct DetachedVariable
+        /*   
+        struct Array
         {
-            ~DetachedVariable() { Unhandle(); }
-
-
-            constexpr DetachedVariable() = default;
-        private:
-            DetachedVariable(Variable* var) : _var{ var }
-            {
-                _var->ModRefCount();
-                _var->SetDetached();
-            }
+        public:
 
         public:
 
-            DetachedVariable(const Variable& var) : DetachedVariable{new Variable (var) } {}
 
-            DetachedVariable(Variable&& var) : DetachedVariable{ new Variable(std::move(var)) } {}
+            CollectibleData<RefVariable> _data;
+
+            uint32_t _size = 0;
+            InstanceID _typeInstance{};
 
 
+            //I will only store RuntimeVariables on these, I believe the extra cost is worth it,
+            // primarily to simplify access and 
 
-            DetachedVariable(const DetachedVariable& other)
+
+            Flag flags = kNone;
+            //Move access memory to be a thread local system
+            LockID<'SOBJ'> lock{};
+            uint8_t bytes[2]{};
+            StateID stateID{};//If the state ID is invalid, this means it will use the main bind
+
+
+        public:
+
+            ScriptObject(TypeInfo* type) : _type{ type }
             {
-                Transfer(other, true);
+                _fields.Create(type->GetFieldCount());
             }
 
 
-            DetachedVariable(DetachedVariable&& other)
+            ~ScriptObject()
             {
-                Transfer(other, false);
-            }
-
-
-            DetachedVariable& operator=(const DetachedVariable& other)
-            {
-                if (_var != other._var)
-                    Unhandle();
-
-                Transfer(other, true);
-                return *this;
-            }
-
-            DetachedVariable& operator=(DetachedVariable&& other)
-            {
-                if (_var != other._var)
-                    Unhandle();
-
-                Transfer(other, false);
-                return *this;
-            }
-
-            constexpr operator bool() const noexcept
-            {
-                return _var;
-            }
-
-            constexpr Variable* var() const noexcept
-            {
-                return _var;
-            }
-
-            Variable* operator->() noexcept
-            {
-                return _var;
-            }
-
-            const Variable* operator->() const noexcept
-            {
-                return _var;
-            }
-
-
-
-            void Clear()
-            {
-                Unhandle();
-                _var = nullptr;
-            }
-        private:
-            
-            void Transfer(const DetachedVariable& other, bool copy)
-            {
-                if (auto var = other._var)
-                {
-                    if (copy) {
-                        var->ModRefCount();
-                    }
-                    else {
-                        other._var = nullptr;
-                    }
-
-                    _var = var;
+                if (HasFlag(Flag::kDestructed) == false) {
+                    //Call destruct
+                    Destruct();
                 }
+
+
             }
 
-            void Unhandle()
+
+
+        INTERNAL:
+            std::span<RuntimeVariable> fields(size_t offset = 0, size_t count = std::dynamic_extent)
             {
-                if (_var) {
-                    _var->ModRefCount(false);
-                }
+                std::span<RuntimeVariable> results = _fields.range(size());
+
+                return results.subspan(offset, count);
             }
 
-        private:
 
-            //This should be created the moment it comes into existence
-            mutable Variable* _var = nullptr;
+
+            void Destruct()
+            {
+                SetFlag(Flag::kDestructed, true);
+            }
+        public:
+
+            constexpr bool HasFlag(Flag flag) const noexcept
+            {
+                return flags & flag;
+            }
+
+            void SetFlag(Flag flag, bool value) noexcept
+            {
+                if (value)
+                    flags |= flag;
+                else
+                    flags &= ~flag;
+            }
+
+
+
+            constexpr TypeInfo* type() const noexcept
+            {
+
+                if (HasFlag(Flag::kHasBindData) == true)
+                    return _entry->type;
+                else
+                    return _type;
+            }
+
+
+            size_t size() const
+            {
+                if (auto a_type = type()) {
+                    return a_type->GetFieldCount();
+                }
+
+                return 0;
+            }
+
+
+
+            bool GetMethod(const std::string_view& name, IFunction*& out)
+            {
+                return {};
+            }
+
+            bool GetMethod(MemberPointer member, IFunction*& out)
+            {
+                return {};
+            }
+
+
+
+            bool GetField(const std::string_view& name, RuntimeVariable& out)
+            {
+                return {};
+            }
+
+            bool GetField(MemberPointer member, RuntimeVariable& out)
+            {
+                return {};
+            }
+
+            bool IsRuntimeType() const
+            {
+                return false;
+            }
+
+            void Revert()
+            {
+                _fields.Destroy();
+                _type = nullptr;
+            }
+
+            //This gets complicated with bind objects
+            void Transfer(const ScriptObject& other)
+            {
+                Revert();
+                _fields.Create(other.size());
+                _type = other._type;
+            }
+
+
+            //IDEA
+            //Instead of the bind id being on everything, bind id will be used for stateIDs. Nah. 
+            // this is a bad idea. I really would like to make some use out of this space though.
+
+
+
+
+
+            ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
+
+
+            //I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
+            // switch what type it's percieved as.
+
+            //This might make it a pain however.
+
+
         };
-        REQUIRED_SIZE(DetachedVariable, 0x8);
+        REQUIRED_SIZE(ScriptObject, 0x1);
+        //*/
+
 
 
 
@@ -2389,7 +2438,7 @@ namespace LEX::Test
                 //This should be created the moment it comes into existence
                 mutable IExternReference* _ref = nullptr;
             };
-            REQUIRED_SIZE(DetachedVariable, 0x8);
+            REQUIRED_SIZE(ExternVariable, 0x8);
 
 
 

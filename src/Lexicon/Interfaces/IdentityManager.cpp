@@ -313,7 +313,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 
 	ITypeInfo* IdentityManager::GetTypeFromInstanceID(InstanceID id)
 	{
-		assert_if (instanceList.size() <= id) {
+		assert_if (instanceList.size() <= id.value) {
 			return nullptr;
 		}
 

@@ -5,11 +5,11 @@ namespace LEX
     struct Function;
     struct ITypeInfo;
     struct MemberData;
+    struct InstanceID;
     struct InheritNode;
     struct OverloadCode;
     struct MemberPointer;
     struct ITemplateBody;
-
     struct IHierarchyTree
     {
         virtual std::string_view GetName() const = 0;

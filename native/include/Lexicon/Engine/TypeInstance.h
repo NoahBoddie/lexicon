@@ -14,7 +14,7 @@ namespace LEX
 
 		InstanceID GetInstanceID() const override
 		{
-			if (_instanceID == nil_instance_id) {
+			if (_instanceID.IsValid() == false) {
 				IdentityManager::instance->GenerateInstanceID(unconst(this));
 			}
 			return _instanceID;
@@ -23,7 +23,7 @@ namespace LEX
 
 		void SetInstanceID(InstanceID id, Badge<IdentityManager>) override
 		{
-			assert_if(_instanceID != nil_instance_id) {
+			assert_if(_instanceID.IsValid() == true) {
 				report::warn("instance id already assigned");
 				return;
 			}
@@ -31,7 +31,7 @@ namespace LEX
 			_instanceID = id;
 		}
 
-		mutable InstanceID _instanceID = nil_instance_id;
+		mutable InstanceID _instanceID{};
 
 
 	};
