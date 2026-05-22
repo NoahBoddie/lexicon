@@ -174,7 +174,6 @@ namespace LEX
 			{//Needs to be scoped for now so args don't maintain references longer than they should
 				std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
 
-
 				get_switch (a_lhs.type())
 				{
 				case OperandType::Function:
@@ -202,14 +201,6 @@ namespace LEX
 					report::fault::critical("Unknown operand type '{}' detected in call.", magic_enum::enum_name(switch_value));
 					break;
 				}
-
-
-				IFunction* itfc = a_lhs.Get<IFunction*>();
-
-				Function* func = itfc->GetFunction(runtime);
-
-
-				ret = func->Execute(args, runtime, nullptr);
 			}
 			
 
