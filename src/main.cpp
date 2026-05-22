@@ -1358,21 +1358,26 @@ namespace LEX::Test
             };
 
 
+            void TestRange()
+            {
+                auto test = std::ranges::iota_view{ 1, 10 };
+            }
+
+
 
             //Instead of garbage collection I could keep these via custom pointer and ditch the collection
             // saving, that way I don't have to maintain the entire collection of variables. This can 
             // be useful on particularly large objects, or particularly large arrays that still have data
             // referenced in them.
 
-            template <typename T1, typename T2 = ref_counter>
+            template <typename T>
             struct CollectibleData
             {
                 static constexpr uintptr_t k_destructedPtr = (uintptr_t)-1;
 
-                using element_type = T1;
+                using element_type = T;
                 using pointer_type = element_type*;
 
-                using counter_type = T2;
             private:
                 union
                 {
@@ -1385,24 +1390,16 @@ namespace LEX::Test
             public:
                 ~CollectibleData()
                 {
-                    assert_if(IsDataDestroyed() == false) {
-                        report::fault::critical("Failed to destruct CollectibleData, innate data not destroyed");
-                    }
+                    Destroy();
+                    //assert_if(IsDataDestroyed() == false) {
+                    //    report::fault::critical("Failed to destruct CollectibleData, innate data not destroyed");
+                    //}
                 }
 
-
-                bool IsDataDestroyed() const
-                {
-                    return _raw == k_destructedPtr;
-                }
 
                 element_type* data()
                 {
-                    if (IsDataDestroyed() == false) {
-                        return _data;
-                    }
-
-                    return nullptr;
+                    return _data;
                 }
 
                 const element_type* data() const
@@ -1421,50 +1418,17 @@ namespace LEX::Test
 
 
 
-                bool TryPreserve(std::span<element_type> range, std::function<void(element_type&)> func)
-                {
-                    counter_type counter{};
-
-                    bool preserve = false;
-
-                    for (auto& it : range) {
-                        if (counter(it) != 0) {
-                            preserve = true;
-                            break;
-                        }
-                    }
-
-                    if (preserve) {
-                        if (func) {
-                            for (auto& var : range) {
-                                func(var);
-                            }
-                        }
-                        GarbageCollector::AddGarbage(std::make_unique<CollectionGarbage<T1, T2>>(range));
-                        _data = nullptr;
-                    }
-
-
-                    //Check if any of the data has references, and if so move them to garbage collection
-                    return preserve;
-                }
-
-                void Destroy(size_t size, std::function<void(element_type&)> func = nullptr)
+                void Destroy()
                 {
                     if (auto ptr = data()) {
-                        if (TryPreserve(std::span{ ptr, size }, func) == false) {
-                            delete[] ptr;
-                        }
-
-                        _raw = k_destructedPtr;
+                        delete[] ptr;
+                        _data = nullptr;
                     }
                 }
 
                 void Create(size_t size)
                 {
-                    assert_if(data() != nullptr) {
-                        report::fault::critical("CollectionData::data() was not empty when attempting to Create. Unknown size count can cause memory leak.");
-                    }
+                    Destroy();
 
                     _data = new element_type[size];
                 }
@@ -1505,67 +1469,6 @@ namespace LEX::Test
 
 
 
-
-
-        
-        struct FieldData
-        {
-            using T = RuntimeVariable;
-
-            T* data;
-
-            ~FieldData()
-            {
-                Destroy();
-            }
-
-            bool TryPreserve()
-            {
-                //Check if any of the data has references, and if so move them to garbage collection
-                return false;
-            }
-
-            void Destroy()
-            {
-                if (data) {
-                    if (TryPreserve() == false) {
-                        delete[] data;
-                        data = nullptr;
-                    }
-                }
-            }
-
-            void Create(uint32_t size)
-            {
-                Destroy();
-
-                data = new T[size];
-            }
-
-            void Transfer(T* other, uint32_t size, bool move = false)
-            {
-                for (int i = 0; i < size; i)
-                {
-                    if (move) {
-                        data[i] = std::move(other[i]);
-                    }
-                    else {
-                        data[i] = other[i];
-                    }
-                }
-            }
-
-            void Transfer(const T* other, uint32_t size)
-            {
-                return Transfer(unconst(other), size);
-            }
-
-
-            void Transfer(const void* other, uint32_t size)
-            {
-                //Shouldn't happen, this is just a dump overload.
-            }
-        };
 
 
 
@@ -2017,8 +1920,6 @@ namespace LEX::Test
 
             ScriptObject(TypeInfo* type) : _type{ type }
             {
-
-                std::is_polymorphic_v<decltype(_fields)>;
                 _fields.Create(type->GetFieldCount());
             }
 
@@ -2030,7 +1931,7 @@ namespace LEX::Test
                     Destruct();
                 }
 
-                Revert();
+
             }
 
 
@@ -2116,7 +2017,7 @@ namespace LEX::Test
 
             void Revert()
             {
-                _fields.Destroy(size(), [](RuntimeVariable& var) {var->SetCollected(); });
+                _fields.Destroy();
                 _type = nullptr;
             }
 
@@ -2713,9 +2614,9 @@ namespace LEX::Test
 
         void MakeAttribute(TypeInfo* context)
         {
-            AttributeType* type = nullptr;
+            AttributeType* type = (AttributeType*)0;
 
-            Attribute* attribute = nullptr;
+            Attribute* attribute = (Attribute*)0;
 
             uintptr_t budget = (uintptr_t)type->GetFieldRange();
 
@@ -2748,7 +2649,7 @@ namespace LEX::Test
                             auto real = type->GetTypeInfo(nullptr);
 
 
-                            range[i] = real->GetDefault();
+                            range[i] = detach(real->GetDefault());
                         }
                         
                     }
@@ -2840,9 +2741,12 @@ namespace LEX::Test
         }
         
 
-        void InlineRoutine(std::vector<Instruction>& instruction, RecordHolder* holder, RoutineBase* base)
+        void InlineRoutine(RoutineCompiler* compiler, std::vector<Instruction>& instruction, RecordHolder* holder, RoutineBase* base)
         {
-            
+            constexpr uintptr_t test1 = 5;
+
+            constexpr uintptr_t test2 = test1 - ((uintptr_t)0 - 6);
+
         }
     }
 }
