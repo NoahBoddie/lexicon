@@ -23,6 +23,9 @@ namespace LEX
 					return;
 				}
 
+				std::memcpy(&value, &i, 3);
+				return;
+
 				value[0] = (i & 0x0000FF);
 				value[1] = (i & 0x00FF00) << 8;
 				value[2] = (i & 0xFF0000) << 16;
@@ -33,6 +36,11 @@ namespace LEX
 				if (k_invalid == value) {
 					return -1;
 				}
+				uint32_t result = 0;
+
+				std::memcpy(&result, &value, 3);
+
+				return result;
 
 				return (value[0]) | (value[1] << 8) | (value[2] << 16);
 			}
