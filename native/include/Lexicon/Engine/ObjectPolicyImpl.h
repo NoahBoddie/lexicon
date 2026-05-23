@@ -326,7 +326,7 @@ namespace LEX
 				if (_left == _right)
 					_right = next_free;
 
-				logger::info("next free {}", next_free);
+				logger::debug("next free {}", next_free);
 				_left = next_free;
 			}
 			//TODO: Use a reference here, this constant accessing is annoying looking.
