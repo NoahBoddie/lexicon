@@ -14,7 +14,7 @@ namespace LEX
 
         ~RefVariable() { Unhandle(); }
 
-    private:
+    protected:
         RefVariable(const Variable* var) : _var{ unconst(var) }
         {
             _var->ModRefCount(true);
@@ -46,10 +46,26 @@ namespace LEX
             return _var;
         }
 
-        constexpr Variable* get() const noexcept
+        constexpr Variable* get() noexcept
         {
             return _var;
         }
+
+        constexpr const Variable* get() const noexcept
+        {
+            return _var;
+        }
+
+        constexpr Variable& ref() noexcept
+        {
+            return *get();
+        }
+
+        constexpr const Variable& ref() const noexcept
+        {
+            return *get();
+        }
+
 
         Variable* operator->() noexcept
         {
@@ -63,12 +79,12 @@ namespace LEX
 
         operator Variable&()
         {
-            return *_var;
+            return ref();
         }
 
         operator const Variable&() const
         {
-            return *_var;
+            return ref();
         }
 
 
@@ -99,7 +115,7 @@ namespace LEX
             }
         }
 
-    private:
+    protected:
 
         //This should be created the moment it comes into existence
         mutable Variable* _var = nullptr;
