@@ -540,7 +540,7 @@ namespace LEX
 
 		//This needs the ability to get a pointer of the given type as well, something that should be used often with pooling types.
 		template <has_object_info T>
-		const T& get() const
+		T& get()
 		{
 			//TODO: Object::get() has no guard rails at all. Please implement some.
 
@@ -568,9 +568,9 @@ namespace LEX
 		}
 
 		template <has_object_info T>
-		T& get()
+		const T& get() const
 		{
-			return const_cast<T&>(make_const(this)->get<T>());
+			return unconst(this)->get<T>();
 		}
 
 
