@@ -1396,16 +1396,29 @@ namespace LEX::Test
                     //}
                 }
 
+                CollectibleData() noexcept = default;
+                //Since these do not know their size they must be manually implemented
+                CollectibleData(const CollectibleData&) = delete;
+                CollectibleData(CollectibleData&& other) noexcept : 
+                    _data{ std::exchange(other._data, nullptr) }
+                {}
 
-                element_type* data()
+                //Pls make the operators, thx
+
+
+                element_type* data() noexcept
                 {
                     return _data;
                 }
 
-                const element_type* data() const
+                const element_type* data() const noexcept
                 {
                     return unconst(this)->data();
                 }
+
+
+                element_type& operator[](size_t i)noexcept { return _data[i]; }
+                const element_type& operator[](size_t i) const noexcept { return _data[i]; }
 
                 std::span<element_type> range(size_t size)
                 {
@@ -1430,7 +1443,13 @@ namespace LEX::Test
                 {
                     Destroy();
 
-                    _data = new element_type[size];
+                    if (size)
+                        _data = new element_type[size];
+                }
+
+                [[nodiscard]] pointer_type release()
+                {
+                    return std::exchange(_data, nullptr);
                 }
 
             private:
@@ -1446,7 +1465,7 @@ namespace LEX::Test
                         }
                     }
                 }
-            protected:
+            public:
                 void Copy(const element_type* other, size_t size)
                 {
                     Transfer(unconst(other), size, false);
@@ -1555,7 +1574,7 @@ namespace LEX::Test
                 }
             }
 
-
+            bool IsActive() const noexcept { return id; }
 
             //TODO:Index is not allowed to die while it isn't 0
             
@@ -1566,16 +1585,16 @@ namespace LEX::Test
 
         struct LockHandle
         {
-            using Dtor = void(LockIndex*, size_t, uint8_t);
+            using Dtor = void(const LockIndex*, size_t, uint8_t);
 
-            LockIndex* id = nullptr;
+            const LockIndex* id = nullptr;
             size_t hash = 0;
             Dtor* dtor = nullptr;
             uint8_t index = 0;
 
             constexpr LockHandle() noexcept = default;
 
-            LockHandle(LockIndex* a1, size_t a2, Dtor* a3) noexcept : id{ a1 }, hash{ a2 }, dtor{ a3 }, index{ a1->id }
+            LockHandle(const LockIndex* a1, size_t a2, Dtor* a3) noexcept : id{ a1 }, hash{ a2 }, dtor{ a3 }, index{ a1->id }
             {
 
             }
@@ -1632,14 +1651,14 @@ namespace LEX::Test
         struct TestLockManager
         {
 
-            static void DestructLockImpl(LockIndex* lock)
+            static void DestructLockImpl(const LockIndex* lock)
             {
 
                 lock->id = 0;
 
             }
 
-            static void DestructLock(LockIndex* lock, size_t hash, uint8_t index)
+            static void DestructLock(const LockIndex* lock, size_t hash, uint8_t index)
             {
 
                 auto it = categories.find(hash);
@@ -1653,7 +1672,7 @@ namespace LEX::Test
 
             }
 
-            static void DeactivateLock(LockIndex* lock, size_t hash, uint8_t index)
+            static void DeactivateLock(const LockIndex* lock, size_t hash, uint8_t index)
             {
 
                 auto it = categories.find(hash);
@@ -1778,7 +1797,7 @@ namespace LEX::Test
                 // I don't want to run into deadlocking issues.
 
                 //Requires lock
-                void RegisterLock(LockIndex& lock, uint8_t id)
+                void RegisterLock(const LockIndex& lock, uint8_t id)
                 {
                     //std::lock_guard guard{ mutex };
 
@@ -1793,13 +1812,13 @@ namespace LEX::Test
                     return locks[index].ownerDeleted;
                 }
 
-                void DestroyLock(LockIndex& lock, size_t hash)
+                void DestroyLock(const LockIndex& lock, size_t hash)
                 {
                     locks[lock.id].ownerDeleted = true;
-                    lock.id = 0;;
+                    lock.id = 0;
                 }
 
-                LockHandle HandleLock(LockIndex& lock, size_t hash)
+                LockHandle HandleLock(const LockIndex& lock, size_t hash)
                 {
                     if (lock.id) {
                         if (std::this_thread::get_id() != locks[lock.id].thread) {
@@ -1835,13 +1854,14 @@ namespace LEX::Test
             }
 
 
-            static void DestroyLock(LockIndex& lock, size_t hash)
+            static void DestroyLock(const LockIndex& lock, size_t hash)
             {
                 LockSet& set = GetLockSet(hash);
+                return set.DestroyLock(lock, hash);
 
             }
 
-            static LockHandle HandleLock(LockIndex& lock, size_t hash)
+            static LockHandle HandleLock(const LockIndex& lock, size_t hash)
             {
                 LockSet& set = GetLockSet(hash);
                 return set.HandleLock(lock, hash);
@@ -1860,23 +1880,27 @@ namespace LEX::Test
                 return CODE;
             }
 
-            LockHandle Lock() const
+            [[nodiscard]] LockHandle Lock() const
             {
                 TestLockManager::HandleLock(*this, hash());
             }
 
+            constexpr LockID() noexcept = default;
+            constexpr LockID(const LockID&) noexcept {}
+            constexpr LockID(LockID&&) noexcept {}
+
+            constexpr LockID& operator=(const LockID&) noexcept { return *this; }
+            constexpr LockID& operator=(LockID&&) noexcept { return *this; }
+
 
             ~LockID()
             {
-                //This prevents LockIndex from asserting if the lock is still active.
-                TestLockManager::DestroyLock(*this, hash());
+                if (IsActive() == true) {
+                    //This prevents LockIndex from asserting if the lock is still active.
+                    TestLockManager::DestroyLock(*this, hash());
+                }
             }
         };
-
-        void test_()
-        {
-            
-        }
 
         
         struct ScriptObject
@@ -2128,164 +2152,182 @@ namespace LEX::Test
         };
         //*/
 
-        /*   
-        struct Array
+
+        struct ArrayVariable : protected RefVariable
         {
-        public:
+            ArrayVariable() : RefVariable{ nullptr } {}
 
-        public:
+            using RefVariable::operator=;
 
-
-            CollectibleData<RefVariable> _data;
-
-            uint32_t _size = 0;
-            InstanceID _typeInstance{};
-
-
-            //I will only store RuntimeVariables on these, I believe the extra cost is worth it,
-            // primarily to simplify access and 
-
-
-            Flag flags = kNone;
-            //Move access memory to be a thread local system
-            LockID<'SOBJ'> lock{};
-            uint8_t bytes[2]{};
-            StateID stateID{};//If the state ID is invalid, this means it will use the main bind
-
-
-        public:
-
-            ScriptObject(TypeInfo* type) : _type{ type }
+            ArrayVariable& operator=(const Variable& other)
             {
-                _fields.Create(type->GetFieldCount());
+                obtain() = other;
+                return *this;
+            }
+
+            ArrayVariable& operator=(Variable&& other)
+            {
+                obtain() = std::move(other);
+                return *this;
             }
 
 
-            ~ScriptObject()
+            Variable& obtain()
             {
-                if (HasFlag(Flag::kDestructed) == false) {
-                    //Call destruct
-                    Destruct();
+                if (auto ptr = get()) {
+                    return *ptr;
+                }
+
+                *this = detach({});
+
+                return ref();
+            }
+
+            const Variable& obtain() const
+            {
+                return unconst(this)->obtain();
+            }
+
+
+
+            operator Variable&()
+            {
+                return obtain();
+            }
+
+            operator const Variable&() const
+            {
+                return obtain();
+            }
+        };
+
+
+        //*   
+
+        //I think this version of array should actually be intrinsic
+        struct Array
+        {
+        
+
+        public:
+            
+            Array(TypeInfo* type, uint32_t a_size) : _type{ type }
+            {
+                if (a_size) {
+                    resize(a_size);
+                }
+            }
+
+            Array(TypeInfo* type) : Array{type, 0} {}
+
+
+            Array(const Array& other) : Array{ other.type() }
+            { 
+                if (other.size() != 0)
+                    copy(other); 
+            }
+            Array(Array&& other) :
+                _data{ std::move(other._data) },
+                _type{ other._type },
+                _size{ std::exchange(other._size, 0) }
+            {
+            }
+
+
+        public:
+
+            ArrayVariable* data()
+            {
+                return _data.data();
+            }
+
+            const ArrayVariable* data() const
+            {
+                return _data.data();
+            }
+
+            void resize(uint32_t new_size)
+            {
+                auto guard = _lock.Lock();
+
+                if (_size == new_size) {
+                    return;
+                }
+
+                std::unique_ptr<ArrayVariable[]> old_data{ _data.release() };
+                
+                _data.Create(new_size);
+
+                if (_size) {
+                    assert(old_data);
+                    
+                    //This should steal the pointers.
+                    for (uint32_t i = 0; i < _size; i++) {
+                        _data[i] = std::move(old_data[i]);
+                    }
                 }
 
 
+                if (new_size > _size) {
+                    TypeInfo* type = this->type();
+
+                    for (uint32_t i = _size; i < new_size; i++) {
+                        _data[i] = RefVariable{ detach(type->GetDefault()) };
+                    }
+                }
             }
 
 
+            //I don't know how I want to handle access just yet, I think when it comes to
+            // the comings and goings I want it to be strict about what is allowed to assign,
+            // or what references are given out. I think I'll give them in the form of a RuntimeVariable.
 
-        INTERNAL:
-            std::span<RuntimeVariable> fields(size_t offset = 0, size_t count = std::dynamic_extent)
+
+
+
+            TypeInfo* type() const noexcept
             {
-                std::span<RuntimeVariable> results = _fields.range(size());
+                return _type;
 
-                return results.subspan(offset, count);
-            }
-
-
-
-            void Destruct()
-            {
-                SetFlag(Flag::kDestructed, true);
-            }
-        public:
-
-            constexpr bool HasFlag(Flag flag) const noexcept
-            {
-                return flags & flag;
-            }
-
-            void SetFlag(Flag flag, bool value) noexcept
-            {
-                if (value)
-                    flags |= flag;
-                else
-                    flags &= ~flag;
-            }
-
-
-
-            constexpr TypeInfo* type() const noexcept
-            {
-
-                if (HasFlag(Flag::kHasBindData) == true)
-                    return _entry->type;
-                else
-                    return _type;
             }
 
 
             size_t size() const
             {
-                if (auto a_type = type()) {
-                    return a_type->GetFieldCount();
-                }
-
-                return 0;
+                return _size;
             }
 
-
-
-            bool GetMethod(const std::string_view& name, IFunction*& out)
+            void clear()
             {
-                return {};
+                _data.Destroy();
+                _size = 0;
             }
+        private:
 
-            bool GetMethod(MemberPointer member, IFunction*& out)
+            void copy(const Array& other)
             {
-                return {};
+                auto data = other.data();
+                auto size = other.size();
+
+                if (_size != size)
+                    _data.Create(size);
+
+                _data.Copy(data, size);
             }
 
+        private:
 
 
-            bool GetField(const std::string_view& name, RuntimeVariable& out)
-            {
-                return {};
-            }
+            CollectibleData<ArrayVariable> _data;
+            TypeInfo* _type = nullptr;
+            uint32_t _size = 0;
+            LockID<'SOBJ'> _lock{};
+            std::byte freeSpace[3]{};
 
-            bool GetField(MemberPointer member, RuntimeVariable& out)
-            {
-                return {};
-            }
-
-            bool IsRuntimeType() const
-            {
-                return false;
-            }
-
-            void Revert()
-            {
-                _fields.Destroy();
-                _type = nullptr;
-            }
-
-            //This gets complicated with bind objects
-            void Transfer(const ScriptObject& other)
-            {
-                Revert();
-                _fields.Create(other.size());
-                _type = other._type;
-            }
-
-
-            //IDEA
-            //Instead of the bind id being on everything, bind id will be used for stateIDs. Nah. 
-            // this is a bad idea. I really would like to make some use out of this space though.
-
-
-
-
-
-            ///I might use some extra flags for this, allowing it to easy denote things like having a bind class, or having a state at a later point.
-
-
-            //I'm thinking this is how I'm going to handle this. A union that helps contro it being a variable pointer and a runtime pointer. I can then 
-            // switch what type it's percieved as.
-
-            //This might make it a pain however.
 
 
         };
-        REQUIRED_SIZE(ScriptObject, 0x1);
+        REQUIRED_SIZE(Array, 0x18);
         //*/
 
 
@@ -2511,9 +2553,10 @@ namespace LEX::Test
 
 
         struct IAttribute;
+        struct ScriptInterface;
+        //S
 
-
-        namespace UTIL
+        namespace Util
         {
 
 
@@ -2526,15 +2569,16 @@ namespace LEX::Test
                     IAttribute* attribute;
                     ScriptObject* object;
                 };
-
+                //I have the space, I might as well
+                DataType dataType = DataType::Invalid;
 
                 uint32_t typeIndex = -1;//I forget where the unmagic number is.
             };
 
             template <StringLiteral Name>
-            struct CustomObjectTemplate : public CustomObjectData
+            struct CustomObjectTemplateBase : public CustomObjectData
             {
-                using Self = CustomObjectTemplate<Name>;
+                using Self = CustomObjectTemplateBase<Name>;
 
                 inline static TypeInfo* type = nullptr;
             
@@ -2566,9 +2610,9 @@ namespace LEX::Test
             };
 
             template <StringLiteral Name, DataType Type>
-            struct CustomObjectTemplatePlus : public CustomObjectTemplate<Name>
+            struct CustomObjectTemplate : public CustomObjectTemplateBase<Name>
             {
-                using Base = CustomObjectTemplate<Name>;
+                using Base = CustomObjectTemplateBase<Name>;
             private:
                 struct init
                 {
@@ -2586,33 +2630,32 @@ namespace LEX::Test
             };
 
             template <StringLiteral Name>
-            struct Class : public CustomObjectTemplatePlus<Name, DataType::Class>
+            struct Class : public CustomObjectTemplate<Name, DataType::Class>
             {
            
             };
 
-            //Put these in a different namespace.
+            
             template <StringLiteral Name>
-            struct Struct : public CustomObjectTemplatePlus<Name, DataType::Struct>
+            struct Struct : public CustomObjectTemplate<Name, DataType::Struct>
             {
 
             };
 
             template <StringLiteral Name>
-            struct Interface : public CustomObjectTemplatePlus<Name, DataType::Interface>
+            struct Interface : public CustomObjectTemplate<Name, DataType::Interface>
             {
 
             };
 
             template <StringLiteral Name>
-            struct Attribute : public CustomObjectTemplatePlus<Name, DataType::Attribute>
+            struct Attribute : public CustomObjectTemplate<Name, DataType::Attribute>
             {
 
             };
-
         }
+        //Util::Attribute<"Shared::AttributeName"> test;
         
-
 
         struct IAttribute : public LEX::Interface, public LEX::IComponent
         {
