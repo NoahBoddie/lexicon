@@ -2550,6 +2550,108 @@ namespace LEX::Test
 
 
 
+        namespace
+        {
+            //These will go in variable. The main point is to be able to know what type
+            // was submitted to it, and thus what it should be percieved as.
+            //Copy should maintain the left hand sides ype
+            struct ComponentVariable
+            {
+                IComponent* component = nullptr;
+                ComponentType type = ComponentType::IComponent;
+            };
+
+            struct InfoVariable
+            {
+                Info* info = nullptr;
+                InfoType type = InfoType::Info;
+
+            };
+
+
+            struct ObjectParams
+            {
+                ObjectParams(const Object& obj) :
+                    data{ obj.data(true) },
+                    type{ obj.type },
+                    context{ obj.context() }
+                {
+
+                }
+
+
+                ObjectData data{};
+                ObjectDataType type = ObjectDataType::kNone;
+                std::optional<uint16_t> context = 0;
+
+
+                void CheckValid() const
+                {
+                    assert_if(type == ObjectDataType::kNone) {
+                        report::runtime::error("Cannot retrieve data of empty ObjectData.");
+                    }
+                }
+
+
+                //Make an empty or function.
+                template <typename T>
+                decltype(auto) get()
+                {
+                    CheckValid();
+                    return data.get<T>();
+                }
+
+                template <typename T>
+                decltype(auto) get() const
+                {
+                    CheckValid();
+                    return data.get<T>();
+                }
+
+
+                template <typename T>
+                auto* ptr()
+                {
+                    CheckValid();
+                    return data.ptr<T>();
+                }
+
+                template <typename T>
+                const auto* ptr() const
+                {
+                    CheckValid();
+                    return data.ptr<T>();
+                }
+            };
+
+
+
+
+
+            //Object context targets the objects being given to it and attempt to gleam context from it.
+            // Useful on nullable types where it'd be useful to know what type it spawned from.
+            template <typename T>
+            struct ObjectContext
+            {
+                std::optional<uint16_t> operator()(const T& val)
+                {
+                    return std::nullopt;
+
+                }
+            };
+
+
+            template <typename T> requires (requires(ProxyGuide<T> guide, const T& arg) { { guide.UseObjectContext(arg) } -> std::convertible_to<std::optional<uint16_t>>; })
+            struct ObjectContext<T>
+            {
+                decltype(auto) operator()(const T& obj)
+                {
+                    return ProxyGuide<T>{}.UseObjectContext(obj);
+                }
+            };
+        }
+
+
 
 
         struct IAttribute;

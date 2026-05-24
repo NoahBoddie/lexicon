@@ -91,6 +91,14 @@ namespace LEX
 
 
 
+
+
+	ENUM(ObjectFlag, uint8_t)
+	{
+		None = 0,
+		HasContext = 1 << 0,
+	};
+
 	struct Object
 	{
 		template <object_type Ty>
@@ -160,9 +168,9 @@ namespace LEX
 			ObjectData to{ data };
 
 
+			
 
-
-			if (policy->IsPooled(to) == true) {
+			if (auto type = policy->GetTypeResolved(to); policy->IsPooled(type) == true) {
 				result._data = policy->InitializePool(to, stor);
 				result.type = ObjectDataType::kRef;
 			}
@@ -219,7 +227,7 @@ namespace LEX
 
 		}
 
-		Object(Object&& other)
+		Object(Object&& other) noexcept
 		{
 			//Do you actually want to unhandle here?
 			Unhandle(&other);
@@ -241,7 +249,7 @@ namespace LEX
 		}
 
 
-		Object& operator=(Object&& other)
+		Object& operator=(Object&& other) noexcept
 		{
 			Unhandle(&other);
 			return Transfer(other, true);
@@ -424,7 +432,7 @@ namespace LEX
 			default:
 			{
 				auto& new_other = other;
-				report::critical("ObjectDataType is '{}'({}) and cannot be read. {}", magic_enum::enum_name(new_other.type), (int)new_other.type, new_other.always_zero);
+				report::critical("ObjectDataType is '{}'({}) and cannot be read. {}", magic_enum::enum_name(new_other.type), (int)new_other.type, new_other.context().value_or(0));
 
 			}
 			}
@@ -501,13 +509,16 @@ namespace LEX
 
 
 		//Switch _data and data.
-		ObjectData& data()
+		ObjectData& data(bool allow_empty)
 		{
 			switch (type)
 			{
-			case ObjectDataType::kNone://None might not report error here.
-				report::fault::critical("object is empty. Cannot access data.");
+			case ObjectDataType::kNone:
+				//TODO: empty allowed will be ignored if the object stored is an object type.
+				if (!allow_empty)
+					report::fault::critical("object is empty. Cannot access data.");
 
+				[[fallthrough]];
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
 				return _data;
@@ -523,9 +534,19 @@ namespace LEX
 			//Use this function more plz.
 		}
 
-		ObjectData& data() const
+		ObjectData& data(bool allow_empty) const
 		{
 			return const_cast<Object*>(this)->data();
+		}
+
+		ObjectData& data()
+		{
+			return data(false);
+		}
+
+		ObjectData& data() const
+		{
+			return data(false);
 		}
 
 
@@ -581,7 +602,7 @@ namespace LEX
 			if (Is<T>() == false)
 				return nullptr;
 
-			return std::addressof(get<T>());
+			return ptr<T>();
 		}
 
 
@@ -612,8 +633,7 @@ namespace LEX
 			switch (type)
 			{
 			case ObjectDataType::kNone:
-				logger::info("object is empty");
-				throw temp_objectExcept;
+				return nullptr;
 
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
@@ -623,31 +643,67 @@ namespace LEX
 				return policy->RequestPool(_data.idxVal)->ptr<T>();
 
 			default:
-				logger::info("object data type not found");
+				report::fault::critical("object data type '{}' is unexpected", magic_enum::enum_name(type));
 				throw temp_objectExcept;
 			}
 		}
 
+		constexpr bool IsEmpty() const noexcept
+		{
+			return type == ObjectDataType::kNone;
+		}
+
 		bool IsValueZero() const
 		{
-			if (policy)
-				return !policy->Exists(data());
-			else
-				return true;
+			if (!IsEmpty() && policy) {
+					return !policy->Exists(data());
+			}
+				
+			return true;
 		}
 
 
 		std::string PrintString() const;
 
 
+		bool HasFlag(ObjectFlag flag) const
+		{
+			return flags & flag;
+		}
+
+		void SetFlag(ObjectFlag flag, bool value) const
+		{
+			if (value)
+				flags |= flag;
+			else
+				flags &= ~flag;
+		}
+
+
+
+		std::optional<uint16_t> context() const noexcept
+		{
+			if (HasFlag(ObjectFlag::HasContext) == true) {
+				return _context;
+			}
+
+			return std::nullopt;
+		}
+
+		void SetContext(uint16_t value) noexcept
+		{
+			SetFlag(ObjectFlag::HasContext, true);
+			_context = value;
+		}
+
 
 
 		ObjectData _data{};
 
 		ObjectPolicyHandle policy{};
-		int16_t always_zero = 0;
+		uint16_t _context{};
 		ObjectDataType type = ObjectDataType::kNone;
-		uint8_t also_empty = 0;
+		mutable ObjectFlag flags = ObjectFlag::None;
 	};
 	REQUIRED_SIZE(Object, 0x10);
 

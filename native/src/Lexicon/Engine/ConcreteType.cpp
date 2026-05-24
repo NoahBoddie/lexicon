@@ -36,11 +36,6 @@ namespace LEX
 		}
 	}
 	
-	ConcreteType::ConcreteType() : ConcreteTypeBase{} {}
-
-	ConcreteType::ConcreteType(uint32_t i) : ConcreteTypeBase{ i } {}
-
-	ConcreteType::ConcreteType(std::string_view name, TypeOffset offset) : ConcreteTypeBase{ name, offset } {}
 	/*
 	ConcreteType::ConcreteType()
 	{
@@ -72,17 +67,22 @@ namespace LEX
 		return nullptr;//_extends->GetTypeInfo((ITemplateBody*)nullptr);
 	}
 
-	Variable ConcreteType::GetDefault()
+	Variable ConcreteType::GetDefault() const
 	{
 		if (policy)
-			return policy->CreateObject(this);
+			return policy->CreateDefault(unconst(this));
 
-		return _default;
+		return {};
 	}
-	void ConcreteType::SetDefault(const Variable& var)
+
+	Variable ConcreteType::GetVariable() const
 	{
-		_default = var;
+		if (policy)
+			return policy->CreateObject(unconst(this));
+
+		return {};
 	}
+
 
 
 	void ConcreteType::LoadFromRecord(SyntaxRecord& ast)

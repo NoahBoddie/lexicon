@@ -140,7 +140,7 @@ namespace LEX
 
 
 		template <typename T>
-		decltype(auto) get()
+		decltype(auto) get() noexcept
 		{
 			//This has no safeties. The user should know what they're doing.
 
@@ -153,7 +153,7 @@ namespace LEX
 		}
 
 		template <typename T>
-		decltype(auto) get() const
+		decltype(auto) get() const noexcept
 		{
 			//This has no safeties. The user should know what they're doing.
 			//This should probably be making sure not to give someone the const ref of it OR
@@ -168,7 +168,7 @@ namespace LEX
 
 
 		template <typename T>
-		auto* ptr()
+		auto* ptr() noexcept
 		{
 			if  constexpr (object_storage_v<T> == value_storage) {	//Value Type
 				return reinterpret_cast<T*>(&fstVal);
@@ -179,7 +179,7 @@ namespace LEX
 		}
 
 		template <typename T>
-		const auto* ptr() const
+		const auto* ptr() const noexcept
 		{
 			if  constexpr (object_storage_v<T> == value_storage) {	//Value Type
 				return reinterpret_cast<T*>(&fstVal);
@@ -189,7 +189,7 @@ namespace LEX
 			}
 		}
 
-		void Clear()
+		void Clear() noexcept
 		{
 			fstVal = 0;
 		}

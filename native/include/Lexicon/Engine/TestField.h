@@ -360,11 +360,9 @@ namespace LEX
 				{
 					for (int d = 1; a < Limit::Total; d++)
 					{
-						Number::Settings settings{ (NumeralType)a, (Size)b, (Signage)c, (Limit)d };
-						ConcreteType* number_policy = new ConcreteType{ "NUMBER", settings.GetOffset() };
-						Variable defaultValue{ settings };
-						number_policy->EmplaceDefault(defaultValue);
-						results.emplace_back(number_policy);
+						//Number::Settings settings{ (NumeralType)a, (Size)b, (Signage)c, (Limit)d };
+						//ConcreteType* number_policy = new NumberType{ settings };
+						//results.emplace_back(number_policy);
 
 
 					}
@@ -378,22 +376,7 @@ namespace LEX
 	}
 
 
-	class IntrinsicPolicy : public ConcreteType
-	{
-		//The concept of an intrinsic policy is first simply that intrinsic policies are the only 
-		// policies that can Claim a specific space. Think like how void would or something like that.
 
-		//Second, further branches of it will be able to present default versions of things such as strings, numbers
-		// arrays, etc. This prevents us from having to carry the variable around in every single type despite not needing it.
-
-		//There will likely have to be one for generic, but every generic/concrete one won't need new satelites, as they
-		// will just assume that it is a concrete policy. Which it is.
-
-
-
-
-
-	};
 
 #ifdef ENUM_TEST
 	namespace EnumTesting
