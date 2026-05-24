@@ -8,13 +8,6 @@
 namespace LEX
 {
 
-	void TypeInfo::EmplaceDefault(const Variable& var)
-	{
-		//The void type would have 0 as it's value.
-		if (GetTypeID() != 0 && GetDefault().IsVoid() == true) {
-			return SetDefault(var);
-		}
-	}
 
 	bool TypeInfo::Convert(const Variable& from, Variable& to, TypeInfo* null_override) const
 	{

@@ -107,7 +107,7 @@ namespace LEX
 		TypeBase* GetBaseByOffset(TypeIndex index, TypeOffset offset) { return GetBaseByID(GetIDFromIndex(index) + offset); }
 		TypeBase* GetBaseByOffset(std::string_view name, TypeOffset offset) { return GetBaseByID(GetIDFromName(name) + offset); }
 		TypeID ClaimID(TypeBase* policy, TypeIndex index, TypeOffset offset) { return ClaimID(policy, GetIDFromIndex(index) + offset); }
-		TypeID ClaimID(TypeBase* policy, std::string_view name, TypeOffset offset) { return ClaimID(policy, GetIndexFromName(name), offset); }
+		TypeID ClaimID(TypeBase* policy, std::string_view name, TypeOffset offset) INTERFACE_FUNCTION;
 
 		void GenerateInstanceID(ITypeInfo* type) INTERFACE_FUNCTION;
 

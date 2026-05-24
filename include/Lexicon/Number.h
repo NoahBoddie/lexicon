@@ -1008,6 +1008,7 @@ namespace LEX
 		}
 
 
+        constexpr Settings GetSettings() const noexcept { return _setting; }
 
 
 

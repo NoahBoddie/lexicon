@@ -95,10 +95,10 @@ namespace LEX
 		}
 
 
-		virtual Variable GetDefault() { report::fault::critical("Not used"); }
+		Variable GetDefault() const override { report::fault::critical("Not used"); }
+		Variable GetVariable() const override { report::fault::critical("Not used"); }
 
-
-		void SetDefault(const Variable&) override { report::fault::critical("Not used"); }
+		
 
 		virtual TypeInfo* GetExtends() { report::fault::critical("Not used"); }
 

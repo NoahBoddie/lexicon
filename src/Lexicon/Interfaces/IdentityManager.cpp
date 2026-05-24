@@ -219,7 +219,12 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 		return ret;
 	}
 
-
+	TypeID IdentityManager::ClaimID(TypeBase* policy, std::string_view name, TypeOffset offset)
+	{
+		policy->category = name;
+		policy->offset = offset;
+		return ClaimID(policy, GetIndexFromName(name), offset);
+	}
 
 	//should return the index.
 	uint32_t IdentityManager::GenerateID(std::string_view name, uint16_t range, TypeOffsetFn func)

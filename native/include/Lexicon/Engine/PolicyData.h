@@ -41,7 +41,6 @@ namespace LEX
 		std::string _name;
 
 		//std::string category;
-		//TypeOffset offset;
 
 
 		//Should be inherited, only one can exist.
@@ -49,6 +48,8 @@ namespace LEX
 
 
 		//ObjectPolicyHandle handle{};
+		std::string_view category;
+		TypeOffset offset =0;
 
 		DataType _dataType = DataType::Invalid;
 

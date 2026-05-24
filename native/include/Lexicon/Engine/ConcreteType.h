@@ -52,13 +52,6 @@ namespace LEX
 		bool IsResolved() const override { return true; }
 
 
-		ConcreteType();
-
-		ConcreteType(uint32_t i);
-
-		ConcreteType(std::string_view name, TypeOffset offset);
-
-
 		/*
 		ConcreteType(std::string_view name, TypeOffset offset, TypeEnum enm, TypeInfo* ext = nullptr, Variable a_def = {})
 		{
@@ -81,7 +74,8 @@ namespace LEX
 
 		TypeInfo* GetExtends() override;
 
-		Variable GetDefault() override;
+		Variable GetDefault() const override;
+		Variable GetVariable() const override;
 
 		void OnAttach() override;
 
@@ -90,8 +84,7 @@ namespace LEX
 
 
 	protected:
-		void SetDefault(const Variable& var) override;
-
+		
 		const Component* GetComponent() const override final { return this; }
 	public:
 
@@ -119,12 +112,6 @@ namespace LEX
 		{
 			return __super::GetConvertTo(other, scope, out, flags);
 		}
-
-
-	private:
-		//TODO: Make this only for intrinsic types, nothing else needs it
-		Variable _default;
-
 	};
 
 

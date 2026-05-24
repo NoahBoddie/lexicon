@@ -49,6 +49,9 @@
 #include "Lexicon/Array.h"
 
 #include "Lexicon/Engine/SettingManager.h"
+
+#include "Lexicon/Engine/IntrinsicType.h"
+
 void TestFunction()
 {
 
@@ -2444,10 +2447,10 @@ namespace LEX
 		};
 
 
-		struct NumberType : public ConcreteType
+		struct NumberType : public IntrinsicType
 		{
-			NumberType(std::string_view name, Number::Settings settings) : ConcreteType{ name, settings.GetOffset() }, _settings{settings}
-			{}
+			NumberType(Number def) : IntrinsicType{ "NUMBER", def.GetOffset(), def}, _settings{ def.GetSettings() }{}
+
 
 			//please, make this with a setting attached.
 
@@ -2737,20 +2740,20 @@ namespace LEX
 
 			IdentityManager::instance->GenerateID("REFLECT", ComponentType::kScriptedMax, TypeOffsetFn_Reflect);
 			
-			static ConcreteType* cmpInfo = new ConcreteType{ "REFLECT", ComponentType::Component };
-			static ConcreteType* elmInfo = new ConcreteType{ "REFLECT", ComponentType::Element };
-			static ConcreteType* dirInfo = new ConcreteType{ "REFLECT", ComponentType::Directory };
-			static ConcreteType* envInfo = new ConcreteType{ "REFLECT", ComponentType::Environment };
-			static ConcreteType* prjInfo = new ConcreteType{ "REFLECT", ComponentType::Project };
-			static ConcreteType* scrInfo = new ConcreteType{ "REFLECT", ComponentType::Script };
+			static IntrinsicType* cmpInfo = new IntrinsicType{ "REFLECT", ComponentType::Component, (IComponent*)0 };
+			static IntrinsicType* elmInfo = new IntrinsicType{ "REFLECT", ComponentType::Element, (IComponent*)0 };
+			static IntrinsicType* dirInfo = new IntrinsicType{ "REFLECT", ComponentType::Directory, (IComponent*)0 };
+			static IntrinsicType* envInfo = new IntrinsicType{ "REFLECT", ComponentType::Environment, (IComponent*)0 };
+			static IntrinsicType* prjInfo = new IntrinsicType{ "REFLECT", ComponentType::Project, (IComponent*)0 };
+			static IntrinsicType* scrInfo = new IntrinsicType{ "REFLECT", ComponentType::Script, (IComponent*)0 };
 			
-			static ConcreteType* fncInfo = new ConcreteType{ "REFLECT", ComponentType::Function };
-			static ConcreteType* glbInfo = new ConcreteType{ "REFLECT", ComponentType::Global };
-			static ConcreteType* typInfo = new ConcreteType{ "REFLECT", ComponentType::TypeInfo };
+			static IntrinsicType* fncInfo = new IntrinsicType{ "REFLECT", ComponentType::Function, (IComponent*)0 };
+			static IntrinsicType* glbInfo = new IntrinsicType{ "REFLECT", ComponentType::Global, (IComponent*)0 };
+			static IntrinsicType* typInfo = new IntrinsicType{ "REFLECT", ComponentType::TypeInfo, (IComponent*)0 };
 
-			static ConcreteType* iFncInfo = new ConcreteType{ "REFLECT", ComponentType::IFunction };
-			static ConcreteType* iTypInfo = new ConcreteType{ "REFLECT", ComponentType::ITypeInfo };
-			static ConcreteType* iGlbInfo = new ConcreteType{ "REFLECT", ComponentType::IGlobal };
+			static IntrinsicType* iFncInfo = new IntrinsicType{ "REFLECT", ComponentType::IFunction, (IComponent*)0 };
+			static IntrinsicType* iTypInfo = new IntrinsicType{ "REFLECT", ComponentType::ITypeInfo, (IComponent*)0 };
+			static IntrinsicType* iGlbInfo = new IntrinsicType{ "REFLECT", ComponentType::IGlobal, (IComponent*)0 };
 
 
 
@@ -2770,52 +2773,37 @@ namespace LEX
 			//TODO: This type of instantiation should be reserved squarely for intrinsic types like numbers, strings etc.
 			// Other than that, no type should be created knowing what it is already.
 
-			static ConcreteType* NUMBER = new ConcreteType{ "NUMBER", 0 };
+			static IntrinsicType* NUMBER = new IntrinsicType{ "NUMBER", 0, {} };
 
 			//I'd like to make a trival ID. The trival id is a singular empty id for a type that cannot be searched for
 			// such as a function signature or 
 
-			static ConcreteType* string8 = new ConcreteType{ "STRING", 0 };
+			static IntrinsicType* string8 = new IntrinsicType{ "STRING", 0, "" };
 
 
 			//For the love of god, automate making these. I beg.
-			static ConcreteType* float64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<double>() };
-			static ConcreteType* float32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<float>() };
-			static ConcreteType* uBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
-			static ConcreteType* sBoolean = new NumberType{ "NUMBER", Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
-			static ConcreteType* sInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int32_t>() };
-			static ConcreteType* uInt32 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint32_t>() };
-			static ConcreteType* sInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<int64_t>() };
-			static ConcreteType* uInt64 = new NumberType{ "NUMBER", Number::Settings::CreateFromType<uint64_t>() };
+			static IntrinsicType* float64 = new NumberType{ 0.0 };
+			static IntrinsicType* float32 = new NumberType{ 0.f };
+			static IntrinsicType* uBoolean = new NumberType{ Number::Settings{NumeralType::Integral, Size::Bit, Signage::Unsigned, Limit::Bound} };
+			static IntrinsicType* sBoolean = new NumberType{ Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} };
+			static IntrinsicType* sInt32 = new NumberType{ (int32_t)0 };
+			static IntrinsicType* uInt32 = new NumberType{ (uint32_t)0 };
+			static IntrinsicType* sInt64 = new NumberType{ (int64_t)0 };
+			static IntrinsicType* uInt64 = new NumberType{ (uint64_t)0 };
 			
 
-			static ConcreteType* _coreObject = new CoreType{ "CORE", 0 };
+			static IntrinsicType* _coreObject = new IntrinsicType{ "CORE", 0, {} };
 			
+			//TODO: Make core type sometime, something that would enable manual inheriting of types.
 			_coreObject->SetInheritFrom(common_type::voidable()->GetHierarchyTree());
 			
 
 			
-			float64->EmplaceDefault(static_cast<double>(0));
-			float32->EmplaceDefault(static_cast<float>(0));
-			uBoolean->EmplaceDefault(static_cast<bool>(0));
-			
-			uInt32->EmplaceDefault(static_cast<uint32_t>(0));
-			sInt32->EmplaceDefault(static_cast<int32_t>(0));
-			sInt64->EmplaceDefault(static_cast<int64_t>(0));
-			uInt64->EmplaceDefault(static_cast<uint64_t>(0));
-			
-			sBoolean->EmplaceDefault(Number{ Number::Settings{NumeralType::Integral, Size::Bit, Signage::Signed, Limit::Bound} });
-		
-			float64->SetInheritFrom(NUMBER);
-			float32->SetInheritFrom(NUMBER);
-			float64->PrintInheritance();
 
-			string8->EmplaceDefault("");
-			
-
+			//These are to be struct like I think
 			RegisterObjectType<Array>("ARRAY", 1);
-			static ConcreteType* basicArray = new ConcreteType{ "ARRAY", 0 };
-			static ConcreteType* complexArray = new ConcreteType{ "ARRAY", 1 };
+			static IntrinsicType* basicArray = new IntrinsicType{ "ARRAY", 0, {} };
+			static IntrinsicType* complexArray = new IntrinsicType{ "ARRAY", 1, {} };
 
 
 			//Read some shit here.

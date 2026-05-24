@@ -15,7 +15,8 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION(TypeInfo)
 			{
-				virtual Variable GetDefault() = 0;
+				virtual Variable GetDefault() const = 0;
+				virtual Variable GetVariable() const = 0;
 				
 				virtual LEX::TypeInfo* GetExtends() = 0;
 
@@ -40,28 +41,6 @@ namespace LEX
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::TypeInfo)
 	public:
-
-		//This might come with hierarchy data automatically.
-
-
-		//less of the idea of a type policy, and more an actual type policy. While this class cannot be instantiated, but the functionality of this
-		// object is equal to that of a type policy, whatever it actually is.
-
-		//TODO: ABSOLUTELY change the name "TypeInfo::IsAbstract". Perhaps "IsImplemented". Which this should never not be implemented.
-		// Also, probably base that off something like the interface this comes from.
-
-		//Move this to the impl file
-		
-
-		virtual Variable GetDefault() = 0;
-
-	public:
-		//Make these work like an actual emplace function, where it basically does the construction elsewhere.
-		// Move into function base? Largely non-basic structures depend on something else for this shit.
-		//REMOVE THIS PLEASE.
-
-		virtual TypeInfo* GetExtends() = 0;
-
 
 	};
 
