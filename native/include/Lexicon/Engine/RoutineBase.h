@@ -168,6 +168,13 @@ namespace LEX
 		uint32_t varCapacity = 0;		//The maximum amount of variables to allocate for
 		uint32_t argCapacity = 0;		//The maximum amount of arguments the stack will ever need to allocate.
 		RoutineFlag flags = RoutineFlag::None;
+		
+		//An idea I have were if by some chance an incredibly large number is choosen for the capacity,
+		// I allocate this amount, the minimum number it will ever have instead, and each time it needs to 
+		// allocate I jump by some amount to get to its maximum amount.
+		//uint8_t minVar = 0;
+		//uint8_t argVar = 0;
+
 
 
 		bool ForwardsVaradic() const
