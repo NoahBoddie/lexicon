@@ -98,7 +98,7 @@ namespace LEX
 		//Use GetObjectInfo for this.
 		static ObjectVTable* vtable = GetObjectInfo<T>();
 
-		DataBuilder builder = GenericDataBuilder<T>;
+		DataBuilder builder = ObjectData::Build<T>;
 
 		std::array<std::string_view, type_count> alias_names{ GetTypeName<T>(), GetTypeName<Ts>()... };
 

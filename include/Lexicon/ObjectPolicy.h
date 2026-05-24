@@ -42,8 +42,6 @@ namespace LEX
 
 				virtual uint32_t GetTypeIDFromOffset(TypeOffset) = 0;
 
-				virtual ObjectData CreateData(TypeInfo* type) = 0;
-
 				virtual uint32_t GetPolicyID() = 0;
 
 				virtual TypeIndex GetCategoryIndex() = 0;

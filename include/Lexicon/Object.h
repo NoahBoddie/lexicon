@@ -169,8 +169,9 @@ namespace LEX
 
 
 			
+			TypeInfo* type = policy->GetTypeResolved(to);
 
-			if (auto type = policy->GetTypeResolved(to); policy->IsPooled(type) == true) {
+			if (policy->IsPooled(type) == true) {
 				result._data = policy->InitializePool(to, stor);
 				result.type = ObjectDataType::kRef;
 			}
@@ -185,7 +186,7 @@ namespace LEX
 				}
 			}
 
-			policy->Initialize(result.data());
+			policy->Initialize(result.data(), type);
 
 			//I would rather construct object on the spot here so we don't trigger any assignments
 			return result;
@@ -297,7 +298,7 @@ namespace LEX
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
 				policy->Destroy(_data);
-				_data = policy->CreateData();
+				_data = policy->CreateData();//Why does this leave it with valid data?
 				return;
 
 			case ObjectDataType::kRef:

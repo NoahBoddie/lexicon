@@ -1690,7 +1690,7 @@ namespace LEX
 
 		logger::info("~Testing PrintString for Arrays(after): \"{}\"", _array.PrintString());
 
-		auto gen_built = GenericDataBuilder<Array>().get<Array>();
+		auto gen_built = ObjectData::Build<Array>().get<Array>();
 	
 		logger::critical("GenericBuilt check: {} ", gen_built._container ? gen_built._container->size() : 0);
 

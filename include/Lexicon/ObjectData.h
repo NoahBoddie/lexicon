@@ -61,12 +61,57 @@ namespace LEX
 	constexpr bool value_storage = true;
 	constexpr bool pointer_storage = false;
 
+	union ObjectData;
+
+	using DataBuilder = ObjectData(*)(TypeInfo*);
 
 
 
 	union ObjectData
 	{
+
+		template <typename T>
+		static ObjectData Build(TypeInfo* type = nullptr)
+		{
+			T in = [&][[msvc::forceinline]] -> T
+				{
+					if constexpr (std::is_default_constructible_v<T>) {
+						return T{};
+					}
+					else if constexpr (std::is_constructible_v<T, TypeInfo*>) {
+						T{ type };
+					}
+					else {
+						static_assert(!std::is_same_v<T, T>, "Object type T cannot be constructed by default or Type.");
+						std::unreachable();
+					}
+
+				}();
+
+			ObjectData data{ in };
+
+			return data;
+		}
+
+
+
+	public:
+
 		constexpr ObjectData() noexcept = default;
+
+		template <typename T>
+		explicit ObjectData(T& load)// : ObjectData{ std::addressof(load) }
+		{
+			LoadData(std::addressof(load));
+		}
+
+		template <typename T>
+		explicit ObjectData(T&& load)// : ObjectData{ std::addressof(load) }
+		{
+			LoadData(std::addressof(load));
+		}
+
+
 	private:
 		template <typename T>
 		void LoadData(T* load)
@@ -113,17 +158,7 @@ namespace LEX
 		}
 
 	public:
-		template <typename T>
-		explicit ObjectData(T& load)// : ObjectData{ std::addressof(load) }
-		{
-			LoadData(std::addressof(load));
-		}
 
-		template <typename T>
-		explicit ObjectData(T&& load)// : ObjectData{ std::addressof(load) }
-		{
-			LoadData(std::addressof(load));
-		}
 
 
 
@@ -214,94 +249,5 @@ namespace LEX
 
 
 
-	using DataBuilder = ObjectData(*)(TypeInfo*);
-
-
-	//Type will be used later to control whether something is pooled or not.	
-	template <typename T>
-	ObjectData FillObjectData(T* load)
-	{
-		using _Type = std::remove_cvref_t<T>;
-
-		ObjectData data{};
-
-
-		//I may make this a concept, so it can fail at use and not just within here.
-		constexpr bool declared_storage = object_storage_v<_Type>;
-		constexpr bool storage_match = detail::object_storage_v<_Type> == declared_storage;
-
-
-		//QUERY: Can this shit not use the get functions from ObjectData?
-		if constexpr (declared_storage == value_storage)
-		{
-			static_assert(storage_match, "Declared storage is value, but type structure requires pointer.");
-
-			reinterpret_cast<_Type&>(data) = std::move(*load);
-		}
-		else
-		{
-			if constexpr (std::is_pointer<_Type>::value)
-			{
-				//If data returned as a pointer
-				if (load) {
-					data.ptrVal = *load;
-				}
-				else {
-					data.ptrVal = _Type{};
-				}
-			}
-			else
-			{
-				//This is basically assuming it's not a pointer already. Deal with that.
-
-				if (load) {
-					data.ptrVal = new _Type{ *load };
-				}
-				else {
-					data.ptrVal = new _Type{};
-				}
-			}
-		}
-
-		return data;
-	}
-
-	template <typename T>
-	ObjectData FillObjectData(T& load)
-	{
-		return FillObjectData<T>(&load);
-	}
-
-	//TODO: Send more information with the Object data builder. Namely, send the TypeInfo with it
-
-	//This function takes the type id or instance id of the created object as information how to qualify it's given type.
-	// This can be useful for data that is sometimes, but not always pooled. If it's a template function it will be sending the instance
-	// id. From there type type id is something on can claim for themselves.
-	// One will simply have to know which it is.
-	template <typename T>
-	void BuildQualifier(ObjectData&, TypeInfo*) {}
-
-	template <typename T>
-	ObjectData GenericDataBuilder(TypeInfo* type = nullptr)
-	{
-
-		//For starters, you won't want to use create type. 
-
-
-		//But the problem is, how would I submit the type form and have it make Form*? I won't. Just make everything for Form*. if it's not Form*, it will
-		// assume it needs to make Form. Which it isn't allowed to.
-
-		//ALSO
-
-		//Take this section. I think this is how I'll fill data, least mess this way.	
-		T in{};
-
-		//ObjectData data = FillObjectData<T>(data, std::addressof(in));
-		ObjectData data{ in };
-		
-		BuildQualifier<T>(data, type);
-
-		return data;
-	}
-
+	
 }

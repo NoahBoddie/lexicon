@@ -74,10 +74,15 @@ namespace LEX
 		{
 			return base->Move(self, other);
 		}
-
-		void Initialize(ObjectData& self) override final
+		
+		ObjectData Build(TypeInfo* type) override final
 		{
-			return base->Initialize(self);
+			return base->Build(type);
+		}
+
+		void Initialize(ObjectData& self, TypeInfo* type) override final
+		{
+			return base->Initialize(self, type);
 		}
 
 
@@ -142,7 +147,6 @@ namespace LEX
 		{
 			return base->GetOverrideType(data);
 		}
-
 
 
 #pragma endregion
@@ -429,11 +433,6 @@ namespace LEX
 			return IdentityManager::instance->GetIDFromIndex(index) + offset;
 		}
 
-		ObjectData CreateData(TypeInfo* type = nullptr) override
-		{
-			//Currently, no data used. Later? Either Instance ID, or Type ID. One should know which they use.
-			return ctor(type);
-		}
 
 		uint32_t GetPolicyID() override
 		{

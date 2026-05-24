@@ -29,10 +29,6 @@ namespace LEX
 		{
 			struct INTERFACE_VERSION(ObjectVTable)
 			{
-				//*
-				virtual ~IV_ObjectVTable() = default;
-
-
 				//The idea of this is that the policy stores it, and is accessed every single time an operator has to be used on an object.
 				// So basically, this is the virtual table.
 
@@ -73,8 +69,9 @@ namespace LEX
 
 				virtual void Move(ObjectData&, ObjectData&) = 0;
 
+				virtual ObjectData Build(TypeInfo* type) = 0;
 				//Launched when the target is first inducted into an object.
-				virtual void Initialize(ObjectData&) = 0;
+				virtual void Initialize(ObjectData&, TypeInfo*) = 0;
 
 				//TODO: Not doing Object::Operate this yet, but figure out what you want to do with it before releasing.
 				//virtual void Operator(std::string_view, ObjectData&, RuntimeVariable&) = 0;
@@ -123,7 +120,7 @@ namespace LEX
 		uintptr_t GetObjectVersion() override { return 0; }
 		uintptr_t GetVTableVersion() override { return Version(); }
 		
-		virtual void Initialize(ObjectData&) override {}
+		void Initialize(ObjectData&, TypeInfo*) override {}
 		
 		virtual bool IsCompatible(const ObjectVTable*) override { return true; }
 		
@@ -193,6 +190,16 @@ namespace LEX
 			return IdentityManager::instance->GetTypeByID(id);
 		}
 
+
+		ObjectData CreateData(TypeInfo* type = nullptr)
+		{
+			ObjectData data = Build(type);
+			Initialize(data, type);
+
+			return data;
+		}
+
+
 		TypeInfo* GetTypeResolved(ObjectData& object)
 		{
 			if (auto type = GetOverrideType(object)) {
@@ -259,6 +266,29 @@ namespace LEX
 		{
 			return object_storage_v<T>;
 		}
+
+		ObjectData Build(TypeInfo* type) override final
+		{
+			T in = [&] [[msvc::forceinline]] -> T
+			{
+				if constexpr (std::is_default_constructible_v<T>) {
+					return T{};
+				}
+				else if constexpr (std::is_constructible_v<T, TypeInfo*>) {
+					T{ type };
+				}
+				else {
+					static_assert(!std::is_same_v<T, T>, "Object type T cannot be constructed by default or Type.");
+					std::unreachable();
+				}
+
+			}();
+
+			ObjectData data{ in };
+
+			return data;
+		}
+
 
 		void Destroy(ObjectData& self) override
 		{

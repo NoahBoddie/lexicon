@@ -2649,6 +2649,10 @@ namespace LEX::Test
                     return ProxyGuide<T>{}.UseObjectContext(obj);
                 }
             };
+
+            //Context will be handled through type offset.
+            
+
         }
 
 
