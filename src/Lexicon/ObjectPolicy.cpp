@@ -19,7 +19,7 @@ namespace LEX
 		//	offset = 0;
 		//}
 
-		if (IsPooled(data) == true) {
+		if (IsPooled(a_type) == true) {
 			data = InitializePool(data, GetStorageType());
 			type = ObjectDataType::kRef;
 		}
@@ -30,7 +30,19 @@ namespace LEX
 
 		//return Object{ data, index, type, (uint16_t)offset };
 		return Object{ data, index, type };
-	};
+	}
+
+	Object IObjectPolicy::CreateDefault(TypeInfo* a_type)
+	{
+		auto index = GetPolicyID();
+
+		if (IsPooled(a_type) == true) {
+			return Object{ ObjectData{}, index, ObjectDataType::kNone };
+		}
+
+		return CreateObject(a_type);
+	}
+
 
 	ITypeInfo* IObjectPolicy::GetTypeInfo(TypeOffset offset)
 	{

@@ -57,7 +57,7 @@ namespace LEX
 				virtual StaticStoreType GetStorageType() = 0;
 
 				//This will ALWAYS be given the actual objects data. It's then upto get_storage_type to handle it.
-				virtual bool IsPooled(ObjectData&) = 0;
+				virtual bool IsPooled(TypeInfo*) = 0;
 
 				//Other things that can help with confirming validity, size. if the size is different, definitely incompatible.
 
@@ -134,7 +134,7 @@ namespace LEX
 		}
 
 		//by default most objects aren't going to be pooled
-		virtual bool IsPooled(ObjectData&) override
+		virtual bool IsPooled(TypeInfo*) override
 		{
 			return false;
 		}

@@ -45,9 +45,9 @@ namespace LEX
 
 
 		//This will ALWAYS be given the actual objects data. It's then upto get_storage_type to handle it.
-		bool IsPooled(ObjectData& self) override final
+		bool IsPooled(TypeInfo* type) override final
 		{
-			return base->IsPooled(self);
+			return base->IsPooled(type);
 		}
 
 
@@ -356,7 +356,7 @@ namespace LEX
 		{
 			//For now, just give them the index. Later? Make sure it's valid if you're going to give it.
 
-			if (_objPool.size() <= i)
+			assert_if (_objPool.size() <= i)
 				return nullptr;
 
 			auto& entry = _objPool[i];

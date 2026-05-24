@@ -77,6 +77,9 @@ namespace LEX
 		//Make const plz
 		Object CreateObject(TypeInfo* type);
 
+		Object CreateDefault(TypeInfo* type);
+
+
 		ITypeInfo* GetTypeInfo(uint32_t offset = 0);
 	};
 
