@@ -2801,7 +2801,7 @@ namespace LEX
 			
 
 			//These are to be struct like I think
-			RegisterObjectType<Array>("ARRAY", 1);
+			RegisterObject<Array>();
 			static IntrinsicType* basicArray = new IntrinsicType{ "ARRAY", 0, {} };
 			static IntrinsicType* complexArray = new IntrinsicType{ "ARRAY", 1, {} };
 

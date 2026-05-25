@@ -1,65 +1,11 @@
 #pragma once
 
+#include "Lexicon/ObjectStorage.h"
+#include "Lexicon/ObjectSettings.h"
+
 namespace LEX
 {
 	struct TypeInfo;
-
-	//Object storage slated for relocation
-	namespace detail
-	{
-		struct inherent {};
-
-
-		template <typename T>
-		struct object_storage : public inherent
-		{
-			//This is the purest version of this, rather the raw one. Used within make object to find if a forced storage is antithetical to 
-			// it's design.
-
-			//may want to decay this shit btw.
-			//Ensures it's the same size as a pointer basically.
-			static constexpr bool value = !std::is_polymorphic_v<T> && std::is_trivially_copyable_v<T> && sizeof(T) <= (sizeof(void*));// && not_polymorphic?
-
-			//The detection of this will help determine if the object storage was choosen manually or not. Lacking this will mean it's been manually choosen.
-			// ACTUALLY, make this something that it derives from instead. Easier to deal with it not existing.
-			static constexpr bool inherent = true;
-		};
-
-
-		template <typename T>
-		constexpr bool object_storage_v = object_storage<T>::value;
-	};
-
-	
-	template <typename T>
-	struct object_storage : detail::object_storage<T> {};
-
-	//name pending
-	struct StaticStoreType
-	{
-		const bool value;
-
-		constexpr operator bool() const noexcept
-		{
-			return value;
-		}
-
-		template<typename T>
-		constexpr StaticStoreType(object_storage<T>) noexcept : value{ object_storage<T>::value }
-		{
-
-		}
-	};
-
-
-	//template <typename T>
-	//constexpr bool object_storage_v = object_storage<T>::value;
-
-	template <typename T>
-	constexpr StaticStoreType object_storage_v = StaticStoreType(object_storage<T>{});
-
-	constexpr bool value_storage = true;
-	constexpr bool pointer_storage = false;
 
 	union ObjectData;
 
@@ -98,61 +44,48 @@ namespace LEX
 	public:
 
 		constexpr ObjectData() noexcept = default;
+		constexpr ObjectData(ObjectData&) noexcept = default;//I hate that I have to do this
+		constexpr ObjectData(ObjectData&&) noexcept = default;
+		constexpr ObjectData(const ObjectData&) noexcept = default;
+		constexpr ObjectData& operator=(ObjectData&) noexcept = default;
+		constexpr ObjectData& operator=(ObjectData&&) noexcept = default;
+		constexpr ObjectData& operator=(const ObjectData&) noexcept = default;
 
-		template <typename T>
-		explicit ObjectData(T& load)// : ObjectData{ std::addressof(load) }
-		{
-			LoadData(std::addressof(load));
-		}
 
+		
 		template <typename T>
-		explicit ObjectData(T&& load)// : ObjectData{ std::addressof(load) }
+		explicit ObjectData(T&& load)
 		{
-			LoadData(std::addressof(load));
+			LoadData(load);
 		}
 
 
 	private:
 		template <typename T>
-		void LoadData(T* load)
+		void LoadData(T& load)
 		{
-			using _Type = std::remove_cvref_t<T>;
+			using Type = std::remove_cvref_t<T>;
 
 
 			//I may make this a concept, so it can fail at use and not just within here.
-			constexpr bool declared_storage = object_storage_v<_Type>;
-			constexpr bool storage_match = detail::object_storage_v<_Type> == declared_storage;
+			constexpr ObjectStorage declared_storage = GetObjectStorage<Type>();
+			constexpr bool storage_match = detail::default_storage<Type> == declared_storage;
 
 
 			//QUERY: Can this shit not use the get functions from ObjectData?
-			if constexpr (declared_storage == value_storage)
+			if constexpr (declared_storage == ObjectStorage::Value)
 			{
 				static_assert(storage_match, "Declared storage is value, but type structure requires pointer.");
 
-				reinterpret_cast<_Type&>(*this) = std::move(*load);
+				reinterpret_cast<Type&>(fstVal) = std::move(load);
 			}
 			else
 			{
-				if constexpr (std::is_pointer<_Type>::value)
-				{
-					//If data returned as a pointer
-					if (load) {
-						ptrVal = *load;
-					}
-					else {
-						ptrVal = _Type{};
-					}
+				if constexpr (std::is_pointer<Type>::value) {
+					ptrVal = std::move(load);
 				}
-				else
-				{
-					//This is basically assuming it's not a pointer already. Deal with that.
-
-					if (load) {
-						ptrVal = new _Type{ *load };
-					}
-					else {
-						ptrVal = new _Type{};
-					}
+				else {
+					ptrVal = new Type{ std::move(load) };
 				}
 			}
 		}
@@ -179,7 +112,7 @@ namespace LEX
 		{
 			//This has no safeties. The user should know what they're doing.
 
-			if  constexpr (object_storage_v<T> == value_storage) {	//Value Type
+			if  constexpr (GetObjectStorage<T>() == ObjectStorage::Value) {	//Value Type
 				return reinterpret_cast<T&>(fstVal);
 			}
 			else {													//Pointer type.
@@ -193,7 +126,7 @@ namespace LEX
 			//This has no safeties. The user should know what they're doing.
 			//This should probably be making sure not to give someone the const ref of it OR
 			// just give them a new object that isn't a const but isn't a ref.
-			if  constexpr (object_storage_v<T> == value_storage){	//Value Type
+			if  constexpr (GetObjectStorage<T>() == ObjectStorage::Value){	//Value Type
 				return reinterpret_cast<T&>(fstVal);
 			}
 			else {													//Pointer type.
@@ -205,7 +138,7 @@ namespace LEX
 		template <typename T>
 		auto* ptr() noexcept
 		{
-			if  constexpr (object_storage_v<T> == value_storage) {	//Value Type
+			if  constexpr (GetObjectStorage<T>() == ObjectStorage::Value) {	//Value Type
 				return reinterpret_cast<T*>(&fstVal);
 			}
 			else {													//Pointer type.
@@ -216,7 +149,7 @@ namespace LEX
 		template <typename T>
 		const auto* ptr() const noexcept
 		{
-			if  constexpr (object_storage_v<T> == value_storage) {	//Value Type
+			if  constexpr (GetObjectStorage<T>() == ObjectStorage::Value) {	//Value Type
 				return reinterpret_cast<T*>(&fstVal);
 			}
 			else {													//Pointer type.

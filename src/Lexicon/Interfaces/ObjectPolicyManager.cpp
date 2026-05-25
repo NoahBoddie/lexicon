@@ -69,16 +69,16 @@ namespace LEX
 		return nullptr;
 	}
 
-
-	ObjectPolicy* ObjectPolicyManager::RegisterObjectType(ObjectVTable* vtable, const std::span<std::string_view>& aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source)
+	uint32_t ObjectPolicyManager::RegisterObject(std::unique_ptr<ObjectInfoBase>&& info, const std::string_view& name, const std::string_view& category,
+		TypeOffset range, HMODULE source)
 	{
-		//Change parameters of this, include a main name. Maybe a category. But maybe not.
 		report::message::info("adding category {}", category);
-		auto index = IdentityManager::instance->GenerateID(category, range, 
+
+		auto index = IdentityManager::instance->GenerateID(category, range,
 			[](const std::string_view& category, const std::span<std::string_view>& args)-> TypeOffset
 			{
 				ObjectPolicy* policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(category);
-				
+
 				assert_if(!policy) {
 					return -1;
 				}
@@ -91,18 +91,18 @@ namespace LEX
 
 		//auto policyList = GetPolicyList();
 		auto policyList = &_policyList;
-		
+
 		auto policyID = policyList->size();
-		
+
 
 
 
 		policyList->emplace_back(policy);
 
-		vtable->SetPolicy(policy);
-		policy->base = vtable;
+		info->SetPolicy(policy);
+		policy->base = std::move(info);
 		policy->category = category;
-		policy->ctor = builder;
+
 		policy->program = source;
 		//policy->offset =
 
@@ -111,28 +111,44 @@ namespace LEX
 		//Right now, and possibly in the future I don't think I actually want to have individual offsets register 
 		// themselves as objects. Instead, the entire category is an object. That's better in general.
 
-		
 
-		
+
+
 
 		policy->policyID = policyID;
 
 		auto end = aliasList.end();
 
+		auto it = aliasList.find(name);
+
+		if (it != end) {
+			report::fault::critical("alias {} taken", name);
+		}
+
+		aliasList[name] = policyID;
+
+		return policyID;
+	}
+
+
+
+	void ObjectPolicyManager::RegisterAliases(uint32_t id, const std::span<std::string_view>& aliases)
+	{
+		assert_if(_policyList.size() <= id) {
+			report::fault::error("object policy id given is invalid: {}", id);
+		}
+
 		for (auto& alias : aliases)
 		{
+			auto end = aliasList.end();
 			auto it = aliasList.find(alias);
 
 			if (it != end) {
 				report::fault::critical("alias {} taken", alias);
 			}
 
-
-			aliasList[alias] = policyID;
+			aliasList[alias] = id;
 		}
-
-
-		return policy;
 	}
 
 }

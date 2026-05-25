@@ -11,15 +11,15 @@ namespace LEX
 {
 	struct TypeInfo;
 	struct ObjectPolicy;
-
+	struct ObjectInfoBase;
 	namespace Version
 	{
 		namespace _1
 		{
-			struct INTERFACE_VERSION(ObjectPolicy)
+			struct INTERFACE_VERSION(IObjectPolicy)
 			{
 
-				virtual ObjectVTable* GetVTable() = 0;
+				virtual ObjectInfoBase* GetInfoBase() = 0;
 
 
 				//*
@@ -52,7 +52,7 @@ namespace LEX
 			};
 		}
 
-		CURRENT_VERSION(ObjectPolicy, 1);
+		CURRENT_VERSION(IObjectPolicy, 1);
 	}
 
 	//TODO: Idea on object policies, they derive from object vtable, so they are effective stand-ins for questions around object infos.
@@ -70,7 +70,7 @@ namespace LEX
 
 
 	
-	struct __declspec(novtable) IMPL_VERSION_DERIVES(IObjectPolicy, ObjectPolicy), public ObjectVTable
+	struct __declspec(novtable) IMPL_VERSION(IObjectPolicy), public IObjectInfo
 	{
 		//Make const plz
 		Object CreateObject(TypeInfo* type);
@@ -83,7 +83,6 @@ namespace LEX
 
 #ifndef LEX_SOURCE
 	struct __declspec(novtable) ObjectPolicy : public IObjectPolicy{};
-
 #endif
 
 	
@@ -91,3 +90,8 @@ namespace LEX
 
 
 }
+
+
+#ifdef LEX_SOURCE
+#include "Lexicon/Engine/ObjectPolicyImpl.h"
+#endif

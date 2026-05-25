@@ -36,7 +36,7 @@ namespace LEX
 	}
 	
 
-
+	//Turn this 
 	template <typename T, typename = void>
 	struct ObjectTranslator
 	{
@@ -92,6 +92,30 @@ namespace LEX
 
 
 
+	//Object context targets the objects being given to it and attempt to gleam context from it.
+	// Useful on nullable types where it'd be useful to know what type it spawned from.
+	template <typename T>
+	struct ObjectContext
+	{
+		std::optional<uint16_t> operator()(const T& val)
+		{
+			return std::nullopt;
+
+		}
+	};
+
+
+	template <typename T> requires (requires(ProxyGuide<T> guide, const T& arg) { { guide.UseObjectContext(arg) } -> std::convertible_to<std::optional<uint16_t>>; })
+		struct ObjectContext<T>
+	{
+		decltype(auto) operator()(const T& obj)
+		{
+			return ProxyGuide<T>{}.UseObjectContext(obj);
+		}
+	};
+
+
+
 
 	ENUM(ObjectFlag, uint8_t)
 	{
@@ -120,34 +144,13 @@ namespace LEX
 			//This is no extra trouble, given the values for ID are cached.
 			ObjectPolicy* policy = GetObjectPolicy<ObType>();
 
-			result.policy = GetObjectPolicyID<ObType>();
+			result.policy = policy->GetPolicyID();
 
 
 
-			if (!result.policy) {
-				report::runtime::critical("no policies");
+			if (policy->IsCompatible(GetObjectVersion<ObType>()) == false) {
+				report::runtime::critical("Type incompatibility detected");
 			}
-
-			ObjectVTable* vtable = GetObjectInfo<ObType>();
-
-			if (policy->IsCompatible(vtable) == false) {
-				report::runtime::critical("incompatible policies");
-			}
-
-			//This should get handled in compatibility testing.
-			if (result.policy)
-			{
-				//TODO: confirm this against what goes in the policy. This is when we can tell that something is far too old for the placement.
-				auto* vtable = GetObjectInfo<ObType>();
-				auto* test = result.policy.get();
-				//assert(result.policy->base);
-
-				if (result.policy->GetVTable() != vtable) {
-					//Non-inhouse checks (should only happen once.
-					//report::fault::critical("issue");
-				}
-			}
-
 
 
 			//Around here, I'd actually like there to be some sort of type trait that will be able to parse if it's a reference or not, as to not copy
@@ -155,12 +158,19 @@ namespace LEX
 			//auto data = ToObject<T>(var);
 			Res data = ObjectTranslator<T>{}(var);
 
+			std::optional<uint16_t> context = ObjectContext<T>{}(var);
+
+			if (context.has_value()) {
+				result.SetContext(context.value());
+			}
+
+
 			//This should be the raw type, no const, no pointer. See to it this is made pure.
 			using _Pure = decltype(data);//NOTE, find out the return type before hand, that way if it's a reference we can handle that properly.
 
 
 			//TODO: HANDLE POOLED DATA HERE.
-			constexpr bool stor = object_storage_v<ObType>;
+			constexpr bool is_value_store = GetObjectStorage<ObType>() == ObjectStorage::Value;
 
 
 
@@ -172,12 +182,12 @@ namespace LEX
 			TypeInfo* type = policy->GetTypeResolved(to);
 
 			if (policy->IsPooled(type) == true) {
-				result._data = policy->InitializePool(to, stor);
+				result._data = policy->InitializePool(to, is_value_store);
 				result.type = ObjectDataType::kRef;
 			}
 			else {
 				result._data = to;
-				if constexpr (stor) {
+				if constexpr (is_value_store) {
 					result.type = ObjectDataType::kVal;
 				}
 				else {
@@ -356,7 +366,8 @@ namespace LEX
 
 			policy = other.policy;
 			type = other.type;
-
+			flags = other.flags;
+			_context = other._context;
 			if (move) {
 				other.policy = ObjectPolicyHandle::invalid_index;
 				other.type = ObjectDataType::kNone;
@@ -433,7 +444,7 @@ namespace LEX
 			default:
 			{
 				auto& new_other = other;
-				report::critical("ObjectDataType is '{}'({}) and cannot be read. {}", magic_enum::enum_name(new_other.type), (int)new_other.type, new_other.context().value_or(0));
+				report::critical("ObjectDataType is '{}'({}) and cannot be read. {}", magic_enum::enum_name(new_other.type), (int)new_other.type, new_other.GetContext().value_or(0));
 
 			}
 			}
@@ -682,7 +693,7 @@ namespace LEX
 
 
 
-		std::optional<uint16_t> context() const noexcept
+		std::optional<uint16_t> GetContext() const noexcept
 		{
 			if (HasFlag(ObjectFlag::HasContext) == true) {
 				return _context;

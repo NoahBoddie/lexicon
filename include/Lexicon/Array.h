@@ -358,8 +358,13 @@ namespace LEX
 	//TODO: Make built in object infos, where if a type is denoted as such, it will make it's own object info, trying to 
 	// call a static version of the classes functions
 	template <>
-	struct LEX::ObjectInfo<Array> : public QualifiedObjectInfo<Array>
+	struct ObjectSettings<Array> : public ObjectInfo<Array>
 	{
+		static constexpr ::LEX::ObjectInfoData OBJECT_INFO_DATA = ::LEX::detail::VersionedObjectInfoData<1>
+		{
+			"ARRAY", 1
+		};
+
 		template <specialization_of<std::vector> Vec>
 		static Array ToObject(const Vec& obj)
 		{

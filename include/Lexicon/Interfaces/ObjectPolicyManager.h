@@ -7,7 +7,7 @@
 
 
 //*src
-#include "Lexicon/ObjectPolicy.hpp"
+#include "Lexicon/ObjectPolicy.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
 
 namespace LEX
@@ -31,8 +31,10 @@ namespace LEX
 				virtual ObjectPolicy* GetObjectPolicy(uint32_t index) = 0;
 
  
-				virtual ObjectPolicy* RegisterObjectType(ObjectVTable* vtable, const std::span<std::string_view>& aliases, std::string_view category, TypeOffset range, DataBuilder builder, HMODULE source) = 0;
+				virtual uint32_t RegisterObject(std::unique_ptr<ObjectInfoBase>&& info, const std::string_view& name, const std::string_view& category,
+					TypeOffset range, HMODULE source) = 0;
 
+				virtual void RegisterAliases(uint32_t id, const std::span<std::string_view>& aliases) = 0;
 			};
 
 			
@@ -43,23 +45,24 @@ namespace LEX
 
 
 
-	
+	//Index in all of these mean ID. I'd like to reflect that please.
 
 
 	//I would actually prefer all the above versions to be interface, and this here be the only valid version.
 	struct IMPL_SINGLETON(ObjectPolicyManager)
 	{
 
-		uint32_t GetIndexFromName(std::string_view name) INTERFACE_METHOD;
+		uint32_t GetIndexFromName(std::string_view name) override;
 
-		uint32_t GetIndexFromCategory(std::string_view category) INTERFACE_METHOD;
+		uint32_t GetIndexFromCategory(std::string_view category) override;
 
-		ObjectPolicy* GetObjectPolicy(uint32_t index) INTERFACE_METHOD;
+		ObjectPolicy* GetObjectPolicy(uint32_t index) override;
 
 
-		ObjectPolicy* RegisterObjectType(ObjectVTable* vtable, const std::span<std::string_view>&aliases, std::string_view category,
-			TypeOffset range, DataBuilder builder, HMODULE source) INTERFACE_METHOD;
+		uint32_t RegisterObject(std::unique_ptr<ObjectInfoBase>&& info, const std::string_view& name, const std::string_view& category,
+			TypeOffset range, HMODULE source) override;
 
+		void RegisterAliases(uint32_t id, const std::span<std::string_view>& aliases) override;
 
 
 		ObjectPolicy* GetObjectPolicyFromName(const std::string_view& category)
@@ -76,36 +79,28 @@ namespace LEX
 	};
 
 
-
-	//Put this in implementation. Shit doesn't need to be actively used.
-	inline void RegisterObjectType(std::string_view category, TypeOffset range, std::vector<std::string_view> aliases, ObjectVTable* vtable, DataBuilder builder)
+	template<has_object_info T>
+	uint32_t RegisterObject(std::unique_ptr<ObjectInfoBase>&& info)
 	{
 		HMODULE source = GetCurrentModule();
 
 
-		auto* policy = ObjectPolicyManager::instance->RegisterObjectType(vtable, aliases, category, range, builder, source);
+		return ObjectPolicyManager::instance->RegisterObject(
+			std::move(info), 
+			GetTypeName<T>(),
+			GetObjectCategory<T>(), 
+			GetObjectRange<T>(),
+			source);
 	}
 
 
-	//Registers a class to a set of types. Not allowed on abstract object infos that are interface only.
-	template <has_object_info T, typename... Ts>requires(!std::derived_from<ObjectInfo<std::remove_cvref_t<T>>, LEX::detail::not_implemented>)
-	void RegisterObjectType(std::string_view category, TypeOffset range = 0)
+
+	template<setting_is_object_info T>
+	uint32_t RegisterObject()
 	{
-		constexpr size_t type_count = sizeof...(Ts) + 1;
-
-		const std::type_info& type = typeid(T);
-
-		//Use GetObjectInfo for this.
-		static ObjectVTable* vtable = GetObjectInfo<T>();
-
-		DataBuilder builder = ObjectData::Build<T>;
-
-		std::array<std::string_view, type_count> alias_names{ GetTypeName<T>(), GetTypeName<Ts>()... };
-
-		//load vtable into returned function for object policy.
-		return RegisterObjectType(category, range, { std::begin(alias_names), std::end(alias_names) }, vtable, builder);
+		return RegisterObject<T>(std::make_unique<ObjectSettings<T>>());
 	}
-
+	
 
 	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
 	uint32_t FetchObjectPolicyID()
@@ -136,6 +131,53 @@ namespace LEX
 		
 		return result;
 	}
+
+
+	//Revisit handling this, right now I want to stop.
+	
+	template <typename... Aliases>
+	void RegisterAliases(uint32_t id)
+	{
+		std::array<std::string_view, sizeof...(Aliases)> alias_names{ GetTypeName<Aliases>()... };
+		return ObjectPolicyManager::instance->RegisterAliases(id, alias_names);
+	}
+
+	
+	inline void RegisterAliases(const std::string_view& name, const std::span<std::string_view>& aliases)
+	{
+		uint32_t id = ObjectPolicyManager::instance->GetIndexFromName(name);
+
+		return ObjectPolicyManager::instance->RegisterAliases(id, aliases);
+	}
+
+	template <has_object_info T>
+	void RegisterAliases(const std::span<std::string_view>& aliases)
+	{
+		return ObjectPolicyManager::instance->RegisterAliases(GetObjectPolicyID<T>(), aliases);
+	}
+
+	template <typename... Aliases>
+	void RegisterAliases(const std::string_view& name)
+	{
+		uint32_t id = ObjectPolicyManager::instance->GetIndexFromName(name);
+
+		return RegisterAliases<Aliases...>(id);
+	}
+
+	template <has_object_info T, typename... Aliases>
+	void RegisterAliases()
+	{
+		return RegisterAliases<Aliases...>(GetObjectPolicyID<T>());
+	}
+
+
+
+
+
+
+
+
+
 
 	template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
 	ObjectPolicy* FetchObjectPolicy()

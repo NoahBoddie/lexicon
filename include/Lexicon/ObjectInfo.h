@@ -4,6 +4,7 @@
 #include "TypeID.h"
 
 #include "Lexicon/String.h"
+#include "Lexicon/ObjectSettings.h"
 //*src
 #include "Lexicon/TypeInfo.h"
 
@@ -19,7 +20,7 @@ namespace LEX
 
 	struct String;
 
-	struct ObjectVTable;
+	struct IObjectInfo;
 
 	using ObjLitCtor = Object(*)(std::string_view);
 
@@ -27,7 +28,7 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct INTERFACE_VERSION(ObjectVTable)
+			struct INTERFACE_VERSION(IObjectInfo)
 			{
 				//The idea of this is that the policy stores it, and is accessed every single time an operator has to be used on an object.
 				// So basically, this is the virtual table.
@@ -39,18 +40,15 @@ namespace LEX
 				//Used to tell the individual objects version. Useful if the plugin doesn't change, but what's targeted does.
 				virtual uintptr_t GetObjectVersion() = 0;
 
-				//Used to tell what version the class is. Helps detect when new functions are added.
-				virtual uintptr_t GetVTableVersion() = 0;
-
 
 				//TODO: IsCompatible should be using a different struct, specifically the one that tells which item is incompatible with which.
 				//This function is used to check the object versions of this and that to tell if it's valid to use. Most times it will be.
 				// Also of note, there should be an outer compatibility check, one that calls both versions of IsCompatible. This accounts for updated
 				// compatibility rules.
-				virtual bool IsCompatible(const ObjectVTable*) = 0;
+				virtual bool IsCompatible(uintptr_t) = 0;
 
 				//Determines if it's stored in a value or in a pointer. Do NOT make this dynamic,
-				virtual StaticStoreType GetStorageType() = 0;
+				virtual ObjectStorage GetStorage() = 0;
 
 				//This will ALWAYS be given the actual objects data. It's then upto get_storage_type to handle it.
 				virtual bool IsPooled(TypeInfo*) = 0;
@@ -106,23 +104,18 @@ namespace LEX
 		}
 
 
-		CURRENT_VERSION(ObjectVTable, 1);
+		CURRENT_VERSION(IObjectInfo, 1);
 	}
 
-	struct IMPL_VERSION(ObjectVTable)
+	struct IMPL_VERSION(IObjectInfo)
 	{
-		
-
-		//*
-		ObjectPolicy* GetObjectPolicy() override { return _policy; }
-
 
 		uintptr_t GetObjectVersion() override { return 0; }
-		uintptr_t GetVTableVersion() override { return Version(); }
+		uintptr_t GetInfoVersion() { return Version(); }
 		
 		void Initialize(ObjectData&, TypeInfo*) override {}
 		
-		virtual bool IsCompatible(const ObjectVTable*) override { return true; }
+		virtual bool IsCompatible(uintptr_t) override { return true; }
 		
 		virtual bool Exists(ObjectData&) override
 		{
@@ -218,30 +211,33 @@ namespace LEX
 		}
 
 		//*/
+
+	};
+	
+
+
+
+	//IOVT is the version that's used on policies, and the below is the version that's found in object info.
+	struct ObjectInfoBase : public IObjectInfo
+	{
+		ObjectPolicy* GetObjectPolicy() override { return _policy; }
+
+
 	INTERNAL:
 
 		void SetPolicy(ObjectPolicy* policy)
 		{
-			if (!_policy)
+			assert_if_not(!_policy)
 				_policy = policy;
 		}
 
 		//This policy is the only 
 		mutable ObjectPolicy* _policy = nullptr;
 	};
-	
-	//IOVT is the version that's used on policies, and the above is the version that's found in object info.
-
 
 
 	template <typename T>
-	struct ObjectInfo : LEX::detail::not_implemented
-	{
-
-	};
-
-	template <typename T>
-	struct QualifiedObjectInfo : public ObjectVTable
+	struct ObjectInfo : public ObjectInfoBase
 	{
 		using Type = T;
 
@@ -261,11 +257,24 @@ namespace LEX
 			return unconst(get(make_const(self)));
 		}
 
-		//make const
-		StaticStoreType GetStorageType() override final
+
+		static T* ptr(ObjectData& self)
 		{
-			return object_storage_v<T>;
+			return self.ptr<T>();
 		}
+
+		static const T* ptr(const ObjectData& self)
+		{
+			return ptr(unconst(self));
+		}
+
+
+		
+		ObjectStorage GetStorage() override final
+		{
+			return GetObjectStorage<T>();
+		}
+		
 
 		ObjectData Build(TypeInfo* type) override final
 		{
@@ -292,17 +301,16 @@ namespace LEX
 
 		void Destroy(ObjectData& self) override
 		{
-			if constexpr (std::is_pointer_v<T>)
-			{
-
-			}
-			else if constexpr (object_storage_v<T> == value_storage) {
+			
+			if constexpr (GetObjectStorage<T>() == ObjectStorage::Value) {
 				//Value types simply need to unhandle their values.
-				self.get<T>().~T();
+				if constexpr (!std::is_pointer_v<T>){
+					get(self).~T();
+				}
 			}
 			else{
 				//while pointer types will need to deallocate
-				delete self.ptr<T>();
+				delete ptr(self);
 			}
 		}
 
@@ -310,12 +318,12 @@ namespace LEX
 		//Copy and this are basically exactly the same.
 		void Copy(ObjectData& self, const ObjectData& other) override
 		{
-			self.get<T>() = other.get<T>();
+			get(self) = get(other);
 		}
 
 		void Move(ObjectData& self, ObjectData& other) override
 		{
-			self.get<T>() = std::move(other.get<T>());
+			get(self) = std::move(get(other));
 		}
 
 
@@ -371,7 +379,7 @@ namespace LEX
 				return self.get<T>();
 			}
 			else {
-				return ObjectVTable::Exists(self);
+				return IObjectInfo::Exists(self);
 			}
 		}
 
@@ -380,64 +388,11 @@ namespace LEX
 		// and calling new ones. 
 	};
 
-	namespace detail
-	{
-		struct InternalObjectInfo : public ObjectVTable, LEX::detail::not_implemented
-		{
-			StaticStoreType GetStorageType() INTERFACE_METHOD;
-
-			void Destroy(ObjectData& self) INTERFACE_METHOD;
-
-			void Copy(ObjectData& self, const ObjectData& other) INTERFACE_METHOD;
-
-			void Move(ObjectData& self, ObjectData& other) INTERFACE_METHOD;
-
-			std::partial_ordering Compare(ObjectData& self, ObjectData& other) INTERFACE_METHOD;
-
-
-			String PrintString(ObjectData& self, std::string_view context) INTERFACE_METHOD;
-
-
-			TypeOffset GetTypeOffset(ObjectData& data) INTERFACE_METHOD;
-
-		};
-	}
-#ifdef LEX_SOURCE
-#define INTERNAL_OBJECT_INFO(mc_typename) LEX::QualifiedObjectInfo<mc_typename>
-#else
-#define INTERNAL_OBJECT_INFO(mc_typename) LEX::detail::InternalObjectInfo
-#endif
 
 
 	template <typename T>
-	concept has_object_info = std::is_base_of_v<ObjectVTable, ObjectInfo<std::remove_cvref_t<T>>> &&
-		!std::is_abstract_v<ObjectInfo<std::remove_cvref_t<T>>>;
-
-
-	template <has_object_info T>
-	ObjectVTable* GetObjectInfo()
-	{
-		//Having this not be loose is a good sign of warning.
-		//using PureT = std::remove_cvref_t<T>;
-
-		struct ob_info_delete { // default deleter for unique_ptr
-			constexpr ob_info_delete() noexcept = default;
-
-			//template <class _Ty2, enable_if_t<is_convertible_v<_Ty2*, _Ty*>, int> = 0>
-			constexpr ob_info_delete(const ob_info_delete&) noexcept {}
-
-			constexpr void operator()(ObjectVTable* ptr) const noexcept  {
-				//If this is an unregistered object info, we're allowed to delete it here
-				if (ptr->GetObjectPolicy() == nullptr)
-					delete ptr;
-
-			
-			}
-		};
-		static std::unique_ptr<ObjectVTable, ob_info_delete> vtable{ new ObjectInfo<T> };
-
-		return vtable.get();
-	}
-
+	concept setting_is_object_info = has_object_info<T> &&
+		std::derived_from<ObjectSettings<std::remove_cvref_t<T>>, ObjectInfo<std::remove_cvref_t<T>>> &&
+		!std::is_abstract_v<ObjectSettings<std::remove_cvref_t<T>>>;
 }
 

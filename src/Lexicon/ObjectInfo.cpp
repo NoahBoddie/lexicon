@@ -8,7 +8,7 @@ namespace LEX
 {
 
 
-	uint32_t ObjectVTable::GetTypeID(ObjectData& data)
+	uint32_t IObjectInfo::GetTypeID(ObjectData& data)
 	{
 		//auto id = GetObjectPolicy()
 		

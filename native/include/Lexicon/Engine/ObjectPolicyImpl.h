@@ -23,24 +23,17 @@ namespace LEX
 		}
 
 
-		//Used to tell what version the class is. Helps detect when new functions are added.
-		uintptr_t GetVTableVersion() override final
-		{
-			return base->GetVTableVersion();
-		}
-
 
 		//This function is used to check the object versions of this and that to tell if it's valid to use. Most times it will be.
-		bool IsCompatible(const ObjectVTable* other) override final
+		bool IsCompatible(uintptr_t version) override final
 		{
-			return base->IsCompatible(other);
+			return base->IsCompatible(version);
 		}
 
-
-		//Determines if it's stored in a value or in a pointer. Do NOT make this dynamic,
-		StaticStoreType GetStorageType() override final
+		//Determines if it's stored in a value or in a pointer.
+		ObjectStorage GetStorage() override final
 		{
-			return base->GetStorageType();
+			return base->GetStorage();
 		}
 
 
@@ -422,9 +415,9 @@ namespace LEX
 #pragma endregion
 
 
-		ObjectVTable* GetVTable() override
+		ObjectInfoBase* GetInfoBase() override
 		{
-			return base;
+			return base.get();
 		}
 
 
@@ -449,6 +442,7 @@ namespace LEX
 		}
 
 
+		//Instantiate this only once when the pool data is requested
 		struct
 		{
 			//When you can, make pooling handling a structure that needs to be created before being used. That way every registered object 
@@ -471,12 +465,8 @@ namespace LEX
 
 		//This is to be the true version of object policy basically. The above is a versioned interface.
 
-		const std::type_info* type;//This is made with create, to denote source.
 		HMODULE program;
 
-
-
-		DataBuilder ctor;
 
 		std::string_view category;
 		//All ideas from the claimed id to  the end of the offset are a part of the registered type.
@@ -488,7 +478,7 @@ namespace LEX
 
 
 
-		ObjectVTable* base = nullptr;
+		std::unique_ptr<ObjectInfoBase> base = nullptr;
 
 	};
 

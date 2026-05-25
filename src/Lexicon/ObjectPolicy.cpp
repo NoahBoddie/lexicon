@@ -20,11 +20,11 @@ namespace LEX
 		//}
 
 		if (IsPooled(a_type) == true) {
-			data = InitializePool(data, GetStorageType());
+			data = InitializePool(data, GetStorage() == ObjectStorage::Pointer);
 			type = ObjectDataType::kRef;
 		}
 		else {
-			type = GetStorageType() ? ObjectDataType::kVal : ObjectDataType::kPtr;
+			type = GetStorage() == ObjectStorage::Value ? ObjectDataType::kVal : ObjectDataType::kPtr;
 		}
 
 
