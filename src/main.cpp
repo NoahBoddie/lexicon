@@ -2550,7 +2550,7 @@ namespace LEX::Test
 
 
 
-        namespace
+        namespace Inner
         {
             //These will go in variable. The main point is to be able to know what type
             // was submitted to it, and thus what it should be percieved as.
@@ -2653,6 +2653,325 @@ namespace LEX::Test
             //Context will be handled through type offset.
             
 
+
+            enum struct ObjectStorage : uint8_t
+            {
+                Value,
+                Pointer,
+            };
+
+
+            struct ObjectInfoSettings
+            {
+                //VERSION,CATEGORY
+                //VERSION,CATEGORY,RANGE
+                //VERSION,CATEGORY,RANGE,STORAGE
+                //VERSION,CATEGORY,RANGE,INCOMPATIBLE
+                //VERSION,CATEGORY,RANGE,STORAGE,INCOMPATIBLE
+
+
+                uintptr_t VERSION{};
+                ObjectStorage STORAGE{};
+                std::string_view CATEGORY{};
+                uint32_t RANGE{};//Offsets given
+
+
+                uintptr_t INCOMPATIBLE{}; //Imcompatible below this version.
+
+
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat) noexcept : 
+                    VERSION{ ver }, CATEGORY{ cat }, INCOMPATIBLE{ ver } {}
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat, uint32_t range) noexcept :
+                    VERSION{ ver }, CATEGORY{ cat }, RANGE{ range }, INCOMPATIBLE{ ver } {}
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat, ObjectStorage stor) noexcept : 
+                    VERSION{ ver }, CATEGORY{ cat }, STORAGE{ stor }, INCOMPATIBLE{ ver } {}
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat, uintptr_t inc) noexcept :
+                    VERSION{ ver }, CATEGORY{ cat }, INCOMPATIBLE{ inc } {}
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat, uint32_t range, ObjectStorage stor) noexcept : 
+                    VERSION{ ver }, CATEGORY{ cat }, RANGE{ range }, STORAGE{ stor }, INCOMPATIBLE{ ver } {}
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat, uint32_t range, uintptr_t inc) noexcept : 
+                    VERSION{ ver }, CATEGORY{ cat }, RANGE{ range }, INCOMPATIBLE{ inc } {}
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat, ObjectStorage stor, uintptr_t inc) noexcept : 
+                    VERSION{ ver }, CATEGORY{ cat }, STORAGE{ stor }, INCOMPATIBLE{ inc } {}
+                consteval ObjectInfoSettings(uintptr_t ver, const std::string_view& cat, uint32_t range, ObjectStorage stor, uintptr_t inc) noexcept :
+                    VERSION{ ver }, CATEGORY{ cat }, RANGE{ range }, STORAGE{ stor }, INCOMPATIBLE{ inc } {}
+
+
+
+                //VERSION,CATEGORY
+                //VERSION,CATEGORY,RANGE
+                //VERSION,CATEGORY,RANGE,STORAGE
+                //VERSION,CATEGORY,RANGE,INCOMPATIBLE
+                //VERSION,CATEGORY,RANGE,STORAGE,INCOMPATIBLE
+            };
+
+            namespace detail
+            {
+                //Type only really exists so I don't have to put version first, it looks ugly
+                template <uintptr_t Version = 1>
+                struct VersionedObjectInfoSettings : public ObjectInfoSettings
+                {
+
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat) noexcept :
+                        ObjectInfoSettings{ Version, cat } {
+                    }
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat, uint32_t range) noexcept :
+                        ObjectInfoSettings{ Version, cat, range } {
+                    }
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat, ObjectStorage stor) noexcept :
+                        ObjectInfoSettings{ Version, cat, stor } {
+                    }
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat, uintptr_t inc) noexcept :
+                        ObjectInfoSettings{ Version, cat, inc } {
+                    }
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat, uint32_t range, ObjectStorage stor) noexcept :
+                        ObjectInfoSettings{ Version, cat, range, stor } {
+                    }
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat, uint32_t range, uintptr_t inc) noexcept :
+                        ObjectInfoSettings{ Version, cat, range, inc } {
+                    }
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat, ObjectStorage stor, uintptr_t inc) noexcept :
+                        ObjectInfoSettings{ Version, cat, stor, inc } {
+                    }
+                    consteval VersionedObjectInfoSettings(const std::string_view& cat, uint32_t range, ObjectStorage stor, uintptr_t inc) noexcept :
+                        ObjectInfoSettings{ Version, cat, range, stor, inc } {
+                    }
+
+                };
+            }
+
+            
+
+
+            // "::LEX::ObjectSettings" Do this later, it will make it work no matter where it is.
+#define LEX_OBJECT_SETTINGS(mc_ver) static constexpr ObjectInfoSettings OBJECT_INFO_SETTINGS = detail::VersionedObjectInfoSettings<mc_ver>
+
+
+
+
+            //This is well and good, but useless for establishing existing external objects
+            // as objects.
+           
+
+            struct Test
+            {
+                LEX_OBJECT_SETTINGS()
+                {
+                    "string"
+
+                };
+            };
+
+            //This will be what object info is now, where the settings exist externally
+            template<typename T>
+            struct ObjectSetting;
+
+
+            namespace detail
+            {
+                template <typename T>
+                concept has_info_settings = requires() {
+                    { T::OBJECT_INFO_SETTINGS } -> std::same_as<const ObjectInfoSettings&>;
+                    { std::bool_constant<(T::OBJECT_INFO_SETTINGS, true) >() } -> std::same_as<std::true_type>;
+                };
+
+                template <typename T>
+                constexpr ObjectStorage default_storage = !std::is_polymorphic_v<T> && std::is_trivially_copyable_v<T> && sizeof(T) <= (sizeof(void*)) ?
+                    ObjectStorage::Value : ObjectStorage::Pointer;
+
+
+
+            }
+
+
+            template<detail::has_info_settings T>
+            struct ObjectSetting<T>
+            {
+                constexpr static auto& OBJECT_INFO_SETTINGS = T::OBJECT_INFO_SETTINGS;
+
+                constexpr static size_t GetVersion()
+                {
+                    return T::OBJECT_SETTINGS.VERSION;
+                }
+            };
+
+            //Want to test if this bit works.
+            constexpr int test1 = 1;
+            constexpr const int& test2 = test1;
+
+            //this has some more stuff but eh
+            template <typename T>
+            concept has_object_info = is_complete_type<ObjectSetting<T>>::value && detail::has_info_settings<ObjectSetting<T>>;
+            //Object storage has to be compiliant, IE, it can't request data
+
+
+
+            template <typename T>
+            consteval uintptr_t ObjectVersion()
+            {
+                return ObjectSetting<T>::OBJECT_INFO_SETTINGS.VERSION;
+            }
+
+            template <typename T>
+            consteval uintptr_t GetObjectCategory()
+            {
+                return ObjectSetting<T>::OBJECT_INFO_SETTINGS.CATEGORY;
+            }
+
+            template <typename T>
+            consteval uintptr_t GetObjectRange()
+            {
+                return ObjectSetting<T>::OBJECT_INFO_SETTINGS.RANGE;
+            }
+
+            
+            template <typename T>
+            consteval ObjectStorage GetObjectStorage()
+            {
+                constexpr auto def_store = detail::default_storage<T>;
+                constexpr auto man_store = ObjectSetting<T>::OBJECT_INFO_SETTINGS.STORAGE;
+
+                if constexpr (man_store == ObjectStorage::Value && def_store == ObjectStorage::Pointer) {
+                    //Would like to send out a message maybe.
+                    //#pragma message("Manual setting of ObjectStorage::Value overrwritten by default pointer setting.")
+                }
+
+                return std::max(man_store, def_store);
+            }
+            
+
+            void TES__()
+            {
+                
+            }
+
+            static_assert(has_object_info<Test>);
+
+            struct ObjectInfoBase {};
+            
+            template<typename T>
+            struct ObjectInfo_Q : public ObjectInfoBase{};
+            
+
+
+            template <typename T>
+            concept has_object_info_ready = has_object_info<T> && 
+                std::derived_from<ObjectSetting<T>, ObjectInfo_Q<T>> &&
+                !std::is_abstract_v<ObjectSetting<T>>;
+
+
+            //give unique_ptr
+
+            template<has_object_info T>
+            void RegisterObject(ObjectInfoBase* info)
+            {
+                //HMODULE source = GetCurrentModule();
+
+
+                //auto* policy = ObjectPolicyManager::instance->RegisterObjectType(vtable, aliases, category, range, builder, source);
+            }
+
+
+
+            template<has_object_info_ready T>
+            void RegisterObject()
+            {
+
+            }
+
+            template <typename T>
+            void AddAliases(std::span<std::string_view> aliases)
+            {
+
+            }
+
+            //Put this in implementation. Shit doesn't need to be actively used.
+            inline void RegisterObjectType(std::string_view category, TypeOffset range, std::vector<std::string_view> aliases, ObjectVTable* vtable, DataBuilder builder)
+            {
+                HMODULE source = GetCurrentModule();
+
+
+                auto* policy = ObjectPolicyManager::instance->RegisterObjectType(vtable, aliases, category, range, builder, source);
+            }
+
+
+            //Registers a class to a set of types. Not allowed on abstract object infos that are interface only.
+            template <has_object_info T, typename... Ts>requires(!std::derived_from<ObjectInfo<std::remove_cvref_t<T>>, LEX::detail::not_implemented>)
+                void RegisterObjectType(std::string_view category, TypeOffset range = 0)
+            {
+                constexpr size_t type_count = sizeof...(Ts) + 1;
+
+                const std::type_info& type = typeid(T);
+
+                //Use GetObjectInfo for this.
+                static ObjectVTable* vtable = GetObjectInfo<T>();
+
+                DataBuilder builder = ObjectData::Build<T>;
+
+                std::array<std::string_view, type_count> alias_names{ GetTypeName<T>(), GetTypeName<Ts>()... };
+
+                //load vtable into returned function for object policy.
+                return RegisterObjectType(category, range, { std::begin(alias_names), std::end(alias_names) }, vtable, builder);
+            }
+
+
+            template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
+            uint32_t FetchObjectPolicyID()
+            {
+                constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
+                constexpr uint32_t invalid = -1;
+                static uint32_t index = invalid;
+
+
+                if (index == invalid) {
+
+                    index = ObjectPolicyManager::instance->GetIndexFromName(name);
+                }
+
+                return index;
+            }
+
+            template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
+            uint32_t GetObjectPolicyID()
+            {
+                constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
+                constexpr uint32_t invalid = -1;
+                auto result = FetchObjectPolicyID<T>();
+
+                if (result == invalid) {
+                    report::compile::critical("Object Policy '{}' not found.", name);
+                }
+
+                return result;
+            }
+
+            template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
+            ObjectPolicy* FetchObjectPolicy()
+            {
+                uint32_t index = FetchObjectPolicyID<T>();
+
+                return ObjectPolicyManager::instance->GetObjectPolicy(index);
+            }
+
+
+            template <has_object_info T>//Only accepts types with ObjectInfo or whatever I'm calling it, implemented.
+            ObjectPolicy* GetObjectPolicy()
+            {
+                auto result = FetchObjectPolicy<T>();
+
+                if (!result) {
+                    constexpr std::string_view name = GetTypeName<std::remove_cvref_t<T>>();
+                    report::compile::critical("Object Policy '{}' not found.", name);
+                }
+
+                return result;
+            }
+
+
+            void test()
+            {
+
+            }
         }
 
 
