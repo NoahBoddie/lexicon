@@ -373,7 +373,11 @@ namespace LEX
 
 
 		static void LoadParameter(ExpressionCompiler* compiler, SyntaxRecord& record, Solution from, Index index,
-			std::optional<bool> is_ref, std::vector<Instruction> express_instructs, std::function<Solution(Solution)> func);
+			std::optional<bool> is_ref, std::vector<Instruction> express_instructs, Operand& call_param, bool is_fast, std::function<Solution(Solution)> func);
+
+
+		//This one merely alters the to location, and doesn't bother with what it should be.
+		static void CheckFastLoad(ExpressionCompiler* compiler, Operand& to, Operand& call_param, bool fast_call);
 
 
 		static Instruction RemoveOperation(std::vector<Instruction>& ops, InstructList::iterator it)

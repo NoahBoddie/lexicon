@@ -9,7 +9,7 @@ namespace LEX
 
 
 	void CompUtil::LoadParameter(ExpressionCompiler* compiler, SyntaxRecord& record, Solution from, Index index,
-		std::optional<bool> is_ref, std::vector<Instruction> express_instructs, std::function<Solution(Solution)> func)
+		std::optional<bool> is_ref, std::vector<Instruction> express_instructs, Operand& call_param, bool is_fast, std::function<Solution(Solution)> func)
 	{
 		//Index should actually probably be a differ
 
@@ -27,7 +27,13 @@ namespace LEX
 				RoutineCompiler::TempListHandle handle{ result, compiler->_current };
 				from = func(from);
 			}
-			result.append_range(CompUtil::MutateLoad(from, Operand{ index, OperandType::Argument }, is_ref));
+
+			Operand to = { index, OperandType::Argument };
+
+			CompUtil::CheckFastLoad(compiler, to, call_param, is_fast);
+
+
+			result.append_range(CompUtil::MutateLoad(from, to, is_ref));
 		}
 		else
 		{
@@ -103,6 +109,17 @@ namespace LEX
 		}
 
 		compiler->AppendInstructions(record, result);
+	}
+
+
+	//This one merely alters the to location, and doesn't bother with what it should be.
+	void CompUtil::CheckFastLoad(ExpressionCompiler* compiler, Operand& to, Operand& call_param, bool fast_call)
+	{
+		if (!fast_call) {
+			return;
+		}
+
+		to = call_param = Operand{ compiler->GetPrefered(), OperandType::Register };
 	}
 
 

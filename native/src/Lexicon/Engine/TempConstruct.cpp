@@ -167,15 +167,53 @@ namespace LEX
 
 		static void Call(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
-			Differ count = a_rhs.GetDiffer(runtime);
+			Differ count;
 
-			if (a_rhs.type() == OperandType::Value) {
-				count = runtime->GetStackPointer(StackPointer::Argument) - count;
+			switch (instruct)
+			{
+			case InstructType::Call:
+				if constexpr (1) {
+					count = a_rhs.GetDiffer(runtime);
+
+					if (a_rhs.type() == OperandType::Value) {
+						count = runtime->GetStackPointer(StackPointer::Argument) - count;
+					}
+				}
+				break;
+
+			case InstructType::FastCall:
+				if constexpr (1) {
+					count = 0;
+				}
+				break;
+
+			default:
+				report::fault::error("Unknown instruction detected.");
+				count = 0;
+				break;
 			}
+
+			
 
 
 			{//Needs to be scoped for now so args don't maintain references longer than they should
-				std::vector<RuntimeVariable> args = runtime->GetArgsInRange(count);
+				std::vector<RuntimeVariable> args;
+
+
+				switch (instruct)
+				{
+				case InstructType::Call:
+					if constexpr (1) {
+						args = runtime->GetArgsInRange(count);
+					}
+					break;
+
+				case InstructType::FastCall:
+					if (a_rhs.IsEmpty() == false) {
+						args.emplace_back(a_rhs.GetVariable(runtime));
+					}
+					break;
+				}
 
 				get_switch (a_lhs.type())
 				{
@@ -1701,9 +1739,6 @@ namespace LEX
 					is_vard_call = true;
 				}
 
-
-				//compiler->GetInstructionList().push_back(CompUtil::Mutate(result, Operand{ compiler->ModArgCount(), OperandType::Argument }));
-
 				args[i] = std::make_pair(result, 0);
 
 				i++;
@@ -1791,6 +1826,9 @@ namespace LEX
 
 			constexpr bool do_new = false;
 
+			bool is_fast = !is_vard_call && alloc_size <= 1;
+
+
 			//if (alloc_size && (do_new || is_vard_call))
 			if (is_vard_call)
 			{
@@ -1810,6 +1848,9 @@ namespace LEX
 
 				param = buffer;
 			}
+			else if (alloc_size <= 1) {
+				alloc_size = 0;
+			}
 			else {
 				param = Operand{ alloc_size, OperandType::Differ };
 			}
@@ -1825,19 +1866,26 @@ namespace LEX
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
 				//list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
 				
-				OperandType self_type = self->target->type();
-				assert(self_type != OperandType::Argument);
+				OperandType type = self->target->type();
+				
+				assert(type != OperandType::Argument);
 
+				bool should_reference = type != OperandType::Register;
 
+				Operand to = { alloc_size, OperandType::Argument };
 
-				compiler->PushInstruction(Instruction{ self_type != OperandType::Register ? 
-					InstructType::Reference : InstructType::Forward, Operand{ alloc_size, OperandType::Argument }, *self->target });
+				CompUtil::CheckFastLoad(compiler, to, param, is_fast);
+
+				compiler->PushInstruction(Instruction{ should_reference ?
+					InstructType::Reference : InstructType::Forward, to, *self->target });
 			}
 
 
 			auto full_size = alloc_size;
 			auto full_sub = sub_alloc;
 
+			//Alloc's purpose is to load in variadic arguments
+			// This does not need to be here
 			auto early_alloc = [&](Differ i)
 				{
 					compiler->ModArgCount(i, sub_alloc);
@@ -1852,6 +1900,8 @@ namespace LEX
 					compiler->PushInstruction(Instruction{ InstructType::ModArgStack, pref });
 
 				};
+
+
 
 			{
 				auto temp = compiler->ReadyNoRecord();
@@ -1873,7 +1923,14 @@ namespace LEX
 					if (arg.IsVariadic() == true)
 						early_alloc(index);
 
-					CompUtil::LoadParameter(compiler, record, arg, full_size - index, o_entry.type.IsReference(), ops, [&](Solution from) -> Solution
+
+					Operand to = { alloc_size, OperandType::Argument };
+
+					CompUtil::CheckFastLoad(compiler, to, param, is_fast);
+
+
+					CompUtil::LoadParameter(compiler, record, arg, full_size - index, o_entry.type.IsReference(), ops, param, is_fast,
+						[&](Solution from) -> Solution
 					{
 						CompUtil::HandleConversion(compiler, o_entry.convert, from, o_entry.type, o_entry.convertType, record, Register::Right);
 						
@@ -1896,15 +1953,17 @@ namespace LEX
 
 			auto generic = node.GetFunction();
 
+			InstructType call_instruct = is_fast ? InstructType::FastCall : InstructType::Call;
+
 			switch (node.type())
 			{
 			case FunctionNode::kFunction:
-				compiler->EmplaceInstruction(InstructType::Call, compiler->GetPrefered(),
+				compiler->EmplaceInstruction(call_instruct, compiler->GetPrefered(),
 					Operand{ node.GetFunction(), OperandType::Function },
 					param);
 				break;
 			case FunctionNode::kMethod:
-				compiler->EmplaceInstruction(InstructType::Call, compiler->GetPrefered(),
+				compiler->EmplaceInstruction(call_instruct, compiler->GetPrefered(),
 					Operand{ node.GetMethod(), OperandType::Member },
 					param);
 				break;
@@ -2673,6 +2732,7 @@ namespace LEX
 
 
 			instructList[InstructType::Call] = InstructWorkShop::Call;
+			instructList[InstructType::FastCall] = InstructWorkShop::Call;
 
 			instructList[InstructType::Convert] = InstructWorkShop::Convert;
 			instructList[InstructType::AssertConvert] = InstructWorkShop::AssertConvert;
