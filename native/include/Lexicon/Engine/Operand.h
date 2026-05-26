@@ -195,7 +195,7 @@ namespace LEX
 			}
 		}
 
-		constexpr bool IsEmpty() const noexcept { return type() == OperandType::None; }
+		constexpr bool IsEmpty() const noexcept { return type() == OperandType::Total; }
 
 
 		constexpr static Operand None()
