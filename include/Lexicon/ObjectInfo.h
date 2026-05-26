@@ -7,6 +7,7 @@
 #include "Lexicon/ObjectSettings.h"
 //*src
 #include "Lexicon/TypeInfo.h"
+#include "Lexicon/ObjectParams.h"
 
 #include "Lexicon/Interfaces/IdentityManager.h"
 
@@ -22,7 +23,11 @@ namespace LEX
 
 	struct IObjectInfo;
 
+	struct ObjectParams;
+
+
 	using ObjLitCtor = Object(*)(std::string_view);
+
 
 	namespace Version
 	{
@@ -83,17 +88,17 @@ namespace LEX
 
 				virtual bool RequestDelete(ObjectData&) = 0;
 
-				virtual TypeOffset GetTypeOffset(ObjectData&) = 0;
+				virtual TypeOffset GetTypeOffset(const ObjectParams&) = 0;
 
-				virtual TypeInfo* SpecializeType(ObjectData&, ITypeInfo*) = 0;
+				virtual TypeInfo* SpecializeType(const ObjectParams&, ITypeInfo*) = 0;
 
 				//This can be defined in a source
-				virtual uint32_t GetTypeID(ObjectData&) = 0;
+				virtual uint32_t GetTypeID(const ObjectParams&) = 0;
 
-				virtual TypeInfo* GetOverrideType(ObjectData&) = 0;
+				virtual TypeInfo* GetOverrideType(const ObjectParams&) = 0;
 
 				//Gets the objects print string. Comes with context for types such as bind classes that attach themselves to an object.
-				virtual String PrintString(ObjectData & object, std::string_view context) = 0;
+				virtual String PrintString(const ObjectParams& object, std::string_view context) = 0;
 
 				virtual bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) = 0;
 
@@ -137,9 +142,9 @@ namespace LEX
 			return true;
 		}
 
-		uint32_t GetTypeID(ObjectData& data) override API_FINAL;
+		uint32_t GetTypeID(const ObjectParams& data) override API_FINAL;
 
-		TypeInfo* SpecializeType(ObjectData&, ITypeInfo* type) override
+		TypeInfo* SpecializeType(const ObjectParams&, ITypeInfo* type) override
 		{
 			//By default a specialized class will be as normal. No additional work will need to be used.
 
@@ -152,12 +157,12 @@ namespace LEX
 		
 
 
-		String PrintString(ObjectData& self, std::string_view context) override
+		String PrintString(const ObjectParams& self, std::string_view context) override
 		{
 
 
 			//Later I'd like this to be able to get the name. Saving that for later though.
-			return std::format("{}::({:X})", context.empty() ? "Object" : context, self.fstVal);
+			return std::format("{}::({:X})", context.empty() ? "Object" : context, self.data.fstVal);
 		}
 
 		bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) override
@@ -166,12 +171,12 @@ namespace LEX
 		}
 
 		//Very ill-advised you use this, primarily only exists for ScriptObjects and attributes
-		TypeInfo* GetOverrideType(ObjectData&) override
+		TypeInfo* GetOverrideType(const ObjectParams&) override
 		{
 			return nullptr;
 		}
 
-		ITypeInfo* GetTypeInterface(ObjectData& object)
+		ITypeInfo* GetTypeInterface(const ObjectParams& object)
 		{
 			if (auto type = GetOverrideType(object)) {
 				return type;
@@ -193,7 +198,7 @@ namespace LEX
 		}
 
 
-		TypeInfo* GetTypeResolved(ObjectData& object)
+		TypeInfo* GetTypeResolved(const ObjectParams& object)
 		{
 			if (auto type = GetOverrideType(object)) {
 				return type;
@@ -356,7 +361,7 @@ namespace LEX
 		}
 
 
-		String PrintString(ObjectData& self, std::string_view context) override
+		String PrintString(const ObjectParams& self, std::string_view context) override
 		{
 			constexpr bool has_func = requires(const T& t, std::string_view s)
 			{

@@ -8,7 +8,7 @@ namespace LEX
 {
 	std::string Object::PrintString() const
 	{
-		return policy->PrintString(data(), {});
+		return policy->PrintString(*this, {});
 	}
 
 }

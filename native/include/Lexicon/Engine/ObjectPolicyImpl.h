@@ -102,25 +102,25 @@ namespace LEX
 		}
 
 
-		TypeOffset GetTypeOffset(ObjectData& self) override final
+		TypeOffset GetTypeOffset(const ObjectParams& self) override final
 		{
 			return base->GetTypeOffset(self);
 		}
 
 
-		TypeInfo* SpecializeType(ObjectData& self, ITypeInfo* type) override final
+		TypeInfo* SpecializeType(const ObjectParams& self, ITypeInfo* type) override final
 		{
 			return base->SpecializeType(self, type);
 		}
 
-		uint32_t GetTypeID(ObjectData& self) override
+		uint32_t GetTypeID(const ObjectParams& self) override
 		{
 			return base->GetTypeID(self);
 		}
 
 
 
-		String PrintString(ObjectData& self, std::string_view context) override
+		String PrintString(const ObjectParams& self, std::string_view context) override
 		{
 			return base->PrintString(self, context);
 		}
@@ -136,7 +136,7 @@ namespace LEX
 			return base->GetOffsetFromArgs(category, args);
 		}
 
-		TypeInfo* GetOverrideType(ObjectData& data) override
+		TypeInfo* GetOverrideType(const ObjectParams& data) override
 		{
 			return base->GetOverrideType(data);
 		}

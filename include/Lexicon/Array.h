@@ -383,13 +383,13 @@ namespace LEX
 		}
 
 
-		TypeOffset GetTypeOffset(ObjectData& data) override
+		TypeOffset GetTypeOffset(const ObjectParams& data) override
 		{
 			return data.get<Array>().type() != nullptr;
 		}
 
 
-		TypeInfo* SpecializeType(ObjectData& data, ITypeInfo* type) override
+		TypeInfo* SpecializeType(const ObjectParams& data, ITypeInfo* type) override
 		{
 			TypeInfo* result;
 
@@ -414,7 +414,7 @@ namespace LEX
 		//the form object info needs to edit the transfer functions,
 
 
-		String PrintString(ObjectData& a_self, std::string_view context) override
+		String PrintString(const ObjectParams& a_self, std::string_view context) override
 		{
 			return a_self.get<Array>().PrintString(context);
 		}

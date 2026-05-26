@@ -169,17 +169,16 @@ namespace LEX
 			using _Pure = decltype(data);//NOTE, find out the return type before hand, that way if it's a reference we can handle that properly.
 
 
-			//TODO: HANDLE POOLED DATA HERE.
 			constexpr bool is_value_store = GetObjectStorage<ObType>() == ObjectStorage::Value;
 
-
+			constexpr ObjectDataType data_type = is_value_store ? ObjectDataType::kVal : ObjectDataType::kPtr;
 
 			//ObjectData to = FillObjectData<ObType>(data);
 			ObjectData to{ data };
 
 
 			
-			TypeInfo* type = policy->GetTypeResolved(to);
+			TypeInfo* type = policy->GetTypeResolved(ObjectParams{ to, data_type, context });
 
 			if (policy->IsPooled(type) == true) {
 				result._data = policy->InitializePool(to, is_value_store);
@@ -187,14 +186,10 @@ namespace LEX
 			}
 			else {
 				result._data = to;
-				if constexpr (is_value_store) {
-					result.type = ObjectDataType::kVal;
-				}
-				else {
-					result.type = ObjectDataType::kPtr;
-
-				}
+				result.type = data_type;
 			}
+
+
 
 			policy->Initialize(result.data(), type);
 
@@ -276,14 +271,14 @@ namespace LEX
 		{
 			if (obj)
 			{
-				auto type = obj->policy->GetTypeResolved(obj->data());
+				auto type = obj->policy->GetTypeResolved(*obj);
 				
 				return type;	
 			}
 				//_data()
 			//SpecializeType(ObjectData&, ITypeInfo * type) override
 			
-			//return core type instead.
+			//return a core type instead.
 			return nullptr;
 		}
 
@@ -359,7 +354,7 @@ namespace LEX
 		//If other is pooled, we have no need of creating data or any of that mess.
 
 		//This part never changes
-		Object& _BasicTransfer(Object& other, bool move)
+		Object& BasicTransfer(Object& other, bool move)
 		{
 			//The assumption is that other isn't valid, and thus, no care needs to be taken in transfering information.
 
@@ -386,7 +381,7 @@ namespace LEX
 
 
 
-		Object& _SimpleTransfer(Object& other, bool move) 
+		Object& SimpleTransfer(Object& other, bool move) 
 		{
 			//The assumption is that other isn't valid, and thus, no care needs to be taken in transfering information.
 			_data = other._data;
@@ -394,11 +389,11 @@ namespace LEX
 			if (move)
 				other._data.Clear();
 
-			return _BasicTransfer(other, move);
+			return BasicTransfer(other, move);
 		}
 
 		
-		Object& _AdvancedTransfer(Object& other, bool move)
+		Object& AdvancedTransfer(Object& other, bool move)
 		{//This assumes there's precious data to be transfered.
 			
 			//Transfers delete what data existed, so this needs to be reinitialized
@@ -414,7 +409,7 @@ namespace LEX
 			}
 
 			
-			return _BasicTransfer(other, move);
+			return BasicTransfer(other, move);
 		}
 
 
@@ -435,11 +430,11 @@ namespace LEX
 
 				[[fallthrough]];
 			case ObjectDataType::kNone:
-				return _SimpleTransfer(other, move);
+				return SimpleTransfer(other, move);
 
 			case ObjectDataType::kVal:
 			case ObjectDataType::kPtr:
-				return _AdvancedTransfer(other, move);
+				return AdvancedTransfer(other, move);
 
 			default:
 			{

@@ -8,7 +8,7 @@ namespace LEX
 {
 
 
-	uint32_t IObjectInfo::GetTypeID(ObjectData& data)
+	uint32_t IObjectInfo::GetTypeID(const ObjectParams& data)
 	{
 		//auto id = GetObjectPolicy()
 		
