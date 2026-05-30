@@ -161,7 +161,7 @@ namespace LEX
 		auto convert = from.IsConvertToQualified(to, nullptr, &out, flags);
 		
 		if (!convert) {
-			target.error<IssueType::Compile>("Cannot initialize. Error {}", magic_enum::enum_name(convert.data));
+			target.error<IssueType::Compile>("Cannot convert type [something] to type [something else]. Error {}", magic_enum::enum_name(convert.data));
 		}
 
 		return CompUtil::HandleConversion(compiler, out, from, to, convert, target, reg);
@@ -176,7 +176,7 @@ namespace LEX
 			
 			//Actually, if it's void you'll want to clear it even more
 			//TODO: I wish to know why this doesn't properly log the location of the return.
-			compiler->EmplaceInstruction(InstructionType::DefineVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
+			compiler->EmplaceInstruction(InstructionType::DeclareVariable, Operand{ Register::Result, OperandType::Register }, Operand{ return_type.policy, OperandType::Type });
 		}
 	}
 

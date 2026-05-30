@@ -151,6 +151,10 @@ namespace LEX
 		//If not an object, the literal type becomes the very same. If not, 
 
 	}
-
+	std::pair<Solution, ITypeInfo*>  LiteralManager::ObtainUndefined()
+	{
+		SyntaxRecord rec{ "undefined", SyntaxType::Constant };
+		return ObtainLiteral(rec, nullptr);
+	}
 
 }

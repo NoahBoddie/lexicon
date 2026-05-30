@@ -429,6 +429,10 @@ namespace LEX
 			return std::addressof(AsObject());
 		}
 
+		const Object* FetchObject() const
+		{
+			return unconst(this)->FetchObject();
+		}
 
 		void Clear()
 		{

@@ -87,6 +87,8 @@ namespace LEX
 
         for (auto& affix : GetPostAffixedTypes()) {
             //if (GetInheritData(affix) == nullptr) 
+            //GetInheritIndex(affix) == -1 && 
+            if (affix != this)
             {
                 SetInheritFrom(affix, Access::Public, true);
             }
@@ -159,7 +161,10 @@ namespace LEX
 
         //We'll want to make a copy, because we're gonna rehash it by the index.
         for (InheritNode data : inheritance) {
-            data.startHash += hashMin;
+            
+            if (!data.IsVirtualInherited() || data.HasZeroWidthHash())
+                data.startHash += hashMin;
+            
             data.ownerIndex += idxInc;
             //I still have to check against this due to virtual inheritance.
             //if (largestHash < data.hash[1])
@@ -349,9 +354,9 @@ namespace LEX
             auto hash = basis.hash();
 
             //I'm going to leave this because it needs a source file
-            logger::trace("|	Name: {}, Hash: {}/{}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{}), postfix: {}",
-                basis.tree->GetName(), hash[0], hash[1], basis.distance, basis.ownerIndex, basis.IsInternal(),
-                access, basis.memberIndex, basis.tree->GetFieldCount(), basis.IsAffixed());
+            logger::trace("|	Name: {}, Hash: {}/{}, true: {}, Dist: {}, Ownr: {}, intern: {}, access: {}, Mbrs: ({}+{}), postfix: {}, nil: {}",
+                basis.tree->GetName(), hash[0], hash[1], basis.startHash, basis.distance, basis.ownerIndex, basis.IsInternal(),
+                access, basis.memberIndex, basis.tree->GetFieldCount(), basis.IsAffixed(), basis.HasZeroWidthHash());
         }
     }
 

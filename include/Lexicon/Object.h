@@ -612,6 +612,11 @@ namespace LEX
 			return ptr<T>();
 		}
 
+		template <has_object_info T>
+		const T* fetch() const
+		{
+			return unconst(this)->fetch<T>();
+		}
 
 		template <object_type T>
 		explicit operator T ()

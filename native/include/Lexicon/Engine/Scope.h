@@ -194,6 +194,9 @@ namespace LEX
 
 		QualifiedField SearchFieldPath(SyntaxRecord& _path, OverloadArgument* key = nullptr);
 
+		QualifiedField SearchField(const std::string& name);
+
+
 		LocalInfo* FindLocalVariable(const std::string& name)
 		{
 			auto end = vars.end();

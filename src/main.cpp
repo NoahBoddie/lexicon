@@ -1373,8 +1373,6 @@ namespace LEX::Test
             template <typename T>
             struct CollectibleData
             {
-                static constexpr uintptr_t k_destructedPtr = (uintptr_t)-1;
-
                 using element_type = T;
                 using pointer_type = element_type*;
 
@@ -1403,6 +1401,13 @@ namespace LEX::Test
                     _data{ std::exchange(other._data, nullptr) }
                 {}
 
+                CollectibleData& operator=(const CollectibleData&) = delete;
+                CollectibleData& operator=(CollectibleData&& other) noexcept
+                {
+                    _data = std::exchange(other._data, nullptr);
+                    return *this;
+                }
+
                 //Pls make the operators, thx
 
 
@@ -1429,6 +1434,11 @@ namespace LEX::Test
                     return {};
                 }
 
+
+                constexpr operator bool() const noexcept
+                {
+                    return _data;
+                }
 
 
                 void Destroy()
@@ -1882,7 +1892,7 @@ namespace LEX::Test
 
             [[nodiscard]] LockHandle Lock() const
             {
-                TestLockManager::HandleLock(*this, hash());
+                return TestLockManager::HandleLock(*this, hash());
             }
 
             constexpr LockID() noexcept = default;
@@ -2188,7 +2198,27 @@ namespace LEX::Test
                 return unconst(this)->obtain();
             }
 
+            Variable* ptr()
+            {
+                return std::addressof(obtain());
+            }
 
+            const Variable* ptr() const
+            {
+                return unconst(this)->ptr();
+            }
+
+
+
+            Variable* operator->() noexcept
+            {
+                return ptr();
+            }
+
+            const Variable* operator->() const noexcept
+            {
+                return ptr();
+            }
 
             operator Variable&()
             {
@@ -2207,34 +2237,125 @@ namespace LEX::Test
         //I think this version of array should actually be intrinsic
         struct Array
         {
-        
+        public:
+
+            OBJECT_INFO_DATA(1)
+            {
+                "ARRAY", 1
+            };
+
 
         public:
             
+            //This will likely be just an object array.
+            Array() noexcept = default;
+
+
             Array(TypeInfo* type, uint32_t a_size) : _type{ type }
             {
-                if (a_size) {
-                    resize(a_size);
-                }
+                resize(a_size);
             }
 
-            Array(TypeInfo* type) : Array{type, 0} {}
+            Array(TypeInfo* type) : Array{type, 0} {
+            }
 
 
             Array(const Array& other) : Array{ other.type() }
             { 
-                if (other.size() != 0)
-                    copy(other); 
+                copy(other); 
             }
+            
             Array(Array&& other) :
                 _data{ std::move(other._data) },
                 _type{ other._type },
                 _size{ std::exchange(other._size, 0) }
+            {}
+            
+            template <typename T> requires (!std::is_base_of_v<LEX::detail::not_implemented, Revariable<T>>)//stl::castable_from<Variable>
+            Array(std::vector<T>& other) : Array{GetVariableType<T>(), (uint32_t)other.size() }
             {
+                for (uint32_t i = 0; i < _size; i++) {
+                    Revariable<T>{}(other[i], std::addressof(_data[i].obtain()));
+                }
+            }
+            template <typename T> requires (!std::is_base_of_v<LEX::detail::not_implemented, Revariable<T>>)//stl::castable_from<Variable>
+            Array(std::vector<T>&& other) : Array{ other } {
             }
 
 
+            Array& operator=(const Array& other)
+            {
+                copy(other);
+                return *this;
+            }
+            Array& operator=(Array&& other)
+            {
+                move(std::move(other));
+                return *this;
+            }
+
+
+
+            template <typename T> requires (!std::is_base_of_v<LEX::detail::not_implemented, Unvariable<T>>)//stl::castable_from<Variable>
+            explicit operator std::vector<T>() const
+            {
+                if (!_size)
+                    return {};
+
+
+                if constexpr (std::is_same_v<T, Variable>)
+                {
+                    return std::vector<T>{_data.data(), _size };
+                }
+                else {
+                    auto begin = _data.data();
+                    auto end = begin + _size;
+
+                    std::vector<T> result{};
+
+                    result.resize(data.size());
+
+                    std::transform(begin, end, result.begin(), [](ArrayVariable& it)
+                        {
+                            return Unvariable<T>{}(it.get());
+                        });
+
+                    return result;
+                }
+
+            }
+
         public:
+
+
+            std::string PrintString(const std::string_view& context) const
+            {
+                //std::vector<std::string> entries{ size };
+                std::string result = "[";
+
+
+                if (_data)
+                {
+
+                    for (int i = 0; i < _size; i++)
+                    {
+                        if (i)
+                            result += ", ";
+
+                        result += _data[i]->PrintString();
+
+
+                    }
+                }
+                result += "]";
+
+                //Ypu've got all these fancy ways to do this, but I'm just gonna do this for now and see if that works.
+                return result;
+
+
+            }
+
+
 
             ArrayVariable* data()
             {
@@ -2315,6 +2436,15 @@ namespace LEX::Test
                 _data.Copy(data, size);
             }
 
+
+            void move(Array&& other)
+            {
+                _data = std::move(other._data);
+                _type = other._type;
+                _size = std::exchange(other._size, 0);
+            }
+
+
         private:
 
 
@@ -2330,6 +2460,251 @@ namespace LEX::Test
         REQUIRED_SIZE(Array, 0x18);
         //*/
 
+
+        struct ObjectSettings_Array : public ObjectInfo<Array>
+        {
+            OBJECT_INFO_DATA(1)
+            {
+                "ARRAY", 1
+            };
+
+            template <specialization_of<std::vector> Vec>
+            static Array ToObject(const Vec& obj)
+            {
+                std::vector<Variable> buff;
+                buff.reserve(obj.size());
+                //const std::vector<void*> test;
+
+                //void* other = test[1];
+
+
+                std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
+
+
+                return Array{ buff };
+
+            }
+
+
+            TypeOffset GetTypeOffset(const ObjectParams& data) override
+            {
+                return data.get<Array>().type() != nullptr;
+            }
+
+
+            TypeInfo* SpecializeType(const ObjectParams& data, ITypeInfo* type) override
+            {
+                TypeInfo* result;
+
+                if (type->IsResolved() == false) {
+
+                    GenericArray array{ nullptr, {data.get<Array>().type()} };
+
+                    auto result = type->GetTypeInfo(array.TryResolve());
+
+                    if (!result) {
+                        report::error("Failed to specialized 'ARRAY' offset of 1.");
+                    }
+
+                }
+                else {
+                    result = type->GetTypeInfo(nullptr);
+                }
+
+                return result;
+            }
+
+            //the form object info needs to edit the transfer functions,
+
+
+            String PrintString(const ObjectParams& a_self, std::string_view context) override
+            {
+                return a_self.get<Array>().PrintString(context);
+            }
+
+            /*
+            //This was mere test data
+            bool CreateLiteralData(std::string_view literal, uintptr_t& hash, ObjLitCtor& ctor) override
+            {
+                auto func = [](std::string_view lit) -> Object
+                    {
+
+                        std::vector<Variable> result { std::string(lit)};
+                        return Array{ result };
+                        //No idea why this doesn't work
+                        //return ObjectTranslator<decltype(result)>{}(result);
+                    };
+
+
+                hash = std::hash<std::string_view>{}(literal);
+                ctor = func;
+                return true;
+            }
+            //*/
+        };
+
+        template<typename T>
+        struct ProxyGuide {};
+
+        template<typename T>
+        struct ProxyGuide <std::vector<T>> : public RefCollection
+        {
+
+            TypeInfo* VariableType(const std::vector<T>* vec)
+            {
+                return IdentityManager::instance->GetTypeByOffset("ARRAY", 0)->GetTypeInfo(nullptr);
+                //TODO: This literally does not work, please implement this properly.
+                //return Array::GetVariableType(vec);
+            }
+
+            Array ObjectTranslator(const std::vector<T>& obj)
+            {
+                std::vector<Variable> buff;
+                buff.reserve(obj.size());
+                //const std::vector<void*> test;
+
+                //void* other = test[1];
+
+
+                std::transform(obj.begin(), obj.end(), std::back_inserter(buff), [&](auto it) {return it; });
+
+
+                return Array{ buff };
+
+            }
+
+
+
+
+
+
+            //TODO:Unboiler plate revariable pls, k thx
+            void Revariable(const std::vector<T>& arg, Variable* var)
+            {
+                Array& array = var->AsObject().get<Array>();
+
+                //We are making some assumptions here, and doing no checks
+
+                if (auto size = array.size(); arg.size() != size) {
+                    report::runtime::error("const array's size was adjusted erroneously.");
+                }
+
+                auto data = array.data();
+
+                for (size_t i = 0; i < arg.size(); i++)
+                {
+                    auto& entry = arg[i];
+                    auto& to = data[i];
+
+                    LEX::Revariable<const T> revar;
+
+                    revar(entry, to.ptr());
+
+                    Collect(std::addressof(entry), to.ptr());
+
+                    TryToCollect(revar);
+                }
+            }
+
+
+
+            void Revariable(std::vector<T>& arg, Variable* var)
+            {
+                Array& array = var->AsObject().get<Array>();
+
+                //We are making some assumptions here, and doing no checks
+
+                if (auto size = array.size(); arg.size() != size) {
+                    array.resize(size);
+                }
+
+                auto data = array.data();
+
+                for (size_t i = 0; i < arg.size(); i++)
+                {
+                    auto& entry = arg[i];
+                    auto& to = data[i];
+
+                    LEX::Revariable<T> revar;
+
+                    revar(entry, to.ptr());
+
+                    Collect(std::addressof(entry), to.ptr());
+
+                    TryToCollect(revar);
+                }
+            }
+
+
+        };
+
+        struct Revariable_Array : public RefCollection
+        {
+            void Fill(const Array& a_this, Array& other, bool assign)
+            {
+
+                auto this_data = a_this.data();
+                auto other_data = other.data();
+
+                for (size_t i = 0; i < a_this.size(); i++)
+                {
+                    auto& entry = this_data[i].obtain();
+                    auto& to = other_data[i].obtain();
+
+                    Collect(std::addressof(entry), std::addressof(to));
+
+                    if (const Object* object = entry.FetchObject()) {
+                        if (auto entry_array = object->fetch<Array>()) {
+
+                            Fill(*entry_array, std::addressof(to), assign);
+                            continue;
+                        }
+                    }
+
+                    if (assign)
+                        to.Assign(entry);
+
+                }
+            }
+
+            void Fill(const Array& arg, Variable* var, bool assign)
+            {
+                Array& arg_array = var->AsObject().get<Array>();
+
+                //We are making some assumptions here, and doing no checks
+
+                if (auto size = arg.size(); arg_array.size() != size) {
+                    if (assign)
+                        arg_array.resize(size);
+                    else
+                        report::runtime::error("const array's size was adjusted erroneously.");
+                }
+
+                return Fill(arg, arg_array, assign);
+            }
+
+
+            void operator()(const Array& arg, Variable* var)
+            {
+                return Fill(arg, var, false);
+            }
+
+            void operator()(Array& arg, Variable* var)
+            {
+                return Fill(arg, var, true);
+            }
+        };
+
+        template <typename T> requires (std::is_same_v<std::remove_cvref_t<T>, Array> && (std::is_const_v<T> || std::is_reference_v<T>))
+            struct Revariable<T> : public Revariable<Array> {};
+
+
+        void TestArray()
+        {
+            std::vector<int> test = {};
+
+            Array array = test;
+        }
 
 
 
@@ -2745,6 +3120,10 @@ namespace LEX::Test
             virtual ScriptObject* GetScriptObject() = 0;
             
             virtual bool GetField(std::string_view name, Variable& out) = 0;
+
+
+        INTERNAL:
+            virtual void OnTargetValidated(LEX::Info* info) = 0;
         };
 
 
@@ -2782,6 +3161,169 @@ namespace LEX::Test
 
 
 
+        struct NewInfo : public IComponent, public Component
+        {
+
+        };
+
+
+
+        namespace Attributes
+        {
+            struct IAttribute : public LEX::Interface
+            {
+                virtual TypeInfo* GetType() = 0;
+                virtual Info* GetInfoParent() = 0;
+
+                virtual ScriptObject* GetScriptObject() = 0;
+
+
+
+            INTERNAL:
+                virtual void OnTargetValidated(LEX::Info* info) = 0;
+            };
+
+            struct AttributeBase : public IAttribute
+            {
+                AttributeBase(TypeInfo* type) : _type{ type } {}
+
+                virtual TypeInfo* GetType() override
+                {
+                    return _type;
+                }
+
+
+            private:
+                TypeInfo* _type = nullptr;
+            };
+
+            struct Attribute : public Component, public AttributeBase
+            {
+                enum Flag
+                {
+                    None = 0 << 0,
+                    IsHeader = 1 << 0,  //If it's the header it will store the parent.
+
+
+                    _last,
+                    _next = std::bit_width<uint32_t>(_last),
+
+                };
+
+
+
+                Flag& GetFlags() const
+                {
+                    return GetComponentData<Flag>();
+                }
+
+                //Base object of both custom and native attribute
+
+                Info* GetInfoParent() override
+                {
+                    return _parent;
+                }
+
+                LinkFlag GetLinkFlags() override 
+                { 
+                    auto component = dynamic_cast<Component*>(_parent);
+
+                    if (component) {
+                        return component->GetLinkFlags();
+                    }
+
+                    return LinkFlag::None; 
+                }
+
+                void OnLinkComplete() override
+                {
+                    OnTargetValidated(_parent);
+                }
+
+                Info* _parent = nullptr;
+
+
+            };
+
+
+            struct AttributeList
+            {
+                std::unique_ptr<Attribute> header = nullptr;
+                Attribute* last = nullptr;
+                size_t length = 0;
+            };
+
+            //I believe I will not do the attribute list
+
+
+            struct CustomAttribute : public Attribute,  public ScriptObject
+            {
+
+            };
+
+            //This is a custom object that external attributes derive from in order to have a fully native set up for attributes
+            struct AttributeData : public IAttribute
+            {
+                //what data would this at base need to own? I'm thinking data of its own parentage. Probably
+                // just its real self, so I can ask questions like, what's next, what's my parent.
+
+                AttributeData(AttributeBase* self) : _self{ self } {}
+
+
+
+                TypeInfo* GetType() override final
+                {
+                    return _self->GetType();
+                }
+
+
+
+                //This basically only gets set 
+                AttributeBase* const _self = nullptr;
+            };
+
+
+            struct NativeAttribute : public Attribute
+            {
+                std::unique_ptr<AttributeData> data = nullptr;
+            };
+
+
+            struct AttributeManager
+            {
+
+            };
+
+            //This doesn't need to be exposed right now
+            struct AttributePolicyBase
+            {
+                //virtual a
+            };
+
+
+            using AttrDataBuilder = std::unique_ptr<AttributeData>(*)(TypeInfo* info);
+
+
+            struct AttributePolicy
+            {
+
+                HMODULE program;
+
+
+                std::string_view category;
+
+
+
+                std::unique_ptr<ObjectInfoBase> base = nullptr;
+            };
+
+
+        }
+
+        void TestICompBase(IComponentBase* base)
+        {
+            base->As<Component>();
+        }
 
 
         void MakeAttribute(TypeInfo* context)
@@ -2912,6 +3454,33 @@ namespace LEX::Test
             }
         }
         
+        void CtorBuilder(RoutineCompiler* compiler, SyntaxRecord& target)
+        {
+
+            InstructList out;
+
+            //IF this type is instantiable
+
+            auto this_var = compiler->GetScope()->SearchField(parse_strings::this_word);
+            auto undefined = LiteralManager::ObtainUndefined();
+
+            //These 2 will be handled after handle the init var stuff
+            Instruction not_equal{ InstructionType::NotEqualTo, compiler->GetPrefered(), this_var.AsSolution(compiler), undefined.first };
+            Instruction drop{ InstructionType::DropStack, Operand{2, OperandType::Differ}, Operand{compiler->GetPrefered(), OperandType::Register} };
+            Instruction init_var{ InstructionType::DeclareVariable, this_var.AsSolution(compiler), Operand{this_var.GetType(), OperandType::Type} };
+            //These don't work for some reason
+            //compiler->EmplaceInstruction(not_equal);
+            //compiler->EmplaceInstruction(drop);
+            //compiler->EmplaceInstruction(init_var);
+            //Jumps if not equal to each other.
+            {
+                Scope main_block{ compiler, ScopeType::Required, out };
+
+
+            }
+
+        }
+
 
         void InlineRoutine(RoutineCompiler* compiler, std::vector<Instruction>& instruction, RecordHolder* holder, RoutineBase* base)
         {

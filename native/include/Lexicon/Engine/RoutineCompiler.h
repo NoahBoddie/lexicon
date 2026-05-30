@@ -322,6 +322,19 @@ namespace LEX
 		}
 		
 
+		bool CanReturn() const
+		{
+			//Significate qualifiers
+
+			auto ret_type = GetReturnType();
+
+			if (ret_type) {
+				return ret_type->CheckRuleset(TypeRuleset::NoReturn);
+			}
+			
+			return false;
+		}
+
 
 		QualifiedType GetReturnType() const
 		{
@@ -365,7 +378,7 @@ namespace LEX
 		size_t ModVarCount(int64_t inc);
 
 
-		size_t InitVariables(const std::vector<ITypeInfo*>& types, bool param, bool def_value)
+		size_t InitVariables(const std::vector<ITypeInfo*>& types, bool def_value)
 		{
 			//TODO: This function doesn't properly handle the inability to use it
 			auto size = types.size();
@@ -378,8 +391,8 @@ namespace LEX
 
 			if (def_value)
 			{
-				auto instruct = param ? InstructType::DefineParameter : InstructType::DefineVariable;
-				auto op_type = param ? OperandType::Parameter : OperandType::Variable;
+				auto instruct = InstructType::DeclareVariable;
+				auto op_type = OperandType::Variable;
 				for (auto i = 0; i < size; i++)
 				{
 					//for each policy, starting at count and increasing by i, each policy needs to be loaded into
@@ -396,13 +409,9 @@ namespace LEX
 			return count;
 		}
 
-		size_t InitLocals(std::vector<ITypeInfo*> types, bool def_value = true){return InitVariables(types, false, def_value);}
+		size_t InitLocals(std::vector<ITypeInfo*> types, bool def_value = true){return InitVariables(types, def_value);}
 
-		size_t InitParams(std::vector<ITypeInfo*> types, bool def_value = true){return InitVariables(types, true, def_value);}
-
-		size_t InitLocal(ITypeInfo* type, bool def_value = true){return InitVariables({ type }, false, def_value);}
-
-		size_t InitParam(ITypeInfo* type, bool def_value = true){return InitVariables({ type }, true, def_value);}
+		size_t InitLocal(ITypeInfo* type, bool def_value = true){return InitVariables({ type }, def_value);}
 
 
 		bool IsDetached() const

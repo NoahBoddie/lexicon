@@ -39,6 +39,23 @@ namespace LEX
 
 	}
 
+	QualifiedField Scope::SearchField(const std::string& name)
+	{
+		auto end = vars.end();
+
+		if (auto it = vars.find(name); it != end) {
+			return it->second;
+		}
+		else if (_parent) {
+			return _parent->SearchField(name);
+		}
+
+		if (IVarIndexInfo* field = process->FindParameter(name); field) {
+			return field;
+		}
+
+		return nullptr;
+	}
 	QualifiedField Scope::SearchFieldPath(SyntaxRecord& _path, OverloadArgument* key)
 	{
 
@@ -46,7 +63,9 @@ namespace LEX
 		//Move to the compiler maybe?
 		auto& name = _path.GetTag();
 
-		if (_path.SYNTAX().type != SyntaxType::Unary && _path.SYNTAX().type != SyntaxType::Binary && name != "::")
+		if (_path.GetSyntax().type != SyntaxType::Unary && 
+			_path.GetSyntax().type != SyntaxType::Binary && 
+			name != "::")
 		{
 
 			auto end = vars.end();
@@ -73,6 +92,8 @@ namespace LEX
 
 		return nullptr;
 	}
+
+
 
 	Instruction& Scope::ObtainAllocator()
 	{

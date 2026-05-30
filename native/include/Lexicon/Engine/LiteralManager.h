@@ -122,6 +122,9 @@ namespace LEX
 	struct LiteralManager
 	{
 		static std::pair<Solution, ITypeInfo*> ObtainLiteral(SyntaxRecord& ast, Element* elem);
+
+		static std::pair<Solution, ITypeInfo*>  ObtainUndefined();
+
 	};
 
 }

@@ -46,6 +46,12 @@ namespace LEX
 		//Should be inherited, only one can exist.
 		ObjectPolicy* policy = nullptr;
 
+		union policy_stuff
+		{
+			ObjectPolicy* policy = nullptr;
+			void* attributeDataMaker;
+		};
+
 
 		//ObjectPolicyHandle handle{};
 		std::string_view category;

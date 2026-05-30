@@ -112,7 +112,7 @@ namespace LEX
 			if constexpr (1)
 			{
 				if (usesType & IsType1) {
-					auto info = NULL_OP(NULL_Q(typeDefined)->GetTypeInfo(nullptr));
+					TypeInfo* info = typeDefined ? typeDefined->GetTypeInfo(nullptr) : nullptr;
 					assert(info);
 					from = info->GetDefault();
 				}
@@ -142,7 +142,7 @@ namespace LEX
 			if constexpr (1)
 			{
 				if (usesType & IsType2) {
-					auto info = NULL_OP(NULL_Q(typeDefined)->GetTypeInfo(nullptr));
+					TypeInfo* info = typeDefined ? typeDefined->GetTypeInfo(nullptr) : nullptr;
 					assert(info);
 					from = info->GetDefault();
 				}
@@ -183,7 +183,7 @@ namespace LEX
 			if constexpr (1)
 			{
 				if (usesType & IsType1) {
-					compiler->EmplaceInstruction(target, InstructionType::DefineVariable, 
+					compiler->EmplaceInstruction(target, InstructionType::DeclareVariable,
 						Operand{ reg, OperandType::Register }, 
 						Operand{ typeDefined, OperandType::Type });
 				}
@@ -215,7 +215,7 @@ namespace LEX
 			{
 				if (usesType & IsType2) {
 					compiler->EmplaceInstruction(target, 
-						InstructionType::DefineVariable, 
+						InstructionType::DeclareVariable,
 						Operand{ reg, OperandType::Register }, 
 						Operand{ userToType, OperandType::Type });
 				}

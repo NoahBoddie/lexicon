@@ -435,7 +435,7 @@ namespace LEX
 		}
 		
 
-		static void DefineVar(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
+		static void HandleVariable(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType inst, Runtime* runtime)
 		{ 
 			//logger::critical(STRINGIZE(CONCAT(__hit, __COUNTER__)));
 			
@@ -450,32 +450,24 @@ namespace LEX
 			}
 
 			
+			switch (inst)
+			{
+			case InstructType::DeclareVariable:
+				var = policy->GetDefault();
+				break;
 
-			var = policy->GetDefault();
+			case InstructType::DefineVariable:
+				var = policy->GetVariable();
+				break;
 
-		}
-
-		static void DefineParam(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType, Runtime* runtime)
-		{
-			//While this may seem useless, this prevents things like where a float is given where a number is expected, causing any giving of a non-float number
-			// to result in an error within assign.
-
-			return;
-
-			RuntimeVariable& var = a_lhs.AsVariable(runtime);//s runtime->GetVariable(a_lhs.Get<Index>());
-			TypeInfo* policy = NULL_OP(NULL_Q(a_rhs.Get<ITypeInfo*>())->GetTypeInfo(runtime));
-
-			//if no policy, fatal fault
-			if (!policy) {
-				report::runtime::critical("no policy found.");
+			default:
+				report::runtime::error("invalid instruct given {}", magic_enum::enum_name(inst));
+				break;
 			}
-
-			logger::debug(" index of set {}", a_lhs.Get<Index>());
-
-			//var->SetPolicy(policy);
+			
 
 		}
-		
+
 
 
 		static void Transfer(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
@@ -2086,6 +2078,8 @@ namespace LEX
 		{
 			QualifiedType return_policy = compiler->GetReturnType();
 
+			bool can_return = compiler->CanReturn();
+
 			if (target.size() != 0)
 			{
 				auto& ret = target.GetChild(0);
@@ -2752,8 +2746,8 @@ namespace LEX
 			instructList[InstructType::JumpStack] = InstructWorkShop::JumpStack;
 			instructList[InstructType::ModArgStack] = InstructWorkShop::ModArgStack;
 			instructList[InstructType::ModVarStack] = InstructWorkShop::ModVarStack;
-			instructList[InstructType::DefineVariable] = InstructWorkShop::DefineVar;
-			instructList[InstructType::DefineParameter] = InstructWorkShop::DefineParam;
+			instructList[InstructType::DeclareVariable] = InstructWorkShop::HandleVariable;
+			instructList[InstructType::DefineVariable] = InstructWorkShop::HandleVariable;
 			instructList[InstructType::DropStack] = InstructWorkShop::DropStack;
 			instructList[InstructType::DropStackN] = InstructWorkShop::DropStack;
 			instructList[InstructType::ExpressData] = InstructWorkShop::ExpressData;

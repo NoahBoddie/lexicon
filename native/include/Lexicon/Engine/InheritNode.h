@@ -13,7 +13,10 @@ namespace LEX
         IsGeneric = 1 << 0,
         IsPostAffixed = 1 << 1,
         AllowsVirtual = 1 << 2,
-        NilHash = 1 << 3,
+        VirtualInherited = 1 << 3,         //If active, the right hash is fixed
+        ZeroWidthHash = 1 << 4,      //If active the right hash is equal to the start
+
+        //zero hash was nil, fixed is what now controls it being 0
     };
 
 
@@ -22,6 +25,7 @@ namespace LEX
     struct InheritNode
     {
         static constexpr uint32_t virtual_pos = -1;
+        static constexpr uint32_t virtualHash[2]{ 0, virtual_pos };
         //Allow this to be converted to InheritanceTree. This way I can visit both inherit nodes and trees
 
         //The hash is a value that represents memory wise, where said object can be considered within memory.
@@ -45,7 +49,7 @@ namespace LEX
 
         InheritFlag flags = InheritFlag::None;
 
-
+        
 
         //2 free bytes left.
 
@@ -71,13 +75,18 @@ namespace LEX
 
 
 
-        std::array<uint32_t, 2> hash();
+        std::array<uint32_t, 2> hash(bool ignore_flags);
+        
+        std::array<uint32_t, 2> hash()
+        {
+            return hash(false);
+        }
 
         ITypeInfo* type() const;
 
         uint32_t hash_range()
         {
-            return hash()[1];
+            return hash(true)[1];
         }
 
 
@@ -143,19 +152,15 @@ namespace LEX
         }
 
 
-        void SetVirtuallyInherited(bool nil_hash) {
-            startHash = virtual_pos;
-            SetNilHash(nil_hash);
+        void SetVirtuallyInherited(bool no_width_hash) {
+            startHash = 0;
+            SetFlag(InheritFlag::VirtualInherited, true);
+            SetFlag(InheritFlag::ZeroWidthHash, no_width_hash);
         }
 
-        void SetNilHash(bool v)
+        bool HasZeroWidthHash() const
         {
-            return SetFlag(InheritFlag::NilHash, v);
-        }
-
-        bool HasNilHash() const
-        {
-            return HasFlag(InheritFlag::NilHash);
+            return HasFlag(InheritFlag::ZeroWidthHash);
         }
 
         bool IsInternal() const
@@ -166,7 +171,7 @@ namespace LEX
         bool IsVirtualInherited() const
         {
             //This is not how this works.
-            return startHash == virtual_pos;
+            return HasFlag(InheritFlag::VirtualInherited);
         }
 
     };

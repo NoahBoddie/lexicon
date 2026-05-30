@@ -67,7 +67,8 @@ namespace LEX
 		ModVarStack,
 
 		//TODO: define variable is less desirable as a name, I think set default works better.
-		DefineVariable,		//Defines a variable as it's default. May not fully define. TODO: Remove DefineVarPolicy, it is basically a move instruction.
+		DeclareVariable,		//Declares a variable as it's default. May not fully define. TODO: Remove DefineVarPolicy, it is basically a move instruction.
+		DefineVariable,		//Instantiates an actual version of said variable.
 		DefineParameter,	//Defines a parameter merely by assigning it's storage type.
 		// For these I could make them the same function, but make an index what makes them differ. In that I could send it it's index, similar to how
 		//  native functions get a string view of their names.
