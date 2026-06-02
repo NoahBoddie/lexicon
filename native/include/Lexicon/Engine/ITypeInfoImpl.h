@@ -37,6 +37,9 @@ namespace LEX
 	struct Qualifier;
 	//struct QualifiedType;
 
+	struct Overload;
+	struct OverloadArgument;
+
 	struct ITypeInfo : public ITypeInfoAbstract
 	{
 		//At a later point this will die and be forgotten. I seek to have a type that can handle most of hierarchies needs,
@@ -150,10 +153,13 @@ namespace LEX
 
 		size_t GetFieldCount() const override;
 
-		//This should go under
+		//Need another one of these for operator, but make it more like conversion.
+		
+		
+		virtual IFunction* FindConstructor(OverloadArgument& key, Overload& out) { return nullptr; }
 		
 
 		virtual void SetInstanceID(InstanceID id, Badge<IdentityManager>) = 0;
-
+		
 	};
 }

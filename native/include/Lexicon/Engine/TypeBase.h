@@ -33,7 +33,7 @@ namespace LEX
 
 		ELEM_ENUM
 		{
-			ELEM_FLAG(LinkLater, 0),
+			ELEM_FLAG(External, 0),
 			ELEM_FLAG(InheritHandled, 1),
 
 			ELEM_NEXT,
@@ -110,9 +110,9 @@ namespace LEX
 		void CheckDeriveFrom(IHierarchyTree* other) override;
 
 
-		bool IsLinkedLater() const
+		bool IsExternal() const
 		{
-			return GetFlags() & Flag::LinkLater;
+			return GetFlags() & Flag::External;
 		}
 
 
@@ -138,6 +138,8 @@ namespace LEX
 
 
 
+		IFunction* FindConstructor(OverloadArgument& key, Overload& out);
+
 	protected:
 		void MarkInheritHandled() const
 		{
@@ -145,9 +147,9 @@ namespace LEX
 		}
 
 		
-		void MarkLinkLater() const
+		void MarkExternal() const
 		{
-			GetFlags() |= Flag::LinkLater;
+			GetFlags() |= Flag::External;
 		}
 
 	////////////////////////
@@ -211,6 +213,11 @@ namespace LEX
 			return TypeInstance<T>::GetInstanceID();
 
 		}
+		IFunction* FindConstructor(OverloadArgument& key, Overload& out) override
+		{
+			return TypeBase::FindConstructor(key, out);
+		}
+
 
 		IHierarchyTree* GetHierarchyTree() const override
 		{
@@ -242,7 +249,7 @@ namespace LEX
 			//TODO: If a struct is the only one of it's kind, it shouldn't have to make itself readonly.
 			// This is the reason C# structs are the way they are, and if I can make that promise that there is nothing else and will be nothing else it's good
 			// Also, if the struct is final, it's also good.
-			if (!this->IsValueType() || IsLinkedLater() == true)
+			if (!this->IsValueType() || IsExternal() == true)
 				qualifiers.MakeReadonly(true);
 		}
 

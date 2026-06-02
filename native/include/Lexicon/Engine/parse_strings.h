@@ -4,6 +4,9 @@ namespace LEX
 {
 	struct parse_strings
 	{
+		constexpr static auto empty = "";
+
+
 		constexpr static auto this_word = "<:this:>";
 		constexpr static auto rhs = "<:right:>";
 		constexpr static auto lhs = "<:left:>";
@@ -61,6 +64,9 @@ namespace LEX
 
 		constexpr static std::string_view object_lit_open = ":{";
 		constexpr static std::string_view object_lit_shut = "}";
+		
+
+
 
 	};
 

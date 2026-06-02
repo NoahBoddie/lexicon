@@ -590,6 +590,7 @@ namespace LEX
 		//TODO: Please move Overload functionality back to base. Instead, give this a generic base
 		GenericBase* base = nullptr;
 		
+		Specifier specifiers;
 	protected:
 		//If not 0, this is a procedure. This data is used by the procedure. May use to help handle if 
 		//If -1 its likely waiting for a procedure to claim it.

@@ -1310,6 +1310,121 @@ namespace LEX
 			//Context as a concept hits a snag here, because this would need 2.
 		};
 
+
+
+
+		struct ConstructorParser : public AutoParser<ConstructorParser>
+		{
+			//This is also a top level function. Use context to restrict placement.
+
+			//virtual ParseKeyword GetKeywords() override
+			//{
+			//	return ParseKeyword::Statement;
+			//}
+
+			//std::string_view GetContext() override
+			//{
+			//	return "FunctionStatement";
+			//}
+
+			std::optional<bool> GetKeywordState(const std::string_view& type) override
+			{
+				switch (Hash(type)) {
+				case "code_block"_h:
+				case "statement"_h:
+					return true;
+				}
+
+				return false;
+			}
+
+			uint32_t GetPriority() const override
+			{
+				return ModulePriority::High - 50;
+			}
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				if (target && target->GetView() != parse_strings::header) {
+					return false;
+				}
+
+				return stream->IsType(TokenType::Keyword, "constructor");
+
+			}
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				Record result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Function);
+
+				result.EmplaceChild(target ? std::move(*target) : ParseUtility::MakeHeader());
+				
+
+
+				result.GetTag() = parse_strings::constructor;
+
+				auto _delegate = [&](ParsingStream* stream, Record*) -> Record {
+					//ParseModule::TryModule<Identifier
+
+					Record result = ParseModule::UseModule<HeaderParser>(stream, nullptr);
+
+					//For this next part identifiers aren't needed
+
+					//We don't query identifier because we don't want that, we just want 1, not a path.
+					if (stream->IsType(TokenType::Identifier) == true) {
+						result = ParsingStream::CreateExpression(stream->next(), SyntaxType::Variable, { result });
+					}
+					else {
+						Syntax syntax = result.SYNTAX();
+						syntax.type = SyntaxType::Variable;//type don't matter much if it's outside of a function. But that may change.
+
+						result = ParsingStream::CreateExpression(parse_strings::untitled, syntax, { result });
+					}
+
+
+
+					//Same as the bit for variable. if I can merge it, I would.
+					if (stream->SkipIfType(TokenType::Operator, "=") == true) {
+						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::extends, SyntaxType::None, { stream->ParseSyntax() }));
+					}
+					else if (stream->IsType(TokenType::Punctuation, "...") == true)
+					{
+						ParseUtility::AddHeaderKeyword(KeywordType::TypeQual, result, ParsingStream::CreateExpression(stream->next(), SyntaxType::None));
+					}
+
+
+					return result;
+					};
+
+				//I realize all this ain't super needed. To account for extension, all I need to do is remove the first entry if it's named this, HERE,
+				// and copy type, change it's name to extends, place it on the target. and Pop it out. Before that, maybe check for other thingy mabobs.
+				// I also note that the stream module is VERY hands on, so I should use that to sort out which is using this or not.
+				// I can just have the lambda check for each thing named this after the first entry, and then cull it.
+				//target->EmplaceChildren(Record{ "params", SyntaxType::Total, stream->Delimited("(", ")", ",", ParseModule::UseModule<ParameterParser>) });
+				result.EmplaceChildren(Record{ parse_strings::parameters, SyntaxType::None, stream->Delimited("(", ")", ",", _delegate) });
+
+				{
+					//Unlike function this doesn't have any functions
+
+					//Record waste;
+					//ParseModule::TryModule<HeaderParser>(stream, waste, &target);
+				}
+
+				if (stream->SkipIfType(TokenType::Punctuation, ";") == false) {
+					auto& code = result.EmplaceChild(Record{ parse_strings::code, SyntaxType::None });
+
+					code.EmplaceChildren(Record{ parse_strings::empty, SyntaxType::Construction, stream->Delimited("{", "}",
+						[&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); },
+						&ParsingStream::ParseSyntax) });
+				}
+
+				return result;
+			}
+
+			//Context as a concept hits a snag here, because this would need 2.
+		};
+
+
 		struct BinaryParser : public AutoParser<BinaryParser>
 		{
 			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override

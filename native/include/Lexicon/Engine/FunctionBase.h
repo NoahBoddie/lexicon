@@ -37,6 +37,9 @@ namespace LEX
 
 		void LoadFromRecord(SyntaxRecord& target) override;
 
+
+		void OnAttach() override;
+
 		LinkResult OnLink(LinkFlag flags) override;
 
 		void OnLinkComplete() override;
@@ -63,7 +66,10 @@ namespace LEX
 		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def);
 
 
-
+		bool IsConstructor() const
+		{
+			return GetName() == parse_strings::constructor;
+		}
 
 
 		FunctionNode CreateNode(ITemplatePart* part) override

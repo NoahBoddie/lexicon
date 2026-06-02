@@ -7,9 +7,49 @@
 #include "Lexicon/Engine/parse_strings.h"
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 
+#include "Lexicon/MergeTemplate.h"
+
 namespace LEX
 {
 
+	size_t CheckOverload2(OverloadArgument& input, std::vector<OverloadInfo*> clauses, Overload& ret)
+	{
+		Overload* last = nullptr;
+
+		size_t result = -1;
+
+		for (auto i = 0; i < clauses.size(); i++)
+		{
+			auto clause = clauses[i];
+
+			Overload buffer;
+
+			auto bias = input.Match(clauses[i], nullptr, buffer, last);
+
+			switch (bias)
+			{
+			case OverloadBias::kAmbiguous:
+				result = -1;
+				break;
+
+			case OverloadBias::kCurrent:
+				ret = std::move(buffer);
+				last = &ret;
+				result = i;
+				break;
+			}
+		}
+
+		//if (last) {
+		//	last->param->ResolveOverload()
+		//}
+
+		//if (last)
+		//	ret = *last;//this should move
+
+		//return last ? result : -1;
+		return result;
+	}
 
 
 	TypeBase::TypeBase()
@@ -125,4 +165,32 @@ namespace LEX
 
 	}
 
+
+	IFunction* TypeBase::FindConstructor(OverloadArgument& key, Overload& out)
+	{
+		std::vector<OverloadInfo*> functions = FindFunctions(parse_strings::constructor);
+
+		if (functions.empty() == false)
+		{
+			if (auto index = CheckOverload2(key, { functions.begin(), functions.end() }, out); index != -1)
+			{
+				if (auto info = static_cast<OverloadInfo*>(out.param); info->IsOverloadUsuable() == true) {
+
+					if (auto function = dynamic_cast<IFunction*>(out.param))
+					{
+						auto self = As<ITypeInfo>();
+
+
+						MergeTemplate merger{ self->GetTemplatePart(), out };
+						//TODO: in the future system, the merger will no longer be necessary. Instead, that will be handled by the parentage system.
+
+						return function->CheckFunction(merger);
+					}
+				}
+			}
+		}
+
+
+		return nullptr;
+	}
 }

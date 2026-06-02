@@ -42,27 +42,19 @@ namespace LEX
             report::compile::critical("Not a function, cannot load.");
         }
 
-        /*
-        //This makes it search twice, but EH, I don't think I care much. I might seperate declarations from specifiers or make an option
-        // to ignore later. Ain't interface so it's ripe to burn
-        SyntaxRecord* head_rec = target.FindChild(parse_strings::header);
-
-        if (!head_rec)
-            report::compile::critical("No record named header.");
-
-        
-        SyntaxRecord& decl_spec = *head_rec->FindChild(parse_strings::declare_specifier);
-        auto spec = GetSpecifiersFromStrings(decl_spec);
-        if (spec & SpecifierFlag::External)
-        {
-            _procedure = nullptr;
-            procedureData = -1;
-        }
-
-        //*/
-
         _name = target.GetTag();
 	}
+
+    void FunctionBase::OnAttach()
+    {
+        if (auto parent = GetParent(); IsConstructor() && parent->Is<TypeBase>() == false) {
+            report::compile::failure("A constructor cannot be within non-type directory {}", 
+                parent ? parent->GetName() : "<null>");
+
+            FlagAsInvalid();
+        }
+    }
+
 
     void FunctionBase::SetReturnType(QualifiedType type)
     {
@@ -91,7 +83,18 @@ namespace LEX
 
             //If function is seen as being static, it should not allow for 
 
-            Declaration header = Declaration::Create(*head_rec, this, Refness::Local, HeaderFlag::Mutable);
+            bool is_ctor = IsConstructor();
+
+            HeaderFlag exclude_flags;
+
+            if (is_ctor) {
+                exclude_flags = HeaderFlag::All & ~(HeaderFlag::Access1st | HeaderFlag::Linking);
+            }
+            else {
+                exclude_flags = HeaderFlag::Mutable;
+            }
+
+            Declaration header = Declaration::Create(*head_rec, this, Refness::Local, exclude_flags);
 
 
             //Declaration header{ *head_rec, this, Refness::Local };
@@ -109,17 +112,23 @@ namespace LEX
                 ObtainRoutine()->name = GetName().data();
             }
 
-            //ITypeInfo* policy = environment->TEMPSearchType(target.FindChild("type")->GetFront().GetTag());
-
             QualifiedType type = QualifiedType{ header };
+
 
             //GENERIC_SPACE
 
-            SetReturnType(type);
-
-            ITypeInfo* self_type = dynamic_cast<ITypeInfo*>(GetParent());
+            ITypeInfo* self_type = GetParent()->As<ITypeInfo>();
 
             bool is_membered = self_type;
+
+            if (IsConstructor() == true) {
+                assert(self_type);
+                
+                type.policy = self_type;
+            }
+
+
+            SetReturnType(type);
 
             //STATIC_CHECK
             bool method = false;
@@ -233,11 +242,6 @@ namespace LEX
             break;
         }
         break;
-
-        default:
-            //Invalid linkage
-            return LinkResult::Failure;
-
         }
 
 

@@ -25,6 +25,7 @@ namespace LEX
 		Call,
 		Ctor,
 		Function,		//Completely different than a call, this is more focused toward the declaration/definition of a function
+		Construction,
 		Return,
 		StateBlock,				//The declaration of a code block, a manually denoted one. express for expression, state for statement
 		ExpressBlock,			//The declaration of a code block, a manually denoted one. express for expression, state for statement
