@@ -49,6 +49,9 @@ namespace LEX
         SpecialGlobal,
         BasicFormula,
 
+        Utilities = 10000,
+        Constructor,
+        Operator,
 
         kTotal,
     };

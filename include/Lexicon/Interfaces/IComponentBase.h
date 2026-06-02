@@ -159,9 +159,14 @@ namespace LEX
             return a_this.As<T>();
         }
 
-        bool Is(ComponentType type) const
+
+        template<typename Self>
+        bool Is(this Self& a_this, ComponentType type)
         {
-            return GetComponentType() == type;
+            if (Self* ptr = std::addressof(a_this)) {
+                return ptr->Cast(ptr, std::remove_cvref_t<Self>::COMPONENT_TYPE, type);
+            }
+            return false;
         }
 
        
