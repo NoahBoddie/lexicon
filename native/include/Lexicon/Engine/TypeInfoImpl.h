@@ -2,6 +2,7 @@
 
 #include "Lexicon/TypeInfo.h"
 
+#include "Lexicon/AttributeData.h"
 
 namespace LEX
 {
@@ -15,5 +16,18 @@ namespace LEX
 
 		bool Convert(const Variable& from, Variable& to, TypeInfo* null_override = nullptr) const override final;
 
+
+
+
+		virtual bool RegisterAttributeData(AttributeBuilder builder)
+		{
+			return false;
+		}
+
+		template <std::derived_from<AttributeData> T>
+		bool RegisterAttribute()
+		{
+			return RegisterAttributeData(AttributeData::Create<T>);
+		}
 	};
 }

@@ -18,6 +18,9 @@
 #include "Lexicon/Engine/Project.h"
 #include "Lexicon/Interfaces/ProjectClient.h"
 
+//#include "Lexicon/Engine/CustomAttribute.h"
+#include "Lexicon/Engine/NativeAttribute.h"
+
 namespace LEX
 {
 
@@ -69,6 +72,10 @@ namespace LEX
 
 	Variable ConcreteType::GetDefault() const
 	{
+		if (IsAttribute() == true) {
+			return {};
+		}
+
 		if (policy)
 			return policy->CreateDefault(unconst(this));
 
@@ -77,6 +84,10 @@ namespace LEX
 
 	Variable ConcreteType::GetVariable() const
 	{
+		if (IsAttribute() == true) {
+			return {};
+		}
+
 		if (policy)
 			return policy->CreateObject(unconst(this));
 
@@ -122,7 +133,7 @@ namespace LEX
 			case "external"_h:
 				{
 					//Should clash with intrinsic.
-					MarkLinkLater(); 
+					MarkExternal();
 					break;
 				}
 				break;
@@ -263,6 +274,44 @@ namespace LEX
 		return  result;
     }
 
+	Attribute* ConcreteType::CreateAttribute(Component* parent, SyntaxRecord& record)
+	{
+		if (IsAttribute() == false) {
+			return nullptr;
+		}
 
+		std::unique_ptr<Attribute> value;
+
+
+
+		if (IsScriptObject() == true) {
+			report::compile::error("Unable to support custom attribute '{}'.",
+				GetName());
+
+			return nullptr;
+		}
+		else if (attrBuilder)
+		{
+			value.reset(new NativeAttribute{ this, attrBuilder() });
+		}
+		else {
+			report::fault::error("native attribute doesn't have a data builder '{}'.",
+				GetName());
+		}
+
+		auto attribute = value.get();
+
+		if (parent->AddAttribute(std::move(value)) == false)
+		{
+			report::compile::error("Unable to add attribute '{}' to Component '{}'",
+				GetName(), parent->GetName());
+
+			return nullptr;
+		}
+
+		attribute->Initialize(record);
+
+		return attribute;
+	}
 
 }

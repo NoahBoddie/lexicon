@@ -18,7 +18,8 @@
 //#include <spdlog/sinks/stdout_sinks.h>
 
 
-
+#include "Lexicon/AttributeData.h"
+#include "Lexicon/Engine/NativeAttribute.h"
 //
 //#include "Lexicon/Engine/TempConstruct.cpp"
 //
@@ -3112,211 +3113,18 @@ namespace LEX::Test
         //Util::Attribute<"Shared::AttributeName"> test;
         
 
-        struct IAttribute : public LEX::Interface, public LEX::IComponent
-        {
-            virtual TypeInfo* GetType() = 0;
-            virtual Info* GetParent() = 0;
-            
-            virtual ScriptObject* GetScriptObject() = 0;
-            
-            virtual bool GetField(std::string_view name, Variable& out) = 0;
-
-
-        INTERNAL:
-            virtual void OnTargetValidated(LEX::Info* info) = 0;
-        };
-
-
-        struct AttributeType;
-
-        struct Attribute : public Component, public IAttribute, public ScriptObject
-        {
-            Info* parent = nullptr;
-
-            ScriptObject* GetScriptObject() override
-            {
-                return this;
-            }
-
-
-            AttributeType*& type()
-            {
-                return reinterpret_cast<AttributeType*&>(_type);
-            }
-        };
-
-
-
-
-
-        //With no parameters this can be used, as it will contain no personal data of its own.
-        struct AttributeType : public ConcreteType
-        {
-            //Was going to put this on here until I realized it would need to play catch up.
-
-            //std::unique_ptr<Attribute> basicAttribute = nullptr;//Used when an attribute doesn't have contents
-        };
-
-
-
-
-
-        struct NewInfo : public IComponent, public Component
-        {
-
-        };
-
 
 
         namespace Attributes
         {
-            struct IAttribute : public LEX::Interface
-            {
-                virtual TypeInfo* GetType() = 0;
-                virtual Info* GetInfoParent() = 0;
 
-                virtual ScriptObject* GetScriptObject() = 0;
+            //Info will have an internal only function that allows it to add an attribute base.
+            // This will also be the function that controls whether it can go onto an object
+            // or not.
 
-
-
-            INTERNAL:
-                virtual void OnTargetValidated(LEX::Info* info) = 0;
-            };
-
-            struct AttributeBase : public IAttribute
-            {
-                AttributeBase(TypeInfo* type) : _type{ type } {}
-
-                virtual TypeInfo* GetType() override
-                {
-                    return _type;
-                }
-
-
-            private:
-                TypeInfo* _type = nullptr;
-            };
-
-            struct Attribute : public Component, public AttributeBase
-            {
-                enum Flag
-                {
-                    None = 0 << 0,
-                    IsHeader = 1 << 0,  //If it's the header it will store the parent.
-
-
-                    _last,
-                    _next = std::bit_width<uint32_t>(_last),
-
-                };
-
-
-
-                Flag& GetFlags() const
-                {
-                    return GetComponentData<Flag>();
-                }
-
-                //Base object of both custom and native attribute
-
-                Info* GetInfoParent() override
-                {
-                    return _parent;
-                }
-
-                LinkFlag GetLinkFlags() override 
-                { 
-                    auto component = dynamic_cast<Component*>(_parent);
-
-                    if (component) {
-                        return component->GetLinkFlags();
-                    }
-
-                    return LinkFlag::None; 
-                }
-
-                void OnLinkComplete() override
-                {
-                    OnTargetValidated(_parent);
-                }
-
-                Info* _parent = nullptr;
-
-
-            };
-
-
-            struct AttributeList
-            {
-                std::unique_ptr<Attribute> header = nullptr;
-                Attribute* last = nullptr;
-                size_t length = 0;
-            };
-
-            //I believe I will not do the attribute list
-
-
-            struct CustomAttribute : public Attribute,  public ScriptObject
-            {
-
-            };
-
-            //This is a custom object that external attributes derive from in order to have a fully native set up for attributes
-            struct AttributeData : public IAttribute
-            {
-                //what data would this at base need to own? I'm thinking data of its own parentage. Probably
-                // just its real self, so I can ask questions like, what's next, what's my parent.
-
-                AttributeData(AttributeBase* self) : _self{ self } {}
-
-
-
-                TypeInfo* GetType() override final
-                {
-                    return _self->GetType();
-                }
-
-
-
-                //This basically only gets set 
-                AttributeBase* const _self = nullptr;
-            };
-
-
-            struct NativeAttribute : public Attribute
-            {
-                std::unique_ptr<AttributeData> data = nullptr;
-            };
-
-
-            struct AttributeManager
-            {
-
-            };
-
-            //This doesn't need to be exposed right now
-            struct AttributePolicyBase
-            {
-                //virtual a
-            };
-
-
-            using AttrDataBuilder = std::unique_ptr<AttributeData>(*)(TypeInfo* info);
-
-
-            struct AttributePolicy
-            {
-
-                HMODULE program;
-
-
-                std::string_view category;
-
-
-
-                std::unique_ptr<ObjectInfoBase> base = nullptr;
-            };
-
+            //Error is caused when trying to construct an attribute from anything that isn't an attribute
+            // this is an internal only function
+            
 
         }
 
@@ -3325,12 +3133,12 @@ namespace LEX::Test
             base->As<Component>();
         }
 
-
+        /*
         void MakeAttribute(TypeInfo* context)
         {
-            AttributeType* type = (AttributeType*)0;
+            ConcreteType* type = (ConcreteType*)0;
 
-            Attribute* attribute = (Attribute*)0;
+            CustomAttribute* attribute = (CustomAttribute*)0;
 
             uintptr_t budget = (uintptr_t)type->GetFieldRange();
 
@@ -3378,7 +3186,7 @@ namespace LEX::Test
 
 
         //THESE functions will no longer belong to Variable, they will belong to the class that handles membered able data classes
-        //
+        
         ScriptObject* GetScriptData(Variable& a_this)
         {
             ScriptObject* result = std::visit([](auto&& self) -> ScriptObject* {
@@ -3399,7 +3207,6 @@ namespace LEX::Test
 
             return result;
         }
-
 
         namespace Src
         {
@@ -3453,7 +3260,7 @@ namespace LEX::Test
                 return false;
             }
         }
-        
+        //*/
         void CtorBuilder(RoutineCompiler* compiler, SyntaxRecord& target)
         {
 

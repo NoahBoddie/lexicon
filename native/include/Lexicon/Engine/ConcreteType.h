@@ -82,6 +82,29 @@ namespace LEX
 		void LoadFromSyntaxNode(SyntaxRecord& node) override;
 
 
+		bool RegisterAttributeData(AttributeBuilder builder)
+		{
+			if (!IsAttribute() || IsScriptObject() == true) {
+				return false;
+			}
+
+			if (IsExternal() == true) {
+
+				if (attrBuilder) {
+					report::fault::failure("attribute already has a data builder");
+					return false;
+				}
+
+				attrBuilder = builder;
+				return true;
+			}
+
+			return false;
+		}
+
+		Attribute* CreateAttribute(Component* parent, SyntaxRecord& record);
+
+
 
 	protected:
 		

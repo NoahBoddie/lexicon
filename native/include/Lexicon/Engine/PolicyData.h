@@ -2,8 +2,8 @@
 
 #include "Lexicon/TypeID.h"
 #include "Lexicon/DataType.h"
+#include "Lexicon/AttributeData.h"
 #include "Lexicon/Engine/InheritanceTree.h"
-
 namespace LEX
 {
 	
@@ -25,6 +25,7 @@ namespace LEX
 	};
 
 
+
 	struct PolicyData : public InheritanceTree
 	{
 	public:
@@ -43,14 +44,12 @@ namespace LEX
 		//std::string category;
 
 
+		//TODO: I'd like these in a union
+	
 		//Should be inherited, only one can exist.
 		ObjectPolicy* policy = nullptr;
+		AttrDataBuilder attrBuilder = nullptr;
 
-		union policy_stuff
-		{
-			ObjectPolicy* policy = nullptr;
-			void* attributeDataMaker;
-		};
 
 
 		//ObjectPolicyHandle handle{};
@@ -59,6 +58,9 @@ namespace LEX
 
 		DataType _dataType = DataType::Invalid;
 
+		
+
+		
 	};
 
 }

@@ -9,8 +9,11 @@
 
 namespace LEX
 {
+	struct Attribute;
 	class Component;
 	
+
+
 	ENUM(ComponentFlag, uint8_t)
 	{
 		None = 0,
@@ -37,7 +40,7 @@ namespace LEX
 		Failure,
 	};
 
-
+	struct Attribute;
 
 
 	class Component : public IComponentBase
@@ -131,7 +134,7 @@ namespace LEX
 			//should likely be a pure virtual, but holding off.
 		}
 
-
+		virtual bool AddAttribute(std::unique_ptr<Attribute>&& attribute) { return false; }
 
 
 
@@ -288,11 +291,15 @@ namespace LEX
 					{
 						LinkResult result = LinkResult::Failure;
 
-						logger::trace("Linking {}: {}", target->GetName(), magic_enum::enum_name(i));
-
-						if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(i); }) == true)
+						if (target->InvalidFlag() == false)
 						{
-							report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+
+							logger::trace("Linking {}: {}", target->GetName(), magic_enum::enum_name(i));
+
+							if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(i); }) == true)
+							{
+								report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
+							}
 						}
 
 						bool invalid;

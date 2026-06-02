@@ -96,6 +96,12 @@ namespace LEX
 		{
 			return true;
 		}
+
+
+		bool IsAttribute() const
+		{
+			return GetDataType() == DataType::Attribute;
+		}
 	};
 
 

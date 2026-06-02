@@ -33,7 +33,7 @@ namespace LEX
 		Access1st	= 1 << 9,
 		Access2nd	= 1 << 10,
 		Virtual		= 1 << 11,
-		Linking		= 1 << 11,
+		Linking		= 1 << 12,
 		All			= static_cast<uint16_t>(-1),
 
 
@@ -45,6 +45,9 @@ namespace LEX
 		FunctionSpecifiers = HeaderFlag::Virtual | HeaderFlag::Linking | HeaderFlag::DeclConst| HeaderFlag::DeclMute,
 		MostlyAll	= HeaderFlag::All & ~HeaderFlag::Storage,
 	};
+
+	//TODO: make a utility constexpr list of the kinds of stuff these can find themselves in
+	// IE like constructor, function return, parameter etc.
 
 
 	//make all this a class maybe.

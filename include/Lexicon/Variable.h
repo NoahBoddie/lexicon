@@ -16,7 +16,7 @@
 
 #include "Lexicon/Interfaces/IComponent.h"
 #include "Lexicon/Impl/common_type.h"
-
+#include "Lexicon/AttributeBase.h"
 
 
 namespace LEX
@@ -30,7 +30,8 @@ namespace LEX
 		Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
 		String,
 		Object,
-		IComponent*
+		IComponent*,
+		AttributeBase*
 		//,Info
 		>;
 
@@ -152,11 +153,13 @@ namespace LEX
 
 	ENUM(VariableEnum, uint8_t)
 	{
-		Void,
-		Number,
-		String,
-		Object,
-		Reflect,
+		Void = variant_index<VariableValue, LEX::Void>(),
+		Number = variant_index<VariableValue, LEX::Number>(),
+		String = variant_index<VariableValue, LEX::String>(),
+		Object = variant_index<VariableValue, LEX::Object>(),
+		Component = variant_index<VariableValue, LEX::IComponent*>(),
+		Attribute = variant_index<VariableValue, AttributeBase*>(),
+		//Info = variant_index<VariableValue, LEX::Info*>(),
 		Total,
 	};
 
@@ -406,6 +409,7 @@ namespace LEX
 		bool IsObject() const { return std::holds_alternative<Object>(value()); }
 		bool IsNumber() const { return std::holds_alternative<Number>(value()); }
 		bool IsString() const { return std::holds_alternative<String>(value()); }
+		bool IsAttribute() const { return std::holds_alternative<AttributeBase*>(value()); }
 
 
 
@@ -413,10 +417,12 @@ namespace LEX
 		Number& AsNumber() { return std::get<Number>(value()); }
 		String& AsString() { return std::get<String>(value()); }		
 		Object& AsObject() { return std::get<Object>(value()); }
+		AttributeBase*& AsAttribute() { return std::get<AttributeBase*>(value()); }
 		
 		const Number& AsNumber() const { return std::get<Number>(value()); }
 		const String& AsString() const { return std::get<String>(value()); }
 		const Object& AsObject() const { return std::get<Object>(value()); }
+		AttributeBase* const& AsAttribute() const { return std::get<AttributeBase*>(value()); }
 
 		//Array AsArray() { throw nullptr; }
 
