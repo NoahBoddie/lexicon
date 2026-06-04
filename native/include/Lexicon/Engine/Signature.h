@@ -98,6 +98,7 @@ namespace LEX
 		//May not need.
 		Signature(const SignatureBase& other) { MoveSignature(other); }
 		Signature(const ISignature& other) { MoveSignature(other); }
+		Signature(const ISignature* other) { if (other) MoveSignature(*other); }
 
 	};
 
