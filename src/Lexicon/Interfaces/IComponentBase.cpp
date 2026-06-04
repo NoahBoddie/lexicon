@@ -11,7 +11,7 @@ namespace LEX
         return GetComponent()->As<IComponent>();
     }
 
-    const void* IComponentBase::Cast(const void* self, ComponentType from, ComponentType to) const
+    const void* IComponentBase::CastComponent(const void* self, ComponentType from, ComponentType to) const
     {
         return ComponentCast(self, from, to);
     }

@@ -19,7 +19,7 @@ namespace LEX
             protected:
                 virtual const Component* GetComponent() const = 0;
                 virtual const IComponent* GetComponentBase() const = 0;
-                virtual const void* Cast(const void* self, ComponentType from, ComponentType to) const = 0;
+                virtual const void* CastComponent(const void* self, ComponentType from, ComponentType to) const = 0;
 
             public:
                 virtual std::string_view GetName() const = 0;
@@ -55,9 +55,9 @@ namespace LEX
         //The way this would work is it would link to an engine file that handles the traits. 
         // This would make it so we wouldn't need to actually need to have the include the files to be
         // able to cast to it (or rather not ALL files at once, just the one we're casting to, so the normal rules)
-        const void* Cast(const void* self, ComponentType from, ComponentType to) const override INTERFACE_FUNCTION;
+        const void* CastComponent(const void* self, ComponentType from, ComponentType to) const override INTERFACE_FUNCTION;
         
-        void* Cast(const void* self, ComponentType from, ComponentType to) { return unconst(make_const(this)->Cast(self, from, to)); }
+        void* CastComponent(const void* self, ComponentType from, ComponentType to) { return unconst(make_const(this)->CastComponent(self, from, to)); }
         
         //Defined in Impl/ComponentDetails.cpp
         static TypeInfo* GetTypeFromOffset(uint16_t offset);
@@ -97,7 +97,7 @@ namespace LEX
                     }
 
 
-                    return reinterpret_cast<To*>(ptr->Cast(ptr, std::remove_cvref_t<Self>::COMPONENT_TYPE, type));
+                    return reinterpret_cast<To*>(ptr->CastComponent(ptr, std::remove_cvref_t<Self>::COMPONENT_TYPE, type));
                 }
             }
 
@@ -164,7 +164,7 @@ namespace LEX
         bool Is(this Self& a_this, ComponentType type)
         {
             if (Self* ptr = std::addressof(a_this)) {
-                return ptr->Cast(ptr, std::remove_cvref_t<Self>::COMPONENT_TYPE, type);
+                return ptr->CastComponent(ptr, std::remove_cvref_t<Self>::COMPONENT_TYPE, type);
             }
             return false;
         }
