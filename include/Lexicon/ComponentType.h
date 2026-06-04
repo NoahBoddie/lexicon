@@ -48,12 +48,12 @@ namespace LEX
         GenericGlobal,
         SpecialGlobal,
         BasicFormula,
+        Total,
 
         Utilities = 10000,
         Constructor,
         Operator,
 
-        kTotal,
     };
 
 }

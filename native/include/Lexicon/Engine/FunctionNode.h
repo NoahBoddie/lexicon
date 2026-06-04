@@ -19,7 +19,7 @@ namespace LEX
 			kMethod,
 			kFunction
 		};
-		FunctionNode() = default;
+		FunctionNode() {};
 		FunctionNode(FunctionBase* b, FunctionData* data, const MemberPointer& met) : _type{ kMethod }, base{b}, signature { data }, method{ met } {}
 		FunctionNode(FunctionBase* b, FunctionData* data, IFunction* func) : _type{ kFunction }, base{ b }, signature{ data }, function{ func } {}
 

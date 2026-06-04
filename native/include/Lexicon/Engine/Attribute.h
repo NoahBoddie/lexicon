@@ -8,7 +8,9 @@
 
 namespace LEX
 {
-
+    //TODO: Instead of making this a component I'll use link complete in order to handle attribute addition
+    // Attributes themselves will still have a function they use to load themselves (namely for the purpose)
+    // of calling upon their constructors.
     struct Attribute : public Component, public AttributeBase
     {
         //Base object of both custom and native attribute
@@ -44,7 +46,7 @@ namespace LEX
             return nullptr;
         }
         
-
+        //I'll use link complete in order to handle attributes
         void OnLinkComplete() override
         {
             OnTargetValidated();
