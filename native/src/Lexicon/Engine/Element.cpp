@@ -20,6 +20,8 @@
 #include "Lexicon/MergeTemplate.h"
 
 #include "Lexicon/Engine/ProjectDirectory.h"
+
+#include "Lexicon/Interfaces/DirectoryManager.h"
 namespace LEX
 {
 
@@ -529,6 +531,8 @@ namespace LEX
 
 		FunctionNode SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key, Overload& out)
 		{
+			return DirectoryManager::instance->SearchFunctionPath(a_this, path, key, out);
+
 			FunctionNode result;
 
 			NEW::SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<SpecialDirectory>& query) -> bool
@@ -797,126 +801,6 @@ namespace LEX
 
 
 
-	//the associated should maybe be a bool or just reject any other than include and import.
-
-	SyntaxRecord& Element::GetPath(SyntaxRecord& path, std::optional<bool> right)
-	{
-		SyntaxRecord* ret = nullptr;
-			
-		if (right.has_value())
-			path.FindChild(right.value() ? parse_strings::rhs : parse_strings::lhs);
-
-		if (!ret)
-			ret = &path.GetFront();
-		RecordBase;
-		static_assert(derived_record<SyntaxRecord>);
-		static_assert(std::derived_from <SyntaxRecord, RecordBase>);
-		static_assert(sizeof(BasicRecord<Syntax>) == sizeof(RecordBase));
-		constexpr auto size = sizeof(SyntaxRecord);
-
-		return ret->Transform<SyntaxRecord>();
-	}
-
-
-	
-	Environment* Element::WalkEnvironmentPath(SyntaxRecord* path, ITemplateInserter& inserter)
-	{
-		TypeBase;
-
-		Element* a_this = this;
-
-		while (path && path->IsPath() == true)
-		{
-			//if (path->IsPath() == false) {
-			//	path = nullptr;
-			//	return FetchEnvironment();
-			//}
-
-			if (!a_this)
-				return nullptr;
-
-
-			if constexpr (1) {
-				auto below = ParseUtility::SeekNextPath(path);
-
-				a_this = a_this->FindEnvironment(*below, inserter);
-			}
-			else
-			{
-				auto left = path->FindChild(parse_strings::lhs);
-
-
-				if (!left) {
-					return a_this->FindEnvironment(path->GetFront(), inserter);
-				}
-
-
-				a_this = a_this->FindEnvironment(left->GetFront(), inserter);
-
-				path = path->FindChild(parse_strings::rhs);
-			}
-		}
-
-		return NULL_OP(NULL_Q(a_this)->GetEnvironment());
-
-	}
-
-
-	std::vector<QualifiedName> Element::GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType relation, std::set<Element*>& searched)
-	{
-		/*
-		make variable that stores temp environment here.
-		overloop here
-		for each environment in the temp var:
-
-		Check for environ being in the set.
-		Add environ to the set.
-		Call function.
-		move temp var restart overloop.
-
-		Overloop keeps going until absolutely nothing is created from GetAssociate
-		//*/
-
-		//This could be cleaner, but it works for now.
-
-		std::vector<QualifiedName> result{};
-		std::vector<Element*> elements{ };
-		
-
-		std::vector<Element*> out{ a_this };
-
-
-		//maybe there's a better way to do this, but whatever innit.
-		while (out.size() != 0)//Overloop
-		{
-
-
-			std::vector<Element*> buffer{};
-
-			for (auto elem : out)
-			{
-				if (!elem || !searched.emplace(elem).second) {
-					continue;
-				}			
-				
-				//TODO: the use of this function in undefined behaviour and is liable for error.
-				GenericArray inserter{ NULL_OP(NULL_Q(this)->AsGenericElement()), };
-				Environment* env = step ? elem->WalkEnvironmentPath(step, inserter) : elem->GetEnvironment();
-				
-				if (env)
-					result.emplace_back(env, std::move(inserter));
-				
-				if (relation != RelateType::None) {
-					throw Error("This ain't supposed to be used");
-					//buffer.insert_range(buffer.end(), elem->GetAssociates(relation));
-				}
-			}
-
-			out = std::move(buffer);
-		}
-
-		return result;
-	}
 
 	TypeNode Element::SearchTypePath(SyntaxRecord& _path)
 	{
@@ -924,9 +808,11 @@ namespace LEX
 	}
 
 
-	TypeNode Element::SearchTypePath(Element* a_this, SyntaxRecord& _path)
+	TypeNode Element::SearchTypePath(Element* a_this, SyntaxRecord& path)
 	{
-		return NEW::SearchTypePath(a_this, _path);
+		return DirectoryManager::instance->SearchTypePath(a_this, path);
+
+		return NEW::SearchTypePath(a_this, path);
 	}
 
 	Element* Element::GetElementFromPath(Element* a_this, std::string_view path, ElementType elem, OverloadArgument* sign)
@@ -1013,49 +899,6 @@ namespace LEX
 	}
 
 
-	Environment* Element::GetEnvironmentTMP(Environment* a_this, SyntaxRecord* path, bool& search_scripts)
-	{
-		Environment* result = nullptr;
-		get_switch(path->SYNTAX().type)
-		{
-		case SyntaxType::Scopename:
-		case SyntaxType::Typename:
-		{
-
-			auto types = a_this ? a_this->FindTypes(path->GetView()) : std::vector<TypeBase*>{};
-
-			if (types.size() == 1)
-				//result = nullptr;
-				result = types[0];
-			//Script name means nothing basically.
-
-			if (result) {
-				search_scripts = false;
-				break;
-			}
-		}
-
-		if (switch_value == SyntaxType::Typename)
-			break;
-
-		[[fallthrough]];
-		case SyntaxType::Scriptname://This should be script name.
-			if (search_scripts)
-			{
-				result = nullptr;
-				//Script name means nothing basically.
-				//But here it would search through required or subdirected stuff.
-
-				
-			}
-			return nullptr;
-		}
-
-
-		return result;
-	}
-
-
 
 	FunctionNode Element::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key, Overload& out)
 	{
@@ -1066,253 +909,20 @@ namespace LEX
 
 	QualifiedField Element::SearchFieldPath(Element* a_this, SyntaxRecord& path)
 	{
+		return DirectoryManager::instance->SearchFieldPath(a_this, path);
+
 		return NEW::SearchFieldPath(a_this, path);
 	}
 	
 	Script* Element::SearchScriptPath(Element* a_this, SyntaxRecord& path)
 	{
+		return DirectoryManager::instance->SearchScriptPath(a_this, path);
+
 		return NEW::SearchScriptPath(a_this, path);
 	}
 
 	
-	bool FindNext(Element*& focus, SyntaxRecord* target, SyntaxRecord*& next)
-	{
-		//target is left, next is right
-		Project* project = focus->GetProject();
 
-		if (project && next->SYNTAX().type == SyntaxType::Path) {
-			bool is_path = target->SYNTAX().type == SyntaxType::Path;
-
-			//Ensure that this doesn't use a path.
-			if (auto script = project->FindScript(target->GetFront().GetView()); script) {
-				focus = script;
-				
-				
-				return true;
-			}
-		}
-
-
-		return false;
-	}
-	
-	
-
-
-
-	bool Element::HandlePath(Element* focus, SyntaxRecord* rec, const SearchFunction& func, std::set<Element*>& searched, bool need_associate)
-	{
-		if (!focus) {
-			auto name = ParseUtility::SeekNextPath(rec);
-
-			if (!name)
-				return false;
-
-			auto project = ProjectManager::instance->GetProject(name->GetView());
-
-			if (!project)
-				return false;
-
-			//I didn't want to do this, but I think this is probably proper.
-
-			focus = project;
-
-			if constexpr (0)
-			{
-				name = ParseUtility::SeekNextPath(rec);
-
-				if (!name) {
-					return false;
-				}
-
-				focus = project->FindScript(name->GetView());
-
-				if (!focus)
-					return false;
-			}
-
-		}
-			
-		Element* secondary = nullptr;
-
-		RelateType ship = need_associate ?  RelateType::Included  : RelateType::None;
-
-		Environment* env = focus->GetEnvironment();
-
-		Element* target;
-
-		bool allow_element = func.index();
-
-		if (!env) {
-			//The only time something like this happens is if it's a project. SO, we will have a secondary bit where it will be loaded later, and if
-			// it's not null, it will run HandlePath on commons.
-			target = focus;
-		
-			if (need_associate)
-				secondary = focus->GetCommons();
-		}
-		else
-		{
-			target = env;
-		}
-
-		//I'm thinking that the above should be handled before we get here maybe.
-
-
-
-
-		do
-		{
-
-
-			//std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{};
-			std::vector<QualifiedName> query = GetEnvironments(target, rec, ship, searched);
-
-			if (env && rec) {
-				query.push_back(env);
-			}
-
-			//if (env && !need_associate) {
-				//query.push_back(env);
-			//}
-
-			bool success;
-
-			if (allow_element) {
-				query.push_back(target);
-				success = std::get<1>(func)(reinterpret_cast<std::vector<QualifiedElement>&>(query));
-			}
-			else {
-				success = std::get<0>(func)(query);
-
-			}
-			
-
-			//bool success = func(query);
-
-			if (success)
-				return true;
-		}
-		while (ship-- != RelateType::None);
-
-		if (secondary) {
-			return HandlePath(secondary, rec, func, searched, need_associate);
-		}
-
-
-		return false;
-	}
-
-	bool Element::SearchPathBase(Element* a_this, SyntaxRecord& rec, const SearchFunction& func)
-	{
-		//Failure occurs when searching for something with it's script name. Like including otherscript and then searching OtherScript::TestingPull
-
-		SyntaxRecord* path = rec.FindChild(parse_strings::path);
-
-		//Identifier is searched for directly, it won't search up or to it's associates.
-		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
-
-		auto first = ParseUtility::PeekCurrentPath(rec);
-
-
-		//Here's how it works, if there is no this element, it will use find. if there is a this element it will differ based on what
-		// path is.
-
-
-		Element* target = a_this;
-
-		//Each of these sets are used to hold data for when "find" is used on a project or when it's regularly used.
-		std::set<Element*> full_search{};
-		std::set<Element*> find_search{};
-
-		bool mulligan = !is_direct;//allows the target to not exist just once if not direct
-		do
-		{
-			auto _focus = first;
-
-
-			bool cont = false;
-
-			std::set<Element*>* searched = &full_search;
-			//Each find will have something shaved off, so it will use a seperate set.
-			//Don't remember how to apply this, but replicate the use of it. I think it's used for whenever we have to find a specific part first.
-			//searched = &find_search;
-
-			if (path) {
-				//I need to use 
-				switch (path->GetSyntax().type)
-				{
-				case SyntaxType::Path:
-					if (!a_this && !is_direct)
-						target = ProjectManager::instance->GetShared()->GetCommons();
-					break;
-
-
-					//If any of these happened, it actually is direct.
-				case SyntaxType::SpecifyGlobal:
-					target = nullptr;
-					break;
-
-				case SyntaxType::SpecifyProject:
-					target = a_this->GetProject();
-
-					if (!target)
-						target = ProjectManager::instance->GetShared();
-
-					break;
-
-				case SyntaxType::SpecifyScript:
-					target = NULL_OP(NULL_Q(a_this)->GetScript());
-
-					if (!target)
-						target = ProjectManager::instance->GetShared()->GetCommons();
-
-					break;
-
-
-				case SyntaxType::SpecifyCommons:
-					target = NULL_OP(NULL_Q(a_this)->GetCommons());
-
-					if (!target)
-						target = ProjectManager::instance->GetShared()->GetCommons();
-
-
-					break;
-
-
-				case SyntaxType::SpecifyShared:
-					target = ProjectManager::instance->GetShared();
-
-					break;
-					//case "__type"_ih:
-				}
-			}
-
-			if (!target)
-				mulligan = false;
-
-			bool success = a_this->HandlePath(target, path, func, *searched, !is_direct);
-
-			if (success)
-				return true;
-
-			if (!is_direct)
-			{
-					target = NULL_OP(NULL_Q(target)->GetParent());
-			}
-			else
-			{
-				break;
-			}
-
-		}
-		while (target || mulligan);
-		//ProjectManager::
-
-
-		return false;
-	}
-	
 	//*/
 
 	bool Element::ShouldLink(LinkFlag flag)

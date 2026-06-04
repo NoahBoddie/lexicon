@@ -2,6 +2,7 @@
 
 #include "Lexicon/GenericArray.h"
 
+//TODO: Rename QualifiedName
 
 namespace LEX
 {
@@ -9,46 +10,17 @@ namespace LEX
 	struct Environment;
 	struct Directory;
 
-	struct QualifiedName : public GenericArray
+	struct SpecialDirectory : public GenericArray
 	{
-		QualifiedName(Environment* e) : env{ e } {}
-		QualifiedName(Environment* e, const GenericArray& array) : env{ e }, GenericArray{ array } {}
-		QualifiedName(Environment* e, GenericArray&& array) : env{ e }, GenericArray{ std::move(array) } {}
-
-		QualifiedName(Element* e) : elem{ e } {}
-		QualifiedName(Element* e, const GenericArray& array) : elem{ e }, GenericArray{ array } {}
-		QualifiedName(Element* e, GenericArray&& array) : elem{ e }, GenericArray{ std::move(array) } {}
+		SpecialDirectory(Directory* e) : dir{ e } {}
+		SpecialDirectory(Directory* e, const GenericArray& array) : dir{ e }, GenericArray{ array } {}
+		SpecialDirectory(Directory* e, GenericArray&& array) : dir{ e }, GenericArray{ std::move(array) } {}
 
 		//operator Environment* () { return env; }
-		Environment* operator-> () { return env; }
+		Directory* operator-> () { return dir; }
 
-
-
-		Element* elem = nullptr;
-		Environment* env = nullptr;
+		Directory* dir = nullptr;
 
 	};
 
-
-	struct QualifiedElement : public QualifiedName
-	{
-		using QualifiedName::QualifiedName;
-		Element* operator-> () { return elem; }
-	};
-
-	namespace NEW
-	{
-		struct SpecialDirectory : public GenericArray
-		{
-			SpecialDirectory(Directory* e) : dir{ e } {}
-			SpecialDirectory(Directory* e, const GenericArray& array) : dir{ e }, GenericArray{ array } {}
-			SpecialDirectory(Directory* e, GenericArray&& array) : dir{ e }, GenericArray{ std::move(array) } {}
-
-			//operator Environment* () { return env; }
-			Directory* operator-> () { return dir; }
-
-			Directory* dir = nullptr;
-
-		};
-	}
 }

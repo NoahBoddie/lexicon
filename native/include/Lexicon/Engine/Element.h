@@ -122,31 +122,18 @@ namespace LEX
 
 #pragma region NewSearch
 
-
-		//the associated should maybe be a bool or just reject any other than include and import.
-
-		static SyntaxRecord& GetPath(SyntaxRecord& path, std::optional<bool> right = std::nullopt);
-
-
-
-
-
+		//THis can be destroyed
 		virtual Environment* FindEnvironment(SyntaxRecord& record, ITemplateInserter& inserter) { return nullptr; }
 
 
-		static Environment* GetEnvironmentTMP(Environment* a_this, SyntaxRecord* path, bool& search_scripts);
-
-		Environment* WalkEnvironmentPath(SyntaxRecord* path, ITemplateInserter& inserter);
-
-		std::vector<QualifiedName> GetEnvironments(Element* a_this, SyntaxRecord* step, RelateType a, std::set<Element*>& searched);
+		//the associated should maybe be a bool or just reject any other than include and import.
 
 
 
-		bool HandlePath(Element* focus, SyntaxRecord* rec, const SearchFunction& func, std::set<Element*>& searched, bool need_associate);
 
 
-		static bool SearchPathBase(Element* a_this, SyntaxRecord& rec, const SearchFunction& func);
-		
+
+
 
 		static TypeNode SearchTypePath(Element* a_this, SyntaxRecord& _path);
 

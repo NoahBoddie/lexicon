@@ -23,6 +23,8 @@
 
 #include "Lexicon/Engine/ProjectDirectory.h"
 
+#include "Lexicon/Engine/Signature.h"
+
 namespace LEX
 {
 	
@@ -39,7 +41,642 @@ namespace LEX
 
 
 
-	//*/
+
+
+
+	//Real////////////////////////////////
+
+
+	Directory* WalkDirectoryPath(Directory* focus, SyntaxRecord* path, ITemplateInserter& inserter)
+	{
+		while (path && path->IsPath() == true)
+		{
+			//if (path->IsPath() == false) {
+			//	path = nullptr;
+			//	return FetchEnvironment();
+			//}
+
+			if (!focus) {
+				return nullptr;
+			}
+			auto below = ParseUtility::SeekNextPath(path);
+
+			focus = focus->FindDirectory(*below, &inserter);
+
+		}
+
+		return focus;
+
+		//Must this be an environ?
+		//return NULL_OP(NULL_Q(a_this)->GetEnvironment());
+
+	}
+
+
+
+
+
+	using DirectorySearch = bool(std::vector<SpecialDirectory>&);
+
+	//I no longer have to do this, instead I can just make qualified name use directory.
+	using DirectorySearchFn = std::function<DirectorySearch>;
+
+
+
+	std::vector<SpecialDirectory> GetDirectories(Element* a_this, Directory* focus, SyntaxRecord* step, RelateType& relation, std::set<Element*>& searched)
+	{
+		if (!focus) {
+			return {};
+		}
+
+		std::vector<SpecialDirectory> result{};
+
+
+		std::vector<Directory*> out{ focus };
+
+
+		if (relation != RelateType::None) {
+			out.insert_range(out.end(), focus->GetAssociates(relation));
+		}
+
+		for (auto dir : out)
+		{
+			bool is_focus = focus == dir;
+
+
+			//Exit if the directory doesnt exist, or if searched contains the directory in the
+			// event that the directory equals the focus or if the search didn't emplace a new value
+			// in the event the directory doesn't equal the focus
+			if (!dir || is_focus ? searched.contains(dir) : !searched.emplace(dir).second) {
+				continue;
+			}
+			//This does not add "this" to searching. I need to emplace it, but only the first time this is called.
+
+
+			GenericArray inserter{ NULL_OP(NULL_Q(a_this)->AsGenericElement()), };
+
+			Directory* it = dir;
+
+			switch (relation)
+			{
+
+			case RelateType::Included:
+			case RelateType::None:
+				goto skip_check;
+
+			default:
+				if (!is_focus)
+				{
+				skip_check:
+					if (step)
+						it = WalkDirectoryPath(it, step, inserter);
+
+					if (it)
+						result.emplace_back(it, std::move(inserter));
+				}
+				break;
+
+			}
+		}
+
+		return result;
+	}
+
+
+
+
+	bool HandlePath(Element* a_this, Element* focus, SyntaxRecord* rec, const DirectorySearchFn& func, std::set<Element*>& searched, bool need_associate)
+	{
+		if (!focus)
+			return false;
+
+
+
+		RelateType ship = need_associate ? RelateType::Included : RelateType::None;
+
+		Directory* dir = focus->GetDirectory();
+
+
+		if (dir) {
+			bool same_script = need_associate && a_this && a_this->GetScript() == dir->GetScript();
+
+			do
+			{
+
+				//switch (ship)
+				//{
+				//case RelateType::Subdirectory:
+				//case RelateType::Subproject:
+				//	if (!same_script)
+				//		continue;
+				//}
+
+
+
+				//std::vector<QualifiedName> query = need_associate ? GetEnvironments(target, rec, ship, searched) : std::vector<QualifiedName>{};
+				std::vector<SpecialDirectory> query = GetDirectories(a_this, dir, rec, ship, searched);
+
+				//if (!rec) {
+				//	query.push_back(dir);
+				//}
+
+				//if (env && !need_associate) {
+					//query.push_back(env);
+				//}
+
+				bool success = func(query);
+
+				if (success)
+					return true;
+
+			} while (ship-- != RelateType::None);
+
+			searched.emplace(dir);
+
+			if (Project* project = dir->As<Project>()) {
+				return HandlePath(a_this, project->GetCommons(), rec, func, searched, need_associate);
+			}
+
+		}
+
+		return false;
+	}
+
+
+
+
+	bool SearchPathBase(Element* a_this, SyntaxRecord& rec, const DirectorySearchFn& func)
+	{
+
+		SyntaxRecord* path = rec.FindChild(parse_strings::path);
+
+		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
+
+		auto first = ParseUtility::PeekCurrentPath(rec);
+
+		bool is_shared = a_this ? a_this->IsShared() : false;
+
+
+		Element* target = a_this ? a_this : ProjectDirectory::GetSingleton();
+
+		std::set<Element*> searched{};
+
+		bool force_break = false;
+
+		do
+		{
+			auto _focus = first;
+
+
+			//Each find will have something shaved off, so it will use a seperate set.
+			//Don't remember how to apply this, but replicate the use of it. I think it's used for whenever we have to find a specific part first.
+			//searched = &find_search;
+
+			if (path) {
+				//I need to use 
+				switch (path->GetSyntax().type)
+				{
+				case SyntaxType::Path:
+					if (!a_this && !is_direct)
+						target = ProjectManager::instance->GetShared()->GetCommons();
+					break;
+
+
+					//If any of these happened, it actually is direct.
+				case SyntaxType::SpecifyGlobal:
+					target = nullptr;
+					break;
+
+				case SyntaxType::SpecifyProject:
+					target = a_this->GetProject();
+
+					if (!target)
+						target = ProjectManager::instance->GetShared();
+
+					break;
+
+				case SyntaxType::SpecifyScript:
+					target = NULL_OP(NULL_Q(a_this)->GetScript());
+
+					if (!target)
+						target = ProjectManager::instance->GetShared()->GetCommons();
+
+					break;
+
+
+				case SyntaxType::SpecifyCommons:
+					target = NULL_OP(NULL_Q(a_this)->GetCommons());
+
+					if (!target)
+						target = ProjectManager::instance->GetShared()->GetCommons();
+
+
+					break;
+
+
+				case SyntaxType::SpecifyShared:
+					target = ProjectManager::instance->GetShared();
+
+					break;
+					//case "__type"_ih:
+				}
+			}
+
+			if (target)
+			{
+				bool success = HandlePath(a_this, target, path, func, searched, !is_direct);
+
+				if (success)
+					return true;
+			}
+
+			if (is_direct || force_break)
+				break;
+
+			if (target) {
+				target = target->GetParent();
+
+				if (!target && is_shared) {
+					target = ProjectDirectory::GetSingleton();
+					force_break = true;
+				}
+			}
+
+		} while (target);
+
+
+		return false;
+	}
+
+
+
+
+
+
+
+
+	TypeNode DirectoryManager::SearchTypePath(Element* a_this, SyntaxRecord& path)
+	{
+
+
+
+		if (a_this && path.FindChild(parse_strings::path) == nullptr)
+		{
+			if (auto gen_elem = a_this->AsGenericElement())
+			{
+				if (auto temp = gen_elem->GetTemplateByName(path.GetView())) {
+					return TypeNode{ nullptr, temp };
+				}
+			}
+		}
+
+
+
+		TypeNode result;
+
+		SearchPathBase(a_this, path, [&](std::vector<SpecialDirectory>& query) -> bool
+			{
+				for (auto& dir : query)
+				{
+					if (auto env = dir->As<Environment>())
+					{
+						std::vector<TypeBase*> types = env->FindTypes(path.GetView());
+
+						//There's no situation where multiple can be observed, so it only needs the one.
+
+						auto size = types.size();
+
+
+
+						//TODO: VERY temporary idea. No pattern matching, no checking. This is basically the same that we did before
+						if (size > 1) {
+							report::compile::critical("mulitple types of same name detected.");
+							throw nullptr;
+						}
+						else if (size)
+						{
+							result = types[0]->CreateNode(dir);
+							return true;
+						}
+					}
+
+
+
+				}
+
+				return false;
+			});
+
+
+		return result;
+	}
+
+
+	FunctionNode DirectoryManager::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key, Overload& out)
+	{
+		FunctionNode result{};
+
+		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<SpecialDirectory>& query) -> bool
+			{
+				std::vector<std::pair<size_t, ITemplatePart*>> genericList;
+
+				std::vector<OverloadInfo*> funcs{};
+				size_t i = 0;
+
+				for (auto& dir : query)
+				{
+					if (auto env = dir->As<Environment>())
+					{
+						auto buff = env->FindFunctions(path.GetView());
+
+						//TODO: I think I'd actually just not have this work so something not working wouldn't disrupt the expected order of the objects
+
+						i += buff.size();
+
+						//this should compile and then run.
+						funcs.insert_range(funcs.end(), buff);
+
+
+						genericList.emplace_back(std::make_pair(i, dir.AsPart()));
+					}
+				}
+
+
+				if (funcs.size() != 0)
+				{
+
+					if (auto index = key.CheckOverload(funcs, out); index != -1)
+					{
+						auto info = static_cast<OverloadInfo*>(out.param);
+
+						auto pair = std::find_if(genericList.begin(), genericList.end(), [index](auto& it) {return index < it.first; });
+
+						//Index will be useless right now
+						//result = info->CreateNode(pair->second);
+						MergeTemplate merger{ pair->second, out };
+						//TODO: in the future system, the merger will no longer be necessary. Instead, that will be handled
+						// by the parentage system.
+						//result = info->CreateNode(genericList[0].second);
+
+						if (info->IsOverloadUsuable() == false) {
+							//Result will remain empty, error is the function is non-functional, and thus
+							// cannot compile
+							return true;
+						}
+
+						result = info->CreateNode(merger);
+						return true;
+					}
+
+				}
+
+
+
+				return false;
+			});
+
+
+		return result;
+	}
+
+	FunctionNode DirectoryManager::SearchFunctionPath(Element* a_this, SyntaxRecord& path, OverloadArgument& key)
+	{
+		Overload out{};
+		auto result = SearchFunctionPath(a_this, path, key, out);
+		return result;
+	}
+
+	QualifiedField DirectoryManager::SearchFieldPath(Element* a_this, SyntaxRecord& path)
+	{
+
+		QualifiedField result{ nullptr };
+
+		SearchPathBase(a_this, path.Transform<SyntaxRecord>(), [&](std::vector<SpecialDirectory>& query) -> bool
+			{
+				for (auto dir : query)
+				{
+					if (auto env = dir->As<Environment>())
+					{
+						//There's no situation where multiple can be observed, so it only needs the one.
+						std::vector<VarInfo*> vars = env->FindVariables(path.GetView());
+
+						auto size = vars.size();
+
+						if (size == 1) {
+							result = QualifiedField{ vars[0] };
+							return true;
+						}
+						else if (size > 1) {
+							//Give an error
+							return false;
+						}
+					}
+				}
+
+				return false;
+			});
+
+
+		return result;
+	}
+
+	Script* DirectoryManager::SearchScriptPath(Element* a_this, SyntaxRecord& path)
+	{
+		Script* result = nullptr;
+
+		SearchPathBase(a_this, path, [&](std::vector<SpecialDirectory>& query) -> bool
+			{
+				for (auto env : query)
+				{
+					//Has possible cross contamination issues. Like having 2 envs with different names.
+					//if (env->GetName() == path.GetView())
+					//{
+					//	result = static_cast<Script*>(env);
+					//	return true;
+					//}
+
+					//Later this will handle this a bit differently.
+					Script* script = env->GetRepository()->FindScript(path.GetView());
+
+					if (script)
+					{
+						result = script;
+
+						return true;
+					}
+				}
+
+				return false;
+			});
+
+
+		return result;
+	}
+
+
+
+
+
+
+
+	IComponent* DirectoryManager::GetComponentFromPath(IElement* a_this, std::string_view path, ComponentType comp, const LEX::ISignature* sign)
+	{
+
+		if (Component::HasLinked(LinkFlag::Loaded) == false) {
+			report::warn("All scripts haven't finished loading, search for {} may be incomplete.", path);
+		}
+
+		if (Component::HasLinked(LinkFlag::Declaration) == false) {
+			report::warn("Declaration linkage hasn't occured, search for {} may be incomplete.", path);
+		}
+
+		SyntaxRecord path_record;
+
+		switch (comp)
+		{
+		case ComponentType::Constructor:
+		case ComponentType::TypeBase:
+		case ComponentType::ConcreteType:
+		case ComponentType::GenericType:
+		case ComponentType::SpecialType:
+		case ComponentType::ITypeInfo:
+		case ComponentType::TypeInfo:
+			if (auto result = LEX::Parser::CreateSyntax<IdentifierParser>(path_record, path); !result) {
+				//Error here.
+				return nullptr;
+			}
+			break;
+
+		default:
+			if constexpr (1)
+			{
+				if (auto result = LEX::Parser::CreateSyntax<HeaderParser>(path_record, path); !result) {
+					//Error here.
+					return nullptr;
+				}
+
+				if (path_record.GetChild(KeywordType::TypeQual).size() || path_record.GetChild(KeywordType::DeclSpec).size()) {
+					report::warn("type qualifiers and declaration specifiers are ignored. ({})", path);
+				}
+				if (auto& spec = path_record.GetChild(KeywordType::TypeSpec); spec.size() == 0) {
+					return nullptr;
+				}
+				else {
+					path_record = spec;
+				}
+			}
+			break;
+
+		}
+
+	
+
+
+		Signature key{ sign };
+
+		return GetComponentFromPath(a_this->As<Element>(), path_record, comp, sign ? &key : nullptr);
+	}
+
+
+	IComponent* DirectoryManager::GetComponentFromPath(Element* a_this, SyntaxRecord& path, ComponentType comp, OverloadArgument* sign)
+	{
+
+		
+		//TODO: Nothing specializable will ever work on generics like this, so I'm going to just overhaul this at some point.
+
+		IComponent* result = nullptr;
+
+		switch (comp)
+		{
+		case ComponentType::IComponent:
+		case ComponentType::Component:
+
+			if (auto component = GetComponentFromPath(a_this, path, ComponentType::ITypeInfo, sign))
+				return component;
+			if (auto component = GetComponentFromPath(a_this, path, ComponentType::IFunction, sign))
+				return component;
+			if (auto component = GetComponentFromPath(a_this, path, ComponentType::IGlobal, sign))
+				return component;
+			if (auto component = GetComponentFromPath(a_this, path, ComponentType::IScript, sign))
+				return component;
+
+			return nullptr;
+
+			//Do the search for each type here.
+		case ComponentType::Constructor:
+		case ComponentType::TypeBase:
+		case ComponentType::ConcreteType:
+		case ComponentType::GenericType:
+		case ComponentType::SpecialType:
+		case ComponentType::ITypeInfo:
+		case ComponentType::TypeInfo:
+			if constexpr (1)
+			{
+				//report::fault::critical("cant search for types currently");
+				ITypeInfo* type = GetPolicyFromSpecifiers(path, a_this);
+
+				if (type && comp == ComponentType::Constructor) {
+					result = type->FindConstructor(*sign);
+				}
+				else {
+					result = type;
+				}
+			}
+			break;
+
+		case ComponentType::FunctionBase:
+		case ComponentType::ConcreteFunction:
+		case ComponentType::GenericFunction:
+		case ComponentType::SpecialFunction:
+		case ComponentType::IFunction:
+		case ComponentType::Function:
+		{
+			if (!sign) {
+				report::failure("Getting function from path requires a signature.");
+				return nullptr;
+			}
+
+			auto func = SearchFunctionPath(a_this, path, *sign);
+			result = func ? func.GetBase()->Component::As<IComponent>() : nullptr;
+			break;
+		}
+		
+	
+		case ComponentType::GlobalBase:
+		case ComponentType::ConcreteGlobal:
+		case ComponentType::GenericGlobal:
+		case ComponentType::SpecialGlobal:
+		case ComponentType::IGlobal:
+		case ComponentType::Global:
+			result = dynamic_cast<IComponent*>(SearchFieldPath(a_this, path).GetInfo());
+			break;
+
+		case ComponentType::Script:
+		case ComponentType::IScript:
+			result = SearchScriptPath(a_this, path);
+			break;
+
+		default:
+			report::warn("Invalid element type {} detected.", magic_enum::enum_name(comp));
+			return nullptr;
+		}
+
+
+		if (result && result->Is(comp) == false) {
+			result = nullptr;
+		}
+
+		return result;
+	}
+
+
+
+
+
+
+
+
+
 
 
 
