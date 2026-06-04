@@ -5,7 +5,7 @@
 
 #include "Lexicon/Engine/InheritanceTree.h"
 #include "Lexicon/Engine/Convert.h"
-
+#include "Lexicon/Engine/Overload.h"
 namespace LEX
 {
 	ConvertResult ITypeInfo::GetConvertTo_Hierarchy(const ITypeInfo* other, const ITypeInfo* scope, Conversion* out, ConversionFlag flags) const
@@ -125,4 +125,11 @@ namespace LEX
 
 		return 0;
 	}
+
+
+	IFunction* ITypeInfo::FindConstructor(OverloadArgument& key)
+	{ 
+		Overload out; return FindConstructor(key, out); 
+	}
+
 }

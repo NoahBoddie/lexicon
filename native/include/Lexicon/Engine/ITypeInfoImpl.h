@@ -158,6 +158,8 @@ namespace LEX
 		
 		virtual IFunction* FindConstructor(OverloadArgument& key, Overload& out) { return nullptr; }
 		
+		IFunction* FindConstructor(OverloadArgument& key);
+
 
 		virtual void SetInstanceID(InstanceID id, Badge<IdentityManager>) = 0;
 		
