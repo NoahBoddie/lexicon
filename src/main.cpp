@@ -3133,6 +3133,66 @@ namespace LEX::Test
             base->As<Component>();
         }
 
+        struct AttributeHandler
+        {
+            void LoadAttributes(Component* a_this, Directory* parent, SyntaxRecord& record)
+            {
+                assert_if(record.GetView() != parse_strings::attributes) {
+                    //Expected attributes
+                    return;
+                }
+
+
+                for (auto& attr_name : record.children())
+                {
+                    ITypeInfo* base_type = parent->SearchTypePath(attr_name).info;
+
+                    assert_if(!base_type) {
+
+                    }
+                    
+                    assert_if(base_type->IsAttribute() == false) {
+
+                    }
+
+                    ConcreteType* type = base_type->As<ConcreteType>();
+
+                    assert_if(!type) {
+
+                    }
+
+                    auto attribute = type->CreateAttribute();
+
+                    assert_if(!attribute) {
+
+                    }
+
+
+                    auto attribute = value.get();
+
+                    if (parent->AddAttribute(std::move(value)) == false)
+                    {
+                        report::compile::error("Unable to add attribute '{}' to Component '{}'",
+                            GetName(), parent->GetName());
+
+                        return nullptr;
+                    }
+
+                    attribute->Initialize(record);
+
+                    return attribute;
+
+                    //type->FindConstructor();
+                }
+
+            }
+
+
+            std::unique_ptr<std::unique_ptr<Attribute>>;;
+
+        };
+
+
         /*
         void MakeAttribute(TypeInfo* context)
         {
