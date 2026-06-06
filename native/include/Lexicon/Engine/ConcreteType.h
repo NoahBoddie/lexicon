@@ -102,7 +102,7 @@ namespace LEX
 			return false;
 		}
 
-		Attribute* CreateAttribute(Component* parent, SyntaxRecord& record);
+		std::unique_ptr<Attribute> CreateAttribute();
 
 
 

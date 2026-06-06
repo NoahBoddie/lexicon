@@ -274,7 +274,7 @@ namespace LEX
 		return  result;
     }
 
-	Attribute* ConcreteType::CreateAttribute(Component* parent, SyntaxRecord& record)
+	std::unique_ptr<Attribute> ConcreteType::CreateAttribute()
 	{
 		if (IsAttribute() == false) {
 			return nullptr;
@@ -299,19 +299,7 @@ namespace LEX
 				GetName());
 		}
 
-		auto attribute = value.get();
-
-		if (parent->AddAttribute(std::move(value)) == false)
-		{
-			report::compile::error("Unable to add attribute '{}' to Component '{}'",
-				GetName(), parent->GetName());
-
-			return nullptr;
-		}
-
-		attribute->Initialize(record);
-
-		return attribute;
+		return value;
 	}
 
 }
