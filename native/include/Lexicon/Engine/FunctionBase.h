@@ -42,8 +42,6 @@ namespace LEX
 
 		LinkResult OnLink(LinkFlag flags) override;
 
-		void OnLinkComplete() override;
-
 		bool GetValid() const override;
 
 		LinkFlag GetLinkFlags() override;

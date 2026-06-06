@@ -323,6 +323,10 @@ namespace LEX
 		}
 
 
+		void discard() {
+			next();
+		}
+
 		RecordData next() {
 			return next_with(defaultParser);
 		}
@@ -647,6 +651,8 @@ namespace LEX
 
 
 
+		//TODO: make a function called delimit if, that will only call delimited if it starts with the start.
+
 		std::vector<Record> Delimited(std::string_view start, std::string_view stop, std::string_view separator, std::function<ParseFunc> func);
 
 
@@ -712,6 +718,8 @@ namespace LEX
 		Record EndExpression(Record& rec);
 		Record EndExpression(Record&& rec);
 
+
+		//I'd like Create expression to be able to use a name directly, but also use the record data of what's currently loaded
 
 
 		//Would like to seperate these from parser(steam) and move it to Parser (to be named ParsingStream)

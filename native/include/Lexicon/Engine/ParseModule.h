@@ -276,6 +276,13 @@ namespace LEX
 		}
 
 
+		//The issue with this primarily resides in this needing to work in conditions, but
+		// this won't really work in conditionals all like that. I guess it will, but only for
+		// a little bit. So the type space would need to declare constructor a conditional.
+		//But I'd like that to both only be in current space. That, and I'd like it to
+		// also be linked to something like attribute.
+		//So I guess attribute can just forward has conditional. Or I could use something like
+		// optional to decide if it passes through or not, with it defaulting not to.
 		virtual bool HasConditional(const std::string_view& name) const
 		{
 			return false;

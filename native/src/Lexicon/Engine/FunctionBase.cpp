@@ -248,13 +248,6 @@ namespace LEX
         return LinkResult::Success;
     }
 
-    void FunctionBase::OnLinkComplete()
-    {
-        //I want a way to fire this off and still have links complete. Gonna take some thought though.
-        //if (GetValid() == false) {
-        //    report::link::warn("Function '{}' didn't register a procedure at the end of linking.", GetName());
-        //}
-    }
 
     bool FunctionBase::GetValid() const
     {
