@@ -25,6 +25,9 @@ namespace LEX
 		constexpr static auto code = "<:cod:>";
 		constexpr static auto parameters = "<:params:>";
 		constexpr static auto args = "<:args:>";
+		constexpr static auto attributes = "<:attr:>";
+
+
 
 		constexpr static auto variadic_buffer = "<:vard_buff:>";
 		constexpr static auto arg_count_buffer = "<:arg_buff:>";

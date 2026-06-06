@@ -1792,6 +1792,55 @@ namespace LEX
 		};
 
 
+		struct AttributeParser : public AutoParser<AttributeParser>
+		{
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
+			{
+				//VarUsage basically means no type allowed.
+				return !target && stream->IsType(TokenType::Punctuation, "[") && stream->chain()->HasKeyword("decl_block");
+				// && stream->contextChain->HasKeyword("code_block");
+			}
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				Record attributes = ParsingStream::CreateExpression(stream->next(), SyntaxType::None);
+
+				attributes.GetTag() = parse_strings::attributes;
+
+				do
+				{
+
+					while (stream->SkipIfType(TokenType::Punctuation, "]") == false)
+					{
+						Record& attribute = attributes.EmplaceChild(ParseModule::UseModule<IdentifierParser>(stream, nullptr));
+
+						Record args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None);
+
+						//TODO: this should be parse expression.
+						if (stream->IsType(TokenType::Punctuation, "(") == true)
+							args.EmplaceChildren(stream->Delimited("(", ")", ",", &ParsingStream::ParseSyntax));
+
+						attribute.EmplaceChild(args);
+
+						stream->SkipIfType(TokenType::Punctuation, ",");
+					}
+				}
+				//If there's another set of attributes, we consume those too.
+				while (stream->SkipIfType(TokenType::Punctuation, "[") == true);
+				//This should be parse declaration
+				
+				Record result = stream->ParseSyntax();
+
+				result.EmplaceChild(std::move(attributes));
+
+				return result;
+
+			}
+
+			bool IsAtomic() const override { return true; }
+		};
+
+
 
 			
 		struct ReturnParser : public AutoParser<ReturnParser>
