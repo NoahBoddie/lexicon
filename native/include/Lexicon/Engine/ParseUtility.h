@@ -140,7 +140,47 @@ namespace LEX
 			return record ? *record : a_this;
 
 		}
-		
+
+		static std::string GetFullNameFromHeader(SyntaxRecord& a_this)
+		{
+			if (a_this.GetTag() != parse_strings::header) {
+				return a_this.GetTag();
+			}
+
+			SyntaxRecord& type_spec = a_this.GetChild(KeywordType::TypeSpec);
+
+			std::string result;
+
+			/*
+			if (type_spec.size() == 1) {
+				
+				for (SyntaxRecord& record : type_spec.children())
+				{
+					if (result.empty() == false) {
+						result += " ";
+					}
+
+					result += record.GetTag();
+				}
+			}
+			else {
+			//*/
+
+				for (SyntaxRecord& record : type_spec.children())
+				{
+					if (result.empty() == false) {
+						result += " ";
+					}
+
+					result += record.GetTag();
+				}
+
+			//}
+
+			return result;
+		}
+
+
 
 		//Traits are non-blocking and shouldn't be the be end be all, rather used as a header
 

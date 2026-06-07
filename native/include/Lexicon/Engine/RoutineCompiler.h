@@ -51,6 +51,18 @@ namespace LEX
 
 
 
+	ENUM(CompilerFlag)
+	{
+		None = 0,
+		Constant = 1 << 0,	//For now this means that it can only use expressions, and those expressions must be constant.
+							// so no functions, no object literals
+
+		Attribute = 1 << 1,	//Used when the routine exists for the sole purpose of constructing an attribute. may make a different name for this
+
+		ImplicitReturn = 1 << 2,
+	};
+
+
 	struct CompilerBase : public ITemplatePart
 	{
 		friend CompUtil;
@@ -603,6 +615,29 @@ namespace LEX
 		}
 		///////////////
 
+		//TODO: I think this should be cleared every single time a function executes.
+		// I argue this because I don't want stuff deep within processing to inherit this the assignment rules
+		// yeah actually, this should be in every use of CompileExpression
+		TargetObject CreateAssignTarget(Solution& tar, TargetObject::Flag f = {})
+		{
+			
+			return TargetObject{ std::addressof(tar), _assign, f };
+		}
+
+		void SetFlag(CompilerFlag flag, bool value)
+		{
+			if (value) {
+				flags |= flag;
+			}
+			else {
+				flags &= ~flag;
+			}
+		}
+
+		bool IsReturnImplicit()
+		{
+			return flags & CompilerFlag::ImplicitReturn;
+		}
 
 
 
@@ -741,6 +776,10 @@ namespace LEX
 		//Solution* _target = nullptr;//to be deprecated
 		TargetObject* _target = nullptr;
 		TargetObject* _assign = nullptr;
+		//TargetObject* _lastAssign = nullptr;
+
+
+		CompilerFlag flags{};
 
 		bool implicitReturn = false;
 		
@@ -906,7 +945,6 @@ namespace LEX
 
 			_prefered = pref;
 
-
 			auto it = generatorList.find(node.SYNTAX().type);
 
 			if (generatorList.end() == it)
@@ -926,8 +964,33 @@ namespace LEX
 			//result from expressions are discarded
 			//result = _InteralProcess(it->second, node);
 			
+			auto old_assign = _assign;
+
+			bool stale_maker = false;
+
+			if (_assign)
+			{
+				if (_assign->IsStale() == true) {
+					_assign = nullptr;
+				}
+				else {
+					old_assign = nullptr;
+					stale_maker = true;
+					_assign->SetFlag(TargetObject::Flag::Stale, true);
+
+				}
+			}
+
 			result = it->second.GenerateSolution(this, node, !target ? GetTarget() : target);
 			
+			if (old_assign) {
+				_assign = old_assign;
+			}
+
+			if (stale_maker) {
+				_assign->SetFlag(TargetObject::Flag::Stale, false);
+			}
+
 			_prefered = prev;
 
 			return result;

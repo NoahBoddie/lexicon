@@ -1758,34 +1758,51 @@ namespace LEX
 			bool IsAtomic() const override { return true; }
 		};
 
-		struct CtorParser : public AutoParser<CtorParser>
+		//Rename CtorCallParser
+		struct CtorCallParser : public AutoParser<CtorCallParser>
 		{
 			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag) const override
 			{
+				//This should actually be 
+				//stream->IsType(TokenType::Punctuation, "{") && (!target || target->SYNTAX().type == SyntaxType::Identifier);
+				//Additionally, this must be an expression
+
 				//VarUsage basically means no type allowed.
-				return target && target->SYNTAX().type == SyntaxType::Identifier && stream->IsType(TokenType::Punctuation, "{"); 
+				return target && 
+					(target->SYNTAX().type == SyntaxType::Identifier || target->SYNTAX().type == SyntaxType::Header) &&
+						stream->IsType(TokenType::Punctuation, "{"); 
 				// && stream->contextChain->HasKeyword("code_block");
 			}
 
 			Record HandleToken(ParsingStream* stream, Record* target) override
 			{
-				target->SYNTAX().type = SyntaxType::Ctor;
+				Record result;
+
+				result.GetTag() = parse_strings::constructor;
+				result.SYNTAX().type = SyntaxType::Ctor;
+
+				if (target && target->SYNTAX().type == SyntaxType::Identifier) {
+					Record& header = result.EmplaceChild(ParseUtility::MakeHeader());
+					Record& identifier = header.GetChild(KeywordType::TypeSpec).EmplaceChild(std::move(*target));
+					identifier.SYNTAX().type = SyntaxType::Typename;
+				}
+
+
 
 				//I believe this makes header the contained object, rather than creating an expresion. Also changed to use the version that takes functions with just 1 member.
 				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseSyntax(); }) });
 				
 				//CURRENTLY, Ctors don't except args.
-				if  constexpr (0) {
+				if  constexpr (1) {
 					auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("{", "}", ",", &ParsingStream::ParseSyntax));
-
-					target->EmplaceChildren(args);
+					result.EmplaceChildren(std::move(args));
 				}
 				else {
 					stream->SkipType(TokenType::Punctuation, "{");
 					stream->SkipType(TokenType::Punctuation, "}");
 				}
 
-				return std::move(*target);
+				return result;
 			}
 
 			bool IsAtomic() const override { return true; }

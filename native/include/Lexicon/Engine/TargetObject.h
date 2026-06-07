@@ -19,6 +19,7 @@ namespace LEX
 		{
 			None = 0 << 0,
 			Implicit = 1 << 0,
+			Stale = 1 << 1,
 		};
 
 		//This should be the ITemplatePart/Body that is used in the MergeTemplate. The array it uses should come from the target
@@ -27,7 +28,7 @@ namespace LEX
 		Solution*			target = nullptr;
 		TargetObject* const prev = nullptr;
 		TargetObject**		slot = nullptr;
-		Flag				flag = Flag::None;
+		Flag				flags = Flag::None;
 		
 		//The compiler would have it's hand on who stores incompletes. So, use that instead of the target
 		//RoutineCompiler* compiler = nullptr;
@@ -51,6 +52,21 @@ namespace LEX
 		bool IsResolved() const override;
 
 
+		void SetFlag(Flag flag, bool value)
+		{
+			if (value) {
+				flags |= flag;
+			}
+			else {
+				flags &= ~flag;
+			}
+		}
+
+		bool IsStale() const
+		{
+			return flags & Flag::Stale;
+		}
+
 		bool IsExplicit() const
 		{
 			return !IsImplicit();
@@ -61,21 +77,27 @@ namespace LEX
 			if (!this)
 				return true;
 
-			return flag & Flag::Implicit;
+			return flags & Flag::Implicit;
 		}
 
 		Solution* GetSolution()
 		{
 			return this ? target : nullptr;
 		}
+		
+		Solution& solution()
+		{
+			return *target;
+		}
 
-		TargetObject(Solution* t, Flag f = Flag::None) : target{ t }, flag{ f }
+
+		TargetObject(Solution* t, Flag f = Flag::None) : target{ t }, flags{ f }
 		{
 			if (slot)
 				*slot = this;
 		}
 
-		TargetObject(Solution* t, TargetObject*& p, Flag f = Flag::None) : target{ t }, slot {&p}, prev{p}, flag{f}
+		TargetObject(Solution* t, TargetObject*& p, Flag f = Flag::None) : target{ t }, slot {&p}, prev{p}, flags{f}
 		{
 			if (slot)
 				*slot = this;

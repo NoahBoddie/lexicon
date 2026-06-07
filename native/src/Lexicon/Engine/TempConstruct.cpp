@@ -1296,10 +1296,11 @@ namespace LEX
 
 
 
+				TargetObject temp = compiler->CreateAssignTarget(to);
+
 
 				//TODO: At a later point, the AssignProcess will need to use the constructor directly in cases of no-name constructor syntax
 				Solution from = compiler->CompileExpression(right, Register::Right);
-
 
 				CompUtil::HandleConversion(compiler, from, to, target, Register::Right);
 
@@ -1666,12 +1667,332 @@ namespace LEX
 
 	
 		
+		namespace
+		{
+
+			Solution CallingProcess(ExpressionCompiler* compiler, SyntaxRecord& target, TargetObject* self, bool ctor_call)
+			{
+
+				//The argument check has to happen first.
+
+				SyntaxRecord* arg_record = target.FindChild(parse_strings::args);
+
+				if (!arg_record) {//If no args assume no args.
+					report::compile::error("no args record in '{}' detected.", target.GetTag());
+				}
+
+				//This is used so that we know what size we're to after the fact, and place it at the head.
+				// By default it starts with 1, so we don't have to resize when we add the last (and first) piece.
+				//Due to realizing that it will still need to grow in a piece meal fashion, this is getting axed.
+				//std::vector<Instruction> ops{1};
+
+				//TargetObject* self = compiler->GetTarget();
+
+				std::vector<std::pair<Solution, size_t>> args;
+				std::vector<std::vector<Instruction>> operations;
+
+				int64_t alloc_size = arg_record->size();
+				int64_t sub_alloc = 0;
+
+				bool is_vard_call = false;
+
+				args.resize(alloc_size);
+				operations.resize(alloc_size);
+
+				//static_assert(false, "Some error in judgement has caused this to not produce an argument to be loaded. Address plz");
+
+				//At a later point, one will get the ability to define default arg out of order, via the below:
+				// function(arg1, arg2, def_param4 = arg3);
+				// This sort of thing is known as a default argument, and instead of processing it here,
+				// it will process it later, when it is processing default arguments. 
+				//std::vector<SyntaxRecord*> def_args;
+
+
+
+				//I do the index this way in prep for explicit default arguments, where any default argument found
+				// will NOT increment the index, instead storing the record for later use.
+				//Additionally, I use get arg count so that the index being pushed
+				//*Turns out, the I was not required.
+				for (size_t i = 0; auto& arg : arg_record->children())
+				{
+
+					compiler->DelayArgDecrement();
+
+					//Solution result = compiler->CompileExpression(arg, compiler->GetPrefered(), operations[i]);//, ops);
+					Solution result = compiler->CompileExpressionFree(arg, Register::Right, operations[i]);//, ops);
+
+					if (auto buf = compiler->ResumeArgDecrement(); buf > sub_alloc) {
+						sub_alloc = buf;
+					}
+
+					if (!is_vard_call && result.IsVariadic() == true) {
+						compiler->AddRoutineFlag(RoutineFlag::ForwardsVariadic);
+						is_vard_call = true;
+					}
+
+					args[i] = std::make_pair(result, 0);
+
+					i++;
+				}
+
+
+
+				OverloadInput input;
+				input.object = self;
+				input.implied = args;//can probably move here.
+
+
+				if (auto spec_rec = target.FindChild(parse_strings::specialize))
+				{
+					auto& spec_args = input.specialImplied;
+
+					spec_args.resize(spec_rec->size());
+
+					for (size_t i = 0; auto& arg : spec_rec->children())
+					{
+						//We just want the type
+						Declaration decl = Declaration::CreateOnly(arg, compiler->GetElement(), Refness::Temp, HeaderFlag::TypeSpecifiers);;
+
+						spec_args[i] = std::make_pair(decl.policy, 0);
+
+						i++;
+					}
+				}
+
+
+				//'function' <Expression: Call>
+				//		'args' <Expression: Header>
+
+
+				Overload instructions;
+
+
+
+				//Around here, you'd use the args.
+				FunctionNode node = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
+
+
+				if (ctor_call) {
+					assert_if(!self || !self->GetSolution() || !self->GetSolution()->policy) {
+						//needs an active target
+					}
+
+					IFunction* func = self->GetSolution()->policy->FindConstructor(input, instructions);
+					auto base = func->GetAs<FunctionBase>();
+					node = FunctionNode{ base, base, func };
+
+				}
+				else {
+					node = compiler->GetScope()->SearchFunctionPath(target, input, instructions);
+				}
+
+
+
+				//TODO: Field check in CallProcess should probably use enum, but on the real, I'm too lazy.
+
+				if (!node) {
+					report::compile::error("'{}' Not found. Could be either invalid overload or incorrect name. Needs more details.", target.GetTag());
+				}
+
+				//FunctionBase* func = info->Get();
+				FunctionData* func = node.GetSignature();
+
+				if (!func) {
+					report::compile::error("No callable for info at '{}' detected.", target.GetTag());
+				}
+
+				//Other checks should occur here, such as is static to determine how many arguments will be loaded.
+
+				size_t req_args = func->GetArgCountReq();
+
+
+				if constexpr (1)
+				{
+					if (args.size() < req_args) {
+						report::compile::error("Requires {} arguments for '{}', only {} submitted.", req_args, target.GetTag(), args.size());
+					}
+
+					if (func->GetTargetType().policy != nullptr) {
+						//Increase the allocation size to include the "this" argument.
+						//alloc_size++;
+					}
+				}
+
+				bool has_tar = func->GetTargetType();
+
+				//alloc_size = instructions.implied.size() + has_tar;
+				alloc_size = std::max<size_t>(instructions.implied.size(), alloc_size);//TODO: If I ever use params this will have issues
+				alloc_size += instructions.statedEntries.size();
+				alloc_size += has_tar;
+
+				auto& list = compiler->GetInstructionList();
+
+				//Need to figure out where to move this
+
+				Operand function;
+				Operand param;
+
+				constexpr bool do_new = false;
+
+				bool is_fast = !is_vard_call && alloc_size <= 1;
+
+
+				//if (alloc_size && (do_new || is_vard_call))
+				if (is_vard_call)
+				{
+					//TODO: Make a compile utility function for this
+
+					//TODO: This has some issues, I think it shifts the positions. Some how. I believe the issue is possibly the creation of
+					// the variable. accounting for alloc size fixes it????
+
+					auto tmp = compiler->GetScope()->ObtainLocalVariable(parse_strings::arg_count_buffer);
+					auto reg = compiler->GetPrefered();
+					Operand buffer{ tmp->GetIndex(), OperandType::Value };
+					Operand pref{ reg, OperandType::Register };
+					compiler->PushInstruction(Instruction{ InstructType::ExpressData, reg,
+						Operand{ RuntimeData::ArgumentIndex, OperandType::Enum},
+						Operand::None() });
+					compiler->PushInstruction(Instruction{ InstructType::Transfer, buffer, pref });
+
+					param = buffer;
+				}
+				else if (alloc_size <= 1) {
+					alloc_size = 0;
+				}
+				else {
+					param = Operand{ alloc_size, OperandType::Differ };
+				}
+
+
+				if (!is_vard_call)
+					compiler->ModArgCount(alloc_size, sub_alloc);
+
+
+
+				if (func->GetTargetType().policy != nullptr) {
+					//This will push itself into the arguments, but it will only be used under certain situations.
+					//list.push_back(CompUtil::MutateRef(*self->target, Operand{ start, OperandType::Argument }));
+					//list.push_back(CompUtil::MutateRef(*self->target, Operand{ alloc_size, OperandType::Argument }));
+
+					OperandType type = self->target->type();
+
+					assert(type != OperandType::Argument);
+
+					bool should_reference = type != OperandType::Register;
+
+					Operand to = { alloc_size, OperandType::Argument };
+
+					CompUtil::CheckFastLoad(compiler, to, param, is_fast);
+
+					compiler->PushInstruction(Instruction{ should_reference ?
+						InstructType::Reference : InstructType::Forward, to, *self->target });
+				}
+
+
+				auto full_size = alloc_size;
+				auto full_sub = sub_alloc;
+
+				//Alloc's purpose is to load in variadic arguments
+				// This does not need to be here
+				auto early_alloc = [&](Differ i)
+					{
+						compiler->ModArgCount(i, sub_alloc);
+						alloc_size -= i;
+						sub_alloc = 0;
+
+						auto reg = compiler->GetPrefered();
+						Operand pref{ reg, OperandType::Register };
+						compiler->PushInstruction(Instruction{ InstructType::ExpressData, reg,
+							Operand{ RuntimeData::VariadicLength, OperandType::Enum},
+							Operand{ i, OperandType::Index} });
+						compiler->PushInstruction(Instruction{ InstructType::ModArgStack, pref });
+
+					};
+
+
+
+				{
+					auto temp = compiler->ReadyNoRecord();
+					for (size_t i = 0; i < args.size(); i++)
+					{
+						//auto& o_entry = instructions.implied[i];
+						auto& o_entry = instructions.GetImplied(i, args[i].second);
+						auto& arg = args[i].first;
+						auto& ops = operations[i];
+						auto& record = arg_record->GetChild(i);
+						//list.append_range(std::move(ops));
+
+						auto index = i + has_tar;
+
+						//This should basically already be successful, no real need for checks
+						//CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, record, Register::Right);
+						//compiler->AppendInstructions(record, CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
+
+						if (arg.IsVariadic() == true)
+							early_alloc(index);
+
+
+						Operand to = { alloc_size, OperandType::Argument };
+
+						CompUtil::CheckFastLoad(compiler, to, param, is_fast);
+
+
+						CompUtil::LoadParameter(compiler, record, arg, full_size - index, o_entry.type.IsReference(), ops, param, is_fast,
+							[&](Solution from) -> Solution
+							{
+								CompUtil::HandleConversion(compiler, o_entry.convert, from, o_entry.type, o_entry.convertType, record, Register::Right);
+
+								return from;
+							});
+					}
+
+				}
+
+				if (is_vard_call)
+					compiler->ModArgCount(alloc_size, sub_alloc);
 
 
 
 
 
-		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target, TargetObject* self)
+
+				//default is dealt with here.
+
+
+				auto generic = node.GetFunction();
+
+				InstructType call_instruct = is_fast ? InstructType::FastCall : InstructType::Call;
+
+				switch (node.type())
+				{
+				case FunctionNode::kFunction:
+					compiler->EmplaceInstruction(call_instruct, compiler->GetPrefered(),
+						Operand{ node.GetFunction(), OperandType::Function },
+						param);
+					break;
+				case FunctionNode::kMethod:
+					compiler->EmplaceInstruction(call_instruct, compiler->GetPrefered(),
+						Operand{ node.GetMethod(), OperandType::Member },
+						param);
+					break;
+
+				default:
+					target.error<IssueType::Fault>("invalid function type detected");
+					break;
+				}
+
+				compiler->ModArgCount(-full_size, -full_sub, false);
+
+				//TODO: The return of call should probably handled by whatever generic element it has, the proposed plan that could handle members
+				return Solution{ func->GetReturnType(generic->GetTemplatePart()), OperandType::Register, compiler->GetPrefered() };
+			}
+
+		}
+
+
+
+
+		Solution CallProcess_OLD(ExpressionCompiler* compiler, SyntaxRecord& target, TargetObject* self)
 		{
 
 			//The argument check has to happen first.
@@ -1972,8 +2293,15 @@ namespace LEX
 		}
 
 
+		Solution CallProcess(ExpressionCompiler* compiler, SyntaxRecord& target, TargetObject* self)
+		{
+			return CallingProcess(compiler, target, self, false);
+		}
 
-		Solution CtorProcess(ExpressionCompiler* compiler, SyntaxRecord& target)
+
+
+		//This is what we do when something is defaulted instead, or when a default constructor exists.
+		Solution CtorProcess_OLD(ExpressionCompiler* compiler, SyntaxRecord& target)
 		{
 			//OverloadInput input;
 			//input.object = self;
@@ -1984,6 +2312,7 @@ namespace LEX
 			//TODO: Future: constructors will need to be able to handle headers as well, address that when you can.
 			ITypeInfo* type = compiler->GetScope()->SearchTypePath(target);
 
+			//Consider using the target here.
 			if (!type)
 				//TODO: Please make this say the full name
 				report::error("Couldn't find type '{}'.", target.GetView());
@@ -1993,6 +2322,59 @@ namespace LEX
 
 			return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
 		
+		}
+
+
+		Solution CtorProcess(ExpressionCompiler* compiler, SyntaxRecord& target, TargetObject* self)
+		{
+			Solution type;
+			TargetObject tar{ &type };
+			
+			TargetObject* arg;
+
+
+
+			if (SyntaxRecord* header = target.FindChild(parse_strings::header); !header) {
+				arg = compiler->GetAssign();
+				type.policy = arg->solution();
+			}
+			else {
+				Declaration to = Declaration::CreateOnly(*header, compiler->GetElement(), Refness::Temp,
+					HeaderFlag::TypeSpecifiers | HeaderFlag::Constness);
+#pragma warning(push)
+#pragma warning(disable : 26437) // Do not slice warning
+				type = static_cast<QualifiedType>(to);
+#pragma warning(pop)
+				
+				arg = &tar;				
+			}
+
+
+			if (!type) {
+				//TODO: Please make this say the full name
+				report::error("Couldn't find type '{}'.", ParseUtility::GetFullNameFromHeader(target));
+			}
+
+			SyntaxRecord* args = target.FindChild(parse_strings::args);
+			//I want to make it so if there are no args it does nothing, but whatever
+			if (args && args->size() == 0 && type->HasInnateDefaultConstructor() == true) {//if no arguments, check for it being default constructible
+				//TODO: Future: Give this a compiler utility function, in case it has a manually defined constructor.
+				compiler->EmplaceInstruction(InstructType::Construct, compiler->GetPrefered(), Operand{ type.policy, OperandType::Type });
+				return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
+			}
+			else {
+				return CallingProcess(compiler, target, arg, true);
+			}
+
+			
+
+			//OverloadInput input;
+			//input.object = self;
+			//input.paramInput = args;
+
+			//TODO: Should be in error if has an explicit target.
+
+
 		}
 
 
@@ -2076,7 +2458,11 @@ namespace LEX
 
 		void ReturnProcess(RoutineCompiler* compiler, SyntaxRecord& target)
 		{
-			QualifiedType return_policy = compiler->GetReturnType();
+			//QualifiedType return_policy = compiler->GetReturnType();
+			
+			Solution ret_solution{ compiler->GetReturnType(), Operand {Register::Result, OperandType::Register} };
+
+			TargetObject temp = compiler->CreateAssignTarget(ret_solution);
 
 			bool can_return = compiler->CanReturn();
 
@@ -2099,7 +2485,7 @@ namespace LEX
 
 				//Basically, if one doesn't exist, and they aren't both just void.
 				//TODO: Actually use void for this, at no point should null be used here. Such would be a statement.
-				if (!return_policy) {// && return_policy != result.policy) {
+				if (!ret_solution) {// && return_policy != result.policy) {
 					report::compile::error("Expecting return value but value is found.");
 				}
 
@@ -2113,16 +2499,16 @@ namespace LEX
 				//}
 				//CompUtil::HandleConversion(compiler, out, result, return_policy, convert_result);
 
-				CompUtil::HandleConversion(compiler, result, return_policy, ret, ConversionFlag::Return);
+				CompUtil::HandleConversion(compiler, result, ret_solution, ret, ConversionFlag::Return);
 
 			}
-			else if (return_policy->CheckRuleset(TypeRuleset::NoReturn) == false)
+			else if (ret_solution->CheckRuleset(TypeRuleset::NoReturn) == false)
 			{
 				report::compile::error("Expecting return expression");
 			}
 			else
 			{ 
-				CompUtil::PrepareReturn(compiler, return_policy, {});
+				CompUtil::PrepareReturn(compiler, ret_solution, {});
 			}
 			
 

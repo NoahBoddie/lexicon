@@ -178,16 +178,22 @@ namespace LEX
 					//<KILL> _current = &operations;
 
 					implicitReturn = true;
+					
+
+					//QualifiedType return_policy = GetReturnType();
+
+					Solution ret_sol{ GetReturnType(), Operand {Register::Result, OperandType::Register} };
+
+					TargetObject temp = CreateAssignTarget(ret_sol);
+
 					//operations.insert_range(end, CompileLine(funcRecord, Register::Result, result));
 					result = PushExpression(funcRecord, Register::Result, GetReturnType().IsReference());
 
 
 
-					QualifiedType return_policy = GetReturnType();
 
 
-
-					if (return_policy && return_policy != void_type)
+					if (ret_sol && ret_sol != void_type)
 					{
 						//This is a hacky way of ensuring how 1 liner stuff works
 
@@ -200,20 +206,20 @@ namespace LEX
 						//	operations.emplace_back(InstructionType::DefineVariable, result, Operand{ void_type, OperandType::Type });
 						//}
 						//else//Convert should only take place if the result type isn't void.
-						if (voidable != return_policy && result != void_type)
+						if (voidable != ret_sol && result != void_type)
 						{
 							//<KILL> _current = &operations;
 
 							Conversion out;
 
-							auto convert_result = result.IsConvertToQualified(return_policy, nullptr, &out, ConversionFlag::Return);
+							auto convert_result = result.IsConvertToQualified(ret_sol, nullptr, &out, ConversionFlag::Return);
 
 							if (!convert_result)
 							{
 								report::compile::error("Expression not convertible to return type.");
 							}
 
-							CompUtil::HandleConversion(this, out, result, return_policy, convert_result, funcRecord);
+							CompUtil::HandleConversion(this, out, result, ret_sol, convert_result, funcRecord);
 						}
 					}
 
