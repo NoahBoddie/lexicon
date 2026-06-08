@@ -1779,12 +1779,31 @@ namespace LEX
 				Record result;
 
 				result.GetTag() = parse_strings::constructor;
-				result.SYNTAX().type = SyntaxType::Ctor;
+				result.SYNTAX().type = SyntaxType::CtorCall;
 
-				if (target && target->SYNTAX().type == SyntaxType::Identifier) {
-					Record& header = result.EmplaceChild(ParseUtility::MakeHeader());
-					Record& identifier = header.GetChild(KeywordType::TypeSpec).EmplaceChild(std::move(*target));
-					identifier.SYNTAX().type = SyntaxType::Typename;
+				if (target) {
+					switch (target->SYNTAX().type)
+					{
+					case SyntaxType::Header:
+						if constexpr (1)
+						{
+							result.EmplaceChild(std::move(*target));
+						}
+						break;
+
+					case SyntaxType::Identifier:
+						if constexpr (1)
+						{
+							Record& header = result.EmplaceChild(ParseUtility::MakeHeader());
+							Record& identifier = header.GetChild(KeywordType::TypeSpec).EmplaceChild(std::move(*target));
+							identifier.SYNTAX().type = SyntaxType::Typename;
+						}
+						break;
+
+					default:
+						//Not allowed.
+						break;
+					}
 				}
 
 

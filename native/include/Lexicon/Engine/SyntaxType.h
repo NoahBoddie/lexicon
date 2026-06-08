@@ -23,7 +23,8 @@ namespace LEX
 		Scriptname,		//Reintroducing these, basically do nothing but can be used to specify "Just get property from the environment."
 		Scopename,//Basically is Scriptname, but static class functions might be introduced.
 		Call,
-		Ctor,
+		CtorCall,
+		AttrCall,
 		Function,		//Completely different than a call, this is more focused toward the declaration/definition of a function
 		Construction,
 		Return,

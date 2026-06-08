@@ -717,6 +717,7 @@ namespace LEX
 		}
 
 
+		//TODO: Deprecate construct, this is literally just Define/DeclareVariable
 		static void Construct(RuntimeVariable& result, Operand a_lhs, Operand, InstructType, Runtime* runtime)
 		{
 			
@@ -2330,23 +2331,45 @@ namespace LEX
 			Solution type;
 			TargetObject tar{ &type };
 			
-			TargetObject* arg;
+			TargetObject* arg = &tar;
 
+			Operand this_loc;
 
+			//TODO: This whole business with this_loc is absolute ass. Please clean it up
 
+			//Neither of these account for attributes
 			if (SyntaxRecord* header = target.FindChild(parse_strings::header); !header) {
-				arg = compiler->GetAssign();
-				type.policy = arg->solution();
+				//arg = compiler->GetAssign();
+				TargetObject* assign = compiler->GetAssign();
+				
+
+				if (!assign || assign->solution()->IsAttribute() == true) {
+					assert(self);
+					this_loc = self->solution();
+				}
+				else {
+					this_loc = Operand{ compiler->GetPrefered(), OperandType::Register };
+				}
+
+				type = Solution{ assign->solution(), this_loc };
 			}
 			else {
 				Declaration to = Declaration::CreateOnly(*header, compiler->GetElement(), Refness::Temp,
 					HeaderFlag::TypeSpecifiers | HeaderFlag::Constness);
+
+				if (to->IsAttribute() == true) {
+					assert(self);
+					this_loc = self->solution();
+				}
+				else {
+					this_loc = Operand{ compiler->GetPrefered(), OperandType::Register };
+				}
+
 #pragma warning(push)
 #pragma warning(disable : 26437) // Do not slice warning
-				type = static_cast<QualifiedType>(to);
+				type = Solution{ to, this_loc };
 #pragma warning(pop)
-				
-				arg = &tar;				
+
 			}
 
 
@@ -2363,6 +2386,10 @@ namespace LEX
 				return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
 			}
 			else {
+				compiler->EmplaceInstruction(InstructType::DefineVariable,
+					this_loc,
+					Operand{ type.policy, OperandType::Type });
+
 				return CallingProcess(compiler, target, arg, true);
 			}
 
@@ -3106,7 +3133,8 @@ namespace LEX
 			generatorList[SyntaxType::Variable] = VariableProcess;
 			generatorList[SyntaxType::Field] = FieldProcess;
 			generatorList[SyntaxType::Call] = CallProcess;
-			generatorList[SyntaxType::Ctor] = CtorProcess;
+			generatorList[SyntaxType::CtorCall] = CtorProcess;
+			generatorList[SyntaxType::AttrCall] = CtorProcess;
 			generatorList[SyntaxType::Conditional] = ConditionalProcess;
 			
 
