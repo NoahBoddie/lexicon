@@ -795,7 +795,7 @@ namespace LEX
 	void CompileCoreScripts(std::string_view path)
 	{
 		//remake to core script
-		_core = Component::Create<Script>(SyntaxRecord{ "__CORE__", Syntax{SyntaxType::Script} });
+		_core = Component::Create<Script>(SyntaxRecord{ "CORE", Syntax{SyntaxType::Script} });
 
 		_core->SetIncremental(true);
 
