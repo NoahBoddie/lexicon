@@ -2,7 +2,7 @@
 
 #include "Lexicon/InfoType.h"
 #include "Lexicon/Impl/InfoDetails.h"
-
+#include "Lexicon/Interfaces/AttributeOwner.h"
 namespace LEX
 {
     struct Attribute;
@@ -11,16 +11,13 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct M_INTERFACE_VERSION(Info)
+			struct INTERFACE_VERSION_DERIVES(Info, AttributeOwner)
 			{
 				virtual std::string_view GetName() const = 0;
 				virtual InfoType GetInfoType() const = 0;
 				virtual uint16_t GetInfoOffset() const = 0;
 
 				virtual const void* Cast(const void* self, InfoType from, InfoType to) const = 0;
-                
-
-                virtual std::span<Attribute*> GetAttributes() = 0;
 			};
 		}
 
@@ -35,14 +32,9 @@ namespace LEX
         const void* Cast(const void* self, InfoType from, InfoType to) const override INTERFACE_FUNCTION;
         void* Cast(const void* self, InfoType from, InfoType to) { return unconst(make_const(this)->Cast(self, from, to)); }
 
-    
+        bool IsType(Type type) const noexcept override { return type == Type::kInfo; }
     
     public:
-
-        std::span<Attribute*> GetAttributes() override
-        {
-            return {};
-        }
 
 
         template<typename T, typename Self, typename = std::enable_if_t<

@@ -9,13 +9,18 @@ namespace LEX
     {
         NativeAttribute(TypeInfo* type, std::unique_ptr<AttributeData>&& data) : _data{ std::move(data) }
         {
+            _data->_self = this;
             _type = type;
         }
 
 
 
-        virtual ScriptObject* GetScriptObject() { return nullptr; }
-
+        ScriptObject* GetScriptObject() override { return nullptr; }
+        
+        AttributeData* GetNativeData() override
+        {
+            return _data.get();
+        }
    
         //I'm thinking that these can only 
 

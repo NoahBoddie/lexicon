@@ -6,18 +6,19 @@ namespace LEX
     struct TypeInfo;
     struct IComponent;
     struct ScriptObject;
-
+    struct AttributeData;
+    struct AttributeOwner;
     namespace Version
     {
         namespace _1
         {
             struct INTERFACE_VERSION(IAttribute)
             {
+                virtual std::string_view GetName() const = 0;
                 virtual TypeInfo* GetType() = 0;
-                //I'd prefer to make this the IComponentBase that owns it.
-                virtual Info* GetInfoParent() = 0;
-                virtual IComponent* GetCompParent() = 0;
+                virtual AttributeOwner* GetParent() = 0;
                 virtual ScriptObject* GetScriptObject() = 0;
+                virtual AttributeData* GetNativeData() = 0;
 
             INTERNAL:
                 virtual void OnTargetValidated() = 0;

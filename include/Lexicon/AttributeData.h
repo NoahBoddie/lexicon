@@ -31,12 +31,43 @@ namespace LEX
         }
 
 
+        std::string_view GetName() const override
+        {
+            return _self->GetName();
+        }
 
         TypeInfo* GetType() override final
         {
             return _self->GetType();
         }
 
+
+
+        AttributeOwner* GetParent() override
+        {
+            return _self->GetParent();
+        }
+        
+        //virtual IComponent* GetParent() = 0;
+        ScriptObject* GetScriptObject() override
+        {
+            return nullptr;
+        }
+
+        AttributeData* GetNativeData() override
+        {
+            return this;
+        }
+
+
+    INTERNAL:
+        void OnTargetValidated() override
+        {
+            logger::trace("validated {}", GetName());
+            //Does nothing by default, merely needs the association
+        }
+
+    public:
         AttributeBase* self() noexcept
         {
             return _self;

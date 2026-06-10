@@ -8,31 +8,27 @@
 
 namespace LEX
 {
+    struct Script;
+    struct SyntaxRecord;
+
     //TODO: Instead of making this a component I'll use link complete in order to handle attribute addition
     // Attributes themselves will still have a function they use to load themselves (namely for the purpose)
     // of calling upon their constructors.
     struct Attribute : public AttributeBase
     {
-        //Base object of both custom and native attribute
-        IComponent* GetCompParent() override final
+        AttributeOwner* GetParent() override
         {
-            return _parent ? _parent->GetComponentBase() : nullptr;;
+            return _parent;
         }
 
-        Info* GetInfoParent() override final
-        {
-            return dynamic_cast<Info*>(_parent);
-        }
+        std::string_view GetName() const override;
 
-        std::string_view GetName() const;
+        bool ShouldInnateConstruct(SyntaxRecord& record);
 
-        virtual void LoadAttribute(SyntaxRecord& record)
-        {
-
-        }
+        bool Initialize(Attribute* a_this, SyntaxRecord record, Component* parent, Script* script);
 
         //I'm thinking these can only go on components.
-        Component* _parent = nullptr;
+        AttributeOwner* _parent = nullptr;
     };
 
 }

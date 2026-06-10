@@ -3,6 +3,7 @@
 #include "Lexicon/ComponentType.h"
 #include "Lexicon/Impl/ComponentDetails.h"
 #include "Lexicon/Interfaces/IdentityManager.h"
+#include "Lexicon/Interfaces/AttributeOwner.h"
 namespace LEX
 {
     struct TypeInfo;
@@ -14,7 +15,7 @@ namespace LEX
     {
         namespace _1
         {
-            struct M_INTERFACE_VERSION(IComponentBase)
+            struct INTERFACE_VERSION_DERIVES(IComponentBase, AttributeOwner)
             {
             protected:
                 virtual const Component* GetComponent() const = 0;
@@ -61,6 +62,9 @@ namespace LEX
         
         //Defined in Impl/ComponentDetails.cpp
         static TypeInfo* GetTypeFromOffset(uint16_t offset);
+
+
+        bool IsType(Type type) const noexcept override;
 
     public:
         std::string GetFullName() const;
