@@ -4,6 +4,7 @@
 #include "Lexicon/SignatureBase.h"
 
 #include "Lexicon/Interfaces/ProjectManager.h"
+#include "Lexicon/Interfaces/DirectoryManager.h"
 
 namespace LEX
 {
@@ -195,6 +196,27 @@ namespace LEX
 			return RegisterFunctionImpl(prod, base, func);
 		}
 
+
+		template <is_not<StaticTargetTag> T, typename... Args>
+		bool RegisterConstructor(void(*prod)(T, Args...), std::string_view path)
+		{
+			ISignature base{};
+
+			//bool processed = FillSignature<true, R, Args...>(sign);
+			bool processed = base.Fill<SignatureEnum::Result, T, T, Args...>();
+
+			if (!processed) {
+				report::link::warn("Signature of function '{}' failed to be created.", typeid(decltype(prod)).name());
+				return false;
+			}
+
+
+			IFunction* func = DirectoryManager::instance->GetConstructorFromPath(path, base);
+
+			return RegisterFunctionImpl(prod, base, func);
+		}
+
+
 		bool RegisterFunction(Procedure procedure, std::string_view path, const ISignature& sign)
 		{
 			IFunction* func = ProjectManager::instance->GetFunctionFromPath(path, sign);
@@ -202,13 +224,22 @@ namespace LEX
 			return ProcedureHandler::instance->RegisterFunction(procedure, func);
 		}
 		
-
+#ifdef LEX_SOURCE
 	INTERNAL:
 
 		//I'd like to just program this into the project manager at some point.
 		IFunction* GetCoreFunction(std::string_view path, const ISignature& base);
 
 
+		
+		IFunction* GetCoreConstructor(std::string_view path, const ISignature& base);
+
+
+
+		//I'd like some aspects of registering core things to remain, namely that
+		// they serve as a convenience function so if the name CORE changes, it doesn't matter
+		
+	
 		//These allow for the registration of functions that exist within core files.
 		template <typename R, typename... Args>
 		bool RegisterCoreFunction(R(*prod)(Args...), std::string_view path)
@@ -245,6 +276,29 @@ namespace LEX
 			return false;
 #endif			
 		}
+
+
+		template <is_not<StaticTargetTag> T, typename... Args>
+		bool RegisterCoreConstructor(void(*prod)(T, Args...), std::string_view path)
+		{
+
+			ISignature base{};
+
+			//bool processed = FillSignature<true, R, Args...>(sign);
+			bool processed = base.Fill<SignatureEnum::Result, T, T, Args...>();
+
+			if (!processed) {
+				report::link::warn("Signature of core function '{}' failed to be created.", typeid(decltype(prod)).name());
+				return false;
+			}
+
+
+			IFunction* func = GetCoreConstructor(path, base);
+
+			return RegisterFunction(prod, func);
+		}
+
+#endif
 
 	};
 }

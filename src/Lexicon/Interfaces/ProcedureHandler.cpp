@@ -60,6 +60,11 @@ namespace LEX
 			}
 
 			func->Dispatch(result, target, args, data);
+
+			//If the function is a constructor, target becomes the result.
+			if (data.function && data.function->IsConstructor() == true) {
+				result = *target;
+			}
 		};
 
 		dispatchee->SetProcedureData(reciever, reinterpret_cast<uint64_t>(dispatch));
@@ -92,5 +97,18 @@ namespace LEX
 		auto element = core->GetElementFromPath(path, ElementType::kFuncElement, &sign);
 		
 		return dynamic_cast<IFunction*>(element);
+	}
+
+	IFunction* ProcedureHandler::GetCoreConstructor(std::string_view path, const ISignature& base)
+	{
+		auto core = ProjectManager::instance->GetCore();
+
+
+		Signature sign{ base };
+
+
+		auto function = DirectoryManager::instance->GetConstructorFromPath(core, path, &base);
+
+		return function;
 	}
 }
