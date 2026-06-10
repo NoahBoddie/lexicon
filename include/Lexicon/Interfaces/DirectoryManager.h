@@ -2,12 +2,14 @@
 
 #include "Lexicon/InfoType.h"
 #include "Lexicon/ComponentType.h"
+#include "Lexicon/Interfaces/IComponent.h"
 
 namespace LEX
 {
 	struct Info;
 	struct IComponent;
 	struct IElement;
+	struct IFunction;
 	struct IDirectory;
 
 	struct ISignature;
@@ -39,10 +41,15 @@ namespace LEX
 
 	struct IMPL_SINGLETON(DirectoryManager)
 	{
-
 		Info* GetInfoFromPath(IElement* a_this, std::string_view path, InfoType type, const LEX::ISignature* sign = nullptr) override { return nullptr; }
 
 		IComponent* GetComponentFromPath(IElement* a_this, std::string_view path, ComponentType comp, const LEX::ISignature* sign = nullptr) override;
+
+
+		IFunction* GetConstructorFromPath(IElement* a_this, std::string_view path, const LEX::ISignature* sign = nullptr)
+		{
+			return GetComponentFromPath(a_this, path, ComponentType::Constructor, sign)->AS_COMPONENT(IFunction);
+		}
 
 #ifdef LEX_SOURCE
 

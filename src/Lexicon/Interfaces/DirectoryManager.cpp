@@ -203,25 +203,88 @@ namespace LEX
 	}
 
 
+	struct Toplevel : public Directory, public IDirectory
+	{
+		DECL_IMPL_FUNC_DIRECTORY;
 
+		static Toplevel* GetSingleton()
+		{
+			static Toplevel& singleton = make_singleton();
+
+			return &singleton;
+		}
+
+
+
+
+		std::string_view GetName() const override
+		{
+			return "<toplevel>";
+		}
+
+		SyntaxRecord* GetSyntaxTree() override
+		{
+			return nullptr;
+		}
+
+		void SetSyntaxTree(SyntaxRecord&) override
+		{
+			//Cannot set this
+		}
+		void SetParent(Directory*) override
+		{
+			//cannot set parent here either
+		}
+		Directory* GetParentImpl() override
+		{
+			return nullptr;
+			//return Project::GetShared();
+		}
+
+		const Component* GetComponent() const override
+		{
+			return this;
+		}
+
+		Environment* GetEnvironmentImpl() override
+		{
+			return nullptr;
+		}
+
+
+		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) override
+		{
+			if (record.GetView() == "CORE") {
+				return ProjectManager::instance->GetCore();
+			}
+			else {
+				return ProjectDirectory::GetSingleton()->FindDirectory(record, inserter);
+			}
+		}
+
+	};
 
 	bool SearchPathBase(Element* a_this, SyntaxRecord& rec, const DirectorySearchFn& func)
 	{
 
 		SyntaxRecord* path = rec.FindChild(parse_strings::path);
 
-		bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
+		//bool is_direct = rec.GetSyntax().type == SyntaxType::Identifier;
+		bool is_direct = !a_this && !rec.GetParent();
 
 		auto first = ParseUtility::PeekCurrentPath(rec);
 
 		bool is_shared = a_this ? a_this->IsShared() : false;
 
 
-		Element* target = a_this ? a_this : ProjectDirectory::GetSingleton();
+		//Element* target = a_this ? a_this : ProjectDirectory::GetSingleton();
+		Element* target = a_this ? a_this : Toplevel::GetSingleton();
 
 		std::set<Element*> searched{};
 
 		bool force_break = false;
+
+		bool share_com_used = false;
 
 		do
 		{
@@ -237,8 +300,10 @@ namespace LEX
 				switch (path->GetSyntax().type)
 				{
 				case SyntaxType::Path:
-					if (!a_this && !is_direct)
+					if (!a_this && !is_direct && !share_com_used) {
 						target = ProjectManager::instance->GetShared()->GetCommons();
+						share_com_used = true;
+					}
 					break;
 
 
@@ -541,11 +606,13 @@ namespace LEX
 		case ComponentType::SpecialType:
 		case ComponentType::ITypeInfo:
 		case ComponentType::TypeInfo:
-			if (auto result = LEX::Parser::CreateSyntax<IdentifierParser>(path_record, path); !result) {
-				//Error here.
-				return nullptr;
-			}
-			break;
+			//This isn't needed since we do policy from specifiers now.
+			//
+			//if (auto result = LEX::Parser::CreateSyntax<IdentifierParser>(path_record, path); !result) {
+			//	//Error here.
+			//	return nullptr;
+			//}
+			//break;
 
 		default:
 			if constexpr (1)
@@ -661,10 +728,21 @@ namespace LEX
 			return nullptr;
 		}
 
+		
+		switch (comp)
+		{
+		case ComponentType::Constructor:
+		case ComponentType::Operator:
+			break;
 
-		if (result && result->Is(comp) == false) {
-			result = nullptr;
+		default:
+			if (result && result->Is(comp) == false) {
+				result = nullptr;
+			}
+			break;
 		}
+
+		
 
 		return result;
 	}
