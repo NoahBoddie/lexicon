@@ -10,6 +10,6 @@ namespace LEX
 	{
 		IRuntime* runtime = nullptr;
 		RuntimeVariable* defOption = nullptr;
-		const Function* function = nullptr;
+		Function* function = nullptr;
 	};
 }
