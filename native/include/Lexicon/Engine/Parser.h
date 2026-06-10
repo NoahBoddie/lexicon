@@ -162,6 +162,15 @@ namespace LEX
 
 			_memory.current = _stream.cbegin();
 			_end = _stream.cend();
+			
+			if (_stream.empty() == false) {
+				if (auto last = _end - 1; *last == '\0') {
+					_end = last;
+				}
+			}
+			
+
+
 			CalcColumnLine(_end, endColumn, endLine);
 		}
 
@@ -219,6 +228,10 @@ namespace LEX
 
 			if (res == _end)
 				return {};
+
+			//if (std::string_view{ res, _end } == "\0") {
+			//	return {};
+			//}
 
 
 			if (curr == res) {

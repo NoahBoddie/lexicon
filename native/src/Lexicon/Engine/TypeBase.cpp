@@ -8,7 +8,7 @@
 #include "Lexicon/Interfaces/ObjectPolicyManager.h"
 
 #include "Lexicon/MergeTemplate.h"
-
+#include "Lexicon/Interfaces/AttributeManager.h"
 namespace LEX
 {
 
@@ -71,7 +71,7 @@ namespace LEX
 	}
 
 
-	void TypeBase::CheckDeriveFrom(IHierarchyTree* tree)
+	void TypeBase::CheckDeriveFrom(IHierarchyTree* tree, SyntaxRecord& record)
 	{
 		auto other = tree->GetHierarchyType();
 
@@ -82,31 +82,49 @@ namespace LEX
 		auto l_type = GetDataType();
 		auto r_type = other->GetDataType();
 
+		bool other_is_interface = r_type == DataType::Interface;
+
 		get_switch (GetDataType())
 		{
 		default:
 		case DataType::Invalid:
-			report::compile::error("{} has an {} data type", GetName(), magic_enum::enum_name(switch_value));
+			record.critical<IssueType::Fault>("{} has an {} data type", GetName(), magic_enum::enum_name(switch_value));
 			break;
 
 		case DataType::Class:
 		case DataType::Struct:
 		case DataType::Attribute:
 			if (r_type == DataType::Interface) {
+				OnInherit(other, record);
 				return;
 			}
 			[[fallthrough]];
 		case DataType::Interface:
 			if (l_type == r_type){
+				OnInherit(other, record);
 				return;
 			}
 			break;
 		}
 
-		report::error("{} as a {} cannot derive from {} a {}.",
+		record.error<IssueType::Compile>("{} as a {} cannot derive from {} a {}.",
 			GetName(), magic_enum::enum_name(l_type),
 			other->GetName(), magic_enum::enum_name(r_type));
 	}
+
+	void TypeBase::OnInherit(ITypeInfo* other, SyntaxRecord& record)
+	{
+		auto base = other->GetAs<TypeBase>();
+
+		if (base && base->GetDataType() == DataType::Attribute) {
+			if (attrBuilder && attrBuilder != base->attrBuilder) {
+				record.error<IssueType::Compile>("Type '{}' already has a linked builder", GetName());
+			}
+
+			attrBuilder = base->attrBuilder;
+		}
+	}
+
 
 	void TypeBase::HandleInheritance()
 	{
@@ -128,6 +146,44 @@ namespace LEX
 
 			//Doing this early makes circular inheritance not crash things, the inheriting will inheritant 
 			MarkInheritHandled();//Hopefully at least.
+
+			if (GetDataType() == DataType::Attribute) {
+				if (auto attach = settings->FindChild(parse_strings::attribute_data); attach)
+				{
+
+					if (attach->size() == 0) {
+						attach->critical("external type requires some type.");
+					}
+
+					bool required = false;
+
+					SyntaxRecord& attach_data = attach->GetFront();
+					switch (Hash(attach_data.GetTag()))
+					{
+					case "intrinsic"_h:
+						required = true;
+						__fallthrough;
+					case "external"_h:
+						if  constexpr (1)
+						{
+							//Handle error, I can't fucking be bothered.
+							std::string_view name = attach_data.GetFront().GetView();
+							
+							//I wish to make the return of this optional. True for success, false for failure, nullopt for defered
+							std::optional<bool> success = AttributeManager::instance->RequestNativeData(name, this);
+
+							assert_if(!success.value_or(false) && required) {
+								attach->critical<IssueType::Compile>("intrinsic native data not found '{}'.", name);
+							}
+							
+							report::trace("request for native data success: {}", success.has_value() ? std::to_string(success.value()) : "defered");
+						}
+						break;
+					}
+
+				}
+			}
+
 
 
 			//This should be handled after declaration.
@@ -153,7 +209,7 @@ namespace LEX
 					if (!type)  //I'd actually rather report.
 						inherit.error("Could not generate type from {}", inherit.GetTag());
 
-					SetDerivesTo(type->GetHierarchyTree(), access);
+					SetDerivesTo(type->GetHierarchyTree(), inherit, access);
 				}
 
 

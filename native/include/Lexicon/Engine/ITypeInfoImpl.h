@@ -163,6 +163,6 @@ namespace LEX
 
 		virtual void SetInstanceID(InstanceID id, Badge<IdentityManager>) = 0;
 		
-		virtual bool HasInnateDefaultConstructor() { return true; }
+		virtual bool ShouldInnateConstruct() { return true; }
 	};
 }

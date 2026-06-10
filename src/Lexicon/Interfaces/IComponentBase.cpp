@@ -6,6 +6,11 @@
 namespace LEX
 {
 
+    bool IComponentBase::IsType(Type type) const noexcept
+    { 
+        return GetComponentBase(); 
+    }
+
     const IComponent* IComponentBase::GetComponentBase() const
     {
         return GetComponent()->As<IComponent>();

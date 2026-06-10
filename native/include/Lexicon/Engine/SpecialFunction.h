@@ -82,6 +82,12 @@ namespace LEX
 			return 0;
 		}
 
+		FunctionType GetFunctionType() override
+		{
+			return _self->GetFunctionType();
+		}
+
+
 		RuntimeVariable Execute(std::span<RuntimeVariable> args, Runtime* runtime, RuntimeVariable* def) override
 		{
 			if (IsResolved() == false)

@@ -20,6 +20,7 @@
 
 #include "Lexicon/AttributeData.h"
 #include "Lexicon/Engine/NativeAttribute.h"
+#include "Lexicon/Interfaces/AttributeManager.h"
 //
 //#include "Lexicon/Engine/TempConstruct.cpp"
 //
@@ -306,6 +307,46 @@ ADD_TYPE_QUALIFIERS(std::string_view, funct, readonly);
 
 
 
+//I'll have something different that helps this seek out core stuff, or just make core stuff searchable.
+template <StringLiteral Name>
+struct TempAttribute
+{
+    static constexpr std::string_view type_name = Name;
+    inline static TypeInfo* type = nullptr;
+
+    AttributeBase* attribute = nullptr;
+
+    operator AttributeBase* ()
+    {
+        return attribute;
+    }
+
+
+    static TypeInfo* GetVariableType(const TempAttribute* a_this)
+    {
+        if (a_this && a_this->attribute) {
+            a_this->attribute->GetType();
+        }
+
+        //Thread lock this.
+        if (!type) {
+            //Use project manager to get the type
+            type = DirectoryManager::instance->GetComponentFromPath(nullptr, type_name, ComponentType::TypeInfo)->As<TypeInfo>();
+        }
+
+        return type;
+    }
+
+};
+
+
+void TestCtor(TempAttribute<"CORE::TestAttribute">&& a_this, int number)
+{
+    logger::info("CREATED TEST ATTRIBUTE WITH {}", number);
+
+    std::system("pause");
+}
+
 
 void LexTesting(std::string formula)
 {
@@ -321,6 +362,15 @@ void LexTesting(std::string formula)
 
     Component::LinkComponents(LinkFlag::Loaded);
     Component::LinkComponents(LinkFlag::Declaration);
+    if (ProcedureHandler::instance->RegisterCoreConstructor(TestCtor, "TestAttribute") == false)
+    {
+        //This will not set, but I want to 
+        report::critical("FUCK");
+    }
+    else
+    {
+        logger::critical("YAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY!");
+    }
 	Component::LinkComponents(LinkFlag::Definition);
    
     
@@ -332,15 +382,19 @@ void LexTesting(std::string formula)
             logger::debug("failure");
         }
 
-        if (ProcedureHandler::instance->RegisterCoreFunction(size_for_int, "size") == false) {
-            logger::debug("failure");
+        //if (ProcedureHandler::instance->RegisterCoreFunction(size_for_int, "size") == false) {
+        //    logger::debug("failure");
+        //}
+
+        if (ProcedureHandler::instance->RegisterFunction(size_for_int, "CORE::size") == false) {
+            report::critical("failure");
         }
 
         if (ProcedureHandler::instance->RegisterFunction(RefTest2, "Shared::Commons::RefTest2") == false) {
             logger::break_debug("failure");
         }
     }
-
+    //assert(DirectoryManager::instance->GetComponentFromPath(ProjectManager::instance->GetShared(), "TestAttribute", ComponentType::TypeInfo));
     Initializer::Execute("function_register");
 
     Component::LinkComponents(LinkFlag::Object);
@@ -363,6 +417,8 @@ void LexTesting(std::string formula)
             logger::info("Function couldn't be set");
         }
     }
+
+
 
     ConcreteFunction* function = dynamic_cast<ConcreteFunction*>(funcs[0]);
     
@@ -2708,6 +2764,64 @@ namespace LEX::Test
         }
 
 
+        template <typename T>
+        struct chain_object
+        {
+            using self = chain_object<T>;
+            using element_type = T;
+            using pointer_type = T*;
+            using reference_type = T&;
+
+
+            element_type& value() noexcept
+            {
+                return _value;
+            }
+
+            const element_type& value() const noexcept
+            {
+                return _value;
+            }
+
+        private:
+            chain_object(const element_type& v, self** p) : _value{ v }, _pos{ p }, _prev { p ? *p : nullptr }
+            {
+                if (_pos)
+                    *_pos = this;
+            }
+        public:
+            chain_object(element_type v, self*& p) : chain_object{ v, std::addressof(p) } {}
+
+            chain_object(element_type v) : chain_object{ v, nullptr } {}
+
+
+
+        private:
+            chain_object(const chain_object&) = default;
+        public:
+            chain_object(chain_object&& other) : chain_object(other)
+            {
+                if (*_pos)
+                    *_pos = this;
+
+                other._pos = nullptr;
+            }
+
+            ~chain_object()
+            {
+                if (_pos)
+                    *_pos = _prev;
+            }
+
+
+        protected:
+            element_type _value;
+            self* const _prev = nullptr;
+            self** _pos = nullptr;
+
+        };
+
+
 
         namespace
         {
@@ -3133,64 +3247,19 @@ namespace LEX::Test
             base->As<Component>();
         }
 
-        struct AttributeHandler
+
+        INITIALIZE()
         {
-            void LoadAttributes(Component* a_this, Directory* parent, SyntaxRecord& record)
+            struct FirstAttribute : public AttributeData
             {
-                assert_if(record.GetView() != parse_strings::attributes) {
-                    //Expected attributes
-                    return;
-                }
+                
+            };
 
+            IFunction* func = nullptr;
+            FirstAttribute r;
 
-                for (auto& attr_name : record.children())
-                {
-                    ITypeInfo* base_type = parent->SearchTypePath(attr_name).info;
-
-                    assert_if(!base_type) {
-
-                    }
-                    
-                    assert_if(base_type->IsAttribute() == false) {
-
-                    }
-
-                    ConcreteType* type = base_type->As<ConcreteType>();
-
-                    assert_if(!type) {
-
-                    }
-
-                    auto attribute = type->CreateAttribute();
-
-                    assert_if(!attribute) {
-
-                    }
-
-
-                    auto attribute = value.get();
-
-                    if (parent->AddAttribute(std::move(value)) == false)
-                    {
-                        report::compile::error("Unable to add attribute '{}' to Component '{}'",
-                            GetName(), parent->GetName());
-
-                        return nullptr;
-                    }
-
-                    attribute->Initialize(record);
-
-                    return attribute;
-
-                    //type->FindConstructor();
-                }
-
-            }
-
-
-            std::unique_ptr<std::unique_ptr<Attribute>>;;
-
-        };
+            AttributeManager::instance->RegisterNativeData<FirstAttribute>("TrueAtt");
+        }
 
 
         /*

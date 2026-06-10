@@ -64,10 +64,7 @@ namespace LEX
 		RuntimeVariable BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def);
 
 
-		bool IsConstructor() const
-		{
-			return GetName() == parse_strings::constructor;
-		}
+		FunctionType GetFunctionType();
 
 
 		FunctionNode CreateNode(ITemplatePart* part) override
@@ -143,6 +140,12 @@ namespace LEX
 
 
 		bool IsMethod() const override { return !!_thisInfo; }
+
+
+		FunctionType GetFunctionType() override
+		{
+			return FunctionBase::GetFunctionType();
+		}
 
 		std::string_view GetName() const override
 		{

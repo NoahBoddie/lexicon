@@ -12,6 +12,16 @@ namespace LEX
 
 	struct IFunction;
 	
+	enum struct FunctionType : uint8_t
+	{
+		Invalid,
+		Method,
+		Function,
+		Extension,
+		Constructor,
+		Total,
+	};
+
 	namespace Version
 	{
 		namespace _1
@@ -21,6 +31,7 @@ namespace LEX
 				virtual bool IsConversion() const = 0;
 				virtual bool IsMethod() const = 0;
 				virtual bool IsGeneric() const = 0;
+				virtual FunctionType GetFunctionType() = 0;
 				//This should be hidden.
 				virtual IFunction* CheckFunction(ITemplatePart* args) = 0;
 				virtual Function* GetFunction(ITemplateBody* args) = 0;
@@ -44,6 +55,8 @@ namespace LEX
 		bool IsConversion() const override { return false; }
 		bool IsMethod() const override { return false; }
 		bool IsGeneric() const override { return false; }
+
+		bool IsConstructor() { return GetFunctionType() == FunctionType::Constructor; }
 	};
 
 

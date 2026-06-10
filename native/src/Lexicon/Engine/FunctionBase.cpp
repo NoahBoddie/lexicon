@@ -11,7 +11,7 @@
 #include "Lexicon/Engine/Runtime.h"
 
 #include "Lexicon/Engine/parse_strings.h"
-
+#include "Lexicon/Engine/Script.h"
 namespace LEX
 {
 
@@ -47,7 +47,7 @@ namespace LEX
 
     void FunctionBase::OnAttach()
     {
-        if (auto parent = GetParent(); IsConstructor() && parent->Is<TypeBase>() == false) {
+        if (auto parent = GetParent(); AsFunction()->IsConstructor() && parent->Is<TypeBase>() == false) {
             report::compile::failure("A constructor cannot be within non-type directory {}", 
                 parent ? parent->GetName() : "<null>");
 
@@ -83,7 +83,7 @@ namespace LEX
 
             //If function is seen as being static, it should not allow for 
 
-            bool is_ctor = IsConstructor();
+            bool is_ctor = AsFunction()->IsConstructor();
 
             HeaderFlag exclude_flags;
 
@@ -93,6 +93,7 @@ namespace LEX
             else {
                 exclude_flags = HeaderFlag::Mutable;
             }
+
 
             Declaration header = Declaration::Create(*head_rec, this, Refness::Local, exclude_flags);
 
@@ -121,7 +122,7 @@ namespace LEX
 
             bool is_membered = self_type;
 
-            if (IsConstructor() == true) {
+            if (AsFunction()->IsConstructor() == true) {
                 assert(self_type);
                 
                 type.policy = self_type;
@@ -266,11 +267,32 @@ namespace LEX
 
     LinkFlag FunctionBase::GetLinkFlags() 
     {
-        //return LinkFlag::None;
-        //Needs to handle linking once when declaration happens 
-        return LinkFlag::Declaration | LinkFlag::Definition;
+        LinkFlag result = LinkFlag::Declaration;
+
+        if (SyntaxRecord* record = GetSyntaxTree(); record && record->FindChild(parse_strings::code)) {
+            result |= LinkFlag::Definition;
+        }
+
+        //TODO: Link final and see what happens.
+       
+        return result;
     }
 
+
+    FunctionType FunctionBase::GetFunctionType()
+    {
+        if (GetName() == parse_strings::constructor)
+            return FunctionType::Constructor;
+
+        if (GetParent()->Is<Script>()) {
+            if (HasTarget() == true)
+                return FunctionType::Extension;
+            else
+                return FunctionType::Function;
+        }
+
+        return FunctionType::Method;
+    }
 
     RuntimeVariable FunctionBase::BasicExecute(Function* self, ITemplateBody* body, std::span<RuntimeVariable> args, Runtime* caller, RuntimeVariable* def)
     {

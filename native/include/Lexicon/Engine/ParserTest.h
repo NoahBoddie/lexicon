@@ -2021,26 +2021,29 @@ namespace LEX
 
 			}
 
-			static Record HandleInterfaceIndex(ParsingStream* stream)
+			//TODO: Allow interface index to 
+			static Record HandleInterfaceIndex(ParsingStream* stream, bool is_attribute)
 			{
 				Record index = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::None);
 
-				if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
-					if (stream->IsType(TokenType::Punctuation, "{") == true)
-					{
-						auto& parent = index.EmplaceChild(ParsingStream::CreateExpression("args", SyntaxType::None));
-					
-						//if it wants to use brackets to define it easier basically.
-						auto children = stream->Delimited("{", "}", ",", [](ParsingStream* stream) { return ParsingStream::CreateExpression(stream->next(), SyntaxType::None); });
-						parent.EmplaceChildren(std::move(children));
+				if (!is_attribute) {
+					if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
+						if (stream->IsType(TokenType::Punctuation, "{") == true)
+						{
+							auto& parent = index.EmplaceChild(ParsingStream::CreateExpression("args", SyntaxType::None));
+
+							//if it wants to use brackets to define it easier basically.
+							auto children = stream->Delimited("{", "}", ",", [](ParsingStream* stream) { return ParsingStream::CreateExpression(stream->next(), SyntaxType::None); });
+							parent.EmplaceChildren(std::move(children));
+						}
+						else {
+							index.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Number), SyntaxType::Number));
+						}
 					}
 					else {
-						index.EmplaceChild(ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Number), SyntaxType::Number));
+						index.EmplaceChild(ParsingStream::CreateExpression("0", SyntaxType::Number));
 					}
-				} else {
-					index.EmplaceChild(ParsingStream::CreateExpression("0", SyntaxType::Number));
 				}
-
 				return index;
 			}
 
@@ -2068,7 +2071,7 @@ namespace LEX
 				}
 
 
-
+				bool is_attribute = data_type.GetView() == "attribute";
 
 				
 				//second setting is interface, bind, or regular. Optional
@@ -2079,7 +2082,7 @@ namespace LEX
 					
 					
 					//Ugly as shit I know.
-					Record& attach = settings.EmplaceChild(ParsingStream::CreateExpression(parse_strings::attach, SyntaxType::None)).
+					Record& attach = settings.EmplaceChild(ParsingStream::CreateExpression(!is_attribute ? parse_strings::attach : parse_strings::attribute_data, SyntaxType::None)).
 						EmplaceChild(ParsingStream::CreateExpression(stream->next(), SyntaxType::None));
 
 					switch (Hash(peek.GetTag())) {
@@ -2090,7 +2093,7 @@ namespace LEX
 					case "intrinsic"_h:  //Intrinsic needs to push back a category name, and index.
 					case "external"_h:   //external needs to push back category name and index.
 						requires_body = false;
-						attach.EmplaceChild(HandleInterfaceIndex(stream));
+						attach.EmplaceChild(HandleInterfaceIndex(stream, is_attribute));
 						break;
 
 					default:

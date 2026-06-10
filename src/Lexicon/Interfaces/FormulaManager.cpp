@@ -60,6 +60,7 @@ namespace LEX
 			return 2;
 		}
 
+		ast.SetParent((Element*)perspective);
 
 		//This needs to confirm it's proper
 		if (RoutineCompiler::Compile(formula->GetRoutine(), records, formula.get(), perspective, nullptr, name) == false) {

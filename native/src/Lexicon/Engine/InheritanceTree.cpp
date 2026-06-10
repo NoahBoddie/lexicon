@@ -283,12 +283,12 @@ namespace LEX
 
 
 
-    void InheritanceTree::SetDerivesTo(IHierarchyTree* other, Access a_access)
+    void InheritanceTree::SetDerivesTo(IHierarchyTree* other, SyntaxRecord& record, Access a_access)
     {
-        CheckDeriveFrom(other);
+        CheckDeriveFrom(other, record);
 
         if (this == other)
-            report::compile::critical("Type '{}' cannot inherit from itself", GetName());
+            record.critical<IssueType::Fault>("Type '{}' cannot inherit from itself", GetName());
 
         HandleInheritance();
 

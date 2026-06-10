@@ -13,7 +13,7 @@ namespace LEX
 	struct ITypeInfo;
 	struct QualifiedType;
 	struct OverloadCode;
-
+    struct SyntaxRecord;
 
     struct InheritanceTree : public HierarchyTree
     {
@@ -160,11 +160,11 @@ namespace LEX
         void SetInheritFrom(IHierarchyTree* other, Access a_access = Access::Public, bool post_affixed = false);
 
         //One of the sole functions that will remain the same, only triggered when inheritance
-        virtual void CheckDeriveFrom(IHierarchyTree* other) {};
+        virtual void CheckDeriveFrom(IHierarchyTree* other, SyntaxRecord& record) {};
 
 
 
-        void SetDerivesTo(IHierarchyTree* other, Access a_access = Access::Public);
+        void SetDerivesTo(IHierarchyTree* other, SyntaxRecord& record, Access a_access = Access::Public);
 
 
 

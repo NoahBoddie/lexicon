@@ -258,6 +258,16 @@ namespace LEX
 
 
 	protected:
+
+
+		bool HasAttributes() override final
+		{
+			if (SyntaxRecord* syntax = GetSyntaxTree()) {
+				return syntax->FindChild(parse_strings::attributes);
+			}
+
+			return false;
+		}
 		
 		virtual void SetParent(Directory*) = 0;
 

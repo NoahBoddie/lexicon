@@ -68,10 +68,7 @@ namespace LEX
 
 		Project* FindProject(const std::string_view& name);
 
-		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter*) override
-		{
-			return FindProject(record.GetView());
-		}
+		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter*) override;
 
 
 	private:

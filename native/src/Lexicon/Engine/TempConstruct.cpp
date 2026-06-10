@@ -2335,6 +2335,8 @@ namespace LEX
 
 			Operand this_loc;
 
+			bool create_this = true;
+
 			//TODO: This whole business with this_loc is absolute ass. Please clean it up
 
 			//Neither of these account for attributes
@@ -2345,6 +2347,7 @@ namespace LEX
 
 				if (!assign || assign->solution()->IsAttribute() == true) {
 					assert(self);
+					create_this = false;
 					this_loc = self->solution();
 				}
 				else {
@@ -2380,16 +2383,17 @@ namespace LEX
 
 			SyntaxRecord* args = target.FindChild(parse_strings::args);
 			//I want to make it so if there are no args it does nothing, but whatever
-			if (args && args->size() == 0 && type->HasInnateDefaultConstructor() == true) {//if no arguments, check for it being default constructible
+			if (args && args->size() == 0 && type->ShouldInnateConstruct() == true) {//if no arguments, check for it being default constructible
 				//TODO: Future: Give this a compiler utility function, in case it has a manually defined constructor.
 				compiler->EmplaceInstruction(InstructType::Construct, compiler->GetPrefered(), Operand{ type.policy, OperandType::Type });
 				return Solution{ QualifiedType{type}, OperandType::Register, compiler->GetPrefered() };
 			}
 			else {
-				compiler->EmplaceInstruction(InstructType::DefineVariable,
-					this_loc,
-					Operand{ type.policy, OperandType::Type });
-
+				if (create_this) {
+					compiler->EmplaceInstruction(InstructType::DefineVariable,
+						this_loc,
+						Operand{ type.policy, OperandType::Type });
+				}
 				return CallingProcess(compiler, target, arg, true);
 			}
 

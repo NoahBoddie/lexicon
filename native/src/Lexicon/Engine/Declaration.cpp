@@ -389,21 +389,23 @@ namespace LEX
 			type = static_cast<decltype(type)>(type + 1);
 		}
 
-		declare.policy = GetPolicyFromSpecifiers(type_spec, source);
+		if (type_spec.size() != 0) {
+			declare.policy = GetPolicyFromSpecifiers(type_spec, source);
 
-		if (!declare.policy) {
-			std::string name;
+			if (!declare.policy) {
+				std::string name;
 
-			for (SyntaxRecord& child : type_spec.children())
-			{
-				if (name.empty() == false)
-					name += " ";
-				
-				name += child.GetTag();
+				for (SyntaxRecord& child : type_spec.children())
+				{
+					if (name.empty() == false)
+						name += " ";
+
+					name += child.GetTag();
+				}
+
+
+				type_spec.GetFront().error("Couldn't locate type '{}'", name);
 			}
-			
-			
-			type_spec.GetFront().error("Couldn't locate type '{}'", name);
 		}
 		declare = GetQualifiersFromStrings(type_qual);
 		declare = GetSpecifiersFromStrings(decl_spec);

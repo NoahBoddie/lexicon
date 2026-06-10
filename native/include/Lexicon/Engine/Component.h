@@ -200,6 +200,10 @@ namespace LEX
 
 			LinkFlag links = GetLinkFlags();
 
+			if (HasAttributes() == true) {
+				links |= LinkFlag::Attribute;
+			}
+
 			if (links) {
 				//std::lock_guard lock(link_mutex);
 				//TODO:Set up reprisal and waiting here
@@ -296,7 +300,7 @@ namespace LEX
 
 							logger::trace("Linking {}: {}", target->GetName(), magic_enum::enum_name(i));
 
-							if (SafeInvoke<Error>(true, [&]() {result = target->OnLink(i); }) == true)
+							if (SafeInvoke<Error>(true, [&]() {result = target->HandleLinkEvent(i); }) == true)
 							{
 								report::link::warn("Component '{}' has suffered an error and failed the {} link stage.", target->GetName(), magic_enum::enum_name(flags));
 							}
@@ -520,7 +524,24 @@ namespace LEX
 
 		virtual std::string_view GetName() const = 0;
 
-		virtual LinkResult OnLink(LinkFlag flags) { return LinkResult::Failure; }
+		virtual LinkResult OnLink(LinkFlag flags) { return LinkResult::Success; }
+
+		//this should be protected
+		LinkResult HandleLinkEvent(LinkFlag flag)
+		{
+			if (flag == LinkFlag::Attribute) {
+				HandleAttributes();
+			}
+
+			return OnLink(flag);
+		}
+
+
+		virtual bool HasAttributes() { return false; }
+		virtual void HandleAttributes() { report::compile::error("Attributes given to a type that cannot handle attributes"); }
+
+
+
 
 		virtual LinkFlag GetLinkFlags() { return LinkFlag::None; }
 		

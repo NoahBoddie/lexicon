@@ -1,8 +1,9 @@
 #include "Lexicon/Engine/ProjectDirectory.h"
 
 
+#include "Lexicon/Engine/Script.h"
 #include "Lexicon/Engine/Project.h"
-
+#include "Lexicon/Interfaces/ProjectManager.h"
 namespace LEX
 {
 
@@ -24,5 +25,14 @@ namespace LEX
 		}
 
 		return nullptr;
+	}
+
+	Directory* ProjectDirectory::FindDirectory(SyntaxRecord& record, ITemplateInserter*)
+	{
+		if (record.GetView() == "CORE") {
+			return ProjectManager::instance->GetCore();
+		}
+
+		return FindProject(record.GetView());
 	}
 }

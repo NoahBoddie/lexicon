@@ -5,6 +5,7 @@
 #include "Lexicon/Engine/Environment.h"
 #include "Lexicon/Engine/PolicyData.h"
 #include "Lexicon/Engine/OverloadParameter.h"
+#include "Lexicon/Engine/AttributeHandler.h"
 
 //*src
 #include "Lexicon/ITemplatePart.h"
@@ -22,7 +23,7 @@ namespace LEX
 		ITypeInfo* info = nullptr;
 	};
 
-	class TypeBase : public SecondaryEnvironment, public OverloadParameter, public PolicyData
+	class TypeBase : public SecondaryEnvironment, public OverloadParameter, public PolicyData, public AttributeHandler
 	{//TypeBase Might not even use clauses directly. We shall see.
 	public:
 		DEFINE_COMPONENT_TYPE(ComponentType::TypeBase)
@@ -81,6 +82,16 @@ namespace LEX
 
 		std::string_view GetName() const override { return _name; }
 
+		void HandleAttributes() override
+		{
+			SyntaxRecord* syntax = GetSyntaxTree();
+			if (syntax) {
+				if (SyntaxRecord* attribute_record = syntax->FindChild(parse_strings::attributes))
+
+				return LoadAttributes(this, GetParent(), *attribute_record);
+			}
+		}
+
 		/*
 
 		OverloadClause* GetClause() override { return nullptr; }
@@ -107,8 +118,9 @@ namespace LEX
 		//~
 
 
-		void CheckDeriveFrom(IHierarchyTree* other) override;
+		void CheckDeriveFrom(IHierarchyTree* other, SyntaxRecord& record) override;
 
+		void OnInherit(ITypeInfo* other, SyntaxRecord& record);
 
 		bool IsExternal() const
 		{
