@@ -29,10 +29,6 @@ namespace LEX
 
 	Directory* ProjectDirectory::FindDirectory(SyntaxRecord& record, ITemplateInserter*)
 	{
-		if (record.GetView() == "CORE") {
-			return ProjectManager::instance->GetCore();
-		}
-
 		return FindProject(record.GetView());
 	}
 }

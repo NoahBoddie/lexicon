@@ -17,6 +17,8 @@ namespace LEX
 				virtual bool AppendContent(const std::string_view& content, std::span<std::string_view> options = {}) = 0;
 
 				virtual void AddFormat(const std::string_view & name, const std::string_view & content) = 0;
+
+				virtual bool IsCoreScript() const noexcept = 0;
 			};
 
 		}

@@ -254,8 +254,12 @@ namespace LEX
 
 		Directory* FindDirectory(SyntaxRecord& record, ITemplateInserter* inserter) override
 		{
-			if (record.GetView() == "CORE") {
-				return ProjectManager::instance->GetCore();
+			static Script* core = ProjectManager::instance->GetCore();
+
+			assert(core);
+
+			if (record.GetView() == core->GetName()) {
+				return core;
 			}
 			else {
 				return ProjectDirectory::GetSingleton()->FindDirectory(record, inserter);

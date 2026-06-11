@@ -1580,10 +1580,10 @@ namespace LEX
 			logger::break_debug("failure rft3");
 		}
 		int num = 1;
-		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(get_backend, "get"));
-		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(CreateOne, "CreateOne"));
-		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(resize, "resize"));
-		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterCoreFunction(size, "size"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(get_backend, "Core::get"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(CreateOne, "Core::CreateOne"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(resize, "Core::resize"));
+		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(size, "Core::size"));
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(ObjFail1, "Shared::Commons::ObjFail"));
 		logger::info("success{} => {}", num++, ProcedureHandler::instance->RegisterFunction(ObjFail2, "Shared::Commons::ObjFail"));
 

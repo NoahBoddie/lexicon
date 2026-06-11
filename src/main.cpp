@@ -340,7 +340,7 @@ struct TempAttribute
 };
 
 
-void TestCtor(TempAttribute<"CORE::TestAttribute">&& a_this, int number)
+void TestCtor(TempAttribute<"Core::TestAttribute">&& a_this, int number)
 {
     logger::info("CREATED TEST ATTRIBUTE WITH {}", number);
 
@@ -362,7 +362,7 @@ void LexTesting(std::string formula)
 
     Component::LinkComponents(LinkFlag::Loaded);
     Component::LinkComponents(LinkFlag::Declaration);
-    if (ProcedureHandler::instance->RegisterCoreConstructor(TestCtor, "TestAttribute") == false)
+    if (ProcedureHandler::instance->RegisterConstructor(TestCtor, "Core::TestAttribute") == false)
     {
         //This will not set, but I want to 
         report::critical("FUCK");
@@ -378,15 +378,15 @@ void LexTesting(std::string formula)
     //ProjectManager::instance->GetFunctionFromPath("Shared::Commons::size");
     if (1)
     {
-        if (ProcedureHandler::instance->RegisterCoreFunction(size_backend, "size") == false) {
-            logger::debug("failure");
+        if (ProcedureHandler::instance->RegisterFunction(size_backend, "Core::size") == false) {
+            report::critical("failure");
         }
 
         //if (ProcedureHandler::instance->RegisterCoreFunction(size_for_int, "size") == false) {
         //    logger::debug("failure");
         //}
 
-        if (ProcedureHandler::instance->RegisterFunction(size_for_int, "CORE::size") == false) {
+        if (ProcedureHandler::instance->RegisterFunction(size_for_int, "Core::size") == false) {
             report::critical("failure");
         }
 
@@ -412,7 +412,7 @@ void LexTesting(std::string formula)
 
     if  constexpr (1)
     {
-        if (ProcedureHandler::instance->RegisterCoreFunction(otherTest, "otherTest") == false)
+        if (ProcedureHandler::instance->RegisterFunction(otherTest, "Core::otherTest") == false)
         {
             logger::info("Function couldn't be set");
         }

@@ -85,30 +85,4 @@ namespace LEX
 
 		return true;
 	}
-
-
-	IFunction* ProcedureHandler::GetCoreFunction(std::string_view path, const ISignature& base)
-	{
-		auto core = ProjectManager::instance->GetCore();
-
-
-		Signature sign{ base };
-
-		auto element = core->GetElementFromPath(path, ElementType::kFuncElement, &sign);
-		
-		return dynamic_cast<IFunction*>(element);
-	}
-
-	IFunction* ProcedureHandler::GetCoreConstructor(std::string_view path, const ISignature& base)
-	{
-		auto core = ProjectManager::instance->GetCore();
-
-
-		Signature sign{ base };
-
-
-		auto function = DirectoryManager::instance->GetConstructorFromPath(core, path, &base);
-
-		return function;
-	}
 }

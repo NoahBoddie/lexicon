@@ -46,7 +46,7 @@ namespace LEX
 	{
 		RegisterDump dump;
 
-		dump = ProcedureHandler::instance->RegisterCoreFunction(IsNAN, "IsNAN");
+		dump = ProcedureHandler::instance->RegisterFunction(IsNAN, "Core::IsNAN");
 	}
 
 }

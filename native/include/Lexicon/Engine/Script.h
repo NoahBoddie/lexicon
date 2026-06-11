@@ -323,6 +323,11 @@ namespace LEX
 
 		std::string_view GetName() const override;
 
+        bool IsCoreScript() const noexcept override
+        {
+            return this == ProjectManager::instance->GetCore();
+        }
+
 		//SetName will resume having no use here.
 
 		void CompileExpression(Record& target);
