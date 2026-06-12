@@ -25,6 +25,8 @@
 //#include "Lexicon/Engine/TempConstruct.cpp"
 //
 
+#include "Lexicon/Utility/Parameter.h"
+
 using namespace RGL;
 using namespace LEX;
 using namespace LEX;
@@ -307,41 +309,15 @@ ADD_TYPE_QUALIFIERS(std::string_view, funct, readonly);
 
 
 
-//I'll have something different that helps this seek out core stuff, or just make core stuff searchable.
-template <StringLiteral Name>
-struct TempAttribute
+
+
+
+
+
+void TestCtor(Util::Attribute<"Core::TestAttribute">&& a_this, int number)
 {
-    static constexpr std::string_view type_name = Name;
-    inline static TypeInfo* type = nullptr;
-
-    AttributeBase* attribute = nullptr;
-
-    operator AttributeBase* ()
-    {
-        return attribute;
-    }
-
-
-    static TypeInfo* GetVariableType(const TempAttribute* a_this)
-    {
-        if (a_this && a_this->attribute) {
-            a_this->attribute->GetType();
-        }
-
-        //Thread lock this.
-        if (!type) {
-            //Use project manager to get the type
-            type = DirectoryManager::instance->GetComponentFromPath(nullptr, type_name, ComponentType::TypeInfo)->As<TypeInfo>();
-        }
-
-        return type;
-    }
-
-};
-
-
-void TestCtor(TempAttribute<"Core::TestAttribute">&& a_this, int number)
-{
+    a_this->GetType();
+    
     logger::info("CREATED TEST ATTRIBUTE WITH {}", number);
 
     std::system("pause");
@@ -3129,6 +3105,19 @@ namespace LEX::Test
         namespace Util
         {
 
+
+
+            void ParameterTest()
+            {
+                Parameter<"int"> test = 1;
+
+
+
+                auto result = Unvariable<decltype(test)>{}(nullptr);
+            }
+
+
+            ////////////////////////////////////////
 
             //This only holds the relevant data. It has no barings on how anything else is handled.
             struct CustomObjectData
