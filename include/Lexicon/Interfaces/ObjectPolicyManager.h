@@ -94,6 +94,13 @@ namespace LEX
 	}
 
 
+	template<has_object_info T, std::derived_from<ObjectInfoBase> Info>
+	uint32_t RegisterObject()
+	{
+		return RegisterObject<T>(std::make_unique<Info>());
+	}
+
+
 
 	template<setting_is_object_info T>
 	uint32_t RegisterObject()
