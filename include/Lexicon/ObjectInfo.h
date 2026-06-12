@@ -259,7 +259,7 @@ namespace LEX
 
 		static T& get(ObjectData& self)
 		{
-			return unconst(get(make_const(self)));
+			return self.get<T>();
 		}
 
 
