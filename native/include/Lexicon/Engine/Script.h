@@ -47,15 +47,16 @@ namespace LEX
 
         struct Relationships
         {
-            static constexpr uintptr_t no_pos = -1;
-
+            static constexpr uint32_t no_sort = -1;
+            static constexpr uint32_t no_pos = -1;
+            
             std::vector<Relationship> relationList;
             std::set<Script*> scriptsThatUseThis;
 
 
             union
             {
-                uintptr_t raw = no_pos;
+                uintptr_t raw = no_sort;
 
                 struct
                 {
@@ -67,12 +68,12 @@ namespace LEX
 
             bool IsSorted() const
             {
-                return raw != no_pos;
+                return raw != no_sort;
             }
 
             void Unsort()
             {
-                raw = no_pos;
+                raw = no_sort;
             }
 
             void CheckSort()
@@ -98,11 +99,11 @@ namespace LEX
                         bool result = encountered.emplace(bond.to).second;
 
                         if (result) {
-                            if (bond.type < RelateType::Included && includes == (uint32_t)no_pos) {
+                            if (bond.type < RelateType::Included && includes == no_pos) {
                                 includes = i;
                             }
 
-                            if (bond.type < RelateType::Imported && imports == (uint32_t)no_pos) {
+                            if (bond.type < RelateType::Imported && imports == no_pos) {
                                 imports = i - includes;
                             }
 
