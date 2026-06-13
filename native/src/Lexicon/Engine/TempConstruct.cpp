@@ -1198,8 +1198,13 @@ namespace LEX
 					
 
 					//TODO: If left and right are 2 literals register moving isn't super required.
-					if (prefered == Register::Result && lhs.Equals<OperandType::Register>(Register::Left) == true)
+					//if (prefered == Register::Result && lhs.Equals<OperandType::Register>(Register::Left) == true)
+					if (prefered != Register::Right && lhs.Equals<OperandType::Register>(Register::Left) == true)
 					{
+						//I want an additional rule, that the right hand size needs to be a complicated expression
+
+
+
 						//This will make it so the lhs uses the left register only is when it will move it.
 						// If I can, I'd like to make it so if the rhs doesn't need the left hand reg, it wont do this either.
 						// but that will require injecting.
@@ -2588,7 +2593,8 @@ namespace LEX
 
 			auto& lhs = target.FindChild(parse_strings::lhs)->GetFront();
 
-			Solution from = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered(), false);
+			//Solution from = compiler->PushExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered(), false);
+			Solution from = compiler->CompileExpression(target.FindChild(parse_strings::lhs)->GetFront(), compiler->GetPrefered());
 
 
 
