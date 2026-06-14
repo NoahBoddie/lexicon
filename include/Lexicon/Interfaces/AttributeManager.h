@@ -36,6 +36,13 @@ namespace LEX
 			return RegisterNativeData(name, builder);
 		}
 
+		template<std::derived_from<AttributeData> T>
+		bool RegisterNativeData() requires requires () { { T::ATTRIBUTE_NAME } ->std::convertible_to<std::string_view>; }
+		{
+			return RegisterNativeData<T>(T::ATTRIBUTE_NAME);
+		}
+
+
 	INTERNAL:
 #ifdef LEX_SOURCE
 
