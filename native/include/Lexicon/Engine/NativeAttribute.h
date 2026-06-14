@@ -14,6 +14,24 @@ namespace LEX
         }
 
 
+        bool GetValue(const std::string_view& name, RuntimeVariable& value) override
+        { 
+            return _data->GetValue(name, value);
+        }
+        bool SetValue(const std::string_view& name, const RuntimeVariable& value) override
+        { 
+            return _data->SetValue(name, value);
+        }
+        bool CanAllowAttach(AttributeOwner* owner) override 
+        { 
+            return _data->CanAllowAttach(owner);
+        }
+        bool CanAttachedAllow(AttributeOwner* owner, AttributeBase* attribute) override 
+        { 
+            return _data->CanAttachedAllow(owner, attribute);
+        }
+
+
 
         ScriptObject* GetScriptObject() override { return nullptr; }
         
