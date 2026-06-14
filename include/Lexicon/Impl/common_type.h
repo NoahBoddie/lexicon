@@ -165,6 +165,17 @@ namespace LEX
 		}
 	
 
+		template<detail::function_has_var_type T>
+		static TypeInfo* get_from_type()
+		{
+			static TypeInfo* type = nullptr;
+
+			if (!type) {
+				type = GetVariableType<T>();
+			}
+
+			return type;
+		}
 
 	private:
 		
