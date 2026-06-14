@@ -223,10 +223,12 @@ namespace LEX
         case LinkFlag::Definition:
         {
             if (GetBodyType() == FunctionBody::Routine) {
-                if (target.FindChild(parse_strings::code) == nullptr)
+                SyntaxRecord* code = target.FindChild(parse_strings::code);
+
+                if (!code)
                     report::compile::error("Function '{}' doesn't have a body", GetName());
 
-                if (RoutineCompiler::Compile(*ObtainRoutine(), target, this) == false) {
+                if (RoutineCompiler::Compile(*ObtainRoutine(), *code, this) == false) {
                     return LinkResult::Failure;
                 }
             }

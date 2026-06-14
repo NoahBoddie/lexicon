@@ -218,12 +218,12 @@ namespace LEX
 			{
 				//{} can only go in code blocks, while () can only go in expression blocks.
 				//For this, I need better keywords, and the instantiables.
-				if (target)// || stream->contextChain->HasKeyword("code_block") == false)
+				if (target)
 					return false;
 
 
 				if (stream->IsType(TokenType::Punctuation, "{") == true) {
-					return !(flag & ParseFlag::Atomic);
+					return !(flag & ParseFlag::Atomic) && stream->chain()->HasKeyword("code_block");
 				}
 				else {
 					return stream->IsType(TokenType::Punctuation, "(");
@@ -345,8 +345,6 @@ namespace LEX
 
 				while (!stream->eof() && IsSynchronizingToken(stream->peek(), target, data) == false) {
 					//Do a possible check here for unrecognized tokens
-
-
 					stream->next();
 				}
 
@@ -355,6 +353,7 @@ namespace LEX
 					if (data.braces) {
 						try
 						{
+							//TODO: This isn't really well documented, I want to change some stuff but please look over it.
 							Record brace = ParsingStream::CreateExpression("{");
 							return ParseModule::ExecuteModule<EncapsulateParser>(stream, &brace);
 						}
@@ -1167,6 +1166,37 @@ namespace LEX
 			}
 		};
 
+		//This serves as the code body for functions. Function will execute it manually, 
+		struct CodeParser : public AutoParser<CodeParser>
+		{
+			std::optional<bool> GetKeywordState(const std::string_view& type) override
+			{
+				switch (Hash(type)) {
+				case "code_block"_h:
+				case "statement"_h:
+					return true;
+				}
+
+				return false;
+			}
+
+			bool CanHandle(ParsingStream* stream, Record* target, ParseFlag flag) const override
+			{
+				//This will execute if it's either direct use, or if it's not if it's a line parser
+				return !target && stream->IsType(TokenType::Punctuation, "{") &&
+					((flag & ParseFlag::Direct) || stream->chain()->current->IsModule<LineParser>());
+			}
+
+
+			Record HandleToken(ParsingStream* stream, Record* target) override
+			{
+				return Record{ parse_strings::code, SyntaxType::Code, stream->Delimited("{", "}",
+				[&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); },
+				&ParsingStream::ParseSyntax) };
+			}
+
+		};
+
 
 		struct FunctionParser : public AutoParser<FunctionParser>
 		{
@@ -1182,16 +1212,7 @@ namespace LEX
 			//	return "FunctionStatement";
 			//}
 
-			std::optional<bool> GetKeywordState(const std::string_view& type) override
-			{
-				switch (Hash(type)) {
-				case "code_block"_h:
-				case "statement"_h:
-					return true;
-				}
-
-				return false;
-			}
+			
 
 			uint32_t GetPriority() const override
 			{
@@ -1298,10 +1319,7 @@ namespace LEX
 				target->SYNTAX().type = SyntaxType::Function;
 
 				if (stream->SkipIfType(TokenType::Punctuation, ";") == false) {
-					target->EmplaceChildren(Record{ parse_strings::code, SyntaxType::None, stream->Delimited("{", "}",
-						[&]() { Record out; ParseModule::TryModule<EndParser>(stream, out, nullptr); },
-						&ParsingStream::ParseSyntax) });
-
+					target->EmplaceChildren(ParseModule::UseModule<CodeParser>(stream, nullptr));
 				}
 
 				return std::move(*target);

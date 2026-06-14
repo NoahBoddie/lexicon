@@ -2026,7 +2026,7 @@ namespace LEX
 				break;
 			}
 			
-			auto result = Formula<Variable>::RunDefault(path);
+			auto result = Formula<Voidable>::RunDefault(path);
 
 
 

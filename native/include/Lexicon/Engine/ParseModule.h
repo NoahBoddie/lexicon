@@ -111,6 +111,19 @@ namespace LEX
 
 	public:
 
+		bool IsModule(const std::type_info& type) const noexcept
+		{
+			return std::addressof(typeid(*this)) == std::addressof(type);
+		}
+
+		template <std::derived_from<ParseModule> Module>
+		bool IsModule() const noexcept
+		{
+			return IsModule(typeid(Module));
+		}
+
+
+
 		//rename to get keyword state so HasKeyword can be free again.
 		virtual std::optional<bool> GetKeywordState(const std::string_view& word) { return false; }
 

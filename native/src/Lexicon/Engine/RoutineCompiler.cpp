@@ -161,9 +161,9 @@ namespace LEX
 				
 				switch (funcRecord.GetSyntax().type)
 				{
-				case SyntaxType::Function: {
+				case SyntaxType::Code: {
 					//operations = CompileBlock(*funcRecord.FindChild("code"));			
-					CompileBlock(*funcRecord.FindChild(parse_strings::code));
+					CompileBlock(funcRecord);
 
 					//~~~~~~~~~~~~~~~~~~~~~~~~~~
 					//This is messy as shit I know.
@@ -177,6 +177,7 @@ namespace LEX
 					//operations = CompileLine(funcRecord, Register::Result);
 					//<KILL> _current = &operations;
 
+					//Insist that it must be above the instructible values.
 					implicitReturn = true;
 					
 

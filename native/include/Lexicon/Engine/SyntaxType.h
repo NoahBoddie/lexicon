@@ -66,7 +66,7 @@ namespace LEX
 		Invalid = Total,
 
 
-
+		Code,
 		Path,			//Used to tell if something is a pathing record used as a header for a scope deduction.
 		SpecifyGlobal,
 		SpecifyProject,
