@@ -5,6 +5,7 @@
 #include "Lexicon/Engine/Field.h"
 #include "Lexicon/Engine/Element.h"
 #include "Lexicon/Engine/GlobalData.h"
+#include "Lexicon/Engine/AttributeHandler.h"
 #include "Lexicon/Engine/DestructibleVarInfo.h"
 
 namespace LEX
@@ -12,7 +13,7 @@ namespace LEX
 	struct ICallableUnit;
 
 	
-	struct GlobalBase : public SecondaryElement, public GlobalData, private DestructibleVarInfo
+	struct GlobalBase : public SecondaryElement, public GlobalData, private DestructibleVarInfo, public AttributeHandler
 	{
 		friend class InfoTraits;
 		DEFINE_INFO_TYPE(InfoType::GlobalBase)
@@ -41,6 +42,18 @@ namespace LEX
 		virtual LinkResult OnLink(LinkFlag flags) override;
 
 		virtual LinkFlag GetLinkFlags() override;
+
+
+		void HandleAttributes() override
+		{
+			SyntaxRecord* syntax = GetSyntaxTree();
+			if (syntax) {
+				if (SyntaxRecord* attribute_record = syntax->FindChild(parse_strings::attributes))
+
+					return LoadAttributes((Component*)this, GetParent(), *attribute_record);
+			}
+		}
+
 
 #pragma region VariableInfo
 
@@ -93,6 +106,11 @@ namespace LEX
 		IGlobal* AsGlobal() override { return this; }
 		const IGlobal* AsGlobal() const override { return this; }
 
+
+		std::span<AttributeBase*> GetAttributes() override
+		{
+			return AttributeHandler::GetAttributes();
+		}
 
 
 		std::string_view GetName() const override

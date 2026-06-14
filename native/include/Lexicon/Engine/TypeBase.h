@@ -236,6 +236,10 @@ namespace LEX
 			return TypeBase::GetHierarchyTree();
 		}
 
+		std::span<AttributeBase*> GetAttributes() override
+		{ 
+			return AttributeHandler::GetAttributes();
+		}
 
 		ITypeInfo* GetHierarchyType() override
 		{

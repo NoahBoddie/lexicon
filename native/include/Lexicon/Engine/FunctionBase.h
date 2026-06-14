@@ -5,11 +5,13 @@
 #include "Lexicon/Function.h"
 #include "FunctionData.h"
 #include "Lexicon/Engine/OverloadInfo.h"
+#include "Lexicon/Engine/AttributeHandler.h"
+
 namespace LEX
 {
 	class Runtime;
 
-	class FunctionBase : public SecondaryElement, public OverloadInfo, public FunctionData
+	class FunctionBase : public SecondaryElement, public OverloadInfo, public FunctionData, public AttributeHandler
 	{
 	public:
 		DEFINE_COMPONENT_TYPE(ComponentType::FunctionBase)
@@ -72,6 +74,17 @@ namespace LEX
 			return FunctionNode{ this, this, AsFunction()->CheckFunction(part) };
 		}
 
+
+
+		void HandleAttributes() override
+		{
+			SyntaxRecord* syntax = GetSyntaxTree();
+			if (syntax) {
+				if (SyntaxRecord* attribute_record = syntax->FindChild(parse_strings::attributes))
+
+					return LoadAttributes((Component*)this, GetParent(), *attribute_record);
+			}
+		}
 
 
 #pragma region Clause
@@ -152,6 +165,10 @@ namespace LEX
 			return FunctionBase::GetName();
 		}
 
+		std::span<AttributeBase*> GetAttributes() override
+		{
+			return AttributeHandler::GetAttributes();
+		}
 
 		uint64_t GetProcedureData() const override
 		{
