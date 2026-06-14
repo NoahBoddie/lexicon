@@ -830,6 +830,8 @@ namespace LEX
 
 			_core->AppendContent(ast);
 		}
+
+		_core->DeclareOrphan();
 	}
 
 
@@ -885,7 +887,7 @@ namespace LEX
 		
 		project->GetCommons()->AddRelationship(RelateType::Included, _core);
 
-		project->DeclareParentTo(_core);
+		//project->DeclareParentTo(_core);
 
 		return result;
 	}
