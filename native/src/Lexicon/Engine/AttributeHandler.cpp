@@ -8,12 +8,19 @@
 
 namespace LEX
 {
-    void AttributeHandler::LoadAttributes(Component* a_this, Directory* parent, SyntaxRecord& record)
+    void AttributeHandler::LoadAttributes(AttributeOwner* a_this, Directory* parent, SyntaxRecord& record)
     {
+        if (IsInitialized() == true) {
+            return;
+        }
+
         assert_if(record.GetView() != parse_strings::attributes) {
             //Expected attributes
             return;
         }
+
+        _length = 0;
+
 
         std::vector<AttributePtr> temps{ };
 
@@ -37,6 +44,9 @@ namespace LEX
 
             }
 
+            type->HandleAttributes();
+
+
             std::unique_ptr<Attribute> attribute = type->CreateAttribute();
 
             assert_if(!attribute) {
@@ -45,7 +55,7 @@ namespace LEX
             //What we want to do here is make a formula with the syntax record. We'll copy it and make it's a constructor
             // both in name and designation.
 
-            if (attribute->Initialize(attribute.get(), attr_name, a_this, parent->As<Script>()) == false) {
+            if (attribute->Initialize(attr_name, a_this, parent->As<Script>()) == false) {
                 continue;
             }
 
