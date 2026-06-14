@@ -35,9 +35,29 @@ namespace LEX
         return  type->ShouldInnateConstruct();
     }
 
-    bool Attribute::Initialize(Attribute* a_this, SyntaxRecord record, Component* parent, Script* script)
+    bool Attribute::Initialize(SyntaxRecord record, AttributeOwner* parent, Script* script)
     {
         //validate record?
+
+        if (CanAllowAttach(parent) == false) {
+            report::compile::failure("Restrictions of attribute '{}' have not been met.",
+                GetName());
+
+            return false;
+        }
+
+        for (auto& attribute : _type->GetAttributes()) {
+            if (attribute->CanAttachedAllow(parent, this) == false) {
+                //Message that the restrictions of this type have not been met
+                report::compile::failure("Restrictions of attribute '{}' have not been met.",
+                    attribute->GetName());
+                return false;
+            }
+        }
+
+        //At some later point, I'd love for something that's for between already added attributes to possibly exclude one another.
+
+
 
         _parent = parent;
 
@@ -50,7 +70,7 @@ namespace LEX
 
             SignatureBase* base = &sign;
 
-            base->result = base->target = AnnotatedType{ a_this->GetType() };
+            base->result = base->target = AnnotatedType{ GetType() };
 
             FormulaHandler ctor{};
 
@@ -58,12 +78,12 @@ namespace LEX
             //std::source_location loc{};
 
 
-            if (FormulaManager::instance->RequestFormulaFromRecord(sign, {}, a_this->GetName(), record, ctor, script) != 0) {
+            if (FormulaManager::instance->RequestFormulaFromRecord(sign, {}, GetName(), record, ctor, script) != 0) {
                 //failure
                 return false;
             }
 
-            RuntimeVariable result = ctor.formula()->Call(a_this);
+            RuntimeVariable result = ctor.formula()->Call(this);
 
             logger::trace("Test attribute result {}", result.Ref() == this);
 

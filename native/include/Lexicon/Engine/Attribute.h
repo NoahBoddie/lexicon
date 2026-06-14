@@ -25,7 +25,7 @@ namespace LEX
 
         bool ShouldInnateConstruct(SyntaxRecord& record);
 
-        bool Initialize(Attribute* a_this, SyntaxRecord record, Component* parent, Script* script);
+        bool Initialize(SyntaxRecord record, AttributeOwner* parent, Script* script);
 
         //I'm thinking these can only go on components.
         AttributeOwner* _parent = nullptr;
