@@ -3241,13 +3241,25 @@ namespace LEX::Test
         {
             struct FirstAttribute : public AttributeData
             {
-                
+                bool CanAllowAttach(AttributeOwner* owner) override
+                {
+                    IComponent* component = owner->AsOwner<IComponent>();
+
+                    ITypeInfo* type = component->As<ITypeInfo>();
+
+                    if (!type) {
+                        report::compile::failure("FirstAttribute can only attach to a type");
+                        return false;
+                    }
+
+                    return true;
+                }
             };
 
             IFunction* func = nullptr;
             FirstAttribute r;
 
-            AttributeManager::instance->RegisterNativeData<FirstAttribute>("TrueAtt");
+            AttributeManager::instance->RegisterNativeData<FirstAttribute>("Core::TestAttribute");
         }
 
 
