@@ -38,16 +38,16 @@ namespace LEX
             return false;
         }
 
-#define HANDLE_OWNER_TYPE(mc_type)                                              \
-            template<>                                                          \
-            mc_type* AsOwner<mc_type>()                                         \
-            {                                                                   \
-                return reinterpret_cast<mc_type*>(AsType(CONCAT(k,mc_type)));   \
-            }                                                                   \
-            template<>                                                          \
-            bool IsOwner<mc_type>() const noexcept                              \
-            {                                                                   \
-                return IsType(CONCAT(k,mc_type));                               \
+#define HANDLE_OWNER_TYPE(mc_type)                                                                  \
+            template<>                                                                              \
+            mc_type* AsOwner<mc_type>()                                                             \
+            {                                                                                       \
+                return reinterpret_cast<mc_type*>(this ? AsType(CONCAT(k,mc_type)) : nullptr);      \
+            }                                                                                       \
+            template<>                                                                              \
+            bool IsOwner<mc_type>() const noexcept                                                  \
+            {                                                                                       \
+                return this ? IsType(CONCAT(k,mc_type) ) : false;                                   \
             }   
 
         HANDLE_OWNER_TYPE(Info)
