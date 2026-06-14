@@ -66,6 +66,12 @@ namespace LEX
 			return IsConvertibleTo(other, this, nullptr, ConversionFlag::IgnoreAccess);
 		}
 
+		bool IsDerivedFrom(const ITypeInfo* other) const override final
+		{
+			return GetConvertTo_Hierarchy(other, this, nullptr, ConversionFlag::IgnoreAccess);
+		}
+
+
 		//GetConvertTo
 		//GetConvertFrom
 

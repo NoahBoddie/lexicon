@@ -64,6 +64,8 @@ namespace LEX
 
 				virtual bool CanConvert(const ITypeInfo* other) const = 0;
 
+				virtual bool IsDerivedFrom(const ITypeInfo* other) const = 0;
+
 				virtual std::span<ITypeInfo*> GetTemplate() = 0;
 
 				virtual ObjectPolicy* GetObjectPolicy() const = 0;
