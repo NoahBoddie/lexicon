@@ -2022,11 +2022,11 @@ namespace LEX
 			}
 
 			//TODO: Allow interface index to 
-			static Record HandleInterfaceIndex(ParsingStream* stream, bool is_attribute)
+			static Record HandleInterfaceIndex(ParsingStream* stream)
 			{
 				Record index = ParsingStream::CreateExpression(stream->ConsumeType(TokenType::Identifier), SyntaxType::None);
 
-				if (!is_attribute) {
+				{
 					if (stream->SkipIfType(TokenType::Punctuation, "::") == true) {
 						if (stream->IsType(TokenType::Punctuation, "{") == true)
 						{
@@ -2093,7 +2093,8 @@ namespace LEX
 					case "intrinsic"_h:  //Intrinsic needs to push back a category name, and index.
 					case "external"_h:   //external needs to push back category name and index.
 						requires_body = false;
-						attach.EmplaceChild(HandleInterfaceIndex(stream, is_attribute));
+						if (!is_attribute)
+							attach.EmplaceChild(HandleInterfaceIndex(stream));
 						break;
 
 					default:

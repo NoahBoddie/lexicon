@@ -167,7 +167,7 @@ namespace LEX
 						if  constexpr (1)
 						{
 							//Handle error, I can't fucking be bothered.
-							std::string_view name = attach_data.GetFront().GetView();
+							std::string name = GetFullName();
 							
 							//I wish to make the return of this optional. True for success, false for failure, nullopt for defered
 							std::optional<bool> success = AttributeManager::instance->RequestNativeData(name, this);
