@@ -1868,6 +1868,8 @@ namespace LEX
 					{
 						Record& attribute = attributes.EmplaceChild(ParseModule::UseModule<IdentifierParser>(stream, nullptr));
 
+						//if (auto& tag = attribute.GetTag(); attribute.Ends)
+
 						Record args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None);
 
 						//TODO: this should be parse expression.

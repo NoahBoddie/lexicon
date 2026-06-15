@@ -231,6 +231,10 @@ namespace LEX
 			else {
 				report::compile::trace("type {} added to {}", name, GetName());
 				typeMap[name] = policy;
+
+
+				//if (policy->GetDataType() == DataType::Attribute && policy->GetName().ends_with("Attribute") == true) {}
+
 				DeclareParentTo(policy);
 			}
 
