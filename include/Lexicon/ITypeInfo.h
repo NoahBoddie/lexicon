@@ -31,6 +31,13 @@ namespace LEX
 	struct ObjectPolicy;
 	
 
+	enum struct ConvertType
+	{
+		Type,
+		Implicit,
+		Explicit,
+	};
+
 	namespace Version
 	{
 		namespace _1
@@ -61,10 +68,8 @@ namespace LEX
 				//*/
 
 				
+				virtual bool CanConvert(const ITypeInfo* other, ConvertType convert) const = 0;
 
-				virtual bool CanConvert(const ITypeInfo* other) const = 0;
-
-				virtual bool IsDerivedFrom(const ITypeInfo* other) const = 0;
 
 				virtual std::span<ITypeInfo*> GetTemplate() = 0;
 
@@ -103,6 +108,26 @@ namespace LEX
 		bool IsAttribute() const
 		{
 			return GetDataType() == DataType::Attribute;
+		}
+
+
+
+
+		
+		bool IsDerivedFrom(const ITypeInfo* other) const
+		{
+			return CanConvert(other, ConvertType::Type);
+		}
+	
+
+		bool CanConvertTo(const ITypeInfo* other) const
+		{
+			return CanConvert(other, ConvertType::Implicit);
+		}
+
+		bool CanCastTo(const ITypeInfo* other) const
+		{
+			return CanConvert(other, ConvertType::Explicit);
 		}
 	};
 

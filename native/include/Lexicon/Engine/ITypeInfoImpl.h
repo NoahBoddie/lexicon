@@ -61,16 +61,35 @@ namespace LEX
 		}
 
 
-		bool CanConvert(const ITypeInfo* other) const override final
-		{
-			return IsConvertibleTo(other, this, nullptr, ConversionFlag::IgnoreAccess);
-		}
 
-		bool IsDerivedFrom(const ITypeInfo* other) const override final
+		//TODO: Make this the only virtual version
+		bool CanConvert(const ITypeInfo* other, ConvertType type) const override final
 		{
-			return GetConvertTo_Hierarchy(other, this, nullptr, ConversionFlag::IgnoreAccess);
-		}
+			Conversion dummy;
 
+			Conversion* out;
+			
+			ConversionFlag flags = ConversionFlag::IgnoreAccess;
+
+			switch (type)
+			{
+				case ConvertType::Explicit:
+					flags |= ConversionFlag::Explicit;
+
+					[[fallthrough]];
+
+				case ConvertType::Implicit:
+					out = &dummy;
+					break;
+
+				case ConvertType::Type:
+					out = nullptr;
+			}	
+
+
+			return IsConvertibleTo(other, this, out, flags);
+		}
+		
 
 		//GetConvertTo
 		//GetConvertFrom
