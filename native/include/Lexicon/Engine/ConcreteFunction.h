@@ -11,7 +11,7 @@ namespace LEX
 	{
 	public:
 		DEFINE_COMPONENT_TYPE(ComponentType::ConcreteFunction)
-
+		DECL_IMPL_FUNC_ELEMENT;
 
 		ISpecializable* GetSpecializable() override { return nullptr; }
 
