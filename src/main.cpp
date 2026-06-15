@@ -3237,6 +3237,41 @@ namespace LEX::Test
         }
 
 
+        struct FormulaParam
+        {
+            FormulaParam(const std::string_view& path) : value{ path }
+            {
+
+            }
+
+            FormulaParam(TypeInfo* type) : value{ type }
+            {
+
+            }
+
+
+            TypeInfo* GetType(IScript* script)
+            {
+                if (script)
+                {
+                    switch (value.index())
+                    {
+
+                    case variant_index<decltype(value), std::string_view>():
+                        //This should be resolved.
+                        value = script->GetTypeFromPath(std::get<std::string_view>(value))->As<TypeInfo>();
+                        [[fallthrough]];
+                    case variant_index<decltype(value), TypeInfo*>():
+                        return std::get<TypeInfo*>(value);
+                    }
+                }
+
+                return nullptr;
+            }
+
+            std::variant<TypeInfo*, std::string_view> value;
+        };
+
         INITIALIZE()
         {
             struct FirstAttribute : public AttributeData
