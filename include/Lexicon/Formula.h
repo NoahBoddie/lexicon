@@ -37,16 +37,48 @@ namespace LEX
 
 	//Note that if it's a const pointer (like this), it will check if the to type is a pointer, otherwise it will just be a const.
 
+	struct FormulaParam
+	{
+		FormulaParam() = default;
+
+		FormulaParam(const std::string_view& path) : value{ path } {}
+		FormulaParam(const std::string& path) : value{ std::string_view{path} } {}
+
+		FormulaParam(const char* path) : FormulaParam{ std::string_view{path} } {}
+
+		FormulaParam(TypeInfo* type) : value{ type } {}
+
+		TypeInfo* GetType(IScript* script)
+		{
+			if (script)
+			{
+				switch (value.index())
+				{
+				case variant_index<decltype(value), std::string_view>():
+					value = script->GetTypeFromPath(std::get<std::string_view>(value))->As<TypeInfo>();
+					[[fallthrough]];
+				case variant_index<decltype(value), TypeInfo*>():
+					return std::get<TypeInfo*>(value);
+				}
+			}
+
+			return nullptr;
+		}
+
+		std::variant<TypeInfo*, std::string_view> value;
+	};
+
 
 	namespace detail
 	{
 		template <typename T1, typename T2>
 		concept same_as_extracted = std::same_as<std::remove_cvref_t<T1>, std::remove_cvref_t<T2>>;
 
+
 		//If it's a runtime type, it requires 2 strings, one for type, and the other for the name.
 		template <typename T>
 		using param_view_t = std::conditional_t<std::is_same_v<std::remove_cvref_t<T>, runtime_type>,
-			std::pair<std::string_view, std::string_view>, std::string_view>;
+			std::pair<FormulaParam, std::string_view>, std::string_view>;
 
 		template<typename T, typename To = Variable>
 		using remove_runtype_t = std::conditional_t<std::is_same_v<std::remove_cvref_t<T>, runtime_type>, inherit_qualifier_t<To, T>, T>;
@@ -59,17 +91,17 @@ namespace LEX
 
 		private:
 
-			static auto get_view(const auto& v, bool first) -> std::string_view {
+			static auto get_view(const auto& v) -> std::string_view {
 				if constexpr (std::is_same_v<std::remove_cvref_t<decltype(v)>, std::string_view>) {
 					return v;
 				}
 				else {
-					return first ? v.first : v.second;
+					return v.second;
 				}
 			}
 
 
-			static bool PrepSignature(SignatureBase& base, std::string_view ret_type, std::string_view tar_type, param_view_t<Args>... parameters, std::optional<IScript*>& from = std::nullopt)
+			static bool PrepSignature(SignatureBase& base, FormulaParam ret_type, FormulaParam tar_type, param_view_t<Args>... parameters, std::optional<IScript*>& from = std::nullopt)
 			{
 				bool processed = base.Fill<SignatureEnum::Result, R, T, Args...>();
 
@@ -82,12 +114,12 @@ namespace LEX
 					IScript* script = from && from.value() ? from.value() : ProjectManager::instance->GetShared()->GetCommons();
 
 					if constexpr (std::is_same_v<std::remove_cvref_t<R>, runtime_type>) {
-						processed = base.SignatureBase::result.policy = script->GetTypeFromPath(ret_type);
+						processed = base.SignatureBase::result.policy = ret_type.GetType(script);
 						if (!processed) return false;
 					}
 
 					if constexpr (std::is_same_v<std::remove_cvref_t<T>, runtime_type>) {
-						processed = base.SignatureBase::target.policy = script->GetTypeFromPath(tar_type);
+						processed = base.SignatureBase::target.policy = tar_type.GetType(script);
 						if (!processed) return false;
 					}
 					//use uses_runtime
@@ -104,7 +136,7 @@ namespace LEX
 						{
 							auto i = index++;
 							if constexpr (std::is_same_v<std::remove_cvref_t<Args>, runtime_type>) {
-								return params[i].policy = script->GetTypeFromPath(get_view(parameters, true));
+								return params[i].policy = parameters.first.GetType(script);
 							}
 							else {
 								return true;
@@ -125,7 +157,7 @@ namespace LEX
 
 				Handler self;
 
-				std::vector<std::string_view> params{ get_view(parameters, false)... };
+				std::vector<std::string_view> params{ get_view(parameters)... };
 
 				auto result = FormulaManager::instance->RequestFormula(base, params, routine, self, from, loc);
 
@@ -141,7 +173,7 @@ namespace LEX
 			{
 				Handler self;
 
-				std::vector<std::string_view> params{ get_view(parameters, false)... };
+				std::vector<std::string_view> params{ get_view(parameters)... };
 
 				auto result = FormulaManager::instance->RequestFormulaFromRecord(base, params, name, ast, self, from, loc);
 
@@ -154,7 +186,7 @@ namespace LEX
 #endif
 		protected:
 
-			static Handler CreateImpl(std::string_view ret_type, std::string_view tar_type, param_view_t<Args>... parameters,
+			static Handler CreateImpl(FormulaParam ret_type, FormulaParam tar_type, param_view_t<Args>... parameters,
 				std::string_view routine, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current())
 			{
@@ -171,7 +203,7 @@ namespace LEX
 
 #ifdef LEX_SOURCE
 
-			static Handler CreateImpl(std::string_view ret_type, std::string_view tar_type, param_view_t<Args>... parameters,
+			static Handler CreateImpl(FormulaParam ret_type, FormulaParam tar_type, param_view_t<Args>... parameters,
 				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current())
 			{
@@ -223,7 +255,7 @@ namespace LEX
 			using Base = FormulaBaseImpl<Handler, R, T, Args...>;
 			using Self = FormulaBase<Handler, R, T, Args...>;
 
-			static Handler Create(std::string_view return_type, param_view_t<Args>... parameters,
+			static Handler Create(FormulaParam return_type, param_view_t<Args>... parameters,
 				std::string_view routine, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current()
 			)
@@ -232,7 +264,7 @@ namespace LEX
 			}
 
 #ifdef LEX_SOURCE
-			static Handler Create(std::string_view return_type, param_view_t<Args>... parameters,
+			static Handler Create(FormulaParam return_type, param_view_t<Args>... parameters,
 				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current()
 			)
@@ -250,7 +282,7 @@ namespace LEX
 			using Base = FormulaBaseImpl<Handler, R, T, Args...>;
 			using Self = FormulaBase<Handler, R, T, Args...>;
 
-			static Handler Create(std::string_view target_type, param_view_t<Args>... parameters,
+			static Handler Create(FormulaParam target_type, param_view_t<Args>... parameters,
 				std::string_view routine, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current()
 			)
@@ -259,7 +291,7 @@ namespace LEX
 			}
 
 #ifdef LEX_SOURCE
-			static Handler Create(std::string_view target_type, param_view_t<Args>... parameters,
+			static Handler Create(FormulaParam target_type, param_view_t<Args>... parameters,
 				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current()
 			)
@@ -276,7 +308,7 @@ namespace LEX
 
 			using Base = FormulaBaseImpl<Handler, R, T, Args...>;
 			using Self = FormulaBase<Handler, R, T, Args...>;
-			static Handler Create(std::string_view return_type, std::string_view target_type, param_view_t<Args>... parameters,
+			static Handler Create(FormulaParam return_type, FormulaParam target_type, param_view_t<Args>... parameters,
 				std::string_view routine, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current()
 			)
@@ -285,7 +317,7 @@ namespace LEX
 			}
 
 #ifdef LEX_SOURCE
-			static Handler Create(std::string_view return_type, std::string_view target_type, param_view_t<Args>... parameters,
+			static Handler Create(FormulaParam return_type, FormulaParam target_type, param_view_t<Args>... parameters,
 				std::string_view name, SyntaxRecord& ast, std::optional<IScript*> from = std::nullopt,
 				const std::source_location& loc = std::source_location::current()
 			)
