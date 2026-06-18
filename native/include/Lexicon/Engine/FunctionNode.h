@@ -35,7 +35,7 @@ namespace LEX
 	public:
 		FunctionData* signature = nullptr;
 		FunctionBase* base = nullptr;
-
+		ISpecializable* special = nullptr;
 		Type _type = kInvalid;
 
 
@@ -69,6 +69,15 @@ namespace LEX
 
 
 			return function;
+		}
+
+		ISpecializable* GetSpecialization()
+		{
+			if (_type != kFunction)
+				return {};
+
+
+			return function ? function->GetSpecializable() : nullptr;
 		}
 
 		constexpr operator bool() const
