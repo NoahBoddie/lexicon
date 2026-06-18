@@ -28,6 +28,7 @@ namespace LEX
 		Literal,
 		Template,	//Stores an ITemplatePart
 		Routine,
+		Specializable,
 		Total,
 
 		

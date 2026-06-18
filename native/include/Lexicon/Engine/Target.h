@@ -30,7 +30,7 @@ namespace LEX
 
 
 	struct RoutineBase;
-
+	struct ISpecializable;
 	struct IGlobal;
 
 	struct Target
@@ -52,6 +52,7 @@ namespace LEX
 		constexpr Target(IFunction* arg) : func{ arg } {}
 		constexpr Target(Converter_ arg) : convert{ arg } {}
 		constexpr Target(ICallableUnit* arg) : call{ arg } {}
+		constexpr Target(ISpecializable* arg) : special{ arg } {}
 		constexpr Target(RoutineBase* arg) : routine{ arg } {}
 		constexpr Target(MemberPointer arg) : member{ arg } {}
 	
@@ -196,6 +197,13 @@ namespace LEX
 			return true;
 		}
 
+		template <>
+		bool Get<OperandType::Specializable, ISpecializable*>(ISpecializable*& out)
+		{
+			out = special;
+			return true;
+		}
+
 
 	public:
 		union
@@ -212,6 +220,7 @@ namespace LEX
 			IFunction* func;
 			Converter_ convert;
 			ICallableUnit* call;
+			ISpecializable* special;
 			RoutineBase* routine;
 			MemberPointer member;
 
