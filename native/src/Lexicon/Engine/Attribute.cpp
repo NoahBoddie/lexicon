@@ -91,7 +91,15 @@ namespace LEX
         }
 
         //Call something here involving the parent.
-        OnTargetValidated();
+        try
+        {
+            OnTargetValidated();
+        }
+        catch (CompileError& error)
+        {
+            return false;
+        }
+
 
         return true;
     }
