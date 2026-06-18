@@ -339,7 +339,9 @@ bool FunctionData::ResolveOverload(Overload& result, OverloadFlag& flags)
 	auto& call_args = result.implied;
 
 	//careful about this resize
-	//call_args.resize(parameters.size());
+	
+	if (auto count = GetArgCount(); count > call_args.size())
+		call_args.resize(count);
 
 
 	for (auto i = defaultIndex; i < call_args.size(); i++)
@@ -350,14 +352,13 @@ bool FunctionData::ResolveOverload(Overload& result, OverloadFlag& flags)
 			continue;
 		}
 
-		report::critical("Cant handle this yet.");
+		//report::critical("Cant handle this yet.");
 
 
 		auto& param = parameters[i];
 
 
-		RoutineBase* def_routine = nullptr;
-
+		RoutineBase* def_routine = param.defFunc.get();
 		entry.routine = def_routine;
 		entry.convertType = ConversionEnum::Exact;
 		entry.type = param.GetQualifiedType();

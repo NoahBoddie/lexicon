@@ -199,6 +199,7 @@ namespace LEX
                     vardIndex = GetArgCount();
                 }
 
+                
                 //auto& tag = node.FindChild("type")->GetFront().GetTag();
 
                 //ITypeInfo* policy = environment->TEMPSearchType(node.FindChild("type")->GetFront().GetTag());
@@ -212,6 +213,22 @@ namespace LEX
                 //auto& param = parameters.emplace_back(type, node.GetTag(), method + i++);
                 auto& param = parameters.emplace_back(type, node.GetTag(), GetParamCount());
                 
+                if (SyntaxRecord* def = node.FindChild(parse_strings::def_expression)) {
+                    if (vardIndex != -1) {
+                        report::compile::error("Variadic Arguments cannot have default parameters");
+                    }
+
+                    if (defaultIndex == -1) {
+                        defaultIndex = i;
+                    }
+
+                    param._flags |= ParameterFlag::Default;
+
+                }
+                else if (defaultIndex != -1) {
+                    report::compile::error("non-default parameters cannot be placed after default ones");
+                }
+
                 assert(param.GetType());
 
                 i++;
@@ -220,6 +237,33 @@ namespace LEX
             break;
         }
 
+        case LinkFlag::Constant:
+            if constexpr (1)
+            {
+                FunctionData tempData = FunctionData{};
+                tempData._name = _name;
+                tempData._returnType = GetReturnType();
+                //The idea with this will be that it slowly grows and grows as each parameter gets filled.
+                //IMPORTANT, JUST REMEMBER THAT DESPITE the ones it uses, it will have to send all parameters.
+                // sending selectively is quite difficult.
+
+                for (int64_t i = 0; SyntaxRecord& node : target.FindChild(parse_strings::parameters)->children())
+                {
+                    auto& param = parameters[i];
+
+                    if (SyntaxRecord* def = node.FindChild(parse_strings::def_expression)) {
+                        if (RoutineCompiler::Compile(param.ObtainRoutine(), def->GetFront(), &tempData, this, AsGenericElement()) == false){
+                            return LinkResult::Failure;
+                        }
+                    }
+                   
+
+                    i++;
+                }
+            }
+            
+
+            break;
         case LinkFlag::Definition:
         {
             if (GetBodyType() == FunctionBody::Routine) {
@@ -270,10 +314,17 @@ namespace LEX
     LinkFlag FunctionBase::GetLinkFlags() 
     {
         LinkFlag result = LinkFlag::Declaration;
+        SyntaxRecord* record = GetSyntaxTree();
 
-        if (SyntaxRecord* record = GetSyntaxTree(); record && record->FindChild(parse_strings::code)) {
-            result |= LinkFlag::Definition;
+        if (record) {
+            if (record->FindChild(parse_strings::code)) {
+                result |= LinkFlag::Definition;
+            }
+            if (record->FindChild(parse_strings::def_expression)) {
+                result |= LinkFlag::Constant;
+            }
         }
+        
 
         //TODO: Link final and see what happens.
        

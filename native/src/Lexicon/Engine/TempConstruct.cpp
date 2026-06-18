@@ -165,9 +165,34 @@ namespace LEX
 
 		//Directives-These will have to be moved
 
+		static void PushTemplate(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
+		{
+			ISpecializable* spec = a_lhs.Get<ISpecializable*>();
+
+			assert(spec);
+
+			spec = spec->ObtainSpecial(runtime);
+			
+			assert(spec);
+
+			ITemplatePart* part = spec->AsTemplatePart();
+			
+			assert(part);
+			
+			ITemplateBody* body  = part->TryResolve();
+			
+			assert(body);
+
+			runtime->PushAuxTemplate(body);
+		}
+
+
+
 		static void Call(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
 			Differ count;
+
+			bool reduce = true;
 
 			switch (instruct)
 			{
@@ -177,6 +202,10 @@ namespace LEX
 
 					if (a_rhs.type() == OperandType::Value) {
 						count = runtime->GetStackPointer(StackPointer::Argument) - count;
+					}
+					else {
+						reduce = count < 0;
+						count = std::abs(count);
 					}
 				}
 				break;
@@ -421,6 +450,7 @@ namespace LEX
 			//TODO: I'd like to have an input on the right hand side that can increase size if need be.
 
 
+			//a_rhs.Get<Index>();
 			//Pretty simple honestly. Increase by the amount.
 			runtime->AdjustStackPointer(StackPointer::Argument, a_lhs.GetDiffer(runtime));
 		}
@@ -1783,6 +1813,7 @@ namespace LEX
 						//needs an active target
 					}
 
+					//TODO: I don't think this is really proper, mainly because if the thing is generic but for now this will do
 					IFunction* func = self->GetSolution()->policy->FindConstructor(input, instructions);
 					auto base = func->GetAs<FunctionBase>();
 					node = FunctionNode{ base, base, func };
@@ -1802,6 +1833,8 @@ namespace LEX
 
 				//FunctionBase* func = info->Get();
 				FunctionData* func = node.GetSignature();
+
+				ISpecializable* spec = node.GetSpecialization();
 
 				if (!func) {
 					report::compile::error("No callable for info at '{}' detected.", target.GetTag());
@@ -1828,7 +1861,7 @@ namespace LEX
 
 				//alloc_size = instructions.implied.size() + has_tar;
 				alloc_size = std::max<size_t>(instructions.implied.size(), alloc_size);//TODO: If I ever use params this will have issues
-				alloc_size += instructions.statedEntries.size();
+				//alloc_size += instructions.statedEntries.size();//This shouldn't be needed.
 				alloc_size += has_tar;
 
 				auto& list = compiler->GetInstructionList();
@@ -1919,20 +1952,41 @@ namespace LEX
 
 				{
 					auto temp = compiler->ReadyNoRecord();
+
+					auto& implied = instructions.implied;
+
+					auto size = implied.size();
+
+					auto rec_size = arg_record->size();
+
+					if (operations.size() < size)
+						operations.resize(size);
+					
+					if (args.size() < size)
+						args.resize(size);
+
+
 					for (size_t i = 0; i < args.size(); i++)
 					{
 						//auto& o_entry = instructions.implied[i];
-						auto& o_entry = instructions.GetImplied(i, args[i].second);
-						auto& arg = args[i].first;
-						auto& ops = operations[i];
-						auto& record = arg_record->GetChild(i);
-						//list.append_range(std::move(ops));
+						OverloadEntry& entry = instructions.GetImplied(i, args[i].second);
+						Solution& arg = args[i].first;
+						InstructList& ops = operations[i];
+						SyntaxRecord& record =  i >= rec_size ? *arg_record : arg_record->GetChild(i);//Pains me but hands are tied.
 
 						auto index = i + has_tar;
 
-						//This should basically already be successful, no real need for checks
-						//CompUtil::HandleConversion(compiler, o_entry.convert, arg, o_entry.type, o_entry.convertType, record, Register::Right);
-						//compiler->AppendInstructions(record, CompUtil::MutateLoad(arg, Operand{ alloc_size - index, OperandType::Argument }, o_entry.type.IsReference()));
+						if (entry.routine) {
+							//If given type is generic, we 
+							if (entry.type->IsResolved() == false) {
+								assert(spec);
+								ops.push_back(Instruction{InstructType::PushTemplate, Operand{spec, OperandType::Specializable} });
+							}
+							ops.push_back(Instruction{ InstructType::FastCall, Register::Right, Operand{entry.routine, OperandType::Routine} });
+							arg = Solution{ entry.type, Operand {Register::Right, OperandType::Register} };
+
+						}
+
 
 						if (arg.IsVariadic() == true)
 							early_alloc(index);
@@ -1943,10 +1997,10 @@ namespace LEX
 						CompUtil::CheckFastLoad(compiler, to, param, is_fast);
 
 
-						CompUtil::LoadParameter(compiler, record, arg, full_size - index, o_entry.type.IsReference(), ops, param, is_fast,
+						CompUtil::LoadParameter(compiler, record, arg, full_size - index, entry.type.IsReference(), ops, param, is_fast,
 							[&](Solution from) -> Solution
 							{
-								CompUtil::HandleConversion(compiler, o_entry.convert, from, o_entry.type, o_entry.convertType, record, Register::Right);
+								CompUtil::HandleConversion(compiler, entry.convert, from, entry.type, entry.convertType, record, Register::Right);
 
 								return from;
 							});
@@ -3176,6 +3230,7 @@ namespace LEX
 			instructList[InstructType::DropStackN] = InstructWorkShop::DropStack;
 			instructList[InstructType::ExpressData] = InstructWorkShop::ExpressData;
 			instructList[InstructType::ExpressConstant] = InstructWorkShop::ExpressConstant;
+			instructList[InstructType::PushTemplate] = InstructWorkShop::PushTemplate;
 
 
 			instructList[InstructType::Addition] = InstructWorkShop::BinaryMath<std::plus<>, false>;

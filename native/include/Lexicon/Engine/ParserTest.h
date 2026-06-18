@@ -1243,7 +1243,7 @@ namespace LEX
 
 				size_t post = 0;
 				auto peek1 = stream->peek();
-
+				bool has_default = false;
 				auto _delegate = [&](ParsingStream* stream, Record*) -> Record {
 					//THIS version checks for the extension function syntax which changes what a static function extends. But it's rough, because I actually want
 					// the internal syntax to exist without having to do "first_arg" all over the place.
@@ -1288,7 +1288,8 @@ namespace LEX
 
 					//Same as the bit for variable. if I can merge it, I would.
 					if (stream->SkipIfType(TokenType::Operator, "=") == true) {
-						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::extends, SyntaxType::None, { stream->ParseSyntax() }));
+						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::def_expression, SyntaxType::None, { stream->ParseSyntax() }));
+						has_default = true;
 					}
 					else if (stream->IsType(TokenType::Punctuation, "...") == true)
 					{
@@ -1299,12 +1300,19 @@ namespace LEX
 					return result;
 				};
 
+
+
 				//I realize all this ain't super needed. To account for extension, all I need to do is remove the first entry if it's named this, HERE,
 				// and copy type, change it's name to extends, place it on the target. and Pop it out. Before that, maybe check for other thingy mabobs.
 				// I also note that the stream module is VERY hands on, so I should use that to sort out which is using this or not.
 				// I can just have the lambda check for each thing named this after the first entry, and then cull it.
 				//target->EmplaceChildren(Record{ "params", SyntaxType::Total, stream->Delimited("(", ")", ",", ParseModule::UseModule<ParameterParser>) });
 				target->EmplaceChildren(Record{ parse_strings::parameters, SyntaxType::None, stream->Delimited("(", ")", ",", _delegate) });
+
+
+				if (has_default) {
+					target->EmplaceChild(Record{ parse_strings::def_expression, SyntaxType::None });
+				}
 
 				{
 					//Doesn't matter if it's successful or not, just needs to append if there is one. 
@@ -1381,6 +1389,8 @@ namespace LEX
 
 				result.GetTag() = parse_strings::constructor;
 
+				bool has_default = false;
+
 				auto _delegate = [&](ParsingStream* stream, Record*) -> Record {
 					//ParseModule::TryModule<Identifier
 
@@ -1403,7 +1413,9 @@ namespace LEX
 
 					//Same as the bit for variable. if I can merge it, I would.
 					if (stream->SkipIfType(TokenType::Operator, "=") == true) {
-						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::extends, SyntaxType::None, { stream->ParseSyntax() }));
+						result.EmplaceChild(ParsingStream::CreateExpression(parse_strings::def_expression, SyntaxType::None, { stream->ParseSyntax() }));
+						has_default = true;
+
 					}
 					else if (stream->IsType(TokenType::Punctuation, "...") == true)
 					{
@@ -1420,6 +1432,12 @@ namespace LEX
 				// I can just have the lambda check for each thing named this after the first entry, and then cull it.
 				//target->EmplaceChildren(Record{ "params", SyntaxType::Total, stream->Delimited("(", ")", ",", ParseModule::UseModule<ParameterParser>) });
 				result.EmplaceChildren(Record{ parse_strings::parameters, SyntaxType::None, stream->Delimited("(", ")", ",", _delegate) });
+
+
+				if (has_default) {
+					target->EmplaceChild(Record{ parse_strings::def_expression, SyntaxType::None });
+				}
+
 
 				{
 					//Unlike function this doesn't have any functions

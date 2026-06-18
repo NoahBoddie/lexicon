@@ -88,6 +88,7 @@ namespace LEX
 		DropStackN,//This will drop if positive instead of if negative.
 		JumpStack,
 		PauseBreak,
+		PushTemplate,
 		Return,
 		//ReturnScoped,//DEPRECATED//exactly the same as return, but helps specify that it's scoped and may be skipped.
 		Total,

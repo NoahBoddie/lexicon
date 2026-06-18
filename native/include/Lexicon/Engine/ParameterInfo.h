@@ -74,6 +74,19 @@ namespace LEX
 			return _flags & ParameterFlag::Default || _flags & ParameterFlag::Params;
 		}
 
+		bool IsDefault() const noexcept
+		{
+			return _flags & ParameterFlag::Default;
+		}
+
+		RoutineBase& ObtainRoutine()
+		{
+			if (!defFunc) {
+				defFunc = std::make_unique<RoutineBase>();
+			}
+
+			return *defFunc;
+		}
 
 
 		ParameterFlag _flags{};
