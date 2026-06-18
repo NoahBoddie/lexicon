@@ -361,7 +361,7 @@ namespace LEX
 		}
 
 
-		size_t AdjustStackPointer(StackPointer type, int64_t step)
+		size_t AdjustStackPointer(StackPointer type, int64_t step, bool fill = false)
 		{
 
 			//Clear never fires on this worth a worry.
@@ -398,14 +398,22 @@ namespace LEX
 				//}
 				//return _asp += step;
 
-				//TODO: If we use variadic
+				//Note, this is likely no longer needed
 				if (1 && _argStack.size() <= _asp + step) {
 					_argStack.resize(_asp + step);
 				}
 
-				for (auto i = _asp + step; i < _asp; i++) {
-					//_argStack[i]->Clear();
-					_argStack[i].Clear();
+				if (step < 0) {
+					for (auto i = _asp + step; i < _asp; i++) {
+						//_argStack[i]->Clear();
+						_argStack[i].Clear();
+					}
+				}
+				else if (fill) {
+					for (auto i = _asp, size = _asp + step; i < size; i++) {
+						//_argStack[i]->Clear();
+						_argStack[i] = Void{};
+					}
 				}
 				return _asp += step;
 
