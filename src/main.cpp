@@ -678,6 +678,8 @@ void TestingQualis(const int * const test)
     decltype(test) cop{};
     inherit_qualifier<bool, decltype(test)>::type it{};
 }
+
+
 void TestingDumbness()
 {
     return;
@@ -3109,7 +3111,7 @@ namespace LEX::Test
 
             void ParameterTest()
             {
-                Parameter<"int"> test = 1;
+                LEX::Util::Parameter<"int"> test = 1;
 
 
 
@@ -3236,9 +3238,11 @@ namespace LEX::Test
             base->As<Component>();
         }
 
-
+#ifdef REENABLE_THIS
         struct FormulaParam
         {
+            FormulaParam() = default;
+
             FormulaParam(const std::string_view& path) : value{ path }
             {
 
@@ -3256,9 +3260,7 @@ namespace LEX::Test
                 {
                     switch (value.index())
                     {
-
                     case variant_index<decltype(value), std::string_view>():
-                        //This should be resolved.
                         value = script->GetTypeFromPath(std::get<std::string_view>(value))->As<TypeInfo>();
                         [[fallthrough]];
                     case variant_index<decltype(value), TypeInfo*>():
@@ -3271,6 +3273,9 @@ namespace LEX::Test
 
             std::variant<TypeInfo*, std::string_view> value;
         };
+#endif
+
+
 
         INITIALIZE()
         {

@@ -23,6 +23,7 @@ namespace LEX
 	
 	ISpecializable* TemplateType::GetSpecializable() 
 	{
+		//TODO: TemplateType should be specializable
 		return _owner; 
 	}
 
