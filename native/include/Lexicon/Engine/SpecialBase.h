@@ -50,6 +50,11 @@ namespace LEX
 		//I don't wanna do this but there's no dynamic cast without polymorphism so +8
 
 
+		ITemplatePart* AsTemplatePart() override
+		{
+			return this;
+		}
+
 		GenericBase* GetGeneric() const override
 		{
 			return _base;

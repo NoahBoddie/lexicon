@@ -28,7 +28,9 @@ namespace LEX
 
 		//This should just be obtain special. SpecialBase is both part and body
 		//virtual SpecialBase* ObtainBody(ITemplateBody* args) = 0;
-		virtual SpecialBase* ObtainSpecial(ITemplatePart* args) = 0;
+		virtual ISpecializable* ObtainSpecial(ITemplatePart* args) = 0;
+
+		virtual ITemplatePart* AsTemplatePart() = 0;
 
 		virtual bool TemplateMatches(ITemplatePart* args) = 0;
 

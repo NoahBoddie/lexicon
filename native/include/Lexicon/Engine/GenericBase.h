@@ -32,9 +32,13 @@ namespace LEX
 			return const_cast<GenericBase*>(this);
 		}
 
+		ITemplatePart* AsTemplatePart() override
+		{
+			return this;
+		}
 
 
-		GenericBase* GetClient() const override { return GetGeneric(); }
+		GenericBase* GetClient() const override { return const_cast<GenericBase*>(this); }
 
 
 		size_t GetSize() const override

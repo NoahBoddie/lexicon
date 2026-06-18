@@ -40,7 +40,7 @@ namespace LEX
 			return _self;
 		}
 
-		ISpecializable* GetSpecializable() override { return GetGeneric(); }
+		ISpecializable* GetSpecializable() override { return this; }
 
 		bool IsResolved() const override
 		{
