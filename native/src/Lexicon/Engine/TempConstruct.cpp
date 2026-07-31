@@ -1725,6 +1725,7 @@ namespace LEX
 				//TargetObject* self = compiler->GetTarget();
 
 				std::vector<std::pair<Solution, size_t>> args;
+				//std::vector<std::pair<Solution, size_t>> args;
 				std::vector<std::vector<Instruction>> operations;
 
 				int64_t alloc_size = arg_record->size();
@@ -1749,8 +1750,21 @@ namespace LEX
 				// will NOT increment the index, instead storing the record for later use.
 				//Additionally, I use get arg count so that the index being pushed
 				//*Turns out, the I was not required.
-				for (size_t i = 0; auto& arg : arg_record->children())
+
+
+				if constexpr(0)
 				{
+
+					//if (arg.GetSyntax().type == SyntaxType::StatedDefault) {
+						//stated.emplace(std::make_pair(arg.))
+					//}
+
+
+				}
+
+				for (size_t i = 0; SyntaxRecord& arg : arg_record->children())
+				{
+
 
 					compiler->DelayArgDecrement();
 

@@ -1769,6 +1769,27 @@ namespace LEX
 
 
 	
+
+		inline Record ParseArgument(ParsingStream* stream)
+		{
+			Record result = stream->ParseSyntax();
+
+			if (result.SYNTAX().type == SyntaxType::Field && stream->SkipIfType(TokenType::Punctuation, ":") == true)
+			{
+				if (result.size() != 0) {
+					stream->croak("Expected scope-less identifier");
+				}
+
+				result.SYNTAX().type = SyntaxType::StatedDefault;
+
+				result.EmplaceChild(stream->ParseSyntax());
+
+			}
+
+			return result;
+		}
+
+
 		
 		struct CallParser : public AutoParser<CallParser>
 		{
@@ -1784,7 +1805,7 @@ namespace LEX
 
 				//I believe this makes header the contained object, rather than creating an expresion. Also changed to use the version that takes functions with just 1 member.
 				//target->EmplaceChildren(Record{ "args", ExpressionType::Header, stream->Delimited("(", ")", ",", [=](auto, auto) { return stream->ParseSyntax(); }) });
-				auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("(", ")", ",", &ParsingStream::ParseSyntax));
+				auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("(", ")", ",", ParseArgument));
 
 				target->EmplaceChild(std::move(args));
 
@@ -1849,7 +1870,7 @@ namespace LEX
 				
 				//CURRENTLY, Ctors don't except args.
 				if  constexpr (1) {
-					auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("{", "}", ",", &ParsingStream::ParseSyntax));
+					auto args = ParsingStream::CreateExpression(parse_strings::args, SyntaxType::None, stream->Delimited("{", "}", ",", ParseArgument));
 					result.EmplaceChildren(std::move(args));
 				}
 				else {
@@ -1892,7 +1913,7 @@ namespace LEX
 
 						//TODO: this should be parse expression.
 						if (stream->IsType(TokenType::Punctuation, "(") == true)
-							args.EmplaceChildren(stream->Delimited("(", ")", ",", &ParsingStream::ParseSyntax));
+							args.EmplaceChildren(stream->Delimited("(", ")", ",", ParseArgument));
 
 						attribute.EmplaceChild(args);
 

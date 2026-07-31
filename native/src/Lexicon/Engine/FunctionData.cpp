@@ -180,7 +180,7 @@ bool FunctionData::CanMatch(const QualifiedType& target, size_t callArgs, size_t
 
 	if (flags & OverloadFlag::StatesArgument && defaultIndex == -1)// || tempArgs.second
 	{
-		logger::trace("uses optionals");
+		logger::trace("uses optionals with no default");
 		return false;
 	}
 

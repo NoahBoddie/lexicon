@@ -81,6 +81,8 @@ namespace LEX
 		Header,
 		Disposable,
 		Identifier,
+		StatedDefault,
+
 		Declare,
 		Requirement,
 		//Relationship,
@@ -91,7 +93,7 @@ namespace LEX
 		Subdirectory,
 		Subproject,
 
-		Prefunc,
+		Prefunc,//This feels like a directive.
 
 		//Aliases- Short hand that makes my job a bit easier.
 		None = Total,  //No type. Purely name.
