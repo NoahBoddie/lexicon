@@ -100,7 +100,7 @@ namespace LEX
             
             if (auto def = target.FindChild(parse_strings::def_expression); def)
             {
-                _init = std::make_unique<RoutineBase>();
+                _init = std::make_unique<Routine>();
 
 
                 if (RoutineCompiler::Compile(*_init, def->GetFront(), &tempData, this, AsGenericElement()) == false)

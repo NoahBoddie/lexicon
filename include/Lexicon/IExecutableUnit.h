@@ -15,7 +15,7 @@ namespace LEX
 	
 	//TODO: STOP USING RUNTIME HERE, PLEASE use IRuntime.
 
-	struct ICallableUnit
+	struct IExecutableUnit
 	{
 		//This is where all the things about something that can simply just be called goes.
 
@@ -26,7 +26,7 @@ namespace LEX
 		//This is the very most basic function. There should be additional conveniences
 		//virtual void Execute(RuntimeVariable& ret, std::vector<RuntimeVariable> args) = 0;
 
-		//TODO: I would like to split  ICallableUnit's Call and Execute more finely.
+		//TODO: I would like to split  IExecutableUnit's Call and Execute more finely.
 		// RawCall- basically no fluff. This is what we use internally, others cant use it because it lacks varification.
 		// Call- This is the normal call that people would use. This has to kinda be virtual cause I want it to be the thing that
 		//  throws application errors when need be.

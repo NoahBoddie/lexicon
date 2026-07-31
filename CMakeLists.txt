@@ -99,7 +99,7 @@ set(headers
 	include/Lexicon/Dispatcher.h
 	include/Lexicon/Exception.h
 	
-	include/Lexicon/ICallableUnit.h
+	"include/Lexicon/IExecutableUnit.h"
 	"include/Lexicon/IFunction.h"
 	
 	
@@ -165,7 +165,7 @@ set(sources
 	src/Lexicon/Dispatcher.cpp
 
 	
-	src/Lexicon/ICallableUnit.cpp
+	"src/Lexicon/IExecutableUnit.cpp"
 	"src/Lexicon/ITypeInfo.cpp"
 	src/Lexicon/ObjectPolicy.cpp
 	src/Lexicon/ObjectPolicyHandle.cpp
@@ -241,7 +241,7 @@ if(LEXICON_SOURCE)
 		native/include/Lexicon/Engine/PolicyData.h
 		native/include/Lexicon/Engine/ProcessContext.h
 		native/include/Lexicon/Engine/Register.h
-		native/include/Lexicon/Engine/RoutineBase.h
+		"native/include/Lexicon/Engine/Routine.h"
 		native/include/Lexicon/Engine/RoutineCompiler.h
 		native/include/Lexicon/Engine/Scope.h
 		native/include/Lexicon/Engine/Signature.h

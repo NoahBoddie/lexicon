@@ -5,7 +5,7 @@
 
 #include "Solution.h"
 #include "Instruction.h"
-#include "RoutineBase.h"
+#include "Routine.h"
 
 #include "parse_strings.h"
 
@@ -762,7 +762,7 @@ namespace LEX
 
 		//I would like to remove environment from play, and replace it with just the element being given.
 		Element* _element = nullptr;
-		//ICallableUnit* routine = nullptr;
+		//IExecutableUnit* routine = nullptr;
 
 		//I need to figure out what exactly this is, I may need more places to hold records, in the event that I'm not compiling a function, but like a parameter or something.
 		SyntaxRecord& funcRecord;
@@ -1099,7 +1099,7 @@ namespace LEX
 		void CompileBlock(SyntaxRecord& data, ScopeType type);
 
 
-		bool CompileRoutine(RoutineBase& routine);
+		bool CompileRoutine(Routine& routine);
 
 
 		//RoutineCompiler(SyntaxRecord& ast, FunctionData* owner = nullptr) : ExpressionCompiler{ast, owner }{}
@@ -1108,17 +1108,17 @@ namespace LEX
 		// additional. FunctionData can hold its own record.
 		
 		
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionBase* owner)
+		static bool Compile(Routine& routine, SyntaxRecord& ast, FunctionBase* owner)
 		{
 			return Compile(routine, ast, owner, owner, owner->AsGenericElement(), owner->GetName());
 		}
 		
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, FunctionData* owner, Element* elem)
+		static bool Compile(Routine& routine, SyntaxRecord& ast, FunctionData* owner, Element* elem)
 		{
 			return Compile(routine, ast, owner, elem, nullptr, owner->name());
 		}
 		
-		static bool Compile(RoutineBase& routine, SyntaxRecord& ast, BasicCallableData* owner, Element* elem, GenericBase* gen, std::string_view name = parse_strings::no_name)
+		static bool Compile(Routine& routine, SyntaxRecord& ast, BasicCallableData* owner, Element* elem, GenericBase* gen, std::string_view name = parse_strings::no_name)
 		{
 			report _{ IssueType::Compile };
 			RoutineCompiler compiler{ ast, owner, elem, gen, name };

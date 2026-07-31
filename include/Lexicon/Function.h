@@ -4,11 +4,11 @@
 
 
 
-#include "ICallableUnit.h"
+#include "IExecutableUnit.h"
 
 namespace LEX
 {
-	struct RoutineBase;
+	struct Routine;
 	struct ITemplateBody;
 	struct TypeInfo;
 
@@ -28,7 +28,7 @@ namespace LEX
 	
 
 
-	struct __declspec(novtable) IMPL_VERSION_DERIVES(FunctionAbstract, Function, IFunction), public ICallableUnit
+	struct __declspec(novtable) IMPL_VERSION_DERIVES(FunctionAbstract, Function, IFunction), public IExecutableUnit
 	{
 		DEFINE_COMPONENT_OFFSET(ComponentType::Function)
 	public:

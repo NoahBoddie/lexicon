@@ -10,7 +10,7 @@
 
 namespace LEX
 {
-	struct ICallableUnit;
+	struct IExecutableUnit;
 
 	
 	struct GlobalBase : public SecondaryElement, public GlobalData, private DestructibleVarInfo, public AttributeHandler

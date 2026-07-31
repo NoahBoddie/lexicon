@@ -39,7 +39,7 @@
 #include "Lexicon/Engine/LiteralManager.h"
 #include "Lexicon/Engine/Scope.h"
 #include "Lexicon/Engine/Solution.h"
-#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Routine.h"
 #include "Lexicon/Engine/Operation.h"
 #include "Lexicon/Engine/OperandType.h"
 #include "Lexicon/Engine/Target.h"
@@ -252,7 +252,7 @@ namespace LEX
 			}
 		}
 
-		inline void InlineRoutine(RoutineCompiler* compiler, RoutineBase& routine)
+		inline void InlineRoutine(RoutineCompiler* compiler, Routine& routine)
 		{
 			//compiler->ModParamCount(routine.argCapacity);
 			//compiler->

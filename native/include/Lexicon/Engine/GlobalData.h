@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Routine.h"
 #include "Lexicon/Engine/Declaration.h"
 
 
@@ -22,7 +22,7 @@ namespace LEX
 
 		//This is the initialization for the function. Should be tied to a function called reset that can be used on
 		// globals.
-		std::unique_ptr<RoutineBase> _init;
+		std::unique_ptr<Routine> _init;
 
 	};
 

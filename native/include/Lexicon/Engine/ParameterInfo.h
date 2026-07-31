@@ -4,7 +4,7 @@
 #include "LocalInfo.h"
 
 //*src
-#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Routine.h"
 
 namespace LEX
 {
@@ -54,7 +54,7 @@ namespace LEX
 	protected:
 		std::string _name;
 		ParameterFlag _flags{};
-		std::unique_ptr<RoutineBase> defFunc{};
+		std::unique_ptr<Routine> defFunc{};
 	};
 #endif
 	struct ParameterInfo : public LocalInfo
@@ -79,10 +79,10 @@ namespace LEX
 			return _flags & ParameterFlag::Default;
 		}
 
-		RoutineBase& ObtainRoutine()
+		Routine& ObtainRoutine()
 		{
 			if (!defFunc) {
-				defFunc = std::make_unique<RoutineBase>();
+				defFunc = std::make_unique<Routine>();
 			}
 
 			return *defFunc;
@@ -90,7 +90,7 @@ namespace LEX
 
 
 		ParameterFlag _flags{};
-		std::unique_ptr<RoutineBase> defFunc{};
+		std::unique_ptr<Routine> defFunc{};
 	};
 
 }

@@ -10,7 +10,7 @@ namespace LEX
 
 	struct IHierarchyTree;
 
-	struct RoutineBase;
+	struct Routine;
 
 	struct OverloadCode
 	{
@@ -42,7 +42,7 @@ namespace LEX
 		size_t index;//The guide of where to put the given entries routine information.
 
 		SyntaxRecord* source = nullptr;
-		RoutineBase* routine = nullptr;
+		Routine* routine = nullptr;
 
 
 		QualifiedType Sanitize(const QualifiedType& type)

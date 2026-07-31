@@ -113,17 +113,17 @@ namespace LEX
 
 
 	//Needs to be named RoutineData, as there is no routine class to derive from this.
-	struct RoutineBase : public RecordHolder
+	struct Routine : public RecordHolder
 	{
 		//These are the base most elements of a routine. Though, still can't do shit by itself. Needs a callable unit to organize it.
 		// Think of this as C++ like instructions, with nothing else to tell you how any of it is used.
 
 
-		RoutineBase() = default;
+		Routine() = default;
 
 
 		//Doesn't actually need to take vector could be list.
-		RoutineBase(std::vector<Instruction>&& op, const RecordList& recs, uint32_t var, uint32_t arg, uint32_t param, RoutineFlag flag = RoutineFlag::None) :
+		Routine(std::vector<Instruction>&& op, const RecordList& recs, uint32_t var, uint32_t arg, uint32_t param, RoutineFlag flag = RoutineFlag::None) :
 			instructions{ std::forward<std::vector<Instruction>>(op) }
 			, varCapacity{ var }
 			, argCapacity{ arg }
@@ -155,7 +155,7 @@ namespace LEX
 		}
 
 
-		void Set(const RoutineBase& other)
+		void Set(const Routine& other)
 		{
 			auto hold1 = file;
 			auto hold2 = name;

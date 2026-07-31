@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexicon/Variable.h"
-#include "RoutineBase.h"
+#include "Routine.h"
 #include "ParameterInfo.h"
 //Should have parameterinfos?
 
@@ -52,7 +52,7 @@ namespace LEX
 		std::vector<ParameterInfo> parameters;
 	public:
 
-		RoutineBase _routine;  //actually needs to be a pointer
+		Routine _routine;  //actually needs to be a pointer
 		uint32_t vardIndex = (uint32_t)-1;
 		uint32_t defaultIndex = (uint32_t)-1;
 
@@ -69,7 +69,7 @@ namespace LEX
 		
 
 		
-		RoutineBase* GetRoutine()
+		Routine* GetRoutine()
 		{
 			//This plans to be a pointer later, as this will end up just being
 			return &_routine;
@@ -233,7 +233,7 @@ namespace LEX
 
 		//These are FunctionData: Functions, GenericFunctions, and Formulas.
 		// Yes, formulas are function data. I thought to make CallableUnit handle the setting of things,
-		// but I realized that I want ICallableUnit to be an information and invoking interface, not one made
+		// but I realized that I want IExecutableUnit to be an information and invoking interface, not one made
 		// for setting features or flags.
 
 		std::string _name;
@@ -253,7 +253,7 @@ namespace LEX
 		//formulas won't have defaults, they don't have names, and they don't have procedures (such would defy the point of them.
 
 
-		RoutineBase* GetRoutine()
+		Routine* GetRoutine()
 		{
 			//This plans to be a pointer later, as this will end up just being 
 			return &_routine;
@@ -369,7 +369,7 @@ namespace LEX
 		union
 		{
 			intptr_t raw = 0;
-			RoutineBase* _routine;
+			Routine* _routine;
 			Procedure _procedure;
 		};
 
@@ -516,10 +516,10 @@ namespace LEX
 
 
 	protected:
-		RoutineBase* ObtainRoutine()
+		Routine* ObtainRoutine()
 		{
 			if (!_routine) {
-				_routine = new RoutineBase;
+				_routine = new Routine;
 			}
 
 			return _routine;
@@ -551,7 +551,7 @@ namespace LEX
 				delete _routine;
 		}
 
-		RoutineBase& GetRoutine()
+		Routine& GetRoutine()
 		{
 			//This plans to be a pointer later, as this will end up just being
 			return *_routine;
@@ -626,7 +626,7 @@ namespace LEX
 		}
 
 
-		RoutineBase* GetRoutine()
+		Routine* GetRoutine()
 		{
 			//This plans to be a pointer later, as this will end up just being 
 			return !HasProcedure() ? _routine : nullptr;

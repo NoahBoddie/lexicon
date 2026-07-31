@@ -258,7 +258,7 @@ namespace LEX
 				case OperandType::Routine:
 					if constexpr (1)
 					{
-						RoutineBase* routine = a_lhs.Get<RoutineBase*>();
+						Routine* routine = a_lhs.Get<Routine*>();
 						Runtime inlined_runtime{ *routine, nullptr, args, runtime, runtime->PopAuxTemplate() };
 						ret = inlined_runtime.Run();
 					}
@@ -300,7 +300,7 @@ namespace LEX
 		static void Convert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
 
-			ICallableUnit* func = nullptr;
+			IExecutableUnit* func = nullptr;
 			
 			//For Convert, once when I start using spans, please put it in a single sized array.Just to save space and to not have to allocate.
 			//std::vector<RuntimeVariable> from { a_rhs.GetVariable(runtime) };
@@ -327,7 +327,7 @@ namespace LEX
 			
 				case OperandType::Callable:
 				{
-					func = a_lhs.Get<ICallableUnit*>();
+					func = a_lhs.Get<IExecutableUnit*>();
 					
 				}
 				break;
@@ -381,7 +381,7 @@ namespace LEX
 		static void AssertConvert(RuntimeVariable& ret, Operand a_lhs, Operand a_rhs, InstructType instruct, Runtime* runtime)
 		{
 
-			ICallableUnit* func = nullptr;
+			IExecutableUnit* func = nullptr;
 
 			//For Convert, once when I start using spans, please put it in a single sized array.Just to save space and to not have to allocate.
 			std::vector<RuntimeVariable> from{ a_rhs.GetVariable(runtime) };
@@ -2831,7 +2831,7 @@ namespace LEX
 
 
 			template<ConvertFunc Func>
-			struct Convert final : public ICallableUnit
+			struct Convert final : public IExecutableUnit
 			{
 				using Self = Convert<Func>;
 
@@ -2869,7 +2869,7 @@ namespace LEX
 
 
 
-			//struct NumberConvert : public ICallableUnit
+			//struct NumberConvert : public IExecutableUnit
 
 
 			std::array<Converter_, Number::Settings::length> convertMap;

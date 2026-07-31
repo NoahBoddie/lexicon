@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/ICallableUnit.h"
+#include "Lexicon/IExecutableUnit.h"
 #include "Lexicon/RuntimeVariable.h"
 
 namespace LEX
@@ -10,7 +10,7 @@ namespace LEX
 	using ConvertFunc = RuntimeVariable(*)(RuntimeVariable);
 	
 	template<ConvertFunc Func>
-	struct Convert final : public ICallableUnit
+	struct Convert final : public IExecutableUnit
 	{
 		using Self = Convert<Func>;
 

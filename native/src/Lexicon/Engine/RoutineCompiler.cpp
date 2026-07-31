@@ -6,7 +6,7 @@
 #include "Lexicon/Engine/SyntaxType.h"
 #include "Lexicon/Engine/Solution.h"
 #include "Lexicon/Engine/Instruction.h"
-#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Routine.h"
 
 //*src
 #include "Lexicon/Engine/Scope.h"
@@ -98,7 +98,7 @@ namespace LEX
 
 
 
-	bool RoutineCompiler::CompileRoutine(RoutineBase& routine)
+	bool RoutineCompiler::CompileRoutine(Routine& routine)
 	{
 		//SO I would very much like to removed the excess use of scope here. The FunctionData is here for a reason, 
 		// pull the parameter info please. It's a local too, so it works damn it.
@@ -250,7 +250,7 @@ namespace LEX
 
 			operations.shrink_to_fit();
 			
-			routine.Set(RoutineBase{std::move(operations), _instructRecords, varCount[1], argCount[1], paramCount, routineFlags });
+			routine.Set(Routine{std::move(operations), _instructRecords, varCount[1], argCount[1], paramCount, routineFlags });
 			return _success;
 		}
 		catch (CompileError& error)

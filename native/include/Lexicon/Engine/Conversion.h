@@ -6,7 +6,7 @@
 namespace LEX
 {
 	struct IFunction;
-	struct ICallableUnit;
+	struct IExecutableUnit;
 
 	struct QualifiedType;
 

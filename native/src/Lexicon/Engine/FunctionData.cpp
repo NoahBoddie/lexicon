@@ -358,7 +358,7 @@ bool FunctionData::ResolveOverload(Overload& result, OverloadFlag& flags)
 		auto& param = parameters[i];
 
 
-		RoutineBase* def_routine = param.defFunc.get();
+		Routine* def_routine = param.defFunc.get();
 		entry.routine = def_routine;
 		entry.convertType = ConversionEnum::Exact;
 		entry.type = param.GetQualifiedType();

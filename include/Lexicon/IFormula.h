@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lexicon/ICallableUnit.h"
+#include "Lexicon/IExecutableUnit.h"
 #include "Lexicon/Interfaces/IComponent.h"
 
 namespace LEX
@@ -11,7 +11,7 @@ namespace LEX
 	{
 		namespace _1
 		{
-			struct INTERFACE_VERSION(IFormula, ICallableUnit)
+			struct INTERFACE_VERSION(IFormula, IExecutableUnit)
 			{
 				virtual std::string_view GetName() const = 0;
 				virtual void SetName(const std::string_view& name) = 0;

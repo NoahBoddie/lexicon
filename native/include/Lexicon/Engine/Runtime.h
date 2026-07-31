@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Lexicon/ITemplateBody.h"
-#include "Lexicon/ICallableUnit.h"
+#include "Lexicon/IExecutableUnit.h"
 #include "Lexicon/RuntimeVariable.h"
-#include "Lexicon/Engine/RoutineBase.h"
+#include "Lexicon/Engine/Routine.h"
 #include "Lexicon/Engine/Register.h"
 #include "Lexicon/IRuntime.h"
 //To be in impl probably.
@@ -206,7 +206,7 @@ namespace LEX
 
 		//The idea is that the callable unit is given it's parameters
 		/*
-		Runtime(ICallableUnit* unit, container<RuntimeVariable>& args, Runtime* from = nullptr) :
+		Runtime(IExecutableUnit* unit, container<RuntimeVariable>& args, Runtime* from = nullptr) :
 			_data{ *unit->GetRoutine() }
 			//These accidently create numbers.
 			//, _varStack{ _data.GetVarCapacity() }
@@ -228,7 +228,7 @@ namespace LEX
 		}
 		//*/
 		//Very temporary, delete me
-		Runtime(RoutineBase& base, Function* function = nullptr, std::span<RuntimeVariable> args = {}, Runtime* caller = nullptr, ITemplateBody* body = nullptr) :
+		Runtime(Routine& base, Function* function = nullptr, std::span<RuntimeVariable> args = {}, Runtime* caller = nullptr, ITemplateBody* body = nullptr) :
 			_function{ function }
 			, _data{ base }
 			, _records { &base }
@@ -299,7 +299,7 @@ namespace LEX
 		//
 		Function* _function = nullptr;
 
-		RoutineBase& _data;
+		Routine& _data;
 
 		RecordHolder* _records = nullptr;
 
@@ -693,7 +693,7 @@ namespace LEX
 
 
 		//THIS is the gist of what I'd like.
-		static RuntimeVariable Run(ICallableUnit* unit, container<RuntimeVariable> args, Runtime* from = nullptr)
+		static RuntimeVariable Run(IExecutableUnit* unit, container<RuntimeVariable> args, Runtime* from = nullptr)
 		{	
 			report::apply::critical("This shit is NOT SUPPOSED TO BE USED RIGHT NOW");
 			assert(false);
