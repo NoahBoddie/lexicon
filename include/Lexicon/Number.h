@@ -317,6 +317,7 @@ namespace LEX
     //I'd this job to be given to a function instead.
     inline void InitLimitMap()
     {
+        //TODO: Static-ify this.
         static bool init = false;
 
         if (init)
@@ -607,10 +608,14 @@ namespace LEX
 
             constexpr std::strong_ordering operator <=> (const Settings& rhs) const = default;
 
+            constexpr bool IsValid() const
+            {
+                return type != NumeralType::Invalid && size != Size::Invalid && sign != Signage::Invalid && limit != Limit::Invalid;
+            }
 
             constexpr operator bool() const
             {
-                return type != NumeralType::Invalid && size != Size::Invalid && sign != Signage::Invalid && limit != Limit::Invalid;
+                return IsValid();
             }
             /*
             {
@@ -629,14 +634,14 @@ namespace LEX
             //*/
 
 
-            constexpr bool IsFloat() const { return type == NumeralType::Floating; }
-            constexpr bool IsInteger() const { return type == NumeralType::Integral && size != Size::Bit; }
-            constexpr bool IsIntegral() const { return type == NumeralType::Integral; }
+            constexpr bool IsFloat() const noexcept { return type == NumeralType::Floating; }
+            constexpr bool IsInteger() const noexcept { return type == NumeralType::Integral && size != Size::Bit; }
+            constexpr bool IsIntegral() const noexcept { return type == NumeralType::Integral; }
 
-            constexpr bool IsBoolean() const { return type == NumeralType::Integral && size == Size::Bit; }
+            constexpr bool IsBoolean() const noexcept { return type == NumeralType::Integral && size == Size::Bit; }
 
-            constexpr bool IsUnsigned() const { return sign == Signage::Unsigned; }
-            constexpr bool IsSigned() const { return sign == Signage::Signed; }
+            constexpr bool IsUnsigned() const noexcept { return sign == Signage::Unsigned; }
+            constexpr bool IsSigned() const noexcept { return sign == Signage::Signed; }
 
 
             double MaxF()
@@ -742,6 +747,15 @@ namespace LEX
 
         constexpr std::strong_ordering operator <=> (Number other) const
         {
+            //*
+            auto l_val = _setting.IsValid();
+            auto r_val = other._setting.IsValid();
+
+            if (!l_val || !r_val) {
+                return _setting <=> other._setting;
+            }
+            //*/
+
             return Visit([&](auto lhs)
             {
                 return other.Visit([&](auto rhs)
@@ -754,6 +768,8 @@ namespace LEX
                         return std::strong_ordering::equal;
                 });
             });
+
+            
 
         }
 
@@ -802,7 +818,7 @@ namespace LEX
             return _setting.IsBoolean();
         }
 
-		NumberDataType GetNumberType() const
+		constexpr NumberDataType GetNumberType() const noexcept
 		{
 			if (_setting.IsFloat() == true)
 			{
@@ -823,7 +839,7 @@ namespace LEX
 			return NumberDataType::Invalid;
 		}
 
-        TypeOffset GetOffset() const
+        constexpr TypeOffset GetOffset() const noexcept
         {
             //probably should just do the calculation but eh
             return _priority;
@@ -868,7 +884,8 @@ namespace LEX
 				return visitor(_data.uInteger);
 
 			default:
-				report::error("Invalid number settings. Data cannot be visited.");
+                if (std::is_constant_evaluated() == false)
+				    report::error("Invalid number settings. Data cannot be visited.");
 				break;
 			}
 		}
@@ -1312,9 +1329,9 @@ namespace LEX
 
 
 
-		NumberData _data;
-		Settings _setting;
-		uint8_t _priority;//Space is free so I might as well
+        NumberData _data{};
+        Settings _setting{};
+        uint8_t _priority{};//Space is free so I might as well
 		InfiniteState infinite = InfiniteState::Finite;//If active, it acts as infinity. If it's tried to transfer into
         
         //This is a flag that helps know if overflow has occured on a number. If you convert it, it will remain, if you assign it it will remain,
