@@ -225,6 +225,7 @@ namespace LEX
 	protected: //Some might be private, will address later.
 		Directory* _parent = nullptr;//can be project or script/class
 
+		/*
 		std::map<std::string_view, std::vector<destructible_ptr<OverloadInfo>>> functions;
 
 
@@ -238,9 +239,39 @@ namespace LEX
 		
 		//std::vector<GlobalBase*> variables;//should be global variables
 		std::map<std::string_view, destructible_ptr<DestructibleVarInfo>> variables;
+		//*/
+
+		struct EnvironmentData
+		{
+			std::map<std::string_view, std::vector<destructible_ptr<OverloadInfo>>> functions;
+
+
+			//>-------------------------
+			//This is for environment
+			//Later this will use type infos
+			//I'd rather store this by type info btw. The actual type info.
+			std::map<std::string_view, TypeBase*> types;
+
+
+
+			//std::vector<GlobalBase*> variables;//should be global variables
+			std::map<std::string_view, destructible_ptr<DestructibleVarInfo>> variables;
+		};
+
+		std::unique_ptr<EnvironmentData> _envData;
+
+
+		EnvironmentData* ObtainEnvironData()
+		{
+			if (!_envData)
+				_envData = std::make_unique<EnvironmentData>();
+
+			return _envData.get();
+		}
 
 	};
 
+	
 	
 	class SecondaryEnvironment : public Environment
 	{

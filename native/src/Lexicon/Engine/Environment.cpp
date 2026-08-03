@@ -87,6 +87,8 @@ namespace LEX
 				throw nullptr;
 			}
 
+			auto& functions = ObtainEnvironData()->functions;
+
 			auto end = functions.end();
 
 			auto name = tar->GetName();
@@ -107,6 +109,9 @@ namespace LEX
 		{
 			//This won't have an issue yet, because no abstraction.
 
+
+			auto& variables = ObtainEnvironData()->variables;
+
 			auto end = variables.end();
 
 			auto name = tar->GetName();
@@ -122,16 +127,22 @@ namespace LEX
 
 		std::vector<OverloadInfo*> Environment::FindFunctions(const std::string_view& name)
 		{
-			//std::vector<FunctionInfo*> result{};
+			if (_envData)
+			{
 
-			auto end = functions.end();
 
-			//TODO: FindFunctions is busted because I need to LoadFromRecord for a name but needs to be added to Load.
-			if (auto it = functions.find(name); end != it) {
-			//if (auto it = std::find_if(functionMap.begin(), functionMap.end(), [&](auto i) { return name == i.second.Get()->GetName(); }); end != it) {
-				return reinterpret_cast<const std::vector<OverloadInfo*>&>(it->second);
+
+				//std::vector<FunctionInfo*> result{};
+
+				auto end = _envData->functions.end();
+
+				//TODO: FindFunctions is busted because I need to LoadFromRecord for a name but needs to be added to Load.
+				if (auto it = _envData->functions.find(name); end != it) {
+					//if (auto it = std::find_if(functionMap.begin(), functionMap.end(), [&](auto i) { return name == i.second.Get()->GetName(); }); end != it) {
+					return reinterpret_cast<const std::vector<OverloadInfo*>&>(it->second);
+				}
 			}
-			
+
 			return {};
 		}
 
@@ -141,27 +152,34 @@ namespace LEX
 		
 		std::vector<VarInfo*> Environment::FindVariables(const std::string_view& name)
 		{
-			
-			auto end = variables.end();
+			if (_envData)
+			{
+				auto end = _envData->variables.end();
 
-			if (auto it = std::find_if(variables.begin(), end, [&](auto& i) {return name == i.first; }); 
-				end != it) {
-				return { it->second.get() };
+				if (auto it = std::find_if(_envData->variables.begin(), end, [&](auto& i) {return name == i.first; });
+					end != it) {
+					return { it->second.get() };
+				}
+				else {
+
+				}
 			}
-			else {
-				return {};
-			}
+
+			return {};
 		}
 
 		std::vector<TypeBase*> Environment::FindTypes(std::string_view name)
 		{
-			auto end = typeMap.end();
+			if (_envData)
+			{
+				auto end = _envData->types.end();
 
-			if (auto it = typeMap.find(name); end != it) {
-				return { it->second };
-			}
-			else {
-				return {};
+				if (auto it = _envData->types.find(name); end != it) {
+					return { it->second };
+				}
+				else {
+					return {};
+				}
 			}
 		}
 
@@ -221,7 +239,9 @@ namespace LEX
 				report::compile::error("Null Policy attempted to be added");
 			}
 
-			auto end = typeMap.end();
+			auto& typeMap = ObtainEnvironData()->types;
+
+			auto end =  typeMap.end();
 
 			auto name = policy->GetName();
 
