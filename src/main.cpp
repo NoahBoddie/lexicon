@@ -3275,10 +3275,268 @@ namespace LEX::Test
         };
 #endif
 
+        namespace
+        {
+            enum struct CallableType : uint8_t
+            {
+                Invalid,
+                Method,
+                Function,
+                Extension,
+                Constructor,
+                Total,
+            };
+
+            //A callable unit is now something that is attached to a thing that 
+            struct ICallableUnit
+            {
+                //I'd like this to be the thing that I use to handle anything parameter related.T
+
+                virtual RuntimeVariable GetDefault(size_t i, std::span<RuntimeVariable> args = {}) = 0;
+            };
+
+            
+            //This should only be available on something concrete. So I think I'll maybe
+            // put in in the the implementation of Function
+            struct FunctionThing : public FunctionData
+            {
+
+                bool RunDefault(RuntimeVariable& out, size_t i, std::span<RuntimeVariable> args = {})
+                {
+                    ParameterInfo* info = std::addressof(parameters[i]);
+                    Routine* routine = info->defFunc.get();
+
+
+                    if (!routine)
+                        return false;
+
+
+                    Runtime runtime{ *routine, nullptr, args };
+
+                    //Variable& a_this = *this;
+
+                    out.AssignRef(runtime.Run());
+
+                    return true;
+                }
+
+
+
+                bool FillArgumentsImpl(std::vector<RuntimeVariable>& out)
+                {
+                    if (out.size() < defaultIndex) {
+                        //Couldn't extend it.
+                        return false;
+                    }
+
+
+                    for (int i = defaultIndex; i < GetArgCount(); i++)
+                    {
+                        RuntimeVariable in;
+
+                        if (RunDefault(in, i, out) == false)
+                            return false;
+                        
+                        out.push_back(in);
+                    }
+
+
+                    return true;
+                }
+
+                bool FillArguments(std::vector<RuntimeVariable>& out)
+                {
+                    if (HasTarget() == true)
+                        return false;
+
+                    FillArgumentsImpl(out);
+
+                    return true;
+                }
+
+
+
+                bool FillArguments(RuntimeVariable& a_this, std::vector<RuntimeVariable>& out)
+                {
+                    if (HasTarget() == false)
+                        return false;
+
+
+                    out.insert(out.begin(), a_this);
+
+                    bool result = FillArgumentsImpl(out);
+
+                    out.erase(out.begin());
+
+                    return result;
+                }
+            };
+
+
+        }
+
+        constexpr bool test = std::is_bounded_array_v<int[4]>;
+        using IT = std::remove_extent_t<int[]>;
+
+        template <typename T, typename Char = char>
+        struct is_char_array : public std::bool_constant<std::is_bounded_array_v<std::remove_reference_t<T>> && std::is_same_v<std::remove_extent_t<std::remove_reference_t<T>>, const Char>> {};
+
+        template <typename T, typename Char = char>
+        constexpr bool is_char_array_v = is_char_array<T, Char>::value;
+
+
+
+        //<std::is_same_v<qualify_extracted_type_t<std::remove_cvref_t<T>, std::remove_cvref_t>>, Char*>>>        
+        template <typename T, typename Char = char>
+        struct is_c_string : public std::bool_constant<std::is_same_v<
+            qualify_extracted_type_t<std::remove_cvref_t<T>, std::remove_cvref_t>, 
+            Char*>> {};
+
+        template <typename T, typename Char = char>
+        constexpr bool is_c_string_v = is_c_string<T, Char>::value;
+
+
+        template <typename T, typename Char = char>
+        concept char_array = is_char_array_v<T, Char>;
+
+
+
+        struct string_taker
+        {
+            struct helper
+            {
+                helper(const char*) {}
+                helper(const std::string_view&) {}
+            };
+
+            string_taker(const helper&) {}
+            
+            template<typename Char>
+            string_taker(Char) 
+                requires(std::is_pointer_v<Char> && std::is_same_v<std::remove_const_t<std::remove_pointer_t<Char>>, char>) {}
+            
+            template<size_t N>
+            consteval string_taker(const char(&other)[N]) requires(N < 16) {  
+            }
+            
+            template<size_t N>
+            string_taker(const char(&other)[N]) requires(N >= 16) {
+            }
+
+
+            //template<typename T>// requires (requires(T t, const char* it) { it = t; })
+            //string_taker(const T& test) {}
+
+
+            string_taker(const std::string_view&) {}
+
+            string_taker(string_taker&&) {}
+            string_taker(const string_taker&&) {}
+
+
+            //template<std::same_as<const char*> Char>
+            //void foo(Char) {}
+
+            template<typename = void>
+            void foo(const char*) {}
+
+            template<size_t N>
+            void foo(const char(&other)[N])
+            {
+
+            }
+
+            template<typename T> requires (is_c_string_v<T> || is_char_array_v<T>)
+            void func(T&& test) 
+            {
+                if constexpr (is_char_array_v<T>)
+                {
+
+                }
+                else
+                {
+
+                }
+            }
+
+            template<> 
+            void func<const char[1]>(const char (&&test)[1])
+            {
+              
+            }
+
+        };
+
+
+        inline void Testing()
+        {
+            unconst(1);
+            const char* c_string = "thing";
+            char* uc_string = nullptr;   ;
+            using type = decltype("");
+            string_taker _1 = "";
+            string_taker _2 = c_string;
+            string_taker _3 = "c_string"sv;
+            
+            constexpr string_taker _4 = "";
+            string_taker _5 = uc_string;
+            constexpr String _6 = "abcdefghijklm";
+            String _7 = "abcdefghijklmnop";
+            decltype(auto) __0 = "afa";
+            static_assert(is_char_array<decltype("")>::value);
+            _1.func("");
+            
+            _1.foo(c_string);
+            _1.foo(uc_string);
+
+            constexpr String test;
+            constexpr std::strong_ordering result = test <=> test;
+            auto cast = static_cast<std::string>(test);
+            constexpr std::variant<String> test2{};
+
+            constexpr std::strong_ordering res_0 = std::variant<String>{} <=> std::variant<String>{};
+            constexpr std::strong_ordering res0 = String{} <=> String{};
+            constexpr std::strong_ordering res1 = test2 <=> test2;
+            constexpr std::strong_ordering res2 = std::variant<std::string>{} <=> std::variant<std::string>{};
+            constexpr std::strong_ordering res3 = std::string{} <=> std::string{};
+            //constexpr bool res1 = test == "";
+
+            //constexpr std::string test2 = "";
+
+
+            static_assert(true);
+            cast.size();
+        }
+
 
 
         INITIALIZE()
         {
+            String test = "First";
+
+            logger::info("1: {:X} vs {:X}; {}", (size_t)&test, (size_t)test.data(), test.view());
+            
+            String test2 = test;
+
+            logger::info("2: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
+            
+            test2 = std::move(test);
+
+            logger::info("3: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
+
+            test2 = "abcdefghijklmon";
+
+            logger::info("4: {:X} vs {:X}; {}", (size_t)&test2, (size_t)test2.data(), test2.view());
+
+            test = test2;
+
+            logger::info("5: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
+
+            test = std::move(test2);
+
+            logger::info("6: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
+
+
             struct FirstAttribute : public AttributeData
             {
                 bool CanAllowAttach(AttributeOwner* owner) override
@@ -3288,7 +3546,7 @@ namespace LEX::Test
                     ITypeInfo* type = component->As<ITypeInfo>();
 
                     if (!type) {
-                        report::compile::failure("FirstAttribute can only attach to a type");
+                        report::compile::failure("TFirstAttribute can only attach to a type");
                         return false;
                     }
 
@@ -3459,7 +3717,7 @@ namespace LEX::Test
         }
 
 
-        void InlineRoutine(RoutineCompiler* compiler, std::vector<Instruction>& instruction, RecordHolder* holder, RoutineBase* base)
+        void InlineRoutine(RoutineCompiler* compiler, std::vector<Instruction>& instruction, RecordHolder* holder, Routine* base)
         {
             constexpr uintptr_t test1 = 5;
 
