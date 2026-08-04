@@ -24,7 +24,7 @@ namespace LEX
 		
 		std::unique_ptr<BasicFormula> formula = std::make_unique<BasicFormula>();
 
-		SyntaxRecord& records = formula->records = std::move(ast);
+		//SyntaxRecord& records = formula->records = std::move(ast);
 
 		formula->_returnType = base.result();
 
@@ -63,7 +63,7 @@ namespace LEX
 		ast.SetParent((Element*)perspective);
 
 		//This needs to confirm it's proper
-		if (RoutineCompiler::Compile(formula->GetRoutine(), records, formula.get(), perspective, nullptr, name) == false) {
+		if (RoutineCompiler::Compile(formula->GetRoutine(), ast, formula.get(), perspective, nullptr, name) == false) {
 			return 3;
 		}
 		formula->SetName(name);

@@ -48,9 +48,8 @@ namespace LEX
 
 		//Do not store the text or the records, I'd like to store the name as just a unique string.
 		// I really don't need the adjustibility of a string
-		std::string text;
+		String text;
 		
-		SyntaxRecord records;
 
 		mutable std::atomic_int32_t refCount = 1;
 
