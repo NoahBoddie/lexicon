@@ -38,7 +38,8 @@ namespace LEX
 		
 		ELEM_ENUM
 		{
-			ELEM_FLAG(Incremental, 0),
+            ELEM_FLAG(Incremental, 0),
+            ELEM_FLAG(Defined, 1),
 
 			ELEM_NEXT,
 		};
@@ -261,10 +262,16 @@ namespace LEX
 
 		//Not needed,
 		//bool _defined = false;
-		
-		std::filesystem::path _filePath;
+        
+        //This is something I think I may not use
+		//std::filesystem::path _filePath;
 
-		SyntaxRecord _syntaxTree;
+        String _name;
+
+		//SyntaxRecord _syntaxTree;
+
+        std::unique_ptr<SyntaxRecord> _syntaxTree{};
+
 
 		std::unique_ptr<std::unordered_map<std::string, Subdirectory*>> _subdirectoryList = nullptr;
 
@@ -307,6 +314,11 @@ namespace LEX
 			else
 				(uint32_t&)GetFlags() &= ~Flag::Incremental;
 		}
+
+        void MarkDefined() const
+        {
+            GetFlags() |= Flag::Defined;
+        }
 
 		bool AppendContent(const std::string_view& content, std::span<std::string_view> options = {}) override;
 

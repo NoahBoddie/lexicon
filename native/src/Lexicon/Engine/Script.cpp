@@ -58,7 +58,7 @@ namespace LEX
 
 	bool Script::IsDefined() const
 	{
-		return _syntaxTree;
+		return GetFlags() & Flag::Defined || !!_syntaxTree;
 	}
 
 
@@ -70,10 +70,12 @@ namespace LEX
 	
 	SyntaxRecord* Script::GetSyntaxTree()
 	{
+		return _syntaxTree.get();
+
 		if (IsDefined() == false)
 			throw EnvironmentError("Syntax Tree not defined.");
-
-		return &_syntaxTree;
+	
+		//return &_syntaxTree;
 	}
 
 	void Script::SetSyntaxTree(SyntaxRecord& rec)
@@ -82,8 +84,11 @@ namespace LEX
 			return;
 		//This ast likely has no interest, move resources.
 
-		_syntaxTree = std::move(rec);
-		
+		//_syntaxTree = std::move(rec);
+		//TODO: this is temporary, I'd like this to be handled in element.
+		MarkDefined();
+		_name = rec.GetView();
+		_syntaxTree = std::make_unique<SyntaxRecord>(std::move(rec));
 	}
 
 
@@ -180,11 +185,13 @@ namespace LEX
 
 	std::string_view Script::GetName() const
 	{
-		if (IsDefined() == false)
+		if (!IsDefined() && _name.empty())
 			//This is more than likely a fault actually.
-			throw EnvironmentError("Syntax Tree not defined, script is nameless.");
-
-		return _syntaxTree.GetView();
+			return "<undefined>";
+		
+		return _name;
+		
+		//return _syntaxTree.GetView();
 	}
 	//SetName will resume having no use here.
 
