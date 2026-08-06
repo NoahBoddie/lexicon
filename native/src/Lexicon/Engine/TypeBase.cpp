@@ -66,7 +66,7 @@ namespace LEX
 
 	TypeBase::TypeBase(std::string_view name, TypeOffset off)
 	{
-		policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(name);
+		_policy = ObjectPolicyManager::instance->GetObjectPolicyFromName(name);
 		IdentityManager::instance->ClaimID(this, name, off);
 	}
 
@@ -117,11 +117,12 @@ namespace LEX
 		auto base = other->GetAs<TypeBase>();
 
 		if (base && base->GetDataType() == DataType::Attribute) {
-			if (attrBuilder && attrBuilder != base->attrBuilder) {
+			AttributeBuilder builder = GetAttributeBuilder();
+			AttributeBuilder base_builder = base->GetAttributeBuilder();
+			if (builder && builder != base_builder) {
 				record.error<IssueType::Compile>("Type '{}' already has a linked builder", GetName());
 			}
-
-			attrBuilder = base->attrBuilder;
+			_attrBuilder = base_builder;
 		}
 	}
 

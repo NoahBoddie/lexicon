@@ -39,7 +39,7 @@ namespace LEX
 		TypeID _id{};
 		mutable InstanceID _instanceID{};
 
-		std::string _name;
+		String _name;
 
 		//std::string category;
 
@@ -47,12 +47,61 @@ namespace LEX
 		//TODO: I'd like these in a union
 	
 		//Should be inherited, only one can exist.
-		ObjectPolicy* policy = nullptr;
-		AttrDataBuilder attrBuilder = nullptr;
+		
+		union
+		{
+			size_t _raw{};
+			ObjectPolicy* _policy;
+			AttrDataBuilder _attrBuilder;
+
+		};
+		
+
+		ObjectPolicy* GetPolicy() const
+		{
+			if (_dataType != DataType::Attribute)
+				return _policy;
+
+			return nullptr;
+		}
+
+		AttrDataBuilder GetAttributeBuilder() const
+		{
+			if (_dataType == DataType::Attribute)
+				return _attrBuilder;
+
+			return nullptr;
+		}
+
+		bool SetPolicy(ObjectPolicy* policy)
+		{
+			bool result = _dataType != DataType::Attribute;
+
+			if (result) {
+				_policy = policy;
+			}
+
+			return result;
+		}
+
+		bool SetAttributeBuilder(AttrDataBuilder builder)
+		{
+
+			bool result = _dataType == DataType::Attribute;
+
+			if (result)
+				_attrBuilder = builder;
+
+			return result;
+		}
 
 
 
 		//ObjectPolicyHandle handle{};
+		
+		//TODO: I'd like to use TypeIndex to store category and offset, and get the offset from the type id and starting id.
+		//TypeIndex index{};
+		
 		std::string_view category;
 		TypeOffset offset =0;
 

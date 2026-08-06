@@ -29,11 +29,8 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 	//*/
 
 
-	struct IdentityData
+	struct IdentityData : public TypeOrigin
 	{
-		std::string_view name;
-		uint32_t startID = 0;
-		uint32_t range = 0;
 		TypeOffsetFn func = nullptr;
 
 	public:
@@ -48,7 +45,7 @@ std::vector<TypeBase*> Environment::FindTypes(std::string name)
 		}
 
 		constexpr IdentityData(std::string_view n, uint32_t val, uint16_t rng, TypeOffsetFn fn) :
-			name{ n }, startID{ val }, range{ rng }, func { fn }
+			TypeOrigin{ n, val, rng }, func { fn }
 		{
 		}
 

@@ -18,6 +18,13 @@ namespace LEX
 	struct ITypeInfo;
 
 	
+	struct TypeOrigin
+	{
+		std::string_view name;
+		uint32_t startID = 0;
+		uint32_t range = 0;
+	};
+
 
 	using TypeOffsetFn = TypeOffset(*)(const std::string_view&, const std::span<std::string_view>& args);
 
@@ -29,7 +36,10 @@ namespace LEX
 			{
 				//using ITypeInfo = struct LEX::ITypeInfo;
 
+				//virtual bool GetOriginFromIndex(TypeOrigin & out, TypeIndex index) = 0;
+
 				virtual ITypeInfo* GetTypeByID(TypeID id) = 0;
+				
 				virtual uint32_t GetIDFromIndex(TypeIndex index) = 0;
 				virtual TypeIndex GetIndexFromName(std::string_view name) = 0;
 				virtual TypeIdentity GetIdentityFromID(TypeID id) = 0;

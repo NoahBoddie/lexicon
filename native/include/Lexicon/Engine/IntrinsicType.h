@@ -21,7 +21,7 @@ namespace LEX
 
 		Variable GetDefault() const override
 		{
-			if (!policy)
+			if (auto policy = GetObjectPolicy(); !policy)
 				return _default;
 
 			return ConcreteType::GetDefault();
@@ -29,7 +29,7 @@ namespace LEX
 
 		Variable GetVariable() const override
 		{
-			if (!policy)
+			if (auto policy = GetObjectPolicy(); !policy)
 				return _default;
 			
 			return ConcreteType::GetDefault();

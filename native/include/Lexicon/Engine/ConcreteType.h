@@ -90,12 +90,12 @@ namespace LEX
 
 			if (IsExternal() == true) {
 
-				if (attrBuilder) {
+				if (GetAttributeBuilder() != nullptr) {
 					report::fault::failure("attribute already has a data builder");
 					return false;
 				}
-
-				attrBuilder = builder;
+		
+				_attrBuilder = builder;
 				return true;
 			}
 

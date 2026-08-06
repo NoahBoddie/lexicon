@@ -30,8 +30,7 @@ namespace LEX
 	std::optional<bool> AttributeManager::RequestNativeData(const std::string_view& name, TypeBase* type)
 	{
 		if (auto builder = GetBuilder(name)) {
-			type->attrBuilder = builder;
-			return true;
+			return type->SetAttributeBuilder(builder);
 		}
 		else {
 			auto& result = data.waiters[std::string{ name }];

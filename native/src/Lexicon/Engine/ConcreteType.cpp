@@ -76,7 +76,7 @@ namespace LEX
 			return {};
 		}
 
-		if (policy)
+		if (auto policy = GetPolicy())
 			return policy->CreateDefault(unconst(this));
 
 		return {};
@@ -88,7 +88,7 @@ namespace LEX
 			return {};
 		}
 
-		if (policy)
+		if (auto policy = GetPolicy())
 			return policy->CreateObject(unconst(this));
 
 		return {};
@@ -290,7 +290,7 @@ namespace LEX
 
 			return nullptr;
 		}
-		else if (attrBuilder)
+		else if (auto attrBuilder = GetAttributeBuilder())
 		{
 			value.reset(new NativeAttribute{ this, attrBuilder() });
 		}

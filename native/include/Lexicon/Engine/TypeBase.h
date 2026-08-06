@@ -28,7 +28,7 @@ namespace LEX
 	public:
 		DEFINE_COMPONENT_TYPE(ComponentType::TypeBase)
 
-	private:
+	protected:
 
 
 
@@ -170,7 +170,7 @@ namespace LEX
 	protected:
 		ObjectPolicy* GetObjectPolicyImpl() const noexcept
 		{
-			return policy;
+			return GetPolicy();
 		}
 
 
