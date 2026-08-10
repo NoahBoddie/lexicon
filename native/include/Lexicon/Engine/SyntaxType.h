@@ -93,6 +93,8 @@ namespace LEX
 		Subdirectory,
 		Subproject,
 
+		EnumEntry,
+
 		Prefunc,//This feels like a directive.
 
 		//Aliases- Short hand that makes my job a bit easier.

@@ -22,6 +22,7 @@ namespace LEX
 		constexpr static auto extends = "<:extend:>";
 		constexpr static auto untitled = "<:NA:>";
 		constexpr static auto body = "<:bod:>";
+		constexpr static auto entries = "<:entries:>";
 		constexpr static auto code = "<:cod:>";
 		constexpr static auto parameters = "<:params:>";
 		constexpr static auto args = "<:args:>";
@@ -44,6 +45,7 @@ namespace LEX
 		constexpr static auto specialize = "<:spec:>";
 		constexpr static auto settings = "<:settings:>";
 		constexpr static auto data_type = "<:datatype:>";
+		constexpr static auto enum_type = "<:enumtype:>";
 		constexpr static auto attach = "<:attach:>";
 		constexpr static auto attribute_data = "<:attrdata:>";
 		constexpr static auto derives = "<:derives:>";

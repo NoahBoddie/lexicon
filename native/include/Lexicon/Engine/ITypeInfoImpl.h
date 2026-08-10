@@ -19,6 +19,7 @@ namespace LEX
 		NoGlobal = 1 << 3,	//Specifies it can't be used as a global (runtime classes have this)
 		NoInstant = 1 << 4, //Type cannot be instantiated
 		NoMembers = 1 << 5,
+		NoMultiInherit = 1 << 6, //Cannot be multiple inherited by non-interface classes
 	};
 
 	ENUM(ConversionFlag)
