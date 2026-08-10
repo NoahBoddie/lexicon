@@ -18,9 +18,9 @@ namespace LEX
 	{
 		None = 0,
 		
-		Initialized = 1 << 0, //flag to say that load from view has finished once.
-		Linking		= 1 << 1,
-		Linked		= 1 << 2,  //Flag determines that a check for linking occured, not entirely that all links are done.
+		Initialized		= 1 << 0, //flag to say that load from view has finished once.
+		RequiresLink	= 1 << 1,
+		Linking			= 1 << 2,  //Flag determines that a check for linking occured, not entirely that all links are done.
 	};
 
 	ENUM(ValidationFlag, uint8_t)
@@ -193,7 +193,7 @@ namespace LEX
 		{
 			//if it has tasks but isn't linking it failed, and isn't valid to try to link anymore.
 			if (_tasks) {
-				return IsLinking();
+				return RequiresLink();
 			}
 
 			//return early if already registered.
@@ -207,7 +207,7 @@ namespace LEX
 			if (links) {
 				//std::lock_guard lock(link_mutex);
 				//TODO:Set up reprisal and waiting here
-				FlagLinking(true);
+				FlagRequiresLink(true);
 				_tasks = links;
 
 
@@ -230,7 +230,7 @@ namespace LEX
 			std::lock_guard lock(link_mutex);
 
 			if (_info.linkerList.end() != it) {				
-				(*it)->FlagLinking(false);
+				(*it)->FlagRequiresLink(false);
 				return _info.linkerList.erase(it);
 			}
 
@@ -275,7 +275,11 @@ namespace LEX
 				Component* target = *it;
 				LinkFlag& tasks = target->_tasks;
 				
-
+				bool prev_linking = target->IsLinking();
+				
+				if (!prev_linking)
+					target->FlagLinking(true);
+				
 				//If there are tasks the component has not processed yet it has reached this stage,
 				// it will attempt to play catch up.
 
@@ -299,6 +303,7 @@ namespace LEX
 						{
 
 							logger::trace("Linking {}: {}", target->GetName(), magic_enum::enum_name(i));
+
 
 							if (SafeInvoke<Error>(true, [&]() {result = target->HandleLinkEvent(i); }) == true)
 							{
@@ -344,6 +349,8 @@ namespace LEX
 					target->OnLinkComplete();
 					complete = false;
 				}
+				if (!prev_linking)
+					target->FlagLinking(false);
 			}
 			
 			if (inc) {
@@ -496,6 +503,21 @@ namespace LEX
 			}
 		}
 
+		//Will link the object in question
+		bool PriorityLinkComponent(LinkFlag flags = LinkFlag::All)
+		{
+			auto it = FindLinkEntry();
+
+			if (_info.linkerList.end() != it) {
+				bool is_linking = (*it)->IsLinking();
+				if (is_linking)
+					LinkComponent(it, processingFlags & flags, false);
+
+				return !is_linking;
+			}
+
+			return true;
+		}
 
 
 
@@ -591,15 +613,27 @@ namespace LEX
 
 		
 		//Gets if component is currently waiting on a link stage
+		bool RequiresLink() const
+		{
+			return _flags & ComponentFlag::RequiresLink;
+		}
+
 		bool IsLinking() const
 		{
 			return _flags & ComponentFlag::Linking;
 		}
-
-
 		
 
 	private:
+		
+		void FlagRequiresLink(bool value)
+		{
+			if (value)
+				_flags |= ComponentFlag::RequiresLink;
+			else
+				_flags &= ~ComponentFlag::RequiresLink;
+		}
+
 		void FlagLinking(bool value)
 		{
 			if (value)
