@@ -3306,6 +3306,7 @@ namespace LEX
 
 			IdentityManager::instance->GenerateID("NUMBER", Number::Settings::length, TypeOffsetFn_Number);
 			IdentityManager::instance->GenerateID("STRING", 0);
+			IdentityManager::instance->GenerateID("ENUM", 0);
 
 
 
@@ -3319,6 +3320,8 @@ namespace LEX
 
 			//TODO: This type of instantiation should be reserved squarely for intrinsic types like numbers, strings etc.
 			// Other than that, no type should be created knowing what it is already.
+
+			static IntrinsicType* ENUM = new IntrinsicType{ "ENUM", 0, {} };
 
 			static IntrinsicType* NUMBER = new IntrinsicType{ "NUMBER", 0, {} };
 

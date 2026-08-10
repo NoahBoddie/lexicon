@@ -2,6 +2,7 @@
 
 #include "String.h"
 #include "Number.h"
+#include "Lexicon/Primitive/Enumeration.h"
 #include "Lexicon/TypeInfo.h"
 //#include "Function.h"
 //#include "ExternalHandle.h"
@@ -27,9 +28,11 @@ namespace LEX
 		//Types that will not need to exist coming soon:
 		// prompt, Index,
 		Void,						    //Void given form. Invalidates all other types.
+
 		Number,                         //Represents all numeric values. Integers, Floats, and Boolean values.
 		String,
 		Object,
+		Enumeration,
 		IComponent*,
 		AttributeBase*
 		//,Info
@@ -157,6 +160,7 @@ namespace LEX
 		Number = variant_index<VariableValue, LEX::Number>(),
 		String = variant_index<VariableValue, LEX::String>(),
 		Object = variant_index<VariableValue, LEX::Object>(),
+		Enumeration = variant_index<VariableValue, LEX::Enumeration>(),
 		Component = variant_index<VariableValue, LEX::IComponent*>(),
 		Attribute = variant_index<VariableValue, AttributeBase*>(),
 		//Info = variant_index<VariableValue, LEX::Info*>(),
@@ -406,6 +410,7 @@ namespace LEX
 
 		//These should also maybe check the policies?
 		bool IsVoid() const { return std::holds_alternative<Void>(value()); }
+		bool IsEnum() const { return std::holds_alternative<Enumeration>(value()); }
 		bool IsObject() const { return std::holds_alternative<Object>(value()); }
 		bool IsNumber() const { return std::holds_alternative<Number>(value()); }
 		bool IsString() const { return std::holds_alternative<String>(value()); }
@@ -414,11 +419,13 @@ namespace LEX
 
 
 
+		Enumeration& AsEnum() { return std::get<Enumeration>(value()); }
 		Number& AsNumber() { return std::get<Number>(value()); }
 		String& AsString() { return std::get<String>(value()); }		
 		Object& AsObject() { return std::get<Object>(value()); }
 		AttributeBase*& AsAttribute() { return std::get<AttributeBase*>(value()); }
 		
+		const Enumeration& AsEnum() const { return std::get<Enumeration>(value()); }
 		const Number& AsNumber() const { return std::get<Number>(value()); }
 		const String& AsString() const { return std::get<String>(value()); }
 		const Object& AsObject() const { return std::get<Object>(value()); }
