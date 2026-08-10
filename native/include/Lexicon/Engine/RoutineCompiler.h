@@ -404,7 +404,7 @@ namespace LEX
 			if (def_value)
 			{
 				auto instruct = InstructType::DeclareVariable;
-				auto op_type = OperandType::Variable;
+				auto op_type = OperandType::LocalVar;
 				for (auto i = 0; i < size; i++)
 				{
 					//for each policy, starting at count and increasing by i, each policy needs to be loaded into

@@ -2537,7 +2537,7 @@ namespace LEX
 				
 				//compiler->GetInstructionList().push_back(CompUtil::Transfer(Operand{ loc_index, OperandType::Index }, result));
 				//TODO: Create the below via solution instead.
-				compiler->AppendInstructions(def, CompUtil::Load(Operand{ loc->GetIndex(), OperandType::Variable }, result, loc->GetQualifiers().IsReference()));
+				compiler->AppendInstructions(def, CompUtil::Load(Operand{ loc->GetIndex(), OperandType::LocalVar }, result, loc->GetQualifiers().IsReference()));
 			}
 
 

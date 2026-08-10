@@ -41,7 +41,7 @@ namespace LEX
 
 		bool IsVariable() const
 		{
-			return type() == OperandType::Variable;//Account for the index type?
+			return type() == OperandType::LocalVar;//Account for the index type?
 		}
 
 		bool IsParameter() const

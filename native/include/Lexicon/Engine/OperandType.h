@@ -14,11 +14,12 @@ namespace LEX
 		//Want an ENUM type so I can just convert those automatically
 		//end
 		Parameter,
-		Variable,
+		LocalVar,
 		Value,		//Like a variable, but exists to expressly be used for internal runtime processes
 		Argument,
 		Register,
 		Global,		//This is a hard variable pointer.
+		Variable,
 		Type,
 		Function,	//This is an IFunction pointer, and must be specialized before use
 		Converter,	//A conversion function. Used to turn a runtime variable into another one.
@@ -29,11 +30,11 @@ namespace LEX
 		Template,	//Stores an ITemplatePart
 		Routine,
 		Specializable,
+					
 		Total,
-
 		
 
-		
+		Any = OperandType::None,
 		ArgumentIndex = 1 << 6,
 		VariableIndex = 2 << 6,
 		ParameterIndex = 3 << 6,

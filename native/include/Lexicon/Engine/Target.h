@@ -46,6 +46,7 @@ namespace LEX
 		constexpr Target(Differ arg) : differ{ arg } {}
 		constexpr Target(Index arg) : index{ arg } {}
 		constexpr Target(Register arg) : reg{ arg } {}
+		constexpr Target(const Variable* arg) : var{ arg } {}
 		constexpr Target(const Literal* arg) : lit{ arg } {}
 		constexpr Target(IGlobal* arg) : glob{ arg } {}
 		constexpr Target(ITypeInfo* arg) : type{ arg } {}
@@ -109,7 +110,7 @@ namespace LEX
 
 
 		template <>
-		bool Get<OperandType::Variable, Index>(Index& out)
+		bool Get<OperandType::LocalVar, Index>(Index& out)
 		{
 			out = index;
 			return true;
@@ -176,6 +177,16 @@ namespace LEX
 			return true;
 		}
 
+
+
+		template <>
+		bool Get<OperandType::Variable, const Variable*>(const Variable*& out)
+		{
+			out = var;
+			return true;
+		}
+
+
 		template <>
 		bool Get<OperandType::Global, IGlobal*>(IGlobal*& out)
 		{
@@ -215,6 +226,7 @@ namespace LEX
 			Index index;
 			Register reg;
 			const Literal* lit;
+			const Variable* var;
 			IGlobal* glob;
 			ITypeInfo* type;
 			IFunction* func;

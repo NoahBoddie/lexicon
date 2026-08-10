@@ -163,7 +163,7 @@ namespace LEX
 			return CheckDynamicSubject(runtime, runtime->GetArgumentFromBack(Get<Index>()));
 
 		case OperandType::Parameter:
-		case OperandType::Variable:
+		case OperandType::LocalVar:
 		case OperandType::Value:
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
 			return CheckDynamicSubject(runtime, runtime->GetVariable(Get<Index>(), !IsParameter()));
@@ -183,7 +183,7 @@ namespace LEX
 		case OperandType::Register:
 		case OperandType::Argument:
 		case OperandType::Value:
-		case OperandType::Variable:
+		case OperandType::LocalVar:
 		case OperandType::Parameter:
 			return AsVariable(runtime).AsRef();
 			return AsSubject(runtime).AsRef();
@@ -194,6 +194,9 @@ namespace LEX
 			return global->GetReference();
 		}
 
+		case OperandType::Variable: {
+			return *Get<const Variable*>();
+		}
 
 
 		case OperandType::Type: {
@@ -234,7 +237,7 @@ namespace LEX
 			return CheckDynamicSubject(runtime, runtime->GetArgumentFromBack(Get<Index>()));
 
 		case OperandType::Parameter:
-		case OperandType::Variable:
+		case OperandType::LocalVar:
 			//With this, I'd like negative 1 to be something used to represent that I want to pick the "index - 1", or the last value.
 			return CheckDynamicSubject(runtime, runtime->GetVariable(Get<Index>(), IsVariable()));
 	
@@ -259,7 +262,7 @@ namespace LEX
 		{
 		case OperandType::Register:
 		case OperandType::Argument:
-		case OperandType::Variable:
+		case OperandType::LocalVar:
 		case OperandType::Parameter:
 		case OperandType::Global:
 		case OperandType::Type:
@@ -307,7 +310,7 @@ namespace LEX
 		{
 		case OperandType::Register:
 		case OperandType::Parameter:
-		case OperandType::Variable:
+		case OperandType::LocalVar:
 		case OperandType::Argument:
 			run_var = std::addressof(AsVariable(runtime));
 			break;

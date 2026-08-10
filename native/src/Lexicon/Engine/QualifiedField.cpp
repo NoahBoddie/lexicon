@@ -30,13 +30,13 @@ namespace LEX
 			if (type.IsVariadic())
 			{
 				auto buffer = compiler->GetScope()->ObtainLocalVariable(parse_strings::variadic_buffer);
-				op = OperandType::Variable | OperandType::VariableIndex;
+				op = OperandType::LocalVar | OperandType::VariableIndex;
 				index = buffer->GetIndex();
 
 			}
 			else
 			{
-				op = is_loc ? OperandType::Variable : OperandType::Parameter;
+				op = is_loc ? OperandType::LocalVar : OperandType::Parameter;
 				index = loc->GetIndex();
 			}
 
