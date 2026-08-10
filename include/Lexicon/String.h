@@ -165,7 +165,8 @@ namespace LEX
             //buffer._ptr
             char* dest_ptr = buffer.ptr();
 
-            dest_ptr = std::strncpy(dest_ptr, ptr(), lhs_size);
+            std::strncpy(dest_ptr, ptr(), lhs_size);
+            dest_ptr += lhs_size;
             std::strncpy(dest_ptr, other.ptr(), rhs_size);
 
             return buffer;
@@ -235,9 +236,9 @@ namespace LEX
 
         bool move_small_string(String&& other)
         {
-            move_small_string(other);
+            return move_small_string(other);
         }
-
+        
 
         constexpr void create_data(size_t length) noexcept
         {
@@ -271,7 +272,7 @@ namespace LEX
             std::char_traits<char>::copy(ptr(), str.data(), length);
             //std::strncpy(ptr(), str.data(), length);
         }
-
+        
 
         [[nodiscard]] constexpr const char* ptr() const noexcept {
             return unconst(this)->ptr();
