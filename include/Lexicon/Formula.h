@@ -358,10 +358,9 @@ namespace LEX
 
 
 	private:
-		static T RunImpl(std::string_view routine, std::optional<IScript*> from, std::optional<Ty> def, const std::source_location& loc)
-		{
-			FormulaHandler handler = Base::Create(routine, from, loc);
 
+		static T CallImpl(FormulaHandler& handler, std::optional<Ty>& def)
+		{
 			if (!handler) {
 				if constexpr (std::is_void_v<T>) {
 					return;
@@ -383,12 +382,25 @@ namespace LEX
 			}
 		}
 
-	public:
-		static T Run(std::string_view routine, const std::source_location& loc = std::source_location::current())
+
+		static T RunImpl(std::string_view routine, std::optional<IScript*> from, std::optional<Ty> def, const std::source_location& loc)
 		{
-			return RunImpl(routine, std::nullopt, std::nullopt, loc);
+			FormulaHandler handler = Base::Create(routine, from, loc);
+
+			return CallImpl(handler, def);
 		}
 
+#ifdef LEX_SOURCE
+		static T RunImpl(const std::string_view& name, SyntaxRecord& record ,std::optional<IScript*> from, std::optional<Ty> def, const std::source_location& loc)
+		{
+			FormulaHandler handler = Base::Create(name, record, from, loc);
+
+			return CallImpl(handler, def);
+		}
+#endif
+
+
+	public:
 		//T needs to be able to be inited by default
 		static T RunDefault(std::string_view routine, const std::source_location& loc = std::source_location::current())
 		{
@@ -396,6 +408,10 @@ namespace LEX
 		}
 
 
+		static T Run(std::string_view routine, const std::source_location& loc = std::source_location::current())
+		{
+			return RunImpl(routine, std::nullopt, std::nullopt, loc);
+		}
 
 		static T Run(std::string_view routine, Ty def, const std::source_location& loc = std::source_location::current())
 		{
@@ -412,6 +428,34 @@ namespace LEX
 			return RunImpl(routine, from, def, loc);
 		}
 
+
+#ifdef LEX_SOURCE
+		static T RunDefault(std::string_view name, SyntaxRecord& routine, const std::source_location& loc = std::source_location::current())
+		{
+			return RunImpl(name, routine, std::nullopt, Ty{}, loc);
+		}
+
+
+		static T Run(std::string_view name, SyntaxRecord& routine, const std::source_location& loc = std::source_location::current())
+		{
+			return RunImpl(name, routine, std::nullopt, std::nullopt, loc);
+		}
+
+		static T Run(std::string_view name, SyntaxRecord& routine, Ty def, const std::source_location& loc = std::source_location::current())
+		{
+			return RunImpl(name, routine, std::nullopt, def, loc);
+		}
+
+		static T Run(std::string_view name, SyntaxRecord& routine, IScript* from, const std::source_location& loc = std::source_location::current())
+		{
+			return RunImpl(name, routine, from, std::nullopt, loc);
+		}
+
+		static T Run(std::string_view name, SyntaxRecord& routine, IScript* from, Ty def, const std::source_location& loc = std::source_location::current())
+		{
+			return RunImpl(name, routine, from, def, loc);
+		}
+#endif
 	};
 
 
