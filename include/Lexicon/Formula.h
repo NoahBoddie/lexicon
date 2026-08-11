@@ -1,13 +1,14 @@
 #pragma once
 
-
 #include "Lexicon/IFormula.h"
 #include "Lexicon/VariableType.h"
+#include "Lexicon/SignatureBase.h"
 #include "Lexicon/FormulaHandler.h"
-
 #include "Lexicon/Impl/ref_wrapper.h"
 
+#include "Lexicon/Interfaces/IScript.h"
 #include "Lexicon/Interfaces/FormulaManager.h"
+#include "Lexicon/Interfaces/ProjectManager.h"
 
 #ifdef LEX_SOURCE
 #include "Lexicon/Engine/SyntaxRecord.h"
@@ -794,17 +795,4 @@ namespace LEX
 		template <specialization_of<Formula> F>
 		const F& As() const noexcept { return *reinterpret_cast<F*>(this); }
 	};
-
-
-
-	struct Class
-	{
-		void Function(int) {}
-	};
-
-	void trest()
-	{
-		using func = void(int);
-		using Func = decltype(Class::Function);
-	}
 }
