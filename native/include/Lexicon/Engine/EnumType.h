@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lexicon/EnumPolicy.h"
+
 #include "Lexicon/Engine/EnumInfo.h"
 #include "Lexicon/Engine/ConcreteType.h"
 
@@ -15,6 +16,10 @@ namespace LEX
         ELEM_ENUM
         {
             ELEM_FLAG(Scoped, 0),
+            ELEM_FLAG(OutputNumber, 1), //Can it implicitly cast into underlying
+            ELEM_FLAG(InputNumber, 2),//Can have arithmetic done to it
+            ELEM_FLAG(HasFlags, 3),
+            //I think this will be specifically allow arithmetic with numbers.
 
             ELEM_NEXT,
         };
@@ -79,7 +84,18 @@ namespace LEX
 
         };
 
+        using ConcreteType::ConcreteType;
 
+
+        EnumFlag GetEnumFlags() const override
+        {
+            EnumFlag result{};
+
+            if (GetFlags() & Flag::Scoped)
+                result |= EnumFlag::Scoped;
+
+            return result;
+        }
 
         std::vector<IHierarchyTree*> GetPostAffixedTypes() const override 
         { 
@@ -212,6 +228,7 @@ namespace LEX
             }
 
             if (entry.type == EntryType::Flag) {
+                GetFlags() |= Flag::HasFlags;
                 data.AddActiveFlags(entry.value);
             }
 
@@ -275,34 +292,90 @@ namespace LEX
             }
         }
 
+
+        //This is to be for the loading stage, and it will load various flags.
         LinkResult OnLink(LinkFlag flags) override
         {
+            SyntaxRecord& ast = *GetSyntaxTree();
 
-            if (flags == LinkFlag::Constant)
+            switch (flags)
             {
-                ConstructData data;
+            case LinkFlag::Loaded:
+                if constexpr (1)
+                {
 
-                if (auto entries = GetSyntaxTree()->FindChild(parse_strings::entries)) {
+                    SyntaxRecord& settings = *ast.FindChild(parse_strings::settings);
 
-                    for (SyntaxRecord& node : entries->children())
-                    {
-                        get_switch(node.SYNTAX().type)
+
+                    
+
+                    bool output_number;
+                    bool input_number;
+
+                    if (SyntaxRecord* enum_type = settings.FindChild(parse_strings::enum_type)) {
+                        switch (Hash(enum_type->GetView()))
                         {
-                case SyntaxType::EnumEntry:
-                    CreateEntry(node, data);
-                    break;
+                        case "class"_h:
+                            output_number = false;
+                            input_number = false;
+                            break;
 
-                case SyntaxType::Function:
-                default:
-                    report::compile::critical("Syntax {} not valid for environment", magic_enum::enum_name(switch_value)); break;
+
+                        case "struct"_h:
+                            output_number = true;
+                            input_number = false;
+                            break;
                         }
+                    }
+                    else {
+                        output_number = true;
+                        input_number = true;
+                    }
+
+
+                    if (output_number) {
+                        GetFlags() |= Flag::OutputNumber;
+                    }
+                    
+                    if (input_number) {
+                        GetFlags() |= Flag::InputNumber;
+                    }
+
+                    if (settings.FindChild("scoped") != nullptr) {
+                        GetFlags() |= Flag::Scoped;
                     }
 
                 }
+                break;
 
-                CreateHardCodedEntries(data);
+            case LinkFlag::Constant:
+                if constexpr (1)
+                {
+                    ConstructData data;
+
+                    if (auto entries = ast.FindChild(parse_strings::entries)) {
+
+                        for (SyntaxRecord& node : entries->children())
+                        {
+                            get_switch(node.SYNTAX().type)
+                            {
+                            case SyntaxType::EnumEntry:
+                                CreateEntry(node, data);
+                                break;
+
+                            case SyntaxType::Function:
+                            default:
+                                report::compile::critical("Syntax {} not valid for environment", magic_enum::enum_name(switch_value)); break;
+                            }
+                        }
+
+                    }
+
+                    CreateHardCodedEntries(data);
+                }
+                break;
             }
-            //Adding some custom entries here.
+
 
             return ConcreteType::OnLink(flags);
         }
