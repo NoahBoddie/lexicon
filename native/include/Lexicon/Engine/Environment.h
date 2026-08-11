@@ -176,7 +176,12 @@ namespace LEX
 		//virtual QualifiedField QualifyField(InfoBase* field);
 
 
+		TypeBase* ObtainTypeFromRecord(SyntaxRecord& ast, Element* parent);
 
+
+
+
+		//I'm keeping this alive solely because I am unsure if the other will break
 		inline TypeBase* tempObtainPolicy(SyntaxRecord& ast, Element* parent = nullptr);
 
 		virtual void LoadFromSyntaxNode(SyntaxRecord& node);

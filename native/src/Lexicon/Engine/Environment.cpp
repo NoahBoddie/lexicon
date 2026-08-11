@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Lexicon/Engine/Environment.h"
 
 //*src
@@ -42,6 +40,8 @@
 #include "Lexicon/Engine/Script.h"
 
 #include "Lexicon/Interfaces/ProjectClient.h"
+
+#include "Lexicon/Engine/EnumType.h"
 
 //SHOULD_NATIVE
 #include "Lexicon/Engine/VariableInfo.h"
@@ -277,6 +277,147 @@ namespace LEX
 		}
 
 
+
+		TypeBase* Environment::ObtainTypeFromRecord(SyntaxRecord& ast, Element* parent = nullptr)
+		{
+			SyntaxRecord& settings = *ast.FindChild(parse_strings::settings);
+
+
+
+			//This part can be done on the policy, what really needs to be done is figuring out which policy to create, 
+			// or to create at all. This relies on 1 setting. The rest can be fed verbatum later.
+
+			//NOTE, this also includes template arguments.
+
+
+			//Rules of obtaining
+			//Intrinsic, no creation, just pull a policy. Doesn't matter what else it is.
+			//ISpecial-Creates type policy from specific string and integer. Link error if not found.
+			//Data, Creates TypePolicy plain, claiming the next free space.
+			//Generic, a different TypePolicy has to be used, but otherwise it's fine.
+
+			if (!parent)
+				parent = GetParent();
+
+			SyntaxRecord* genericSet = settings.FindChild(parse_strings::generic);
+			bool is_generic = parent && parent->IsGenericElement() || genericSet && genericSet->size();
+
+
+
+			SyntaxRecord* data_type = settings.FindChild(parse_strings::data_type);
+
+
+			auto create_lamb = [&]<typename... Args>(Args&&... args) -> TypeBase*
+			{
+				switch (Hash(data_type->GetView()))
+				{
+				case "enum"_h:
+					return new EnumType{std::forward<Args>(args)...};
+
+					//case "attribute":
+					//Unknown if such a thing would ever be required
+
+				default:
+					return is_generic ? static_cast<TypeBase*>(new GenericType{ std::forward<Args>(args)... }) : new ConcreteType{ std::forward<Args>(args)... };
+					break;
+				}
+			};
+
+			auto obtain_lamb = [&](const std::string_view& name, TypeOffset offset, bool lookup) -> TypeBase*
+				{
+					TypeBase* result = nullptr;
+
+					if (lookup) {
+
+						result = IdentityManager::instance->GetBaseByOffset(name, offset);
+					}
+					else {
+						//result = is_generic ? static_cast<TypeBase*>(new GenericType{ name, offset }) : new ConcreteType{ name, offset };
+						result = create_lamb(name, offset);
+					}
+					return result;
+				};
+
+
+			TypeBase* result;
+
+
+
+
+
+			if (auto attach = settings.FindChild(parse_strings::attach); attach)
+			{
+
+				if (attach->size() == 0) {
+					attach->critical("external type requires some type.");
+				}
+
+				SyntaxRecord& attach_data = attach->GetFront();
+
+				bool lookup = false;
+
+				switch (Hash(attach_data.GetTag()))
+				{
+					//Intrinsics should already exist
+				case "intrinsic"_h:
+					lookup = true;
+					__fallthrough;
+
+				case "external"_h:
+				{
+					//Handle error, I can't fucking be bothered.
+					SyntaxRecord& category = attach_data.GetFront();
+					TypeOffset offset;
+
+					//this should more be if it's not number.
+					if (auto& args = category.GetFront(); args.GetView() == "args")
+					{
+						auto& children = args.children();
+
+						std::vector<std::string_view> string_args{ children.size() };
+
+						std::transform(children.begin(), children.end(), string_args.begin(), [](SyntaxRecord& it) { return it.GetView(); });
+
+
+						offset = IdentityManager::instance->GetTypeOffsetFromArgs(category.GetView(), string_args);
+					}
+					else
+					{
+						auto& tag = category.GetFront().GetTag();
+
+						if (strnicmp(tag.c_str(), "0x", 2) == 0) {
+							offset = std::stoi(tag, nullptr, 16);
+						}
+						else {
+							offset = std::stoi(tag, nullptr, 10);
+						}
+					}
+
+					result = obtain_lamb(category.GetView(), offset, lookup);
+
+					break;
+
+				}
+				break;//create
+
+				default:
+					report::apply::debug("Couldn't ObtainPolicy");
+					result = nullptr;
+					break;
+				}
+
+			}
+			else {
+				result = create_lamb();
+			}
+
+			if (result)
+				result->Initialize(ast);
+
+			return result;
+		}
+
+
 		TypeBase* Environment::tempObtainPolicy(SyntaxRecord& ast, Element* parent)
 		{
 			SyntaxRecord& settings = ast.GetChild(0);
@@ -413,7 +554,7 @@ namespace LEX
 			}
 			case SyntaxType::Type:
 			{
-				AddType(tempObtainPolicy(node));
+				AddType(ObtainTypeFromRecord(node));
 				break;
 			}
 			case SyntaxType::Variable:
