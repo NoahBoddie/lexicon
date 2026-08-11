@@ -26,7 +26,7 @@
 //
 
 #include "Lexicon/Utility/Parameter.h"
-
+#include "Lexicon/Primitive/Enumeration.h"
 using namespace RGL;
 using namespace LEX;
 using namespace LEX;
@@ -713,7 +713,6 @@ void TestingDumbness()
     }
 
 }
-
 
 
 int main(int argc, char** argv) {
@@ -3468,75 +3467,10 @@ namespace LEX::Test
         };
 
 
-        inline void Testing()
-        {
-            unconst(1);
-            const char* c_string = "thing";
-            char* uc_string = nullptr;   ;
-            using type = decltype("");
-            string_taker _1 = "";
-            string_taker _2 = c_string;
-            string_taker _3 = "c_string"sv;
-            
-            constexpr string_taker _4 = "";
-            string_taker _5 = uc_string;
-            constexpr String _6 = "abcdefghijklm";
-            String _7 = "abcdefghijklmnop";
-            decltype(auto) __0 = "afa";
-            static_assert(is_char_array<decltype("")>::value);
-            _1.func("");
-            
-            _1.foo(c_string);
-            _1.foo(uc_string);
-
-            constexpr String test;
-            constexpr std::strong_ordering result = test <=> test;
-            auto cast = static_cast<std::string>(test);
-            constexpr std::variant<String> test2{};
-
-            constexpr std::strong_ordering res_0 = std::variant<String>{} <=> std::variant<String>{};
-            constexpr std::strong_ordering res0 = String{} <=> String{};
-            constexpr std::strong_ordering res1 = test2 <=> test2;
-            constexpr std::strong_ordering res2 = std::variant<std::string>{} <=> std::variant<std::string>{};
-            constexpr std::strong_ordering res3 = std::string{} <=> std::string{};
-            //constexpr bool res1 = test == "";
-
-            //constexpr std::string test2 = "";
-
-
-            static_assert(true);
-            cast.size();
-        }
-
-
+   
 
         INITIALIZE()
         {
-            String test = "First";
-
-            logger::info("1: {:X} vs {:X}; {}", (size_t)&test, (size_t)test.data(), test.view());
-            
-            String test2 = test;
-
-            logger::info("2: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
-            
-            test2 = std::move(test);
-
-            logger::info("3: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
-
-            test2 = "abcdefghijklmon";
-
-            logger::info("4: {:X} vs {:X}; {}", (size_t)&test2, (size_t)test2.data(), test2.view());
-
-            test = test2;
-
-            logger::info("5: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
-
-            test = std::move(test2);
-
-            logger::info("6: {:X} vs {:X}; {}/{}", (size_t)test.data(), (size_t)test2.data(), test.view(), test2.view());
-
-
             struct FirstAttribute : public AttributeData
             {
                 bool CanAllowAttach(AttributeOwner* owner) override
@@ -3725,5 +3659,8 @@ namespace LEX::Test
 
         }
     }
+
+
+
 }
 #include "Lexicon/Engine/TestToss.h"
