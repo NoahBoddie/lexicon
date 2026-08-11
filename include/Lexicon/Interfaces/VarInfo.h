@@ -46,6 +46,8 @@ namespace LEX
 
 			return result;
 		}
+
+		//virtual Operand GetOperand() = 0;
 #endif
 
 		

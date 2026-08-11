@@ -23,6 +23,7 @@ namespace LEX
                 delete _members;
         }
 
+        //TODO: I can possibly make member data non-existent on inheritance trees, and leave it to a version of type that has it.
         MemberData* _members = nullptr;
 
 

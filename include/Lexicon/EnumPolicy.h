@@ -34,9 +34,9 @@ namespace LEX
     {
     public:
         bool IsScoped() const;
+        intptr_t GetDefault() const;
         std::string GetEnumName(intptr_t value) const;
 
-        intptr_t GetDefault() const;
 
     };
 
